@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SparkLearn UI Wireframes — 11 Pages</title>
+<style>
+  :root {
+    --bg: #f8f8fa;
+    --card: #ffffff;
+    --border: #e5e5ea;
+    --ink: #1d1d1f;
+    --ink-2: #6e6e73;
+    --ink-3: #aeaeb2;
+    --blue: #0071e3;
+    --blue-light: #e8f4fd;
+    --wire: #d1d1d6;
+    --wire-dark: #8e8e93;
+    --fill: #f2f2f7;
+    --fill-dark: #d1d1d6;
+    --green: #34c759;
+    --orange: #ff9500;
+    --red: #ff3b30;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Page Layout */
+  .page-break { page-break-after: always; }
+  .doc-container { max-width: 1100px; margin: 0 auto; padding: 60px 40px; }
+
+  /* Cover */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 80px 40px;
+  }
+  .cover h1 {
+    font-size: 56px;
+    font-weight: 700;
+    letter-spacing: -2px;
+    margin-bottom: 16px;
+  }
+  .cover h1 span {
+    background: linear-gradient(135deg, var(--blue), #5ac8fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover p { font-size: 20px; color: var(--ink-2); margin-bottom: 8px; }
+  .cover .meta { font-size: 14px; color: var(--ink-3); margin-top: 32px; }
+
+  /* TOC */
+  .toc { padding: 60px 40px; }
+  .toc h2 { font-size: 32px; font-weight: 700; margin-bottom: 32px; letter-spacing: -0.5px; }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .toc-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    text-decoration: none;
+    color: var(--ink);
+    transition: all 0.2s;
+  }
+  .toc-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-2px); }
+  .toc-num { font-size: 36px; font-weight: 700; color: var(--blue); line-height: 1; }
+  .toc-name { font-size: 16px; font-weight: 600; margin-top: 8px; }
+  .toc-desc { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+
+  /* Wireframe Section */
+  .wire-section {
+    margin-bottom: 80px;
+  }
+  .wire-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .wire-num {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--blue);
+    line-height: 1;
+    width: 60px;
+  }
+  .wire-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .wire-subtitle { font-size: 14px; color: var(--ink-2); }
+
+  /* Wireframe Canvas */
+  .wire-canvas {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+
+  /* Wireframe App Shell */
+  .wire-app {
+    display: flex;
+    height: 640px;
+    position: relative;
+  }
+  .wire-sidebar {
+    width: 220px;
+    background: var(--fill);
+    border-right: 1px solid var(--wire);
+    padding: 20px 14px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .wire-logo {
+    width: 100%;
+    height: 36px;
+    background: var(--wire);
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .wire-nav-group { margin-bottom: 16px; }
+  .wire-nav-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink-3);
+    padding: 0 8px 6px;
+  }
+  .wire-nav-item {
+    height: 28px;
+    background: transparent;
+    border-radius: 8px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+  }
+  .wire-nav-item.active { background: var(--blue-light); }
+  .wire-nav-dot {
+    width: 14px; height: 14px;
+    background: var(--wire);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .wire-nav-item.active .wire-nav-dot { background: var(--blue); }
+  .wire-nav-text {
+    width: 60px; height: 6px;
+    background: var(--wire);
+    border-radius: 3px;
+  }
+  .wire-nav-item.active .wire-nav-text { background: var(--blue); }
+  .wire-nav-badge {
+    margin-left: auto;
+    width: 18px; height: 14px;
+    background: var(--blue);
+    border-radius: 7px;
+  }
+  .wire-sidebar-spacer { flex: 1; }
+  .wire-sidebar-user {
+    height: 36px;
+    background: var(--wire);
+    border-radius: 8px;
+    border-top: 1px solid var(--wire-dark);
+    padding-top: 12px;
+  }
+
+  /* Wireframe Main */
+  .wire-main {
+    flex: 1;
+    padding: 28px 32px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .wire-main.has-right {
+    flex-direction: row;
+    gap: 20px;
+  }
+  .wire-main-left { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+  .wire-main-right {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Wireframe Elements */
+  .wire-block {
+    background: var(--fill);
+    border: 1px dashed var(--wire);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .wire-block.solid {
+    border-style: solid;
+    background: white;
+    border-color: var(--border);
+  }
+  .wire-block-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--wire-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--wire);
+    margin-bottom: 4px;
+  }
+  .wire-line {
+    height: 8px;
+    background: var(--wire);
+    border-radius: 4px;
+  }
+  .wire-line.short { width: 60%; }
+  .wire-line.medium { width: 80%; }
+  .wire-line.tiny { width: 40%; }
+  .wire-line-sm {
+    height: 6px;
+    background: var(--wire);
+    border-radius: 3px;
+  }
+  .wire-rect {
+    background: var(--fill);
+    border: 1px dashed var(--wire);
+    border-radius: 8px;
+    min-height: 40px;
+  }
+  .wire-circle {
+    width: 60px; height: 60px;
+    border: 2px dashed var(--wire);
+    border-radius: 50%;
+  }
+  .wire-grid {
+    display: grid;
+    gap: 10px;
+  }
+  .wire-grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .wire-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .wire-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .wire-flex { display: flex; gap: 10px; align-items: center; }
+  .wire-flex-col { display: flex; flex-direction: column; gap: 6px; }
+
+  /* Wireframe Stats */
+  .wire-stat {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wire-stat-icon {
+    width: 32px; height: 32px;
+    background: var(--fill);
+    border-radius: 8px;
+  }
+  .wire-stat-val { height: 14px; width: 50px; background: var(--wire-dark); border-radius: 3px; }
+
+  /* Wireframe Card Row */
+  .wire-card-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--wire);
+  }
+  .wire-card-row:last-child { border-bottom: none; }
+  .wire-avatar-sm {
+    width: 28px; height: 28px;
+    background: var(--wire);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .wire-tag {
+    padding: 3px 10px;
+    background: var(--blue-light);
+    border-radius: 100px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--blue);
+  }
+  .wire-tag.orange { background: #fff5e6; color: var(--orange); }
+  .wire-tag.green { background: #e8f8ed; color: var(--green); }
+
+  /* Annotations */
+  .wire-annotations {
+    padding: 16px 24px;
+    background: #fef9e7;
+    border-top: 1px solid #f0e6c0;
+    font-size: 12px;
+    color: #8b7355;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+  }
+  .wire-annotation {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .wire-annotation-marker {
+    width: 18px; height: 18px;
+    background: #f0c040;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #5a4a20;
+    flex-shrink: 0;
+  }
+
+  /* Specific Wireframe Layouts */
+  .wire-hero { padding: 12px 0 0; }
+  .wire-hero-title { height: 28px; width: 280px; background: var(--wire-dark); border-radius: 4px; margin-bottom: 8px; }
+  .wire-hero-sub { height: 10px; width: 200px; background: var(--wire); border-radius: 3px; margin-bottom: 12px; }
+  .wire-hero-streak {
+    display: inline-flex;
+    padding: 5px 14px;
+    background: #e8f8ed;
+    border-radius: 100px;
+    border: 1px solid rgba(52,199,89,0.2);
+  }
+  .wire-hero-streak span {
+    height: 8px; width: 80px; background: var(--green); border-radius: 3px;
+  }
+
+  /* Featured Card */
+  .wire-featured {
+    background: linear-gradient(135deg, #1d1d1f, #2c2c2e);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    color: white;
+  }
+  .wire-ring {
+    width: 100px; height: 100px;
+    border: 4px solid rgba(255,255,255,0.15);
+    border-top-color: var(--blue);
+    border-right-color: #5ac8fa;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .wire-ring::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px; height: 16px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+  }
+  .wire-featured-content { flex: 1; }
+  .wire-featured-tag {
+    height: 8px; width: 80px;
+    background: rgba(90,200,250,0.5);
+    border-radius: 3px;
+    margin-bottom: 10px;
+  }
+  .wire-featured-title {
+    height: 16px; width: 180px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    margin-bottom: 6px;
+  }
+  .wire-featured-desc {
+    height: 8px; width: 240px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 3px;
+    margin-bottom: 14px;
+  }
+  .wire-pills {
+    display: flex;
+    gap: 6px;
+  }
+  .wire-pill {
+    padding: 4px 12px;
+    border-radius: 100px;
+    background: rgba(255,255,255,0.1);
+    height: 22px;
+  }
+  .wire-pill.active { background: var(--blue); }
+  .wire-pill.done { background: rgba(52,199,89,0.2); }
+  .wire-featured-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .wire-featured-stat {
+    text-align: center;
+  }
+  .wire-featured-stat-val {
+    height: 16px; width: 30px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    margin: 0 auto 4px;
+  }
+  .wire-featured-stat-lbl {
+    height: 6px; width: 50px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 3px;
+    margin: 0 auto;
+  }
+
+  /* Task Item */
+  .wire-task {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--wire);
+  }
+  .wire-task:last-child { border-bottom: none; }
+  .wire-task-check {
+    width: 20px; height: 20px;
+    border: 2px solid var(--wire);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .wire-task-check.done {
+    background: var(--blue);
+    border-color: var(--blue);
+  }
+  .wire-task-content { flex: 1; }
+  .wire-task-title { height: 8px; width: 70%; background: var(--wire); border-radius: 3px; margin-bottom: 6px; }
+  .wire-task-title.done { background: var(--wire-dark); text-decoration: line-through; }
+  .wire-task-meta { display: flex; gap: 6px; align-items: center; }
+  .wire-task-tag-sm {
+    padding: 2px 8px;
+    background: var(--blue-light);
+    border-radius: 100px;
+    height: 14px;
+    width: 40px;
+  }
+  .wire-task-info { height: 6px; width: 60px; background: var(--wire); border-radius: 3px; }
+
+  /* Progress Bar */
+  .wire-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .wire-progress-label { height: 6px; width: 50px; background: var(--wire); border-radius: 3px; }
+  .wire-progress-bar { flex: 1; height: 6px; background: var(--fill); border-radius: 3px; overflow: hidden; }
+  .wire-progress-fill { height: 100%; border-radius: 3px; background: var(--blue); }
+  .wire-progress-pct { height: 6px; width: 24px; background: var(--blue); border-radius: 3px; }
+
+  /* Heatmap */
+  .wire-heatmap {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .wire-heat-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: var(--fill);
+  }
+  .wire-heat-cell.l1 { background: #bdd7f7; }
+  .wire-heat-cell.l2 { background: #6ba5e7; }
+  .wire-heat-cell.l3 { background: var(--blue); }
+
+  /* Mastery Bar */
+  .wire-mastery {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .wire-mastery:last-child { margin-bottom: 0; }
+  .wire-mastery-label { height: 6px; width: 50px; background: var(--wire); border-radius: 3px; flex-shrink: 0; }
+  .wire-mastery-bar { flex: 1; height: 5px; background: var(--fill); border-radius: 3px; overflow: hidden; }
+  .wire-mastery-fill { height: 100%; border-radius: 3px; }
+  .wire-mastery-pct { height: 6px; width: 22px; background: var(--wire-dark); border-radius: 3px; flex-shrink: 0; }
+
+  /* Resource Item */
+  .wire-resource {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--wire);
+  }
+  .wire-resource:last-child { border-bottom: none; }
+  .wire-resource-icon {
+    width: 36px; height: 36px;
+    background: var(--fill);
+    border: 1px solid var(--wire);
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .wire-resource-info { flex: 1; }
+  .wire-resource-name { height: 7px; width: 80%; background: var(--wire); border-radius: 3px; margin-bottom: 4px; }
+  .wire-resource-meta { height: 5px; width: 50%; background: var(--fill); border-radius: 3px; }
+  .wire-resource-time { height: 5px; width: 50px; background: var(--wire); border-radius: 3px; flex-shrink: 0; }
+
+  /* Quick Actions */
+  .wire-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    background: var(--fill);
+    border: 1px solid var(--wire);
+    border-radius: 12px;
+  }
+  .wire-action-icon {
+    width: 36px; height: 36px;
+    background: var(--blue-light);
+    border-radius: 10px;
+  }
+  .wire-action-text { height: 6px; width: 40px; background: var(--wire); border-radius: 3px; }
+
+  /* --- Full page wireframe layouts --- */
+  .wire-full {
+    display: flex;
+    flex-direction: column;
+    min-height: 580px;
+  }
+  .wire-full-header {
+    padding: 20px 24px;
+    border-bottom: 1px dashed var(--wire);
+  }
+  .wire-full-body {
+    flex: 1;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Tab Bar */
+  .wire-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--wire);
+    padding-bottom: 0;
+  }
+  .wire-tab {
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--ink-3);
+  }
+  .wire-tab.active {
+    background: var(--blue-light);
+    color: var(--blue);
+    font-weight: 600;
+  }
+
+  /* Breadcrumb */
+  .wire-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .wire-crumb {
+    height: 6px;
+    width: 40px;
+    background: var(--wire);
+    border-radius: 3px;
+  }
+  .wire-crumb-sep {
+    height: 6px;
+    width: 8px;
+    background: var(--wire-dark);
+    border-radius: 3px;
+  }
+
+  /* Search Bar */
+  .wire-search {
+    height: 40px;
+    background: var(--fill);
+    border: 1px solid var(--wire);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .wire-search-icon {
+    width: 16px; height: 16px;
+    background: var(--wire);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .wire-search-text {
+    flex: 1;
+    height: 8px;
+    background: var(--wire);
+    border-radius: 4px;
+    width: 40%;
+  }
+  .wire-search-kbd {
+    padding: 2px 6px;
+    background: white;
+    border: 1px solid var(--wire);
+    border-radius: 4px;
+    font-size: 8px;
+    color: var(--ink-3);
+  }
+
+  /* Filter Chips */
+  .wire-filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .wire-chip {
+    padding: 6px 14px;
+    border: 1px solid var(--wire);
+    border-radius: 100px;
+    font-size: 10px;
+    color: var(--ink-2);
+  }
+  .wire-chip.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: white;
+  }
+
+  /* Table-like list */
+  .wire-table-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 2px solid var(--wire);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .wire-table-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--wire);
+  }
+  .wire-table-row:last-child { border-bottom: none; }
+  .wire-table-cell { flex: 1; }
+  .wire-table-cell.fixed { width: 80px; flex: none; }
+  .wire-table-cell-narrow { width: 60px; flex: none; }
+
+  /* Chat Interface */
+  .wire-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    padding: 12px 0;
+  }
+  .wire-msg {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: 16px;
+  }
+  .wire-msg.user {
+    background: var(--blue);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .wire-msg.ai {
+    background: var(--fill);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .wire-msg-line {
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    margin-bottom: 4px;
+  }
+  .wire-msg.ai .wire-msg-line { background: var(--wire); }
+  .wire-msg-line:last-child { margin-bottom: 0; width: 60%; }
+
+  /* Input Bar */
+  .wire-input-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--fill);
+    border: 1px solid var(--wire);
+    border-radius: 12px;
+  }
+  .wire-input-text { flex: 1; height: 10px; background: var(--wire); border-radius: 5px; width: 50%; }
+  .wire-input-send {
+    width: 32px; height: 32px;
+    background: var(--blue);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Video Player */
+  .wire-video-player {
+    background: #000;
+    border-radius: 16px;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .wire-play-btn {
+    width: 56px; height: 56px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wire-play-triangle {
+    width: 0; height: 0;
+    border-left: 16px solid rgba(255,255,255,0.8);
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    margin-left: 4px;
+  }
+  .wire-video-controls {
+    position: absolute;
+    bottom: 12px; left: 12px; right: 12px;
+    height: 28px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .wire-ctrl-icon { width: 14px; height: 14px; background: rgba(255,255,255,0.3); border-radius: 3px; flex-shrink: 0; }
+  .wire-ctrl-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; position: relative; }
+  .wire-ctrl-progress { height: 100%; width: 35%; background: var(--blue); border-radius: 2px; }
+  .wire-ctrl-time { font-size: 8px; color: rgba(255,255,255,0.5); flex-shrink: 0; }
+
+  /* Timeline */
+  .wire-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-left: 20px;
+    position: relative;
+  }
+  .wire-timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--wire);
+  }
+  .wire-timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+    position: relative;
+  }
+  .wire-timeline-dot {
+    width: 12px; height: 12px;
+    background: var(--blue);
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: absolute;
+    left: -20px;
+    top: 10px;
+  }
+  .wire-timeline-dot.future { background: var(--wire); }
+  .wire-timeline-content { flex: 1; }
+  .wire-timeline-date { height: 5px; width: 50px; background: var(--wire); border-radius: 3px; margin-bottom: 4px; }
+  .wire-timeline-text { height: 7px; width: 70%; background: var(--wire-dark); border-radius: 3px; }
+
+  /* Form */
+  .wire-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .wire-form-label { height: 6px; width: 60px; background: var(--wire); border-radius: 3px; }
+  .wire-form-input { height: 36px; background: var(--fill); border: 1px solid var(--wire); border-radius: 8px; }
+  .wire-form-select { height: 36px; background: var(--fill); border: 1px solid var(--wire); border-radius: 8px; display: flex; align-items: center; padding: 0 12px; }
+  .wire-form-select::after { content: ''; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--wire-dark); border-bottom: 2px solid var(--wire-dark); transform: rotate(45deg); }
+
+  /* Button */
+  .wire-btn {
+    height: 40px;
+    background: var(--blue);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wire-btn-text { height: 8px; width: 60px; background: rgba(255,255,255,0.4); border-radius: 4px; }
+  .wire-btn.secondary { background: var(--fill); border: 1px solid var(--wire); }
+  .wire-btn.secondary .wire-btn-text { background: var(--wire-dark); }
+
+  /* Tags */
+  .wire-tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .wire-tag-item {
+    padding: 5px 12px;
+    border-radius: 100px;
+    border: 1px solid var(--wire);
+    height: 24px;
+  }
+  .wire-tag-item.blue { background: linear-gradient(135deg, var(--blue), #5ac8fa); border-color: transparent; }
+  .wire-tag-item.orange { background: linear-gradient(135deg, var(--orange), #ffb347); border-color: transparent; }
+
+  /* Chart placeholder */
+  .wire-chart {
+    background: var(--fill);
+    border: 1px dashed var(--wire);
+    border-radius: 12px;
+    height: 180px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    padding: 20px 16px 16px;
+    gap: 6px;
+  }
+  .wire-bar {
+    flex: 1;
+    background: var(--blue);
+    border-radius: 4px 4px 0 0;
+    opacity: 0.6;
+    max-width: 28px;
+  }
+  .wire-chart-line {
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .wire-line-path {
+    width: 100%;
+    height: 60%;
+    border-bottom: 2px solid var(--blue);
+    border-radius: 0;
+    position: relative;
+  }
+  .wire-line-path::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(0,113,227,0.1), transparent);
+  }
+
+  /* Donut */
+  .wire-donut {
+    width: 120px; height: 120px;
+    border: 16px solid var(--fill);
+    border-top-color: var(--blue);
+    border-right-color: var(--blue);
+    border-radius: 50%;
+    position: relative;
+  }
+  .wire-donut::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px; height: 14px;
+    background: var(--wire);
+    border-radius: 4px;
+  }
+
+  /* Practice Quiz */
+  .wire-quiz-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 1px solid var(--wire);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .wire-quiz-radio {
+    width: 18px; height: 18px;
+    border: 2px solid var(--wire);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .wire-quiz-radio.selected { border-color: var(--blue); background: var(--blue); }
+  .wire-quiz-radio.correct { border-color: var(--green); background: var(--green); }
+  .wire-quiz-radio.wrong { border-color: var(--red); background: var(--red); }
+  .wire-quiz-text { height: 7px; flex: 1; background: var(--wire); border-radius: 3px; }
+
+  /* Steps */
+  .wire-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .wire-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wire-step-circle {
+    width: 28px; height: 28px;
+    border: 2px solid var(--wire);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-3);
+  }
+  .wire-step-circle.active { border-color: var(--blue); color: var(--blue); }
+  .wire-step-circle.done { border-color: var(--green); background: var(--green); color: white; }
+  .wire-step-label { font-size: 10px; color: var(--ink-3); }
+  .wire-step-label.active { color: var(--blue); font-weight: 600; }
+  .wire-step-line { width: 40px; height: 2px; background: var(--wire); margin: 0 4px; }
+  .wire-step-line.done { background: var(--green); }
+
+  /* Notification */
+  .wire-notif {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    border-left: 3px solid var(--blue);
+    background: var(--fill);
+    margin-bottom: 6px;
+  }
+  .wire-notif-icon {
+    width: 28px; height: 28px;
+    background: var(--blue-light);
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .wire-notif-content { flex: 1; }
+  .wire-notif-title { height: 7px; width: 60%; background: var(--wire-dark); border-radius: 3px; margin-bottom: 4px; }
+  .wire-notif-desc { height: 5px; width: 80%; background: var(--wire); border-radius: 3px; }
+
+  @media print {
+    .wire-section { page-break-inside: avoid; }
+    .cover { min-height: auto; padding: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== COVER ========== -->
+<div class="cover page-break">
+  <h1>SparkLearn <span>UI Wireframes</span></h1>
+  <p>学而思 个性化学习智能体系统</p>
+  <p>12 Pages · Apple 纯净风格 · 线框图设计文档</p>
+  <div class="meta">
+    <div>Design Language: Apple 纯净 / DM Sans + Noto Sans SC</div>
+    <div>Color: #1d1d1f / #0071e3 / #5ac8fa / #ffffff</div>
+    <div>Created: 2026-04-16 · Competition: 第15届中国软件杯 · A3 讯飞</div>
+  </div>
+</div>
+
+<!-- ========== TABLE OF CONTENTS ========== -->
+<div class="doc-container page-break">
+  <div class="toc">
+    <h2>页面目录</h2>
+    <div class="toc-grid">
+      <a class="toc-item" href="#page-01"><div class="toc-num">01</div><div class="toc-name">首页学习总览</div><div class="toc-desc">Dashboard · 学习数据一目了然</div></a>
+      <a class="toc-item" href="#page-02"><div class="toc-num">02</div><div class="toc-name">学习路径</div><div class="toc-desc">Learning Path · 可视化学习路线</div></a>
+      <a class="toc-item" href="#page-03"><div class="toc-num">03</div><div class="toc-name">资源中心</div><div class="toc-desc">Resource Center · 讲义/视频/PPT</div></a>
+      <a class="toc-item" href="#page-04"><div class="toc-num">04</div><div class="toc-name">练习与错题</div><div class="toc-desc">Practice · 练习题 + 错题本</div></a>
+      <a class="toc-item" href="#page-05"><div class="toc-num">05</div><div class="toc-name">资源推送</div><div class="toc-desc">Push · AI 个性化推荐</div></a>
+      <a class="toc-item" href="#page-06"><div class="toc-num">06</div><div class="toc-name">资源生成</div><div class="toc-desc">Generate · AI 生成学习资源</div></a>
+      <a class="toc-item" href="#page-07"><div class="toc-num">07</div><div class="toc-name">智能辅导</div><div class="toc-desc">AI Tutor · 对话式辅导</div></a>
+      <a class="toc-item" href="#page-08"><div class="toc-num">08</div><div class="toc-name">学习报告</div><div class="toc-desc">Report · 数据可视化</div></a>
+      <a class="toc-item" href="#page-09"><div class="toc-num">09</div><div class="toc-name">视频播放</div><div class="toc-desc">Video · 课程视频播放器</div></a>
+      <a class="toc-item" href="#page-10"><div class="toc-num">10</div><div class="toc-name">个人信息</div><div class="toc-desc">Profile · 用户设置</div></a>
+      <a class="toc-item" href="#page-11"><div class="toc-num">11</div><div class="toc-name">学习画像建档</div><div class="toc-desc">Onboarding · 学习偏好收集</div></a>
+      <a class="toc-item" href="#page-12"><div class="toc-num">12</div><div class="toc-name">登录/注册</div><div class="toc-desc">Auth · 用户认证</div></a>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 01: 首页学习总览 ========== -->
+<div class="doc-container" id="page-01">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">01</div>
+      <div>
+        <div class="wire-title">首页学习总览</div>
+        <div class="wire-subtitle">Dashboard — 学习数据的核心入口</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <!-- Sidebar -->
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div><div class="wire-nav-badge"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <!-- Main -->
+        <div class="wire-main">
+          <!-- Hero -->
+          <div class="wire-hero">
+            <div class="wire-hero-title"></div>
+            <div class="wire-hero-sub"></div>
+            <div class="wire-hero-streak"><span></span></div>
+          </div>
+
+          <!-- Featured Card -->
+          <div class="wire-featured">
+            <div class="wire-ring"></div>
+            <div class="wire-featured-content">
+              <div class="wire-featured-tag"></div>
+              <div class="wire-featured-title"></div>
+              <div class="wire-featured-desc"></div>
+              <div class="wire-pills">
+                <div class="wire-pill done" style="width:48px"></div>
+                <div class="wire-pill active" style="width:60px"></div>
+                <div class="wire-pill" style="width:52px"></div>
+                <div class="wire-pill" style="width:52px"></div>
+              </div>
+            </div>
+            <div class="wire-featured-stats">
+              <div class="wire-featured-stat"><div class="wire-featured-stat-val"></div><div class="wire-featured-stat-lbl"></div></div>
+              <div class="wire-featured-stat"><div class="wire-featured-stat-val"></div><div class="wire-featured-stat-lbl"></div></div>
+            </div>
+          </div>
+
+          <!-- Stats Row -->
+          <div class="wire-grid wire-grid-4">
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:60%"></div><div class="wire-stat-val"></div><div class="wire-line-sm" style="width:40%"></div></div>
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:55%"></div><div class="wire-stat-val"></div><div class="wire-line-sm" style="width:45%"></div></div>
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:50%"></div><div class="wire-stat-val"></div><div class="wire-line-sm" style="width:35%"></div></div>
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:65%"></div><div class="wire-stat-val"></div><div class="wire-line-sm" style="width:50%"></div></div>
+          </div>
+
+          <!-- Two Column -->
+          <div class="wire-flex" style="align-items:stretch; gap:16px">
+            <!-- Left -->
+            <div class="wire-flex-col" style="flex:1; gap:16px">
+              <!-- Tasks -->
+              <div class="wire-block solid" style="flex:1">
+                <div class="wire-block-title">今日学习任务</div>
+                <div class="wire-task"><div class="wire-task-check done"></div><div class="wire-task-content"><div class="wire-task-title done"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:var(--blue-light)"></div><div class="wire-task-info"></div></div></div></div>
+                <div class="wire-task"><div class="wire-task-check done"></div><div class="wire-task-content"><div class="wire-task-title done"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:#fff5e6"></div><div class="wire-task-info"></div></div></div></div>
+                <div class="wire-task"><div class="wire-task-check"></div><div class="wire-task-content"><div class="wire-task-title"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:#e8f8ed"></div><div class="wire-task-info"></div></div></div></div>
+                <div class="wire-task"><div class="wire-task-check"></div><div class="wire-task-content"><div class="wire-task-title"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:#f5edfa"></div><div class="wire-task-info"></div></div></div></div>
+              </div>
+              <!-- Resources -->
+              <div class="wire-block solid" style="flex:1">
+                <div class="wire-block-title">最近学习资源</div>
+                <div class="wire-resource"><div class="wire-resource-icon"></div><div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div><div class="wire-resource-time"></div></div>
+                <div class="wire-resource"><div class="wire-resource-icon"></div><div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div><div class="wire-resource-time"></div></div>
+                <div class="wire-resource"><div class="wire-resource-icon"></div><div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div><div class="wire-resource-time"></div></div>
+              </div>
+            </div>
+            <!-- Right -->
+            <div class="wire-main-right">
+              <!-- Stage -->
+              <div class="wire-block solid">
+                <div class="wire-block-title">当前学习阶段</div>
+                <div class="wire-tag" style="width:fit-content">基础巩固 · 第2/4阶段</div>
+                <div class="wire-progress-row"><div class="wire-progress-label"></div><div class="wire-progress-bar"><div class="wire-progress-fill" style="width:45%"></div></div><div class="wire-progress-pct"></div></div>
+                <div class="wire-progress-row"><div class="wire-progress-label"></div><div class="wire-progress-bar"><div class="wire-progress-fill" style="width:41%;background:var(--orange)"></div></div><div class="wire-progress-pct" style="background:var(--orange)"></div></div>
+              </div>
+              <!-- Profile Tags -->
+              <div class="wire-block solid">
+                <div class="wire-block-title">学习画像</div>
+                <div class="wire-tag-cloud">
+                  <div class="wire-tag-item blue"></div>
+                  <div class="wire-tag-item blue"></div>
+                  <div class="wire-tag-item orange"></div>
+                  <div class="wire-tag-item"></div>
+                  <div class="wire-tag-item"></div>
+                </div>
+              </div>
+              <!-- Mastery -->
+              <div class="wire-block solid">
+                <div class="wire-block-title">知识掌握度</div>
+                <div class="wire-mastery"><div class="wire-mastery-label"></div><div class="wire-mastery-bar"><div class="wire-mastery-fill" style="width:82%;background:var(--green)"></div></div><div class="wire-mastery-pct"></div></div>
+                <div class="wire-mastery"><div class="wire-mastery-label"></div><div class="wire-mastery-bar"><div class="wire-mastery-fill" style="width:76%;background:var(--green)"></div></div><div class="wire-mastery-pct"></div></div>
+                <div class="wire-mastery"><div class="wire-mastery-label"></div><div class="wire-mastery-bar"><div class="wire-mastery-fill" style="width:41%;background:var(--orange)"></div></div><div class="wire-mastery-pct"></div></div>
+                <div class="wire-mastery"><div class="wire-mastery-label"></div><div class="wire-mastery-bar"><div class="wire-mastery-fill" style="width:28%;background:var(--red)"></div></div><div class="wire-mastery-pct"></div></div>
+              </div>
+              <!-- Heatmap -->
+              <div class="wire-block solid">
+                <div class="wire-block-title">本周学习热力</div>
+                <div class="wire-heatmap">
+                  <div class="wire-heat-cell l3"></div><div class="wire-heat-cell l2"></div><div class="wire-heat-cell l3"></div><div class="wire-heat-cell l1"></div><div class="wire-heat-cell l2"></div><div class="wire-heat-cell l3"></div><div class="wire-heat-cell l2"></div>
+                  <div class="wire-heat-cell l2"></div><div class="wire-heat-cell l3"></div><div class="wire-heat-cell l1"></div><div class="wire-heat-cell l3"></div><div class="wire-heat-cell l2"></div><div class="wire-heat-cell l1"></div><div class="wire-heat-cell l3"></div>
+                  <div class="wire-heat-cell l1"></div><div class="wire-heat-cell l2"></div><div class="wire-heat-cell l3"></div><div class="wire-heat-cell l2"></div><div class="wire-heat-cell"></div><div class="wire-heat-cell l1"></div><div class="wire-heat-cell l2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>毛玻璃侧栏，固定定位，backdrop-filter blur(60px)</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>Hero 区使用 48px 大字号，渐变色关键字高亮</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>深色特色卡片展示当前学习路径，含圆环进度和阶段标记</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>四列统计卡片，带图标+数值+趋势</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">5</div>左内容区 + 右侧 280px 信息栏的经典双列布局</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 02: 学习路径 ========== -->
+<div class="doc-container page-break" id="page-02">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">02</div>
+      <div>
+        <div class="wire-title">学习路径</div>
+        <div class="wire-subtitle">Learning Path — 可视化知识图谱与学习路线</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <!-- Header -->
+          <div class="wire-flex" style="justify-content:space-between;align-items:center">
+            <div>
+              <div class="wire-breadcrumb"><div class="wire-crumb"></div><div class="wire-crumb-sep"></div><div class="wire-crumb"></div></div>
+              <div class="wire-hero-title" style="width:200px;margin-bottom:6px"></div>
+              <div class="wire-line-sm" style="width:140px"></div>
+            </div>
+            <div class="wire-filters">
+              <div class="wire-chip active">全部</div>
+              <div class="wire-chip">进行中</div>
+              <div class="wire-chip">已完成</div>
+              <div class="wire-chip">未开始</div>
+            </div>
+          </div>
+
+          <!-- Path Visualization -->
+          <div class="wire-block solid" style="padding:24px">
+            <div class="wire-block-title">Python 基础到进阶 — 学习路径</div>
+            <!-- Horizontal Step Path -->
+            <div style="padding:20px 0;display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap">
+              <div class="wire-steps">
+                <div class="wire-step"><div class="wire-step-circle done">1</div><div class="wire-step-label">入门</div></div>
+                <div class="wire-step-line done"></div>
+                <div class="wire-step"><div class="wire-step-circle active">2</div><div class="wire-step-label active">基础巩固</div></div>
+                <div class="wire-step-line"></div>
+                <div class="wire-step"><div class="wire-step-circle">3</div><div class="wire-step-label">进阶实战</div></div>
+                <div class="wire-step-line"></div>
+                <div class="wire-step"><div class="wire-step-circle">4</div><div class="wire-step-label">面试冲刺</div></div>
+              </div>
+            </div>
+            <!-- Knowledge Tree -->
+            <div class="wire-grid wire-grid-3" style="gap:12px;margin-top:12px">
+              <div class="wire-block" style="border-left:3px solid var(--green);background:#f8fdf9">
+                <div style="font-size:9px;font-weight:600;color:var(--green);margin-bottom:4px">已完成</div>
+                <div class="wire-line-sm" style="width:80%"></div>
+                <div class="wire-line-sm" style="width:60%"></div>
+                <div class="wire-progress-row" style="margin-top:6px"><div class="wire-progress-bar"><div class="wire-progress-fill" style="width:100%;background:var(--green)"></div></div></div>
+              </div>
+              <div class="wire-block" style="border-left:3px solid var(--blue);background:var(--blue-light)">
+                <div style="font-size:9px;font-weight:600;color:var(--blue);margin-bottom:4px">进行中</div>
+                <div class="wire-line-sm" style="width:70%"></div>
+                <div class="wire-line-sm" style="width:55%"></div>
+                <div class="wire-progress-row" style="margin-top:6px"><div class="wire-progress-bar"><div class="wire-progress-fill" style="width:45%"></div></div></div>
+              </div>
+              <div class="wire-block" style="border-left:3px solid var(--wire)">
+                <div style="font-size:9px;font-weight:600;color:var(--ink-3);margin-bottom:4px">待学习</div>
+                <div class="wire-line-sm" style="width:75%"></div>
+                <div class="wire-line-sm" style="width:50%"></div>
+                <div class="wire-progress-row" style="margin-top:6px"><div class="wire-progress-bar"><div class="wire-progress-fill" style="width:0%"></div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detail Cards -->
+          <div class="wire-grid wire-grid-2" style="gap:12px">
+            <div class="wire-block solid">
+              <div class="wire-block-title">当前章节：函数与模块</div>
+              <div class="wire-task"><div class="wire-task-check done"></div><div class="wire-task-content"><div class="wire-task-title done"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:var(--blue-light)"></div></div></div></div>
+              <div class="wire-task"><div class="wire-task-check done"></div><div class="wire-task-content"><div class="wire-task-title done"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:#fff5e6"></div></div></div></div>
+              <div class="wire-task"><div class="wire-task-check"></div><div class="wire-task-content"><div class="wire-task-title"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:#e8f8ed"></div></div></div></div>
+              <div class="wire-task"><div class="wire-task-check"></div><div class="wire-task-content"><div class="wire-task-title"></div><div class="wire-task-meta"><div class="wire-task-tag-sm" style="background:#f5edfa"></div></div></div></div>
+            </div>
+            <div class="wire-block solid">
+              <div class="wire-block-title">推荐下一步</div>
+              <div class="wire-notif"><div class="wire-notif-icon"></div><div class="wire-notif-content"><div class="wire-notif-title"></div><div class="wire-notif-desc"></div></div></div>
+              <div class="wire-notif"><div class="wire-notif-icon"></div><div class="wire-notif-content"><div class="wire-notif-title"></div><div class="wire-notif-desc"></div></div></div>
+              <div class="wire-notif"><div class="wire-notif-icon"></div><div class="wire-notif-content"><div class="wire-notif-title"></div><div class="wire-notif-desc"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>顶部水平步骤条展示4阶段，当前阶段高亮</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>三列卡片展示 已完成/进行中/待学习 章节，带进度条</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>底部双列：左侧章节任务清单，右侧AI推荐下一步</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>筛选标签（全部/进行中/已完成/未开始）</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 03: 资源中心 ========== -->
+<div class="doc-container page-break" id="page-03">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">03</div>
+      <div>
+        <div class="wire-title">资源中心</div>
+        <div class="wire-subtitle">Resource Center — 全部学习资料管理</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <!-- Search + Filters -->
+          <div class="wire-hero">
+            <div class="wire-hero-title" style="width:160px"></div>
+            <div class="wire-hero-sub" style="width:240px"></div>
+          </div>
+          <div class="wire-search">
+            <div class="wire-search-icon"></div>
+            <div class="wire-search-text"></div>
+            <div class="wire-search-kbd">⌘K</div>
+          </div>
+          <div class="wire-flex" style="justify-content:space-between">
+            <div class="wire-filters">
+              <div class="wire-chip active">全部</div>
+              <div class="wire-chip">讲义</div>
+              <div class="wire-chip">视频</div>
+              <div class="wire-chip">PPT</div>
+              <div class="wire-chip">练习题</div>
+              <div class="wire-chip">代码案例</div>
+            </div>
+            <div class="wire-filters">
+              <div class="wire-chip">按章节</div>
+              <div class="wire-chip">按时间</div>
+            </div>
+          </div>
+
+          <!-- Resource Table -->
+          <div class="wire-block solid" style="flex:1">
+            <div class="wire-table-header">
+              <div class="wire-table-cell-narrow"></div>
+              <div class="wire-table-cell">资源名称</div>
+              <div class="wire-table-cell fixed">类型</div>
+              <div class="wire-table-cell fixed">章节</div>
+              <div class="wire-table-cell fixed">日期</div>
+              <div class="wire-table-cell-narrow"></div>
+            </div>
+            <div class="wire-table-row"><div class="wire-resource-icon" style="width:32px;height:32px"></div><div class="wire-table-cell"><div class="wire-line-sm" style="width:80%"></div></div><div class="wire-table-cell fixed"><div class="wire-tag" style="font-size:8px">讲义</div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:60%"></div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50px"></div></div><div class="wire-table-cell-narrow"><div class="wire-line-sm" style="width:20px"></div></div></div>
+            <div class="wire-table-row"><div class="wire-resource-icon" style="width:32px;height:32px"></div><div class="wire-table-cell"><div class="wire-line-sm" style="width:70%"></div></div><div class="wire-table-cell fixed"><div class="wire-tag orange" style="font-size:8px">视频</div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50%"></div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50px"></div></div><div class="wire-table-cell-narrow"><div class="wire-line-sm" style="width:20px"></div></div></div>
+            <div class="wire-table-row"><div class="wire-resource-icon" style="width:32px;height:32px"></div><div class="wire-table-cell"><div class="wire-line-sm" style="width:90%"></div></div><div class="wire-table-cell fixed"><div class="wire-tag green" style="font-size:8px">练习</div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:55%"></div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50px"></div></div><div class="wire-table-cell-narrow"><div class="wire-line-sm" style="width:20px"></div></div></div>
+            <div class="wire-table-row"><div class="wire-resource-icon" style="width:32px;height:32px"></div><div class="wire-table-cell"><div class="wire-line-sm" style="width:65%"></div></div><div class="wire-table-cell fixed"><div class="wire-tag" style="font-size:8px;background:#f5edfa;color:var(--purple)">PPT</div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:45%"></div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50px"></div></div><div class="wire-table-cell-narrow"><div class="wire-line-sm" style="width:20px"></div></div></div>
+            <div class="wire-table-row"><div class="wire-resource-icon" style="width:32px;height:32px"></div><div class="wire-table-cell"><div class="wire-line-sm" style="width:75%"></div></div><div class="wire-table-cell fixed"><div class="wire-tag" style="font-size:8px">代码</div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:60%"></div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50px"></div></div><div class="wire-table-cell-narrow"><div class="wire-line-sm" style="width:20px"></div></div></div>
+            <div class="wire-table-row"><div class="wire-resource-icon" style="width:32px;height:32px"></div><div class="wire-table-cell"><div class="wire-line-sm" style="width:85%"></div></div><div class="wire-table-cell fixed"><div class="wire-tag orange" style="font-size:8px">视频</div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50%"></div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50px"></div></div><div class="wire-table-cell-narrow"><div class="wire-line-sm" style="width:20px"></div></div></div>
+            <div class="wire-table-row"><div class="wire-resource-icon" style="width:32px;height:32px"></div><div class="wire-table-cell"><div class="wire-line-sm" style="width:70%"></div></div><div class="wire-table-cell fixed"><div class="wire-tag green" style="font-size:8px">练习</div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:55%"></div></div><div class="wire-table-cell fixed"><div class="wire-line-sm" style="width:50px"></div></div><div class="wire-table-cell-narrow"><div class="wire-line-sm" style="width:20px"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>顶部搜索栏，支持 ⌘K 快捷键，全局搜索资源</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>资源类型筛选：全部/讲义/视频/PPT/练习题/代码案例</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>表格列表视图：图标+名称+类型标签+章节+日期+操作</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>右上角提供排序切换（按章节/按时间）</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 04: 练习与错题 ========== -->
+<div class="doc-container page-break" id="page-04">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">04</div>
+      <div>
+        <div class="wire-title">练习与错题</div>
+        <div class="wire-subtitle">Practice & Wrong Answers — 刷题+错题本</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <!-- Tabs -->
+          <div class="wire-flex" style="justify-content:space-between;align-items:center">
+            <div class="wire-tabs">
+              <div class="wire-tab active">练习题目</div>
+              <div class="wire-tab">错题本</div>
+              <div class="wire-tab">收藏题目</div>
+            </div>
+            <div class="wire-filters">
+              <div class="wire-chip">全部章节</div>
+              <div class="wire-chip">难度</div>
+            </div>
+          </div>
+
+          <!-- Quiz Area -->
+          <div class="wire-flex" style="gap:20px;align-items:stretch;flex:1">
+            <!-- Left: Question -->
+            <div class="wire-block solid" style="flex:1">
+              <div class="wire-block-title">第 3/10 题</div>
+              <!-- Progress -->
+              <div class="wire-progress-row" style="margin-bottom:12px"><div class="wire-progress-bar" style="height:4px"><div class="wire-progress-fill" style="width:30%"></div></div></div>
+              <!-- Question -->
+              <div class="wire-line" style="margin-bottom:6px"></div>
+              <div class="wire-line medium" style="margin-bottom:16px"></div>
+              <!-- Code Block -->
+              <div style="background:#f5f5f7;border-radius:10px;padding:12px;margin-bottom:16px">
+                <div class="wire-line-sm" style="width:70%;margin-bottom:4px"></div>
+                <div class="wire-line-sm" style="width:50%;margin-bottom:4px"></div>
+                <div class="wire-line-sm" style="width:60%"></div>
+              </div>
+              <!-- Options -->
+              <div class="wire-quiz-option"><div class="wire-quiz-radio"></div><div class="wire-quiz-text"></div></div>
+              <div class="wire-quiz-option"><div class="wire-quiz-radio selected"></div><div class="wire-quiz-text"></div></div>
+              <div class="wire-quiz-option"><div class="wire-quiz-radio"></div><div class="wire-quiz-text"></div></div>
+              <div class="wire-quiz-option"><div class="wire-quiz-radio"></div><div class="wire-quiz-text"></div></div>
+              <!-- Action -->
+              <div class="wire-flex" style="justify-content:flex-end;margin-top:12px;gap:8px">
+                <div class="wire-btn secondary" style="width:80px"><div class="wire-btn-text"></div></div>
+                <div class="wire-btn" style="width:100px"><div class="wire-btn-text"></div></div>
+              </div>
+            </div>
+            <!-- Right: Stats -->
+            <div class="wire-main-right" style="width:240px">
+              <div class="wire-block solid">
+                <div class="wire-block-title">本次练习</div>
+                <div class="wire-donut" style="margin:12px auto"></div>
+                <div class="wire-flex" style="justify-content:center;gap:16px;margin-top:8px">
+                  <div style="text-align:center"><div class="wire-line-sm" style="width:20px;margin:0 auto 2px"></div><div style="font-size:8px;color:var(--ink-3)">正确</div></div>
+                  <div style="text-align:center"><div class="wire-line-sm" style="width:20px;margin:0 auto 2px;background:var(--red)"></div><div style="font-size:8px;color:var(--ink-3)">错误</div></div>
+                  <div style="text-align:center"><div class="wire-line-sm" style="width:20px;margin:0 auto 2px;background:var(--wire)"></div><div style="font-size:8px;color:var(--ink-3)">未答</div></div>
+                </div>
+              </div>
+              <div class="wire-block solid">
+                <div class="wire-block-title">题目列表</div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px">
+                  <div style="width:28px;height:28px;background:var(--green);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--green);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--blue);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--fill);border:1px solid var(--wire);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--fill);border:1px solid var(--wire);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--fill);border:1px solid var(--wire);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--fill);border:1px solid var(--wire);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--fill);border:1px solid var(--wire);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--fill);border:1px solid var(--wire);border-radius:6px"></div>
+                  <div style="width:28px;height:28px;background:var(--fill);border:1px solid var(--wire);border-radius:6px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>三标签页切换：练习题目 / 错题本 / 收藏题目</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>题目区域：题干 + 代码块 + 选项列表，选中状态高亮</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>右侧面板：环形图统计正确率 + 题目网格（绿正确/蓝当前/灰未答）</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>底部按钮组：上一题 / 提交答案</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 05: 资源推送 ========== -->
+<div class="doc-container page-break" id="page-05">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">05</div>
+      <div>
+        <div class="wire-title">资源推送</div>
+        <div class="wire-subtitle">Push — AI 个性化学习资源推荐</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <div class="wire-hero">
+            <div class="wire-hero-title" style="width:180px"></div>
+            <div class="wire-hero-sub" style="width:300px"></div>
+          </div>
+
+          <!-- AI Recommendation Banner -->
+          <div class="wire-featured" style="padding:20px;min-height:auto">
+            <div style="width:44px;height:44px;background:rgba(255,255,255,0.15);border-radius:12px;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div style="height:8px;width:120px;background:rgba(255,255,255,0.3);border-radius:3px;margin-bottom:6px"></div>
+              <div style="height:6px;width:260px;background:rgba(255,255,255,0.12);border-radius:3px"></div>
+            </div>
+            <div class="wire-pill active" style="width:60px;height:28px"></div>
+          </div>
+
+          <!-- Push Cards Grid -->
+          <div class="wire-grid wire-grid-3" style="gap:12px">
+            <!-- Card 1 -->
+            <div class="wire-block solid">
+              <div style="height:100px;background:var(--fill);border-radius:8px;margin-bottom:10px"></div>
+              <div class="wire-line-sm" style="width:80%;margin-bottom:4px"></div>
+              <div class="wire-line-sm" style="width:60%;margin-bottom:8px"></div>
+              <div class="wire-flex" style="gap:4px"><div class="wire-tag" style="font-size:8px">讲义</div><div class="wire-tag orange" style="font-size:8px">函数</div></div>
+            </div>
+            <!-- Card 2 -->
+            <div class="wire-block solid">
+              <div style="height:100px;background:var(--fill);border-radius:8px;margin-bottom:10px"></div>
+              <div class="wire-line-sm" style="width:70%;margin-bottom:4px"></div>
+              <div class="wire-line-sm" style="width:55%;margin-bottom:8px"></div>
+              <div class="wire-flex" style="gap:4px"><div class="wire-tag orange" style="font-size:8px">视频</div><div class="wire-tag green" style="font-size:8px">闭包</div></div>
+            </div>
+            <!-- Card 3 -->
+            <div class="wire-block solid">
+              <div style="height:100px;background:var(--fill);border-radius:8px;margin-bottom:10px"></div>
+              <div class="wire-line-sm" style="width:75%;margin-bottom:4px"></div>
+              <div class="wire-line-sm" style="width:50%;margin-bottom:8px"></div>
+              <div class="wire-flex" style="gap:4px"><div class="wire-tag green" style="font-size:8px">练习</div><div class="wire-tag" style="font-size:8px">装饰器</div></div>
+            </div>
+            <!-- Card 4 -->
+            <div class="wire-block solid">
+              <div style="height:100px;background:var(--fill);border-radius:8px;margin-bottom:10px"></div>
+              <div class="wire-line-sm" style="width:65%;margin-bottom:4px"></div>
+              <div class="wire-line-sm" style="width:50%;margin-bottom:8px"></div>
+              <div class="wire-flex" style="gap:4px"><div class="wire-tag" style="font-size:8px;background:#f5edfa;color:var(--purple)">PPT</div><div class="wire-tag" style="font-size:8px">模块</div></div>
+            </div>
+            <!-- Card 5 -->
+            <div class="wire-block solid">
+              <div style="height:100px;background:var(--fill);border-radius:8px;margin-bottom:10px"></div>
+              <div class="wire-line-sm" style="width:70%;margin-bottom:4px"></div>
+              <div class="wire-line-sm" style="width:55%;margin-bottom:8px"></div>
+              <div class="wire-flex" style="gap:4px"><div class="wire-tag" style="font-size:8px">代码</div><div class="wire-tag orange" style="font-size:8px">实战</div></div>
+            </div>
+            <!-- Card 6 -->
+            <div class="wire-block solid">
+              <div style="height:100px;background:var(--fill);border-radius:8px;margin-bottom:10px"></div>
+              <div class="wire-line-sm" style="width:75%;margin-bottom:4px"></div>
+              <div class="wire-line-sm" style="width:50%;margin-bottom:8px"></div>
+              <div class="wire-flex" style="gap:4px"><div class="wire-tag orange" style="font-size:8px">视频</div><div class="wire-tag" style="font-size:8px">进阶</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>顶部深色横幅：AI 推荐理由简述 + "查看更多" 按钮</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>三列卡片网格，每张含缩略图+标题+简介+类型标签</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>标签体系：资源类型（讲义/视频/练习/PPT/代码）+ 知识点标签</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>AI 7个 Agent 驱动个性化推荐，根据学习画像和薄弱点生成</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 06: 资源生成与资源详情 ========== -->
+<div class="doc-container page-break" id="page-06">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">06</div>
+      <div>
+        <div class="wire-title">资源生成与资源详情</div>
+        <div class="wire-subtitle">Generate — AI 生成学习资源，在线预览与保存</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <!-- Sidebar -->
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div><div class="wire-nav-badge"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <!-- Header -->
+          <div class="wire-hero">
+            <div class="wire-hero-title" style="width:200px"></div>
+            <div class="wire-hero-sub" style="width:320px"></div>
+          </div>
+
+          <!-- Resource Type Selector -->
+          <div class="wire-block solid" style="padding:20px">
+            <div class="wire-block-title">选择资源类型</div>
+            <div class="wire-grid wire-grid-3" style="gap:10px;margin-top:8px">
+              <div class="wire-block" style="border:2px solid var(--blue);background:var(--blue-light);padding:14px;text-align:center;cursor:pointer">
+                <div style="width:32px;height:32px;background:var(--blue);border-radius:10px;margin:0 auto 8px"></div>
+                <div class="wire-line-sm" style="width:50px;margin:0 auto;background:var(--blue)"></div>
+              </div>
+              <div class="wire-block" style="padding:14px;text-align:center;cursor:pointer">
+                <div style="width:32px;height:32px;background:var(--fill);border:1px solid var(--wire);border-radius:10px;margin:0 auto 8px"></div>
+                <div class="wire-line-sm" style="width:30px;margin:0 auto"></div>
+              </div>
+              <div class="wire-block" style="padding:14px;text-align:center;cursor:pointer">
+                <div style="width:32px;height:32px;background:var(--fill);border:1px solid var(--wire);border-radius:10px;margin:0 auto 8px"></div>
+                <div class="wire-line-sm" style="width:40px;margin:0 auto"></div>
+              </div>
+              <div class="wire-block" style="padding:14px;text-align:center;cursor:pointer">
+                <div style="width:32px;height:32px;background:var(--fill);border:1px solid var(--wire);border-radius:10px;margin:0 auto 8px"></div>
+                <div class="wire-line-sm" style="width:36px;margin:0 auto"></div>
+              </div>
+              <div class="wire-block" style="padding:14px;text-align:center;cursor:pointer">
+                <div style="width:32px;height:32px;background:var(--fill);border:1px solid var(--wire);border-radius:10px;margin:0 auto 8px"></div>
+                <div class="wire-line-sm" style="width:48px;margin:0 auto"></div>
+              </div>
+              <div class="wire-block" style="padding:14px;text-align:center;cursor:pointer">
+                <div style="width:32px;height:32px;background:var(--fill);border:1px solid var(--wire);border-radius:10px;margin:0 auto 8px"></div>
+                <div class="wire-line-sm" style="width:42px;margin:0 auto"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generation Input -->
+          <div class="wire-block solid" style="padding:16px">
+            <div class="wire-block-title">描述你的需求</div>
+            <div style="margin-top:8px;background:var(--fill);border-radius:12px;padding:12px 16px;min-height:48px">
+              <div class="wire-line-sm" style="width:65%"></div>
+            </div>
+            <div class="wire-flex" style="justify-content:space-between;align-items:center;margin-top:10px">
+              <div class="wire-flex" style="gap:6px">
+                <div class="wire-chip" style="font-size:9px">Python</div>
+                <div class="wire-chip" style="font-size:9px">基础巩固</div>
+                <div class="wire-chip" style="font-size:9px">函数</div>
+              </div>
+              <div class="wire-btn" style="width:100px;height:36px"><div class="wire-btn-text" style="width:48px"></div></div>
+            </div>
+          </div>
+
+          <!-- Generated Resources List -->
+          <div class="wire-flex" style="gap:16px;align-items:stretch">
+            <!-- Left: Resource List -->
+            <div class="wire-block solid" style="flex:1">
+              <div class="wire-block-title">已生成资源</div>
+              <!-- Resource item - active/selected -->
+              <div class="wire-resource" style="background:var(--blue-light);margin:0 -12px;padding:12px;border-radius:10px">
+                <div class="wire-resource-icon"></div>
+                <div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div>
+                <div class="wire-tag green" style="font-size:8px">完成</div>
+              </div>
+              <!-- Resource item -->
+              <div class="wire-resource">
+                <div class="wire-resource-icon"></div>
+                <div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div>
+                <div class="wire-tag green" style="font-size:8px">完成</div>
+              </div>
+              <!-- Resource item - generating -->
+              <div class="wire-resource">
+                <div class="wire-resource-icon"></div>
+                <div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div>
+                <div class="wire-tag orange" style="font-size:8px">生成中</div>
+              </div>
+              <!-- Resource item -->
+              <div class="wire-resource">
+                <div class="wire-resource-icon"></div>
+                <div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div>
+                <div class="wire-tag green" style="font-size:8px">完成</div>
+              </div>
+              <!-- Resource item -->
+              <div class="wire-resource">
+                <div class="wire-resource-icon"></div>
+                <div class="wire-resource-info"><div class="wire-resource-name"></div><div class="wire-resource-meta"></div></div>
+                <div class="wire-tag green" style="font-size:8px">完成</div>
+              </div>
+            </div>
+
+            <!-- Right: Preview Panel -->
+            <div class="wire-block solid" style="width:320px;flex-shrink:0">
+              <div class="wire-block-title">资源预览</div>
+              <!-- Preview area -->
+              <div style="background:var(--fill);border-radius:10px;padding:16px;min-height:200px;margin-top:8px;text-align:center">
+                <div style="width:40px;height:40px;background:var(--blue);border-radius:12px;margin:12px auto"></div>
+                <div class="wire-line-sm" style="width:120px;margin:8px auto 4px"></div>
+                <div class="wire-line-sm" style="width:80px;margin:0 auto;background:var(--wire)"></div>
+                <!-- Simulated content lines -->
+                <div style="margin-top:16px;text-align:left">
+                  <div class="wire-line-sm" style="width:95%;margin-bottom:5px"></div>
+                  <div class="wire-line-sm" style="width:88%;margin-bottom:5px"></div>
+                  <div class="wire-line-sm" style="width:70%;margin-bottom:5px"></div>
+                  <div class="wire-line-sm" style="width:92%;margin-bottom:5px"></div>
+                  <div class="wire-line-sm" style="width:60%"></div>
+                </div>
+              </div>
+              <!-- Preview actions -->
+              <div class="wire-flex" style="gap:8px;margin-top:12px;justify-content:flex-end">
+                <div class="wire-btn secondary" style="width:80px;height:32px"><div class="wire-btn-text" style="width:36px"></div></div>
+                <div class="wire-btn" style="width:100px;height:32px"><div class="wire-btn-text" style="width:48px"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>六种资源类型选择：讲义文档 / PPT / 思维导图 / 练习题 / 拓展阅读 / 代码实操</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>自然语言描述 + 知识点标签，AI 生成对应资源（星火 API + CrewAI Agent）</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>左侧已生成资源列表，含状态标签（完成/生成中），当前选中高亮</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>右侧资源详情预览面板：支持文档/PPT 渲染、视频播放、思维导图查看</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">5</div>"保存到资源中心"按钮：生成的资源一键入库，可在资源中心查看和管理</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 07: 智能辅导 ========== -->
+<div class="doc-container page-break" id="page-07">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">07</div>
+      <div>
+        <div class="wire-title">智能辅导</div>
+        <div class="wire-subtitle">AI Tutor — 对话式实时学习辅导</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main" style="padding-bottom:0">
+          <div class="wire-full" style="flex:1">
+            <!-- Chat Header -->
+            <div class="wire-full-header" style="display:flex;align-items:center;gap:12px;padding:16px 0">
+              <div style="width:40px;height:40px;background:linear-gradient(135deg,var(--blue),#5ac8fa);border-radius:12px;flex-shrink:0"></div>
+              <div style="flex:1"><div class="wire-line-sm" style="width:120px;margin-bottom:4px"></div><div class="wire-line-sm" style="width:80px;background:var(--green)"></div></div>
+              <div class="wire-filters"><div class="wire-chip">新对话</div><div class="wire-chip">历史</div></div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="wire-chat" style="flex:1;padding:12px 0">
+              <div class="wire-msg ai">
+                <div class="wire-msg-line" style="width:180px"></div>
+                <div class="wire-msg-line" style="width:140px"></div>
+                <div class="wire-msg-line" style="width:100px"></div>
+              </div>
+              <div class="wire-msg user">
+                <div class="wire-msg-line" style="width:120px"></div>
+              </div>
+              <div class="wire-msg ai">
+                <div class="wire-msg-line" style="width:200px"></div>
+                <div class="wire-msg-line" style="width:160px"></div>
+                <div class="wire-msg-line" style="width:130px"></div>
+                <!-- Code block inside message -->
+                <div style="background:rgba(0,0,0,0.06);border-radius:8px;padding:8px;margin-top:6px">
+                  <div class="wire-line-sm" style="width:80%;margin-bottom:3px"></div>
+                  <div class="wire-line-sm" style="width:60%;margin-bottom:3px"></div>
+                  <div class="wire-line-sm" style="width:70%"></div>
+                </div>
+                <div class="wire-msg-line" style="width:100px;margin-top:6px"></div>
+              </div>
+              <div class="wire-msg user">
+                <div class="wire-msg-line" style="width:150px"></div>
+                <div class="wire-msg-line" style="width:80px"></div>
+              </div>
+              <div class="wire-msg ai" style="max-width:85%">
+                <div class="wire-msg-line" style="width:220px"></div>
+                <div class="wire-msg-line" style="width:180px"></div>
+                <div class="wire-msg-line" style="width:150px"></div>
+                <div class="wire-msg-line" style="width:90px"></div>
+              </div>
+            </div>
+
+            <!-- Input -->
+            <div class="wire-input-bar" style="margin-bottom:20px">
+              <div class="wire-search-icon" style="width:20px;height:20px"></div>
+              <div class="wire-input-text"></div>
+              <div class="wire-input-send"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>顶部显示 AI Agent 名称和在线状态，支持新建对话/历史</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>对话气泡：用户靠右蓝色，AI 靠左灰色，支持代码块内嵌</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>输入栏：文本输入 + 发送按钮，底部固定定位</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>AI 回复可包含代码、数学公式、知识点链接</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 08: 学习报告 ========== -->
+<div class="doc-container page-break" id="page-08">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">08</div>
+      <div>
+        <div class="wire-title">学习报告</div>
+        <div class="wire-subtitle">Learning Report — 多维度数据分析可视化</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <div class="wire-flex" style="justify-content:space-between;align-items:center">
+            <div class="wire-hero" style="padding:0;margin:0">
+              <div class="wire-hero-title" style="width:160px;margin-bottom:4px"></div>
+              <div class="wire-hero-sub" style="width:200px;margin:0"></div>
+            </div>
+            <div class="wire-filters">
+              <div class="wire-chip">本周</div>
+              <div class="wire-chip active">本月</div>
+              <div class="wire-chip">本学期</div>
+              <div class="wire-chip">自定义</div>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="wire-grid wire-grid-4">
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:50%"></div><div class="wire-stat-val" style="width:60px"></div></div>
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:55%"></div><div class="wire-stat-val" style="width:50px"></div></div>
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:45%"></div><div class="wire-stat-val" style="width:55px"></div></div>
+            <div class="wire-stat"><div class="wire-stat-icon"></div><div class="wire-line-sm" style="width:60%"></div><div class="wire-stat-val" style="width:45px"></div></div>
+          </div>
+
+          <!-- Charts -->
+          <div class="wire-flex" style="gap:16px;align-items:stretch">
+            <div class="wire-block solid" style="flex:2">
+              <div class="wire-block-title">学习时长趋势</div>
+              <div class="wire-chart">
+                <div class="wire-bar" style="height:40%"></div>
+                <div class="wire-bar" style="height:65%"></div>
+                <div class="wire-bar" style="height:50%"></div>
+                <div class="wire-bar" style="height:80%"></div>
+                <div class="wire-bar" style="height:55%"></div>
+                <div class="wire-bar" style="height:70%"></div>
+                <div class="wire-bar" style="height:90%"></div>
+                <div class="wire-bar" style="height:60%"></div>
+                <div class="wire-bar" style="height:75%"></div>
+                <div class="wire-bar" style="height:85%"></div>
+                <div class="wire-bar" style="height:45%"></div>
+                <div class="wire-bar" style="height:65%"></div>
+              </div>
+            </div>
+            <div class="wire-block solid" style="flex:1">
+              <div class="wire-block-title">知识掌握分布</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0">
+                <div class="wire-donut" style="width:100px;height:100px"></div>
+                <div class="wire-flex" style="gap:12px;margin-top:4px">
+                  <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:var(--green);border-radius:2px"></div><div style="font-size:8px;color:var(--ink-3)">掌握</div></div>
+                  <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:var(--orange);border-radius:2px"></div><div style="font-size:8px;color:var(--ink-3)">薄弱</div></div>
+                  <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;background:var(--wire);border-radius:2px"></div><div style="font-size:8px;color:var(--ink-3)">未学</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Row -->
+          <div class="wire-grid wire-grid-2" style="gap:12px">
+            <div class="wire-block solid">
+              <div class="wire-block-title">薄弱知识点</div>
+              <div class="wire-mastery"><div class="wire-mastery-label"></div><div class="wire-mastery-bar"><div class="wire-mastery-fill" style="width:28%;background:var(--red)"></div></div><div class="wire-mastery-pct" style="background:var(--red)"></div></div>
+              <div class="wire-mastery"><div class="wire-mastery-label"></div><div class="wire-mastery-bar"><div class="wire-mastery-fill" style="width:35%;background:var(--orange)"></div></div><div class="wire-mastery-pct" style="background:var(--orange)"></div></div>
+              <div class="wire-mastery"><div class="wire-mastery-label"></div><div class="wire-mastery-bar"><div class="wire-mastery-fill" style="width:42%;background:var(--orange)"></div></div><div class="wire-mastery-pct" style="background:var(--orange)"></div></div>
+            </div>
+            <div class="wire-block solid">
+              <div class="wire-block-title">AI 分析总结</div>
+              <div class="wire-line" style="margin-bottom:6px"></div>
+              <div class="wire-line medium" style="margin-bottom:6px"></div>
+              <div class="wire-line short" style="margin-bottom:10px"></div>
+              <div class="wire-notif"><div class="wire-notif-icon"></div><div class="wire-notif-content"><div class="wire-notif-title"></div><div class="wire-notif-desc"></div></div></div>
+              <div class="wire-notif"><div class="wire-notif-icon"></div><div class="wire-notif-content"><div class="wire-notif-title"></div><div class="wire-notif-desc"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>时间筛选：本周/本月/本学期/自定义范围</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>四列核心指标卡：学习时长/完成率/正确率/连续天数</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>柱状图展示学习时长趋势，环形图展示知识掌握分布</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>底部双列：薄弱知识点排名 + AI 分析总结与建议</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 09: 视频播放 ========== -->
+<div class="doc-container page-break" id="page-09">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">09</div>
+      <div>
+        <div class="wire-title">视频播放</div>
+        <div class="wire-subtitle">Video Player — 课程视频播放与笔记</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item active"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <!-- Breadcrumb -->
+          <div class="wire-breadcrumb"><div class="wire-crumb"></div><div class="wire-crumb-sep"></div><div class="wire-crumb"></div><div class="wire-crumb-sep"></div><div class="wire-crumb"></div></div>
+
+          <!-- Video Player -->
+          <div class="wire-video-player">
+            <div class="wire-play-btn"><div class="wire-play-triangle"></div></div>
+            <div class="wire-video-controls">
+              <div class="wire-ctrl-icon"></div>
+              <div class="wire-ctrl-bar"><div class="wire-ctrl-progress"></div></div>
+              <div class="wire-ctrl-time">12:34 / 35:00</div>
+              <div class="wire-ctrl-icon"></div>
+              <div class="wire-ctrl-icon"></div>
+            </div>
+          </div>
+
+          <!-- Below Video -->
+          <div class="wire-flex" style="gap:20px;align-items:stretch">
+            <!-- Left: Info + Notes -->
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+              <div class="wire-block solid">
+                <div class="wire-block-title">视频信息</div>
+                <div class="wire-line" style="margin-bottom:4px"></div>
+                <div class="wire-line-sm medium" style="margin-bottom:8px"></div>
+                <div class="wire-flex" style="gap:8px"><div class="wire-tag" style="font-size:8px">函数</div><div class="wire-tag orange" style="font-size:8px">基础巩固</div><div class="wire-line-sm" style="width:60px;background:var(--wire)"></div></div>
+              </div>
+              <div class="wire-block solid" style="flex:1">
+                <div class="wire-block-title">AI 自动生成笔记</div>
+                <div class="wire-line-sm" style="width:90%;margin-bottom:4px"></div>
+                <div class="wire-line-sm" style="width:85%;margin-bottom:4px"></div>
+                <div class="wire-line-sm" style="width:70%;margin-bottom:8px"></div>
+                <div class="wire-line-sm" style="width:80%;margin-bottom:4px"></div>
+                <div class="wire-line-sm" style="width:65%;margin-bottom:4px"></div>
+                <div class="wire-line-sm" style="width:75%"></div>
+              </div>
+            </div>
+            <!-- Right: Chapter List -->
+            <div class="wire-block solid" style="width:260px;flex-shrink:0">
+              <div class="wire-block-title">课程目录</div>
+              <div class="wire-task"><div class="wire-task-check done" style="width:16px;height:16px"></div><div class="wire-task-content"><div class="wire-task-title done" style="width:80%"></div></div></div>
+              <div class="wire-task" style="background:var(--blue-light);margin:0 -8px;padding:8px;border-radius:8px"><div class="wire-task-check" style="width:16px;height:16px;border-color:var(--blue)"></div><div class="wire-task-content"><div class="wire-task-title" style="width:70%"></div></div></div>
+              <div class="wire-task"><div class="wire-task-check" style="width:16px;height:16px"></div><div class="wire-task-content"><div class="wire-task-title" style="width:75%"></div></div></div>
+              <div class="wire-task"><div class="wire-task-check" style="width:16px;height:16px"></div><div class="wire-task-content"><div class="wire-task-title" style="width:65%"></div></div></div>
+              <div class="wire-task"><div class="wire-task-check" style="width:16px;height:16px"></div><div class="wire-task-content"><div class="wire-task-title" style="width:70%"></div></div></div>
+              <div class="wire-task"><div class="wire-task-check" style="width:16px;height:16px"></div><div class="wire-task-content"><div class="wire-task-title" style="width:60%"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>16:9 黑底视频播放器，居中播放按钮，底部控制栏</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>控制栏：播放/进度条(35%已播放)/时间/倍速/全屏</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>视频下方：左侧视频信息+AI笔记，右侧课程目录(高亮当前)</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>AI 自动生成笔记：关键知识点、代码片段、重要概念</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 10: 个人信息 ========== -->
+<div class="doc-container page-break" id="page-10">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">10</div>
+      <div>
+        <div class="wire-title">个人信息</div>
+        <div class="wire-subtitle">Profile — 用户设置与账户管理</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div class="wire-app">
+        <div class="wire-sidebar">
+          <div class="wire-logo"></div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">学习</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-nav-group">
+            <div class="wire-nav-label">工具</div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+            <div class="wire-nav-item"><div class="wire-nav-dot"></div><div class="wire-nav-text"></div></div>
+          </div>
+          <div class="wire-sidebar-spacer"></div>
+          <div class="wire-sidebar-user"></div>
+        </div>
+
+        <div class="wire-main">
+          <!-- Profile Header -->
+          <div class="wire-block solid" style="flex-direction:row;align-items:center;gap:20px;padding:24px">
+            <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--orange),#ff2d55);border-radius:50%;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div class="wire-line" style="width:120px;margin-bottom:6px"></div>
+              <div class="wire-line-sm" style="width:180px;margin-bottom:4px"></div>
+              <div class="wire-line-sm" style="width:140px;margin-bottom:10px"></div>
+              <div class="wire-flex" style="gap:6px"><div class="wire-tag" style="font-size:8px">Python</div><div class="wire-tag orange" style="font-size:8px">基础巩固</div></div>
+            </div>
+            <div class="wire-btn" style="width:100px"><div class="wire-btn-text"></div></div>
+          </div>
+
+          <!-- Settings Form -->
+          <div class="wire-flex" style="gap:20px;align-items:stretch;flex:1">
+            <div class="wire-block solid" style="flex:1">
+              <div class="wire-block-title">基本资料</div>
+              <div class="wire-form-group" style="margin-bottom:12px"><div class="wire-form-label"></div><div class="wire-form-input"></div></div>
+              <div class="wire-form-group" style="margin-bottom:12px"><div class="wire-form-label"></div><div class="wire-form-input"></div></div>
+              <div class="wire-form-group" style="margin-bottom:12px"><div class="wire-form-label"></div><div class="wire-form-select"></div></div>
+              <div class="wire-form-group" style="margin-bottom:16px"><div class="wire-form-label"></div><div class="wire-form-select"></div></div>
+              <div class="wire-btn" style="width:100px"><div class="wire-btn-text"></div></div>
+            </div>
+            <div style="width:280px;display:flex;flex-direction:column;gap:12px">
+              <div class="wire-block solid">
+                <div class="wire-block-title">学习统计</div>
+                <div class="wire-flex" style="justify-content:space-between;margin-bottom:8px"><div class="wire-line-sm" style="width:60px"></div><div class="wire-line-sm" style="width:40px;background:var(--wire-dark)"></div></div>
+                <div class="wire-flex" style="justify-content:space-between;margin-bottom:8px"><div class="wire-line-sm" style="width:60px"></div><div class="wire-line-sm" style="width:40px;background:var(--wire-dark)"></div></div>
+                <div class="wire-flex" style="justify-content:space-between;margin-bottom:8px"><div class="wire-line-sm" style="width:60px"></div><div class="wire-line-sm" style="width:40px;background:var(--wire-dark)"></div></div>
+                <div class="wire-flex" style="justify-content:space-between"><div class="wire-line-sm" style="width:60px"></div><div class="wire-line-sm" style="width:40px;background:var(--wire-dark)"></div></div>
+              </div>
+              <div class="wire-block solid">
+                <div class="wire-block-title">安全设置</div>
+                <div class="wire-card-row"><div class="wire-line-sm" style="width:60px"></div><div class="wire-line-sm" style="width:40px;background:var(--blue)"></div></div>
+                <div class="wire-card-row"><div class="wire-line-sm" style="width:60px"></div><div class="wire-line-sm" style="width:40px;background:var(--blue)"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>顶部头像+姓名+邮箱+角色标签+编辑按钮</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>左侧：基本资料表单（姓名/邮箱/年级/专业）</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>右侧：学习统计数据 + 安全设置（修改密码/绑定手机）</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>所有表单输入使用 Apple 风格圆角边框</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 11: 学习画像建档 ========== -->
+<div class="doc-container page-break" id="page-11">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">11</div>
+      <div>
+        <div class="wire-title">学习画像建档</div>
+        <div class="wire-subtitle">Onboarding — 首次使用学习偏好收集流程</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div style="display:flex;flex-direction:column;min-height:600px">
+        <!-- Step Indicator -->
+        <div style="padding:28px 40px 0">
+          <div class="wire-steps" style="justify-content:center">
+            <div class="wire-step"><div class="wire-step-circle done">1</div><div class="wire-step-label">基本信息</div></div>
+            <div class="wire-step-line done"></div>
+            <div class="wire-step"><div class="wire-step-circle active">2</div><div class="wire-step-label active">学习目标</div></div>
+            <div class="wire-step-line"></div>
+            <div class="wire-step"><div class="wire-step-circle">3</div><div class="wire-step-label">薄弱点</div></div>
+            <div class="wire-step-line"></div>
+            <div class="wire-step"><div class="wire-step-circle">4</div><div class="wire-step-label">学习偏好</div></div>
+            <div class="wire-step-line"></div>
+            <div class="wire-step"><div class="wire-step-circle">5</div><div class="wire-step-label">完成</div></div>
+          </div>
+        </div>
+
+        <!-- Content Area - Centered -->
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+          <div style="width:520px;text-align:center">
+            <!-- Title -->
+            <div style="margin-bottom:24px">
+              <div style="height:18px;width:200px;background:var(--wire-dark);border-radius:4px;margin:0 auto 8px"></div>
+              <div style="height:8px;width:280px;background:var(--wire);border-radius:3px;margin:0 auto"></div>
+            </div>
+
+            <!-- Selection Grid -->
+            <div class="wire-grid wire-grid-2" style="gap:12px;margin-bottom:24px">
+              <div class="wire-block solid" style="padding:20px;text-align:center;cursor:pointer;border:2px solid var(--blue);background:var(--blue-light)">
+                <div style="width:48px;height:48px;background:var(--blue);border-radius:14px;margin:0 auto 10px"></div>
+                <div style="height:8px;width:80px;background:var(--blue);border-radius:3px;margin:0 auto 4px"></div>
+                <div style="height:6px;width:100px;background:rgba(0,113,227,0.3);border-radius:3px;margin:0 auto"></div>
+              </div>
+              <div class="wire-block solid" style="padding:20px;text-align:center;cursor:pointer">
+                <div style="width:48px;height:48px;background:var(--fill);border:1px solid var(--wire);border-radius:14px;margin:0 auto 10px"></div>
+                <div style="height:8px;width:80px;background:var(--wire);border-radius:3px;margin:0 auto 4px"></div>
+                <div style="height:6px;width:100px;background:var(--wire);border-radius:3px;margin:0 auto"></div>
+              </div>
+              <div class="wire-block solid" style="padding:20px;text-align:center;cursor:pointer">
+                <div style="width:48px;height:48px;background:var(--fill);border:1px solid var(--wire);border-radius:14px;margin:0 auto 10px"></div>
+                <div style="height:8px;width:80px;background:var(--wire);border-radius:3px;margin:0 auto 4px"></div>
+                <div style="height:6px;width:100px;background:var(--wire);border-radius:3px;margin:0 auto"></div>
+              </div>
+              <div class="wire-block solid" style="padding:20px;text-align:center;cursor:pointer">
+                <div style="width:48px;height:48px;background:var(--fill);border:1px solid var(--wire);border-radius:14px;margin:0 auto 10px"></div>
+                <div style="height:8px;width:80px;background:var(--wire);border-radius:3px;margin:0 auto 4px"></div>
+                <div style="height:6px;width:100px;background:var(--wire);border-radius:3px;margin:0 auto"></div>
+              </div>
+            </div>
+
+            <!-- Multi-select tags -->
+            <div style="margin-bottom:24px;text-align:left">
+              <div style="height:8px;width:100px;background:var(--wire-dark);border-radius:3px;margin-bottom:10px"></div>
+              <div class="wire-tag-cloud">
+                <div class="wire-tag-item blue"></div>
+                <div class="wire-tag-item"></div>
+                <div class="wire-tag-item orange"></div>
+                <div class="wire-tag-item"></div>
+                <div class="wire-tag-item blue"></div>
+                <div class="wire-tag-item"></div>
+                <div class="wire-tag-item"></div>
+                <div class="wire-tag-item orange"></div>
+              </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="wire-flex" style="justify-content:space-between">
+              <div class="wire-btn secondary" style="width:100px"><div class="wire-btn-text"></div></div>
+              <div class="wire-btn" style="width:120px"><div class="wire-btn-text"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>五步骤水平进度条，当前步骤高亮蓝色</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>居中卡片选择：2x2 网格，选中状态蓝色边框+浅蓝底色</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>多选标签区域：可选多个学习目标/薄弱点标签</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>底部"上一步/下一步"按钮组，第5步为"开始学习"</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== PAGE 12: 登录/注册 ========== -->
+<div class="doc-container" id="page-12">
+  <div class="wire-section">
+    <div class="wire-header">
+      <div class="wire-num">12</div>
+      <div>
+        <div class="wire-title">登录/注册</div>
+        <div class="wire-subtitle">Auth — 用户认证入口</div>
+      </div>
+    </div>
+
+    <div class="wire-canvas">
+      <div style="display:flex;min-height:600px">
+        <!-- Left: Brand -->
+        <div style="flex:1;background:linear-gradient(135deg,#1d1d1f,#2c2c2e);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;text-align:center">
+          <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--blue),#5ac8fa);border-radius:20px;margin-bottom:24px"></div>
+          <div style="height:20px;width:160px;background:rgba(255,255,255,0.3);border-radius:4px;margin:0 auto 8px"></div>
+          <div style="height:10px;width:220px;background:rgba(255,255,255,0.12);border-radius:3px;margin:0 auto 24px"></div>
+          <div class="wire-grid wire-grid-3" style="gap:16px;width:100%;max-width:300px">
+            <div style="text-align:center"><div style="height:16px;width:30px;background:rgba(255,255,255,0.3);border-radius:4px;margin:0 auto 4px"></div><div style="height:6px;width:40px;background:rgba(255,255,255,0.12);border-radius:3px;margin:0 auto"></div></div>
+            <div style="text-align:center"><div style="height:16px;width:30px;background:rgba(255,255,255,0.3);border-radius:4px;margin:0 auto 4px"></div><div style="height:6px;width:40px;background:rgba(255,255,255,0.12);border-radius:3px;margin:0 auto"></div></div>
+            <div style="text-align:center"><div style="height:16px;width:30px;background:rgba(255,255,255,0.3);border-radius:4px;margin:0 auto 4px"></div><div style="height:6px;width:40px;background:rgba(255,255,255,0.12);border-radius:3px;margin:0 auto"></div></div>
+          </div>
+        </div>
+        <!-- Right: Form -->
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:60px">
+          <div style="width:340px">
+            <!-- Tabs -->
+            <div class="wire-tabs" style="margin-bottom:28px;justify-content:center">
+              <div class="wire-tab active" style="font-size:14px;padding:10px 24px">登录</div>
+              <div class="wire-tab" style="font-size:14px;padding:10px 24px">注册</div>
+            </div>
+
+            <!-- Form -->
+            <div class="wire-form-group" style="margin-bottom:16px"><div class="wire-form-label" style="width:40px"></div><div class="wire-form-input"></div></div>
+            <div class="wire-form-group" style="margin-bottom:16px"><div class="wire-form-label" style="width:40px"></div><div class="wire-form-input"></div></div>
+
+            <div class="wire-flex" style="justify-content:space-between;margin-bottom:20px">
+              <div class="wire-flex" style="gap:6px"><div style="width:14px;height:14px;border:1px solid var(--wire);border-radius:3px"></div><div class="wire-line-sm" style="width:48px"></div></div>
+              <div class="wire-line-sm" style="width:60px;background:var(--blue)"></div>
+            </div>
+
+            <div class="wire-btn" style="width:100%;margin-bottom:20px"><div class="wire-btn-text" style="width:80px"></div></div>
+
+            <!-- Divider -->
+            <div class="wire-flex" style="margin-bottom:20px;gap:12px">
+              <div style="flex:1;height:1px;background:var(--wire)"></div>
+              <div style="font-size:10px;color:var(--ink-3)">或</div>
+              <div style="flex:1;height:1px;background:var(--wire)"></div>
+            </div>
+
+            <!-- Social Login -->
+            <div class="wire-flex" style="gap:12px">
+              <div class="wire-btn secondary" style="flex:1"><div class="wire-btn-text" style="width:40px"></div></div>
+              <div class="wire-btn secondary" style="flex:1"><div class="wire-btn-text" style="width:40px"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wire-annotations">
+      <div class="wire-annotation"><div class="wire-annotation-marker">1</div>左侧深色品牌展示区：Logo + 名称 + 数据亮点（3列数字）</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">2</div>右侧居中表单：登录/注册标签切换，邮箱+密码输入</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">3</div>表单功能：记住我 + 忘记密码 + 全宽登录按钮</div>
+      <div class="wire-annotation"><div class="wire-annotation-marker">4</div>底部社交登录：微信/学号登录，分隔线+文字提示</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== END ========== -->
+<div class="doc-container" style="padding:80px 40px;text-align:center">
+  <div style="font-size:14px;color:var(--ink-3);margin-bottom:8px">SparkLearn UI Wireframes — 12 Pages Complete</div>
+  <div style="font-size:12px;color:var(--ink-3)">Design Language: Apple 纯净 · DM Sans + Noto Sans SC · #0071e3</div>
+  <div style="font-size:12px;color:var(--ink-3);margin-top:4px">Next: Review wireframes → Approve layouts → Begin pixel-perfect design for each page</div>
+</div>
+
+</body>
+</html>

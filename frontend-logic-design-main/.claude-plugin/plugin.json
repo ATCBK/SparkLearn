@@ -1,0 +1,10 @@
+{
+  "name": "frontend-logic-design",
+  "version": "1.0.0",
+  "description": "前端逻辑化设计 — MECE + 渐进式披露 + 信息架构一致性审查",
+  "author": {
+    "name": "CloudDreamAI",
+    "url": "https://clouddreamai.com"
+  },
+  "keywords": ["skill", "frontend-logic-design", "MECE", "information-architecture", "progressive-disclosure"]
+}
