@@ -1,0 +1,385 @@
+@import "tailwindcss";
+
+/* ========================================
+   SparkLearn Design System
+   Apple Pure Design Language
+   ======================================== */
+
+/* ---- Theme (Tailwind v4 CSS-based config) ---- */
+@theme inline {
+  /* Colors - Ink */
+  --color-ink: #1d1d1f;
+  --color-ink-secondary: #6e6e73;
+  --color-ink-tertiary: #86868b;
+  --color-ink-disabled: #aeaeb2;
+
+  /* Colors - Primary */
+  --color-blue: #0071e3;
+  --color-blue-dark: #0077ed;
+  --color-blue-light: rgba(0, 113, 227, 0.08);
+  --color-blue-glow: rgba(0, 113, 227, 0.15);
+
+  /* Colors - Accent */
+  --color-teal: #5ac8fa;
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-danger: #ff3b30;
+  --color-purple: #af52de;
+
+  /* Colors - Background */
+  --color-bg: #fbfbfd;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f5f5f7;
+  --color-bg-sidebar: rgba(251, 251, 253, 0.72);
+
+  /* Font Size */
+  --text-display: 48px;
+  --text-h1: 32px;
+  --text-h2: 21px;
+  --text-h3: 17px;
+  --text-body: 15px;
+  --text-small: 14px;
+  --text-caption: 13px;
+  --text-micro: 11px;
+
+  /* Border Radius */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 100px;
+
+  /* Box Shadow */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.08);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.1);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+  --spacing-4xl: 40px;
+  --spacing-5xl: 48px;
+
+  /* Animations */
+  --animate-fade-in-up: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-scale-in: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-slide-in-left: slideInLeft 0.3s ease forwards;
+  --animate-pulse-gentle: pulseGentle 2s infinite;
+  --animate-bounce-subtle: bounceSubtle 3s linear infinite;
+
+  /* Keyframes */
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes slideInLeft {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes pulseGentle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes bounceSubtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+}
+
+/* ---- Base Styles ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-dm-sans), var(--font-noto-sans-sc), system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+/* ---- Stagger Animation Delays ---- */
+.delay-1 { animation-delay: 50ms; }
+.delay-2 { animation-delay: 100ms; }
+.delay-3 { animation-delay: 150ms; }
+.delay-4 { animation-delay: 200ms; }
+.delay-5 { animation-delay: 250ms; }
+.delay-6 { animation-delay: 300ms; }
+.delay-7 { animation-delay: 350ms; }
+.delay-8 { animation-delay: 400ms; }
+
+/* ---- Utility Classes ---- */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-blue) 0%, var(--color-teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Typewriter Loader (Apple Blue) ---- */
+.typewriter {
+  --tw-blue: #0071e3;
+  --tw-blue-dark: #0077ed;
+  --tw-key: #fff;
+  --tw-paper: #EEF0FD;
+  --tw-text: #D3D4EC;
+  --tw-tool: #FBC56C;
+  --tw-duration: 3s;
+  position: relative;
+  animation: tw-bounce var(--tw-duration) linear infinite;
+}
+
+.typewriter .slide {
+  width: 92px;
+  height: 20px;
+  border-radius: 3px;
+  margin-left: 14px;
+  transform: translateX(14px);
+  background: linear-gradient(var(--tw-blue), var(--tw-blue-dark));
+  animation: tw-slide var(--tw-duration) ease infinite;
+}
+
+.typewriter .slide:before,
+.typewriter .slide:after,
+.typewriter .slide i:before {
+  content: "";
+  position: absolute;
+  background: var(--tw-tool);
+}
+
+.typewriter .slide:before {
+  width: 2px;
+  height: 8px;
+  top: 6px;
+  left: 100%;
+}
+
+.typewriter .slide:after {
+  left: 94px;
+  top: 3px;
+  height: 14px;
+  width: 6px;
+  border-radius: 3px;
+}
+
+.typewriter .slide i {
+  display: block;
+  position: absolute;
+  right: 100%;
+  width: 6px;
+  height: 4px;
+  top: 4px;
+  background: var(--tw-tool);
+}
+
+.typewriter .slide i:before {
+  right: 100%;
+  top: -2px;
+  width: 4px;
+  border-radius: 2px;
+  height: 14px;
+}
+
+.typewriter .paper {
+  position: absolute;
+  left: 24px;
+  top: -26px;
+  width: 40px;
+  height: 46px;
+  border-radius: 5px;
+  background: var(--tw-paper);
+  transform: translateY(46px);
+  animation: tw-paper var(--tw-duration) linear infinite;
+}
+
+.typewriter .paper:before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 7px;
+  border-radius: 2px;
+  height: 4px;
+  transform: scaleY(0.8);
+  background: var(--tw-text);
+  box-shadow: 0 12px 0 var(--tw-text), 0 24px 0 var(--tw-text), 0 36px 0 var(--tw-text);
+}
+
+.typewriter .keyboard {
+  width: 120px;
+  height: 56px;
+  margin-top: -10px;
+  z-index: 1;
+  position: relative;
+}
+
+.typewriter .keyboard:before,
+.typewriter .keyboard:after {
+  content: "";
+  position: absolute;
+}
+
+.typewriter .keyboard:before {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--tw-blue), var(--tw-blue-dark));
+  transform: perspective(10px) rotateX(2deg);
+  transform-origin: 50% 100%;
+}
+
+.typewriter .keyboard:after {
+  left: 2px;
+  top: 25px;
+  width: 11px;
+  height: 4px;
+  border-radius: 2px;
+  box-shadow:
+    15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+    60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+    22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+    60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  animation: tw-keyboard var(--tw-duration) linear infinite;
+}
+
+@keyframes tw-bounce {
+  85%, 92%, 100% { transform: translateY(0); }
+  89% { transform: translateY(-4px); }
+  95% { transform: translateY(2px); }
+}
+
+@keyframes tw-slide {
+  5% { transform: translateX(14px); }
+  15%, 30% { transform: translateX(6px); }
+  40%, 55% { transform: translateX(0); }
+  65%, 70% { transform: translateX(-4px); }
+  80%, 89% { transform: translateX(-12px); }
+  100% { transform: translateX(14px); }
+}
+
+@keyframes tw-paper {
+  5% { transform: translateY(46px); }
+  20%, 30% { transform: translateY(34px); }
+  40%, 55% { transform: translateY(22px); }
+  65%, 70% { transform: translateY(10px); }
+  80%, 85% { transform: translateY(0); }
+  92%, 100% { transform: translateY(46px); }
+}
+
+@keyframes tw-keyboard {
+  5%, 12%, 21%, 30%, 39%, 48%, 57%, 66%, 75%, 84% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  9% {
+    box-shadow:
+      15px 2px 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  18% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 2px 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  27% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 12px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  36% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 12px 0 var(--tw-key),
+      60px 12px 0 var(--tw-key), 68px 12px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  45% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 2px 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  54% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 2px 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  63% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 12px 0 var(--tw-key);
+  }
+  72% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 2px 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 10px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+  81% {
+    box-shadow:
+      15px 0 0 var(--tw-key), 30px 0 0 var(--tw-key), 45px 0 0 var(--tw-key),
+      60px 0 0 var(--tw-key), 75px 0 0 var(--tw-key), 90px 0 0 var(--tw-key),
+      22px 10px 0 var(--tw-key), 37px 12px 0 var(--tw-key), 52px 10px 0 var(--tw-key),
+      60px 10px 0 var(--tw-key), 68px 10px 0 var(--tw-key), 83px 10px 0 var(--tw-key);
+  }
+}
