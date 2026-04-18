@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { api, Task, Resource, DashboardStats, MasteryRecord, StudentProfile } from '@/lib/api'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { ProgressRing } from '@/components/ui/ProgressRing'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { DashboardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -80,7 +79,7 @@ export default function HomePage() {
       {/* Featured Card */}
       <Card variant="dark" className="p-8 animate-fade-in-up delay-1">
         <div className="flex items-center gap-8">
-          <ProgressRing value={75} size={100} strokeWidth={8} />
+          <WarmProgressRing value={75} size={100} strokeWidth={8} />
           <div className="flex-1">
             <h2 className="text-h3 text-white mb-1">Python 程序设计</h2>
             <p className="text-body text-white/60 mb-4">当前学习路径</p>
@@ -171,7 +170,7 @@ export default function HomePage() {
                 <Badge variant="info">函数与模块</Badge>
                 <TrendingUp className="w-3 h-3 text-blue" />
               </div>
-              <ProgressBar value={62} showLabel color="gradient" />
+              <ProgressBar value={62} showLabel color="warm" />
             </div>
           </Card>
 
@@ -220,6 +219,34 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
       <p className="text-h1 text-ink">{value}</p>
       <p className="text-caption text-ink-tertiary">{label}</p>
     </Card>
+  )
+}
+
+// Warm Progress Ring Component
+function WarmProgressRing({ value, size = 100, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (value / 100) * circumference
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={strokeWidth} />
+      <circle
+        cx={size / 2} cy={size / 2} r={radius}
+        fill="none" stroke="#fff" strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
+      />
+      <text
+        x="50%" y="50%" textAnchor="middle" dominantBaseline="central"
+        fill="#fff" fontSize="24" fontWeight="700" fontFamily="DM Sans, sans-serif"
+      >
+        {value}%
+      </text>
+    </svg>
   )
 }
 

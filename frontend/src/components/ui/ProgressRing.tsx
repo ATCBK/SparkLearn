@@ -43,8 +43,8 @@ export function ProgressRing({ value, size = 120, strokeWidth = 8, className }: 
       {/* Gradient definition */}
       <defs>
         <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0071e3" />
-          <stop offset="100%" stopColor="#5ac8fa" />
+          <stop offset="0%" stopColor="#fff" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0.6)" />
         </linearGradient>
       </defs>
       {/* Center text */}

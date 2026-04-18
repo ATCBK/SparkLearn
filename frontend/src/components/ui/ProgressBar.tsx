@@ -4,7 +4,7 @@ interface ProgressBarProps {
   value: number // 0-100
   className?: string
   showLabel?: boolean
-  color?: 'blue' | 'success' | 'warning' | 'danger' | 'gradient'
+  color?: 'blue' | 'success' | 'warning' | 'danger' | 'gradient' | 'warm'
 }
 
 export function ProgressBar({ value, className, showLabel = false, color = 'blue' }: ProgressBarProps) {
@@ -14,6 +14,7 @@ export function ProgressBar({ value, className, showLabel = false, color = 'blue
     warning: 'bg-warning',
     danger: 'bg-danger',
     gradient: 'bg-gradient-to-r from-blue to-teal',
+    warm: 'bg-gradient-to-r from-warning to-danger',
   }[color]
 
   return (
