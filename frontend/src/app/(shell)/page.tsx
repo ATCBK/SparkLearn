@@ -77,19 +77,19 @@ export default function HomePage() {
       </div>
 
       {/* Featured Card */}
-      <Card variant="dark" className="p-8 animate-fade-in-up delay-1">
+      <Card className="bg-blue-100 p-8 animate-fade-in-up delay-1">
         <div className="flex items-center gap-8">
-          <WarmProgressRing value={75} size={100} strokeWidth={8} />
+          <LightProgressRing value={75} size={100} strokeWidth={8} />
           <div className="flex-1">
-            <h2 className="text-h3 text-white mb-1">Python 程序设计</h2>
-            <p className="text-body text-white/60 mb-4">当前学习路径</p>
+            <h2 className="text-h3 text-ink mb-1">Python 程序设计</h2>
+            <p className="text-body text-ink-tertiary mb-4">当前学习路径</p>
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="success">基础语法</Badge>
-              <ChevronRight className="w-3 h-3 text-white/30" />
+              <ChevronRight className="w-3 h-3 text-ink-disabled" />
               <Badge variant="info">函数与模块</Badge>
-              <ChevronRight className="w-3 h-3 text-white/30" />
+              <ChevronRight className="w-3 h-3 text-ink-disabled" />
               <Badge>面向对象</Badge>
-              <ChevronRight className="w-3 h-3 text-white/30" />
+              <ChevronRight className="w-3 h-3 text-ink-disabled" />
               <Badge>模块</Badge>
             </div>
           </div>
@@ -222,18 +222,18 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
   )
 }
 
-// Warm Progress Ring Component
-function WarmProgressRing({ value, size = 100, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) {
+// Light Progress Ring Component
+function LightProgressRing({ value, size = 100, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) {
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const offset = circumference - (value / 100) * circumference
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={strokeWidth} />
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(59,130,246,0.15)" strokeWidth={strokeWidth} />
       <circle
         cx={size / 2} cy={size / 2} r={radius}
-        fill="none" stroke="#fff" strokeWidth={strokeWidth}
+        fill="none" stroke="#3b82f6" strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
@@ -242,7 +242,7 @@ function WarmProgressRing({ value, size = 100, strokeWidth = 8 }: { value: numbe
       />
       <text
         x="50%" y="50%" textAnchor="middle" dominantBaseline="central"
-        fill="#fff" fontSize="24" fontWeight="700" fontFamily="DM Sans, sans-serif"
+        fill="#3b82f6" fontSize="24" fontWeight="700" fontFamily="DM Sans, sans-serif"
       >
         {value}%
       </text>
