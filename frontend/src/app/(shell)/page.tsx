@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { api, Task, Resource, DashboardStats, MasteryRecord, StudentProfile } from '@/lib/api'
+import { api, Task, Resource, DashboardStats, StudentProfile, MasteryRecord, ContributionDay } from '@/lib/api'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
@@ -10,15 +10,16 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { formatDateChinese, formatDurationShort } from '@/lib/utils/format'
 import {
   Clock, CheckCircle2, Target, Flame, Play, BookOpen,
-  PenTool, Code, ChevronRight, TrendingUp,
+  PenTool, Code, ChevronRight, TrendingUp, AlertCircle,
 } from 'lucide-react'
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentResources, setRecentResources] = useState<Resource[]>([])
-  const [mastery, setMastery] = useState<MasteryRecord[]>([])
   const [profile, setProfile] = useState<StudentProfile | null>(null)
+  const [contributions, setContributions] = useState<ContributionDay[]>([])
+  const [mastery, setMastery] = useState<MasteryRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,18 +27,20 @@ export default function HomePage() {
     try {
       setLoading(true)
       setError(null)
-      const [t, s, r, m, p] = await Promise.all([
+      const [t, s, r, p, c, m] = await Promise.all([
         api.getTodayTasks(),
         api.getDashboardStats(),
         api.getRecentResources(),
-        api.getMasteryData(),
         api.getProfile(),
+        api.getContributionData(),
+        api.getMasteryData(),
       ])
       setTasks(t)
       setStats(s)
       setRecentResources(r)
-      setMastery(m)
       setProfile(p)
+      setContributions(c)
+      setMastery(m)
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -56,6 +59,8 @@ export default function HomePage() {
     quiz: <PenTool className="w-4 h-4" />,
     practice: <Code className="w-4 h-4" />,
   }
+
+  const totalContributions = contributions.reduce((sum, d) => sum + d.count, 0)
 
   return (
     <div className="space-y-8">
@@ -140,40 +145,20 @@ export default function HomePage() {
             </div>
           </Card>
 
-          {/* Recent Resources */}
+          {/* Learning Contribution Heatmap */}
           <Card className="p-6">
-            <h3 className="text-h3 text-ink mb-4">最近学习</h3>
-            <div className="space-y-2">
-              {recentResources.map(res => (
-                <div key={res.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-bg-hover transition-colors cursor-pointer">
-                  <div className="w-8 h-8 rounded-lg bg-blue-light flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 text-blue" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-body font-medium text-ink truncate">{res.title}</p>
-                    <p className="text-caption text-ink-tertiary">{res.createdAt}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-ink-disabled" />
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-h3 text-ink">学习打卡</h3>
+              <span className="text-caption text-ink-tertiary">
+                近一年共学习 <span className="font-semibold text-ink">{totalContributions}</span> 次
+              </span>
             </div>
+            <ContributionGraph data={contributions} />
           </Card>
         </div>
 
         {/* Right Column - Info Sidebar */}
         <div className="space-y-6">
-          {/* Learning Stage */}
-          <Card className="p-5">
-            <h4 className="text-small font-semibold text-ink mb-3">学习阶段</h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="info">函数与模块</Badge>
-                <TrendingUp className="w-3 h-3 text-blue" />
-              </div>
-              <ProgressBar value={62} showLabel color="warm" />
-            </div>
-          </Card>
-
           {/* Profile Tags */}
           {profile && (
             <Card className="p-5">
@@ -187,24 +172,51 @@ export default function HomePage() {
             </Card>
           )}
 
-          {/* Knowledge Mastery */}
+          {/* Recent Resources */}
           <Card className="p-5">
-            <h4 className="text-small font-semibold text-ink mb-3">知识掌握度</h4>
-            <div className="space-y-3">
-              {mastery.slice(0, 5).map(m => (
-                <div key={m.knowledgePointId}>
-                  <div className="flex justify-between text-caption mb-1">
-                    <span className="text-ink-secondary">{m.knowledgePointName}</span>
-                    <span className="text-ink-tertiary">{Math.round(m.score * 100)}%</span>
+            <h4 className="text-small font-semibold text-ink mb-3">最近学习</h4>
+            <div className="space-y-2">
+              {recentResources.map(res => (
+                <div key={res.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-bg-hover transition-colors cursor-pointer">
+                  <div className="w-7 h-7 rounded-lg bg-blue-light flex items-center justify-center shrink-0">
+                    <BookOpen className="w-3.5 h-3.5 text-blue" />
                   </div>
-                  <ProgressBar
-                    value={m.score * 100}
-                    color={m.score > 0.7 ? 'success' : m.score > 0.5 ? 'warning' : 'danger'}
-                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-small font-medium text-ink truncate">{res.title}</p>
+                    <p className="text-caption text-ink-tertiary">{res.createdAt}</p>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-ink-disabled" />
                 </div>
               ))}
             </div>
           </Card>
+
+          {/* Weak Points */}
+          {mastery.length > 0 && (
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-warning" />
+                <h4 className="text-small font-semibold text-ink">待加强知识点</h4>
+              </div>
+              <div className="space-y-3">
+                {mastery
+                  .filter(m => m.score < 0.7)
+                  .sort((a, b) => a.score - b.score)
+                  .slice(0, 4)
+                  .map(m => (
+                    <div key={m.knowledgePointId}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-small text-ink">{m.knowledgePointName}</span>
+                        <span className={`text-caption font-medium ${m.score < 0.5 ? 'text-warning' : 'text-ink-tertiary'}`}>
+                          {Math.round(m.score * 100)}%
+                        </span>
+                      </div>
+                      <ProgressBar value={m.score * 100} color={m.score < 0.5 ? 'warning' : 'blue'} className="h-1.5" />
+                    </div>
+                  ))}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>
@@ -247,6 +259,99 @@ function LightProgressRing({ value, size = 100, strokeWidth = 8 }: { value: numb
         {value}%
       </text>
     </svg>
+  )
+}
+
+// Contribution Graph Component
+function ContributionGraph({ data }: { data: ContributionDay[] }) {
+  const cellSize = 12
+  const cellGap = 3
+  const totalWeeks = 53
+  const levelColors = [
+    '#ebedf0', // 0 - 无学习
+    '#9be9a8', // 1 - 少量
+    '#40c463', // 2 - 中等
+    '#30a14e', // 3 - 较多
+    '#216e39', // 4 - 大量
+  ]
+
+  function getLevel(count: number): number {
+    if (count === 0) return 0
+    if (count <= 1) return 1
+    if (count <= 2) return 2
+    if (count <= 3) return 3
+    return 4
+  }
+
+  // 按列（周）组织数据: 7行 x 53列
+  const weeks: ContributionDay[][] = []
+  for (let w = 0; w < totalWeeks; w++) {
+    const week: ContributionDay[] = []
+    for (let d = 0; d < 7; d++) {
+      const idx = w * 7 + d
+      week.push(idx < data.length ? data[idx] : { date: '', count: 0 })
+    }
+    weeks.push(week)
+  }
+
+  const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  const svgWidth = totalWeeks * (cellSize + cellGap) + 40
+  const svgHeight = 7 * (cellSize + cellGap) + 24
+
+  // 计算月份标签位置
+  const monthPositions: { label: string; x: number }[] = []
+  let lastMonth = -1
+  weeks.forEach((week, wi) => {
+    const firstDay = week[0]
+    if (firstDay.date) {
+      const month = new Date(firstDay.date).getMonth()
+      if (month !== lastMonth) {
+        monthPositions.push({ label: monthLabels[month], x: wi * (cellSize + cellGap) + 30 })
+        lastMonth = month
+      }
+    }
+  })
+
+  return (
+    <div className="overflow-x-auto">
+      <svg width={svgWidth} height={svgHeight} className="block">
+        {/* Month labels */}
+        {monthPositions.map((m, i) => (
+          <text key={i} x={m.x} y={10} fontSize={11} fill="#9ca3af" fontFamily="DM Sans, sans-serif">
+            {m.label}
+          </text>
+        ))}
+        {/* Day cells */}
+        {weeks.map((week, wi) =>
+          week.map((day, di) => {
+            const level = getLevel(day.count)
+            const x = wi * (cellSize + cellGap) + 30
+            const y = di * (cellSize + cellGap) + 18
+            return (
+              <rect
+                key={`${wi}-${di}`}
+                x={x} y={y}
+                width={cellSize} height={cellSize}
+                rx={2} ry={2}
+                fill={levelColors[level]}
+              >
+                {day.date && (
+                  <title>{`${day.date}: ${day.count} 次学习`}</title>
+                )}
+              </rect>
+            )
+          })
+        )}
+      </svg>
+      {/* Legend */}
+      <div className="flex items-center justify-end gap-1 mt-2 text-caption text-ink-tertiary">
+        <span>少</span>
+        {levelColors.map((color, i) => (
+          <svg key={i} width={cellSize} height={cellSize}><rect width={cellSize} height={cellSize} rx={2} fill={color} /></svg>
+        ))}
+        <span>多</span>
+      </div>
+    </div>
   )
 }
 

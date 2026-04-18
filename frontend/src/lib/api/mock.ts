@@ -1,7 +1,7 @@
 import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo,
+  LearningPath, VideoInfo, ContributionDay,
 } from './types'
 
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
@@ -270,4 +270,36 @@ export async function getDailyQuote(): Promise<string> {
     '不积跬步，无以至千里。',
   ]
   return quotes[Math.floor(Math.random() * quotes.length)]
+}
+
+// ---- Contribution Graph ----
+
+export async function getContributionData(): Promise<ContributionDay[]> {
+  await delay(300)
+  const data: ContributionDay[] = []
+  const today = new Date()
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const dayOfWeek = d.getDay()
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+    const rand = Math.random()
+    let count = 0
+    if (isWeekend) {
+      if (rand < 0.5) count = 0
+      else if (rand < 0.75) count = 1
+      else if (rand < 0.9) count = 2
+      else count = 3
+    } else {
+      if (rand < 0.15) count = 0
+      else if (rand < 0.45) count = 1
+      else if (rand < 0.75) count = 2
+      else if (rand < 0.9) count = 3
+      else count = 4
+    }
+    // Recent days slightly higher
+    if (i < 30) count = Math.min(count + 1, 5)
+    data.push({ date: d.toISOString().slice(0, 10), count })
+  }
+  return data
 }

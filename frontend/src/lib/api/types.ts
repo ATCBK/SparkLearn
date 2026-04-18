@@ -101,3 +101,8 @@ export interface VideoInfo {
   duration: number // 秒
   createdAt: string
 }
+
+export interface ContributionDay {
+  date: string // YYYY-MM-DD
+  count: number // 学习次数
+}

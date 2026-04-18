@@ -44,6 +44,9 @@ export const api = {
 
   // Misc
   getDailyQuote: mock.getDailyQuote,
+
+  // Contribution Graph
+  getContributionData: mock.getContributionData,
 }
 
-export type { Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord, ReportData, Recommendation, LearningPath, PathNode, VideoInfo } from './types'
+export type { Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord, ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay } from './types'
