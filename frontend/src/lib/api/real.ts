@@ -120,6 +120,10 @@ export async function getResources(): Promise<Resource[]> {
   return resources.map(toResource)
 }
 
+export async function deleteResource(resourceId: string): Promise<void> {
+  await fetchJson(`/api/resources/${resourceId}`, { method: 'DELETE' })
+}
+
 export async function generateResource(type: Resource['type'], prompt: string): Promise<Resource> {
   const events = await readSSE('/api/resources/generate', { type, prompt })
   let done: { type: string; payload: Record<string, unknown> } | undefined
@@ -367,6 +371,49 @@ export async function submitQuizAnswer(quizId: string, answer: string | string[]
     explanation: String(data.explanation || ''),
     judgeMode: data.judge_mode ? String(data.judge_mode) : undefined,
   }
+}
+
+export async function getWrongQuizItems(): Promise<Array<{
+  quizId: string
+  content: string
+  question?: Record<string, unknown>
+  userAnswer: string | string[] | null
+  correctAnswer: string | string[] | null
+  count: number
+}>> {
+  const data = await fetchJson<any[]>('/api/quiz/wrong')
+  return data.map((i) => ({
+    quizId: String(i.quiz_id || ''),
+    content: String(i.content || ''),
+    question: i.question,
+    userAnswer: i.user_answer ?? null,
+    correctAnswer: i.correct_answer ?? null,
+    count: Number(i.count || 0),
+  }))
+}
+
+export async function deleteWrongQuizItem(quizId: string): Promise<void> {
+  await fetchJson(`/api/quiz/wrong/${quizId}`, { method: 'DELETE' })
+}
+
+export async function getQuizFavorites(): Promise<Array<{
+  quizId: string
+  question?: Record<string, unknown>
+  createdAt: string
+}>> {
+  const data = await fetchJson<any[]>('/api/quiz/favorites')
+  return data.map((i) => ({
+    quizId: String(i.quiz_id || ''),
+    question: i.question,
+    createdAt: String(i.created_at || ''),
+  }))
+}
+
+export async function setQuizFavorite(quizId: string, favorite: boolean): Promise<void> {
+  await fetchJson('/api/quiz/favorites', {
+    method: 'POST',
+    body: JSON.stringify({ quiz_id: quizId, favorite }),
+  })
 }
 
 export async function getReport(): Promise<ReportData> {

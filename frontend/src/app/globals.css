@@ -120,6 +120,29 @@ body {
   font-family: var(--font-dm-sans), var(--font-noto-sans-sc), system-ui, sans-serif;
   font-size: var(--text-body);
   line-height: 1.5;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+}
+
+/* Prevent accidental vertical text layout caused by corrupted styles/content. */
+p,
+span,
+a,
+button,
+label,
+li,
+td,
+th,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+input,
+textarea {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
 }
 
 /* ---- Stagger Animation Delays ---- */

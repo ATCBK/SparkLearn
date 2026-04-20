@@ -13,6 +13,7 @@ export const api = {
   getProfile: impl.getProfile,
 
   getResources: impl.getResources,
+  deleteResource: impl.deleteResource,
   generateResource: impl.generateResource,
 
   sendMessage: impl.sendMessage,
@@ -30,6 +31,10 @@ export const api = {
 
   getQuizQuestions: impl.getQuizQuestions,
   submitQuizAnswer: impl.submitQuizAnswer,
+  getWrongQuizItems: impl.getWrongQuizItems,
+  deleteWrongQuizItem: impl.deleteWrongQuizItem,
+  getQuizFavorites: impl.getQuizFavorites,
+  setQuizFavorite: impl.setQuizFavorite,
 
   getReport: impl.getReport,
 
