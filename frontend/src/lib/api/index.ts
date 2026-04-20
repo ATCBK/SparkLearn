@@ -1,52 +1,36 @@
-// API 层入口 - USE_MOCK 全局开关
-// 切换 Mock/Real 时只改这一个值
+﻿import * as real from './real'
 
-import * as mock from './mock'
-
-// 当切换到 Real 时，取消注释下面的 import 并替换对应的方法
-// import * as real from './real'
+const impl = real
 
 export const api = {
-  // Tasks
-  getTodayTasks: mock.getTodayTasks,
-  completeTask: mock.completeTask,
+  getTodayTasks: impl.getTodayTasks,
+  completeTask: impl.completeTask,
 
-  // Dashboard
-  getDashboardStats: mock.getDashboardStats,
-  getRecentResources: mock.getRecentResources,
-  getMasteryData: mock.getMasteryData,
+  getDashboardStats: impl.getDashboardStats,
+  getRecentResources: impl.getRecentResources,
+  getMasteryData: impl.getMasteryData,
 
-  // Profile
-  getProfile: mock.getProfile,
+  getProfile: impl.getProfile,
 
-  // Resources
-  getResources: mock.getResources,
-  generateResource: mock.generateResource,
+  getResources: impl.getResources,
+  generateResource: impl.generateResource,
 
-  // Tutor / Chat
-  sendMessage: mock.sendMessage,
-  getChatHistory: mock.getChatHistory,
+  sendMessage: impl.sendMessage,
+  getChatHistory: impl.getChatHistory,
 
-  // Quiz
-  getQuizQuestions: mock.getQuizQuestions,
+  getQuizQuestions: impl.getQuizQuestions,
 
-  // Report
-  getReport: mock.getReport,
+  getReport: impl.getReport,
 
-  // Recommendations
-  getRecommendations: mock.getRecommendations,
+  getRecommendations: impl.getRecommendations,
 
-  // Learning Path
-  getLearningPath: mock.getLearningPath,
+  getLearningPath: impl.getLearningPath,
 
-  // Video
-  getVideos: mock.getVideos,
+  getVideos: impl.getVideos,
 
-  // Misc
-  getDailyQuote: mock.getDailyQuote,
+  getDailyQuote: impl.getDailyQuote,
 
-  // Contribution Graph
-  getContributionData: mock.getContributionData,
+  getContributionData: impl.getContributionData,
 }
 
 export type { Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord, ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay } from './types'

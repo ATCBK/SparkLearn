@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, Message } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -39,27 +39,46 @@ export default function TutorPage() {
 
   async function handleSend() {
     if (!input.trim() || streaming) return
+    const userInput = input.trim()
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
       role: 'user',
-      content: input,
+      content: userInput,
       timestamp: new Date().toISOString(),
     }
-    setMessages(prev => [...prev, userMsg])
+    const assistantId = `a-${Date.now()}`
+
+    setMessages(prev => [...prev, userMsg, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+    }])
     setInput('')
     setStreaming(true)
 
     try {
-      const response = await api.sendMessage(input)
-      setMessages(prev => [...prev, response])
+      await api.sendMessage(userInput, {
+        onText: (chunk) => {
+          setMessages(prev => prev.map(msg => (
+            msg.id === assistantId ? { ...msg, content: `${msg.content}${chunk}` } : msg
+          )))
+        },
+        onError: () => {
+          setMessages(prev => prev.map(msg => (
+            msg.id === assistantId && !msg.content
+              ? { ...msg, content: '模型服务出现错误，正在切换离线说明。' }
+              : msg
+          )))
+        },
+      })
     } catch {
-      setMessages(prev => [...prev, {
-        id: `err-${Date.now()}`,
-        role: 'assistant',
-        content: '抱歉，发生了错误，请重试。',
-        timestamp: new Date().toISOString(),
-      }])
+      setMessages(prev => prev.map(msg => (
+        msg.id === assistantId
+          ? { ...msg, content: '抱歉，发生错误，请重试。' }
+          : msg
+      )))
     } finally {
       setStreaming(false)
     }
@@ -81,7 +100,6 @@ export default function TutorPage() {
         <p className="text-body text-ink-secondary mt-1">随时向 AI 提问，获得即时解答</p>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
         {messages.map(msg => (
           <div key={msg.id} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -101,8 +119,7 @@ export default function TutorPage() {
             </div>
           </div>
         ))}
-
-        {streaming && (
+        {streaming && messages[messages.length - 1]?.content === '' && (
           <div className="flex justify-start">
             <div className="bg-bg-card shadow-sm border border-black/[0.04] rounded-[16px] px-5 py-4">
               <TypewriterLoader />
@@ -112,7 +129,6 @@ export default function TutorPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Bar */}
       <div className="mt-4 bg-bg-card rounded-[16px] shadow-sm border border-black/[0.06] p-3 flex items-end gap-3">
         <textarea
           value={input}

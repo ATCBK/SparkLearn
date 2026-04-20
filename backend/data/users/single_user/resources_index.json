@@ -1,0 +1,94 @@
+[
+  {
+    "id": "r1",
+    "title": "变量与数据类型详解",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-15",
+    "content": "# 变量与数据类型\n\n..."
+  },
+  {
+    "id": "r2",
+    "title": "Python 函数基础 PPT",
+    "type": "ppt",
+    "status": "completed",
+    "created_at": "2026-04-14",
+    "docmee_id": "demo-1"
+  },
+  {
+    "id": "r3",
+    "title": "条件逻辑思维导图",
+    "type": "mindmap",
+    "status": "completed",
+    "created_at": "2026-04-13",
+    "content": "# 条件逻辑\n\n..."
+  },
+  {
+    "id": "r4",
+    "title": "函数练习题集",
+    "type": "quiz",
+    "status": "completed",
+    "created_at": "2026-04-12"
+  },
+  {
+    "id": "r5",
+    "title": "Python 标准库扩展阅读",
+    "type": "reading",
+    "status": "completed",
+    "created_at": "2026-04-11",
+    "content": "# Python 标准库\n\n..."
+  },
+  {
+    "id": "r6",
+    "title": "装饰器代码案例",
+    "type": "code",
+    "status": "completed",
+    "created_at": "2026-04-10",
+    "content": "```python\n...\n```"
+  },
+  {
+    "id": "gen-e11303de",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-ce58c208",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-38417688",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-b9422631",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-c6cda124",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  }
+]
