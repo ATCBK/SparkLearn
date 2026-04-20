@@ -1,0 +1,14 @@
+
+> frontend@0.1.0 dev
+> next dev -p 3001
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://100.122.201.120:3001
+✓ Ready in 813ms
+Creating turbopack project { dir: 'D:\\Project_building\\SparkLearn\\frontend', testMode: true }
+
+ GET /tutor 200 in 1428ms (next.js: 731ms, application-code: 697ms)
+ GET /tutor 200 in 104ms (next.js: 6ms, application-code: 97ms)
+ GET / 200 in 183ms (next.js: 79ms, application-code: 103ms)
+[?25h

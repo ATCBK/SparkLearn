@@ -1,12 +1,11 @@
-// API 类型定义 - 唯一真相源
-// Mock 和 Real 实现都必须遵循这些类型签名
+﻿// API type definitions shared by real and mock implementations.
 
 export interface Task {
   id: string
   title: string
   type: 'video' | 'reading' | 'quiz' | 'practice'
   status: 'pending' | 'in_progress' | 'completed'
-  duration: number // 分钟
+  duration: number // minutes
 }
 
 export interface Resource {
@@ -31,7 +30,7 @@ export interface StudentProfile {
   weakPoints: string[]
   learningPreference: string[]
   cognitiveStyle: string
-  dailyTime: number // 分钟
+  dailyTime: number // minutes
   practicalAbility: string
 }
 
@@ -40,6 +39,34 @@ export interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+  conversationId?: number
+  fileNames?: string[]
+}
+
+export interface TutorRole {
+  id: number
+  name: string
+  persona: string
+  background: string
+  styleGuide: string
+  rules: string
+  enabled: boolean
+}
+
+export interface TutorConversation {
+  id: number
+  roleId: number | null
+  title: string
+  createdAt: string
+  updatedAt: string
+  messageCount: number
+}
+
+export interface TutorFile {
+  id: number
+  filename: string
+  mimeType: string
+  sizeBytes: number
 }
 
 export interface QuizQuestion {
@@ -98,11 +125,11 @@ export interface VideoInfo {
   id: string
   title: string
   url: string
-  duration: number // 秒
+  duration: number // seconds
   createdAt: string
 }
 
 export interface ContributionDay {
   date: string // YYYY-MM-DD
-  count: number // 学习次数
+  count: number // learning sessions
 }

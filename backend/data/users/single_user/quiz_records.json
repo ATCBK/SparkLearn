@@ -38,5 +38,108 @@
     "correct_answer": "list",
     "knowledge_point_id": "1.2",
     "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "q1",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "q1",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "q1",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "q1",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "q1",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "q1",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "gq2",
+    "answer": [
+      "整数"
+    ],
+    "correct": false,
+    "correct_answer": [
+      "整数",
+      "浮点数",
+      "字符串"
+    ],
+    "knowledge_point_id": "2",
+    "judge_mode": "rule",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "gq5",
+    "answer": [
+      "random"
+    ],
+    "correct": false,
+    "correct_answer": [
+      "os",
+      "sys",
+      "math",
+      "random"
+    ],
+    "knowledge_point_id": "5",
+    "judge_mode": "rule",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "gq7",
+    "answer": [
+      "finally"
+    ],
+    "correct": false,
+    "correct_answer": [
+      "try-except",
+      "finally"
+    ],
+    "knowledge_point_id": "7",
+    "judge_mode": "rule",
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "gq3",
+    "answer": "对",
+    "correct": true,
+    "correct_answer": "True",
+    "knowledge_point_id": "3",
+    "judge_mode": "llm_assist",
+    "at": "2026-04-20"
   }
 ]

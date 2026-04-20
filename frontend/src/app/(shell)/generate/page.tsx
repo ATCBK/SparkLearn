@@ -190,9 +190,9 @@ export default function GeneratePage() {
         </div>
       </Card>
 
-      {/* Content Grid: List + Preview */}
+      {/* Content Grid: Left small list + Right large preview */}
       {state.resources.length > 0 && (
-        <div className="grid grid-cols-[1fr_360px] gap-6">
+        <div className="grid grid-cols-[340px_1fr] gap-6">
           {/* Resource List */}
           <Card className="p-4 space-y-1 max-h-[600px] overflow-y-auto">
             {state.resources.map(res => (

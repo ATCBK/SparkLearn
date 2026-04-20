@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 
 export default function ShellLayout({
@@ -9,8 +10,10 @@ export default function ShellLayout({
   children: React.ReactNode
 }) {
   const [sidebarState, setSidebarState] = useState<'expanded' | 'icons' | 'collapsed'>('expanded')
+  const pathname = usePathname()
 
   const marginLeft = sidebarState === 'expanded' ? 260 : sidebarState === 'icons' ? 64 : 0
+  const isTutor = pathname === '/tutor'
 
   return (
     <div className="min-h-screen bg-bg">
@@ -19,7 +22,7 @@ export default function ShellLayout({
         className="min-h-screen transition-[margin-left] duration-300 ease-out"
         style={{ marginLeft }}
       >
-        <div className="max-w-[1200px] mx-auto px-[52px] py-10">
+        <div className={isTutor ? 'max-w-none px-0 py-0' : 'max-w-[1200px] mx-auto px-[52px] py-10'}>
           {children}
         </div>
       </main>

@@ -52,3 +52,70 @@ async def test_generate_stream(client):
     assert r.status_code == 200
     assert '"type": "progress"' in r.text
     assert '"type": "done"' in r.text
+
+
+@pytest.mark.asyncio
+async def test_tutor_workspace_closed_loop(client):
+    roles = await client.get("/api/tutor/roles")
+    assert roles.status_code == 200
+    assert roles.json()["success"] is True
+
+    created_role = await client.post(
+        "/api/tutor/roles",
+        json={"name": "测试角色", "persona": "你是测试导师"},
+    )
+    assert created_role.status_code == 200
+    role_id = int(created_role.json()["data"]["id"])
+
+    created_conv = await client.post(
+        "/api/tutor/conversations",
+        json={"title": "闭环测试会话", "role_id": role_id},
+    )
+    assert created_conv.status_code == 200
+    conv_id = int(created_conv.json()["data"]["id"])
+
+    upload = await client.post(
+        "/api/tutor/files",
+        files=[("files", ("sample.txt", b"hello workspace", "text/plain"))],
+    )
+    assert upload.status_code == 200
+    file_id = int(upload.json()["data"][0]["id"])
+
+    stream = await client.post(
+        "/api/tutor/chat",
+        json={
+            "message": "请解释闭包",
+            "conversation_id": conv_id,
+            "role_id": role_id,
+            "file_ids": [file_id],
+            "mode": "knowledge_qa",
+        },
+    )
+    assert stream.status_code == 200
+    assert '"type": "text"' in stream.text
+    assert '"type": "done"' in stream.text
+
+    history = await client.get(f"/api/tutor/history?conversation_id={conv_id}&limit=50")
+    assert history.status_code == 200
+    assert history.json()["success"] is True
+    msgs = history.json()["data"]
+    assert len(msgs) >= 2
+    user_messages = [m for m in msgs if m["role"] == "user"]
+    assert user_messages
+    assert "sample.txt" in user_messages[-1]["file_names"]
+
+    convs_before = await client.get("/api/tutor/conversations")
+    assert convs_before.status_code == 200
+    before = next((c for c in convs_before.json()["data"] if int(c["id"]) == conv_id), None)
+    assert before is not None
+    before_count = int(before["message_count"])
+    assert before_count >= 2
+
+    delete_msg = await client.delete(f"/api/tutor/messages/{user_messages[-1]['id']}")
+    assert delete_msg.status_code == 200
+    assert delete_msg.json()["success"] is True
+
+    convs_after = await client.get("/api/tutor/conversations")
+    after = next((c for c in convs_after.json()["data"] if int(c["id"]) == conv_id), None)
+    assert after is not None
+    assert int(after["message_count"]) == before_count - 1

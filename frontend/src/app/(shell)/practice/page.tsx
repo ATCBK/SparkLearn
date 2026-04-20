@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import { useEffect, useState, useReducer } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { api, QuizQuestion } from '@/lib/api'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -16,12 +16,22 @@ type QuizState = {
   answers: Record<string, string[]>
   submitted: Record<string, boolean>
   results: Record<string, boolean>
+  explanations: Record<string, string>
+  correctAnswers: Record<string, string | string[]>
+  judgeModes: Record<string, string>
 }
 
 type QuizAction =
   | { type: 'LOAD'; questions: QuizQuestion[] }
   | { type: 'SELECT'; questionId: string; answer: string }
-  | { type: 'SUBMIT'; questionId: string; correct: boolean }
+  | {
+      type: 'SUBMIT'
+      questionId: string
+      correct: boolean
+      explanation: string
+      correctAnswer: string | string[]
+      judgeMode?: string
+    }
   | { type: 'NEXT' }
 
 function quizReducer(state: QuizState, action: QuizAction): QuizState {
@@ -29,13 +39,14 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
     case 'LOAD':
       return { ...state, questions: action.questions }
     case 'SELECT': {
-      const q = state.questions.find(q => q.id === action.questionId)
+      const q = state.questions.find((item) => item.id === action.questionId)
       const current = state.answers[action.questionId] || []
-      const newAnswers = q?.type === 'multiple'
-        ? current.includes(action.answer)
-          ? current.filter(a => a !== action.answer)
-          : [...current, action.answer]
-        : [action.answer]
+      const newAnswers =
+        q?.type === 'multiple'
+          ? current.includes(action.answer)
+            ? current.filter((a) => a !== action.answer)
+            : [...current, action.answer]
+          : [action.answer]
       return { ...state, answers: { ...state.answers, [action.questionId]: newAnswers } }
     }
     case 'SUBMIT':
@@ -43,6 +54,9 @@ function quizReducer(state: QuizState, action: QuizAction): QuizState {
         ...state,
         submitted: { ...state.submitted, [action.questionId]: true },
         results: { ...state.results, [action.questionId]: action.correct },
+        explanations: { ...state.explanations, [action.questionId]: action.explanation },
+        correctAnswers: { ...state.correctAnswers, [action.questionId]: action.correctAnswer },
+        judgeModes: { ...state.judgeModes, [action.questionId]: action.judgeMode || 'rule' },
       }
     case 'NEXT':
       return { ...state, currentIndex: Math.min(state.currentIndex + 1, state.questions.length - 1) }
@@ -55,6 +69,9 @@ const initialState: QuizState = {
   answers: {},
   submitted: {},
   results: {},
+  explanations: {},
+  correctAnswers: {},
+  judgeModes: {},
 }
 
 export default function PracticePage() {
@@ -62,6 +79,8 @@ export default function PracticePage() {
   const [state, dispatch] = useReducer(quizReducer, initialState)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   async function fetchData() {
     try {
@@ -76,7 +95,9 @@ export default function PracticePage() {
     }
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    void fetchData()
+  }, [])
 
   if (loading) {
     return (
@@ -89,6 +110,7 @@ export default function PracticePage() {
       </div>
     )
   }
+
   if (error) return <ErrorState type="server" onRetry={fetchData} />
 
   const current = state.questions[state.currentIndex]
@@ -98,34 +120,51 @@ export default function PracticePage() {
   const isSubmitted = state.submitted[current.id]
   const isCorrect = state.results[current.id]
 
-  function checkAnswer() {
-    let correct = false
-    if (current.type === 'single' || current.type === 'fill_blank') {
-      correct = selected[0] === current.correctAnswer
-    } else {
-      const ca = current.correctAnswer as string[]
-      correct = ca.length === selected.length && ca.every(a => selected.includes(a))
+  async function checkAnswer() {
+    try {
+      setSubmitting(true)
+      setActionError(null)
+      const answerPayload = current.type === 'multiple' ? selected : selected[0] || ''
+      const judged = await api.submitQuizAnswer(current.id, answerPayload)
+      dispatch({
+        type: 'SUBMIT',
+        questionId: current.id,
+        correct: judged.correct,
+        explanation: judged.explanation,
+        correctAnswer: judged.correctAnswer,
+        judgeMode: judged.judgeMode,
+      })
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : '判题失败，请检查后端服务')
+    } finally {
+      setSubmitting(false)
     }
-    dispatch({ type: 'SUBMIT', questionId: current.id, correct })
   }
 
   const correctCount = Object.values(state.results).filter(Boolean).length
-  const accuracy = state.currentIndex > 0 ? Math.round((correctCount / Object.keys(state.results).length) * 100) : 0
+  const doneCount = Object.keys(state.results).length
+  const accuracy = doneCount > 0 ? Math.round((correctCount / doneCount) * 100) : 0
+
+  function isOptionCorrect(opt: string): boolean {
+    const answer = state.correctAnswers[current.id]
+    if (Array.isArray(answer)) return answer.includes(opt)
+    return answer === opt
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-h1 text-ink">练习与错题</h1>
         <p className="text-body text-ink-secondary mt-1">巩固知识，提升技能</p>
+        {actionError && <p className="text-xs text-danger mt-1">{actionError}</p>}
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2">
         {[
           { key: 'practice' as const, label: '练习' },
           { key: 'mistakes' as const, label: '错题本' },
           { key: 'favorites' as const, label: '收藏' },
-        ].map(t => (
+        ].map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -141,7 +180,6 @@ export default function PracticePage() {
 
       {tab === 'practice' && (
         <div className="grid grid-cols-[1fr_280px] gap-6">
-          {/* Question Area */}
           <Card className="p-8">
             <div className="flex items-center gap-2 mb-6">
               <Badge variant="info">第 {state.currentIndex + 1} 题</Badge>
@@ -150,14 +188,13 @@ export default function PracticePage() {
 
             <h3 className="text-h3 text-ink mb-6">{current.content}</h3>
 
-            {/* Options */}
             <div className="space-y-3 mb-6">
               {current.type === 'fill_blank' ? (
                 <input
                   type="text"
                   placeholder="输入你的答案..."
                   value={selected[0] || ''}
-                  onChange={e => dispatch({ type: 'SELECT', questionId: current.id, answer: e.target.value })}
+                  onChange={(e) => dispatch({ type: 'SELECT', questionId: current.id, answer: e.target.value })}
                   disabled={isSubmitted}
                   className="w-full h-12 px-4 rounded-[12px] border border-black/[0.08] bg-bg text-body text-ink placeholder:text-ink-disabled focus:outline-none focus:ring-2 focus:ring-blue/20"
                 />
@@ -165,8 +202,8 @@ export default function PracticePage() {
                 current.options?.map((opt, i) => {
                   const optLabel = String.fromCharCode(65 + i)
                   const isSelected = selected.includes(opt)
-                  const showCorrect = isSubmitted && opt === current.correctAnswer
-                  const showWrong = isSubmitted && isSelected && !isCorrect
+                  const showCorrect = isSubmitted && isOptionCorrect(opt)
+                  const showWrong = isSubmitted && isSelected && !showCorrect
 
                   return (
                     <button
@@ -181,14 +218,16 @@ export default function PracticePage() {
                         showWrong && 'border-danger bg-danger/10',
                       )}
                     >
-                      <span className={cn(
-                        'w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 text-small font-medium',
-                        !isSubmitted && isSelected && 'border-blue bg-blue text-white',
-                        !isSubmitted && !isSelected && 'border-ink-disabled text-ink-secondary',
-                        showCorrect && 'border-success bg-success text-white',
-                        showWrong && 'border-danger bg-danger text-white',
-                      )}>
-                        {showCorrect ? '✓' : showWrong ? '✗' : optLabel}
+                      <span
+                        className={cn(
+                          'w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 text-small font-medium',
+                          !isSubmitted && isSelected && 'border-blue bg-blue text-white',
+                          !isSubmitted && !isSelected && 'border-ink-disabled text-ink-secondary',
+                          showCorrect && 'border-success bg-success text-white',
+                          showWrong && 'border-danger bg-danger text-white',
+                        )}
+                      >
+                        {showCorrect ? '✓' : showWrong ? '✕' : optLabel}
                       </span>
                       <span className="text-body text-ink">{opt}</span>
                     </button>
@@ -197,27 +236,31 @@ export default function PracticePage() {
               )}
             </div>
 
-            {/* Feedback */}
             {isSubmitted && (
-              <div className={cn(
-                'p-4 rounded-[12px] mb-6',
-                isCorrect ? 'bg-success/10' : 'bg-warning/10',
-              )}>
+              <div className={cn('p-4 rounded-[12px] mb-6', isCorrect ? 'bg-success/10' : 'bg-warning/10')}>
                 <div className="flex items-center gap-2 mb-2">
                   {isCorrect ? (
-                    <><CheckCircle2 className="w-4 h-4 text-success" /><span className="text-body font-medium text-success">回答正确！</span></>
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                      <span className="text-body font-medium text-success">回答正确！</span>
+                    </>
                   ) : (
-                    <><XCircle className="w-4 h-4 text-warning" /><span className="text-body font-medium text-warning">不太对哦</span></>
+                    <>
+                      <XCircle className="w-4 h-4 text-warning" />
+                      <span className="text-body font-medium text-warning">还可以再想想</span>
+                    </>
                   )}
                 </div>
-                <p className="text-small text-ink-secondary">{current.explanation}</p>
+                <p className="text-small text-ink-secondary">{state.explanations[current.id] || current.explanation}</p>
+                {state.judgeModes[current.id] && (
+                  <p className="text-micro text-ink-tertiary mt-1">判题模式：{state.judgeModes[current.id]}</p>
+                )}
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-3">
               {!isSubmitted ? (
-                <Button onClick={checkAnswer} disabled={selected.length === 0}>
+                <Button onClick={() => void checkAnswer()} disabled={selected.length === 0 || submitting}>
                   提交答案
                 </Button>
               ) : (
@@ -229,15 +272,12 @@ export default function PracticePage() {
             </div>
           </Card>
 
-          {/* Side Panel */}
           <div className="space-y-6">
-            {/* Accuracy */}
             <Card className="p-5 text-center">
               <div className="text-h1 text-ink mb-1">{accuracy}%</div>
               <p className="text-caption text-ink-tertiary">正确率</p>
             </Card>
 
-            {/* Question Navigator */}
             <Card className="p-5">
               <h4 className="text-small font-semibold text-ink mb-3">题号导航</h4>
               <div className="grid grid-cols-5 gap-2">
@@ -268,13 +308,13 @@ export default function PracticePage() {
 
       {tab === 'mistakes' && (
         <Card className="p-8 text-center">
-          <p className="text-body text-ink-secondary">还没有错题记录，去做练习题吧！</p>
+          <p className="text-body text-ink-secondary">还没有错题记录，先做几道题吧。</p>
         </Card>
       )}
 
       {tab === 'favorites' && (
         <Card className="p-8 text-center">
-          <p className="text-body text-ink-secondary">还没有收藏的题目</p>
+          <p className="text-body text-ink-secondary">还没有收藏的题目。</p>
         </Card>
       )}
     </div>

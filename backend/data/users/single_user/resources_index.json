@@ -90,5 +90,104 @@
     "created_at": "2026-04-20",
     "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
     "progress": 100
+  },
+  {
+    "id": "gen-069ad2d8",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-a5920d9e",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-a84a6bb8",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-2571a9d1",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-7f38636b",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
+  },
+  {
+    "id": "gen-f5a080b8",
+    "title": "生成一个Python类的文档",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# 生成一个Python类的文档\n\n```python\nclass MyClass:\n    \"\"\"\n    这是一个Python类的文档。\n\n    这个类有一些属性和方法，可以用于描述类的功能和用法。\n\n    属性：\n        - my_attribute: 这是一个属性，可以用于存储一些数据。\n\n    方法：\n        - my_method: 这是一个简单的方法，可以执行一些操作。\n\n    示例：\n        >>> my_class = MyClass()\n        >>> my_class.my_attribute = \"Hello, World!\"\n        >>> print(my_class.my_attribute)\n        Hello, World!\n    \"\"\"\n\n    def __init__(self):\n        \"\"\"\n        初始化方法，当创建类的实例时调用。\n        \"\"\"\n        pass\n\n    def my_method(self):\n        \"\"\"\n        这个方法可以执行一些操作。\n        \"\"\"\n        pass\n```",
+    "progress": 100
+  },
+  {
+    "id": "gen-c8454ab7",
+    "title": "生成一个Python类的文档",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# 生成一个Python类的文档\n\n```python\nclass MyClass:\n    \"\"\"\n    MyClass 类的描述。\n\n    属性：\n        - my_attr1 (str): 一个字符串类型的属性。\n        - my_attr2 (int): 一个整数类型的属性。\n\n    方法：\n        - my_method1(self, arg1, arg2): 一个接受两个参数的方法，返回值类型为int。\n        - my_method2(self, arg1, arg2): 一个接受两个参数的方法，返回值类型为str。\n    \"\"\"\n    def __init__(self, my_attr1, my_attr2):\n        \"\"\"\n        初始化方法，用于设置类的初始属性。\n\n        参数：\n            my_attr1 (str): 一个字符串类型的属性。\n            my_attr2 (int): 一个整数类型的属性。\n        \"\"\"\n        self.my_attr1 = my_attr1\n        self.my_attr2 = my_attr2\n\n    def my_method1(self, arg1, arg2):\n        \"\"\"\n        一个接受两个参数的方法，返回值类型为int。\n\n        参数：\n            arg1 (str): 一个字符串类型的参数。\n            arg2 (int): 一个整数类型的参数。\n\n        返回：\n            int: 返回值类型为int。\n        \"\"\"\n        return int(arg1) + int(arg2)\n\n    def my_method2(self, arg1, arg2):\n        \"\"\"\n        一个接受两个参数的方法，返回值类型为str。\n\n        参数：\n            arg1 (str): 一个字符串类型的参数。\n            arg2 (int): 一个整数类型的参数。\n\n        返回：\n            str: 返回值类型为str。\n        \"\"\"\n        return str(arg1) + str(arg2)\n```",
+    "progress": 100
+  },
+  {
+    "id": "gen-65a547c2",
+    "title": "生成一个函数的课程文档",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# 生成一个函数的课程文档\n\n# 函数课程文档\n\n## 1. 函数定义\n\n函数是一段预先编写好的、可重复使用的代码块，用于执行特定的任务。在编程中，函数可以接收输入参数并返回结果。函数的定义通常包括以下部分：\n\n- 函数名：一个标识符，用于唯一地识别这个函数。\n- 参数列表：一个由逗号分隔的参数列表，每个参数都是一个变量或表达式。\n- 函数体：包含函数主体的代码块。\n- 返回值：函数执行后返回的值。\n\n例如，一个简单的函数定义如下：\n\n```python\ndef add(a, b):\n    return a + b\n```\n\n在这个例子中，`add` 是一个函数名，它接受两个参数 `a` 和 `b`，并返回它们的和。\n\n## 2. 函数调用\n\n要使用一个函数，需要先定义该函数，然后在代码中通过函数名来调用它。函数调用时需要传递参数。\n\n例如，在上面的例子中，我们可以这样调用 `add` 函数：\n\n```python\nresult = add(3, 4)\nprint(result)  # 输出：7\n```\n\n在这个例子中，我们首先定义了 `add` 函数，然后通过 `add(3, 4)` 来调用它，并将结果存储在 `result` 变量中。最后，我们打印出 `result` 的值。\n\n## 3. 函数参数\n\n函数参数是传递给函数的输入数据。参数可以是任何类型的数据，如整数、浮点数、字符串等。参数的数量和类型取决于函数的定义。\n\n例如，上面的 `add` 函数定义了一个参数 `a` 和一个参数 `b`。这两个参数都是整数，分别代表加法操作的两个数。\n\n## 4. 函数返回值\n\n函数的返回值是在函数主体执行完毕后返回的值。如果函数没有返回值（即没有 `return` 语句），则默认返回 `None`。\n\n例如，在上面的 `add` 函数定义中，函数没有返回值，所以它的返回值是 `None`。\n\n## 5. 函数装饰器\n\n函数装饰器是一种特殊类型的函数，它可以修改其他函数的行为。装饰器通常是用在 Python 中的装饰器语法（decorator syntax）来实现的。\n\n例如，下面是一个使用装饰器的简单示例：\n\n```python\ndef my_function(func):\n    def wrapper(*args, **kwargs):\n        print(\"Before calling the original function\")\n        result = func(*args, **kwargs)\n        print(\"After calling the original function\")\n        return result\n    return wrapper\n\n@my_function\ndef print_hello():\n    print(\"Hello, world!\")\n\nprint_hello()  # 输出：Before calling the original function\nprint_hello()  # 输出：Hello, world!\n```\n\n在这个例子中，`my_function` 是一个装饰器，它接受一个函数作为参数，并返回一个新的函数 `wrapper`。`wrapper` 函数在调用原始函数之前和之后分别打印一条消息，并返回原始函数的结果。然后，我们使用 `@my_function` 语法将 `print_hello` 函数包装在 `my_function` 装饰器中。当我们调用 `print_hello()` 时，它会先打印一条消息，然后执行 `print_hello` 函数，并打印出 \"Hello, world!\"。",
+    "progress": 100
+  },
+  {
+    "id": "gen-99c3c53a",
+    "title": "生成一个函数练习题",
+    "type": "quiz",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# 生成一个函数练习题\n\n好的，这是一个关于生成函数的练习题：\n\n**题目：** 编写一个Python函数，该函数接受两个参数a和b，并返回它们的和。如果a和b都是整数，那么结果应该是整数；如果a和b是浮点数，那么结果应该是浮点数。\n\n**解析：**\n\n1. 首先，我们需要定义一个函数，名为`add_numbers`，它接受两个参数：`a`和`b`。\n2. 然后，我们使用Python的内置`int()`函数将`a`和`b`转换为整数，然后使用加法运算符`+`将它们相加。\n3. 最后，我们返回结果。\n\n**代码：**\n\n```python\ndef add_numbers(a, b):\n    # 确保a和b都是数字\n    if isinstance(a, (int, float)) and isinstance(b, (int, float)):\n        result = a + b\n        return result\n    else:\n        raise ValueError(\"Both arguments must be numbers.\")\n\n# 测试函数\nprint(add_numbers(5, 3))  # 输出：8\nprint(add_numbers(5.0, 3.0))  # 输出：8.0\n```\n\n在这个例子中，我们使用了Python的`isinstance()`函数来检查输入是否为数字（整数或浮点数）。如果不是，我们抛出一个`ValueError`异常。",
+    "progress": 100
+  },
+  {
+    "id": "gen-efaf0e04",
+    "title": "帮我生成一个讲解函数类的文档",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# 帮我生成一个讲解函数类的文档\n\n函数类文档：\n\n```python\ndef 函数名(参数列表):\n    \"\"\"\n    函数功能描述\n    :param 参数列表: 参数列表，包含需要传递给函数的参数\n    :return: 返回值，根据函数实现的不同，可能返回多个值或一个值\n    \"\"\"\n    # 函数实现代码\n    pass\n```\n\n这是一个示例函数类的文档。请根据您的实际需求进行修改和补充。",
+    "progress": 100
+  },
+  {
+    "id": "gen-a8fad3cd",
+    "title": "Python 变量",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-20",
+    "content": "# Python 变量\n\n关于“Python 变量”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+    "progress": 100
   }
 ]

@@ -1,8 +1,7 @@
-import json
+﻿import json
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Iterable
 
 from .config import settings
@@ -11,7 +10,7 @@ from .config import settings
 def _ensure_dirs() -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.db_path.parent.mkdir(parents=True, exist_ok=True)
-    (settings.data_dir / "users" / settings.single_user_id).mkdir(parents=True, exist_ok=True)
+    (settings.data_dir / 'users' / settings.single_user_id).mkdir(parents=True, exist_ok=True)
 
 
 @contextmanager
@@ -26,7 +25,7 @@ def get_conn() -> Iterable[sqlite3.Connection]:
 
 
 def now_iso() -> str:
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.utcnow().isoformat() + 'Z'
 
 
 def init_db() -> None:
@@ -76,6 +75,48 @@ def init_db() -> None:
 
             CREATE UNIQUE INDEX IF NOT EXISTS idx_contribution_unique
             ON contribution_days(user_id, date);
+
+            CREATE TABLE IF NOT EXISTS tutor_roles (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              name TEXT NOT NULL,
+              persona TEXT DEFAULT '',
+              background TEXT DEFAULT '',
+              style_guide TEXT DEFAULT '',
+              rules TEXT DEFAULT '',
+              enabled INTEGER DEFAULT 1,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS tutor_conversations (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              role_id INTEGER,
+              title TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS tutor_messages (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              conversation_id INTEGER NOT NULL,
+              user_id TEXT NOT NULL,
+              sender_role TEXT NOT NULL,
+              content TEXT NOT NULL,
+              file_ids TEXT DEFAULT '[]',
+              created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS tutor_files (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              filename TEXT NOT NULL,
+              stored_path TEXT NOT NULL,
+              mime_type TEXT DEFAULT 'application/octet-stream',
+              size_bytes INTEGER NOT NULL,
+              created_at TEXT NOT NULL
+            );
             """
         )
 
@@ -85,7 +126,7 @@ def init_db() -> None:
             INSERT OR IGNORE INTO students(user_id, name, major, grade, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (settings.single_user_id, "张同学", "计算机科学", "大二", timestamp, timestamp),
+            (settings.single_user_id, '张同学', '计算机科学', '大二', timestamp, timestamp),
         )
 
         conn.execute(
@@ -97,40 +138,43 @@ def init_db() -> None:
             """,
             (
                 settings.single_user_id,
-                json.dumps(["期末提分", "竞赛准备"], ensure_ascii=False),
-                "有一定基础",
-                json.dumps(["函数", "面向对象"], ensure_ascii=False),
-                json.dumps(["视觉型", "实践型"], ensure_ascii=False),
-                "归纳型",
+                json.dumps(['期末提分', '竞赛准备'], ensure_ascii=False),
+                '有一定基础',
+                json.dumps(['函数', '面向对象'], ensure_ascii=False),
+                json.dumps(['视觉型', '实践型'], ensure_ascii=False),
+                '归纳型',
                 60,
-                "能独立完成小项目",
-                "函数与模块",
+                '能独立完成小项目',
+                '函数与模块',
                 1,
                 timestamp,
             ),
         )
 
         _seed_mastery(conn)
+        _seed_tutor_workspace(conn)
 
 
 def _seed_mastery(conn: sqlite3.Connection) -> None:
     row = conn.execute(
-        "SELECT COUNT(1) AS cnt FROM mastery_records WHERE user_id = ?",
+        'SELECT COUNT(1) AS cnt FROM mastery_records WHERE user_id = ?',
         (settings.single_user_id,),
     ).fetchone()
-    if row and row["cnt"] > 0:
+    if row and row['cnt'] > 0:
         return
+
     now = now_iso()
     seed = [
-        ("1.1", "变量定义", 0.9, "基础语法"),
-        ("1.2", "数据类型", 0.85, "基础语法"),
-        ("2.1", "条件语句", 0.75, "控制流"),
-        ("2.2", "循环", 0.7, "控制流"),
-        ("3.1", "函数定义", 0.62, "函数"),
-        ("3.2", "参数传递", 0.55, "函数"),
-        ("3.3", "闭包", 0.45, "函数"),
-        ("4.1", "类与对象", 0.3, "面向对象"),
+        ('1.1', '变量定义', 0.90, '基础语法'),
+        ('1.2', '数据类型', 0.85, '基础语法'),
+        ('2.1', '条件语句', 0.75, '控制流'),
+        ('2.2', '循环', 0.70, '控制流'),
+        ('3.1', '函数定义', 0.62, '函数'),
+        ('3.2', '参数传递', 0.55, '函数'),
+        ('3.3', '闭包', 0.45, '函数'),
+        ('4.1', '类与对象', 0.30, '面向对象'),
     ]
+
     conn.executemany(
         """
         INSERT INTO mastery_records(
@@ -139,6 +183,50 @@ def _seed_mastery(conn: sqlite3.Connection) -> None:
         """,
         [(settings.single_user_id, *x, now) for x in seed],
     )
+
+
+def _seed_tutor_workspace(conn: sqlite3.Connection) -> None:
+    ts = now_iso()
+    role_row = conn.execute(
+        'SELECT id FROM tutor_roles WHERE user_id = ? ORDER BY id ASC LIMIT 1',
+        (settings.single_user_id,),
+    ).fetchone()
+
+    if role_row:
+        role_id = int(role_row['id'])
+    else:
+        cur = conn.execute(
+            """
+            INSERT INTO tutor_roles(
+              user_id, name, persona, background, style_guide, rules, enabled, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+            """,
+            (
+                settings.single_user_id,
+                '通用学习导师',
+                '你是一名耐心的学习导师，擅长分步骤讲解与纠错。',
+                '面向大学生学习场景，强调结构化反馈。',
+                '先结论后步骤，必要时给出简短示例。',
+                '回答要准确、可执行，避免空泛表达。',
+                ts,
+                ts,
+            ),
+        )
+        role_id = int(cur.lastrowid)
+
+    conv_row = conn.execute(
+        'SELECT id FROM tutor_conversations WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
+        (settings.single_user_id,),
+    ).fetchone()
+
+    if not conv_row:
+        conn.execute(
+            """
+            INSERT INTO tutor_conversations(user_id, role_id, title, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (settings.single_user_id, role_id, '新对话', ts, ts),
+        )
 
 
 def fetch_one(query: str, params: tuple[Any, ...] = ()) -> sqlite3.Row | None:
@@ -154,4 +242,3 @@ def fetch_all(query: str, params: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
 def execute(query: str, params: tuple[Any, ...] = ()) -> None:
     with get_conn() as conn:
         conn.execute(query, params)
-

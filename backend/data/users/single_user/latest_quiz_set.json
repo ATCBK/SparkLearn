@@ -1,0 +1,12 @@
+[
+  {
+    "id": "gq3",
+    "type": "fill_blank",
+    "content": "在Python中，使用关键字`__init__`初始化对象时，通常不需要指定参数。",
+    "options": null,
+    "correct_answer": "True",
+    "explanation": "在Python中，使用关键字`__init__`初始化对象时，通常不需要指定参数。",
+    "knowledge_point_id": "3",
+    "knowledge_point_name": "Python基础语法"
+  }
+]
