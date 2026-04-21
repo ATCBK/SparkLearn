@@ -1,3 +1,6 @@
+import asyncio
+import sys
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,6 +13,21 @@ from .routes.quiz import router as quiz_router
 from .routes.resources import router as resources_router
 from .routes.tutor_eval import router as tutor_eval_router
 from .routes.voice_admin import router as voice_admin_router
+
+
+def _configure_event_loop_policy() -> None:
+    # Windows + Playwright needs Proactor loop for subprocess support.
+    if sys.platform.startswith("win"):
+        try:
+            policy = asyncio.get_event_loop_policy()
+            if not isinstance(policy, asyncio.WindowsProactorEventLoopPolicy):
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        except Exception:
+            # Keep startup resilient; route-level errors will still surface if env is incompatible.
+            pass
+
+
+_configure_event_loop_policy()
 
 
 def create_app() -> FastAPI:

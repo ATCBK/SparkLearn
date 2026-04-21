@@ -408,14 +408,20 @@ async def _render_resource_pdf(item: dict[str, Any]) -> bytes:
 
     try:
         if source_url:
-            remote_html = await _fetch_url_text(source_url)
-            html_doc = _inject_base_and_print_style(remote_html, source_url)
+            return await asyncio.to_thread(_render_pdf_from_url_sync, source_url)
         else:
             html_doc = _markdown_as_printable_html(title=title, markdown_text=html_content)
-
-        return await asyncio.to_thread(_render_pdf_from_html_sync, html_doc)
+            return await asyncio.to_thread(_render_pdf_from_html_sync, html_doc)
     except HTTPException:
         raise
+    except NotImplementedError as ex:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "pdf render failed: Windows event loop policy does not support subprocess. "
+                "Please use WindowsProactorEventLoopPolicy and restart backend."
+            ),
+        ) from ex
     except Exception as ex:
         raise HTTPException(status_code=502, detail=f"pdf render failed: {type(ex).__name__}: {repr(ex)}") from ex
 
@@ -434,6 +440,35 @@ def _render_pdf_from_html_sync(html_doc: str) -> bytes:
         try:
             page = browser.new_page()
             page.set_content(html_doc, wait_until="domcontentloaded")
+            pdf_bytes = page.pdf(
+                format="A4",
+                print_background=True,
+                margin={"top": "14mm", "right": "12mm", "bottom": "14mm", "left": "12mm"},
+            )
+            return pdf_bytes
+        finally:
+            browser.close()
+
+
+def _render_pdf_from_url_sync(source_url: str) -> bytes:
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception as ex:  # pragma: no cover
+        raise HTTPException(status_code=500, detail=f"playwright not installed: {ex}") from ex
+
+    clean_print_css = """
+        @page { size: A4; margin: 14mm; }
+        html, body { background: #ffffff !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        nav, header, footer, .no-print, [data-no-print="true"] { display: none !important; }
+    """
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page()
+            page.goto(source_url, wait_until="networkidle", timeout=60000)
+            page.add_style_tag(content=clean_print_css)
             pdf_bytes = page.pdf(
                 format="A4",
                 print_background=True,
@@ -471,28 +506,6 @@ def _markdown_as_printable_html(*, title: str, markdown_text: str) -> str:
   <div class="content">{body}</div>
 </body>
 </html>"""
-
-
-def _inject_base_and_print_style(html: str, source_url: str) -> str:
-    safe_link = source_url.replace('"', "&quot;")
-    print_style = """
-<style>
-  @page { size: A4; margin: 14mm; }
-  html, body { background: #ffffff !important; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  nav, header, footer, .no-print, [data-no-print="true"] { display: none !important; }
-</style>
-"""
-    if "<head" in html.lower():
-        out = re.sub(
-            r"(<head[^>]*>)",
-            r'\1<base href="' + safe_link + '" />' + print_style,
-            html,
-            count=1,
-            flags=re.IGNORECASE,
-        )
-        return out
-    return f'<base href="{safe_link}" />{print_style}{html}'
 
 
 def _sanitize_url(url: str) -> str:
