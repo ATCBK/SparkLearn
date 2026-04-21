@@ -44,5 +44,25 @@
     "content": "# 面向对象的课程文档\n\nhttps://ts.fyshark.com/html_files/document_17675364251.htmlhttps://ts.fyshark.com/html_files/document_1776753642251.html生成一个面向对象的课程文档大纲推荐一些优秀的面向对象课程学习资源如何更好地理解面向对象编程中的封装概念？",
     "source_url": "https://ts.fyshark.com/html_files/document_1776753642251.html",
     "progress": 100
+  },
+  {
+    "id": "gen-6828e5a0",
+    "title": "帮我生成一个讲解 面向对象的思维导图",
+    "type": "mindmap",
+    "status": "completed",
+    "created_at": "2026-04-21",
+    "content": "# 帮我生成一个讲解 面向对象的思维导图\n\nhttps://ts.fyshark.com/html_files/document_1767598595.html#面向对象编程（OP）##一、核心概念-类（Class）：定义对象的蓝图，包含属性和方法-对象（Object）：类的实例，拥有具体的属性值和可执行方法-封装（Encapsulation）：隐藏内部细节，通过接口交互，保护数据安全-继承（Inheritance）：子类复用父类属性和方法，实现代码复用与扩展-多态（Polymorphism）：同一行为在不同对象上有不同实现（重载、重写）##二、OP的优势-代码复用性高：继承和组合减少重复代码-可维护性强：封装降低模块间耦合，便于修改-扩展性好：通过继承、多态轻松扩展功能-建模贴近现实：用对象映射现实事物，逻辑更直观##三、常见实现语言-Java：纯面向对象，单继承+接口实现-Python：支持多继承，动态类型，灵活简洁-C++：支持多继承，兼顾面向过程与面向对象-JavaScript：基于原型的面向对象，灵活的原型链##四、设计原则（SOLID）-单一职责原则（SRP）：一个类只负责一个功能模块-开放封闭原则（OCP）：对扩展开放，对修改封闭-里氏替换原则（LSP）：子类可替换父类而不影响功能-接口隔离原则（ISP）：提供最小化的专用接口-依赖倒置原则（DIP）：依赖抽象而非具体实现##五、常见设计模式-创建型模式：工厂方法、单例、抽象工厂、建造者、原型-结构型模式：适配器、装饰器、代理、组合、外观-行为型模式：观察者、策略、模板方法、迭代器、命令https://ts.fyshark.com/html_files/document_1776755985955.html\n\n# 面向对象编程（OOP）\n\n## 一、核心概念\n\n- 类（Class）：定义对象的蓝图，包含属性和方法\n\n- 对象（Object）：类的实例，拥有具体的属性值和可执行方法\n\n- 封装（Encapsulation）：隐藏内部细节，通过接口交互，保护数据安全\n\n- 继承（Inheritance）：子类复用父类属性和方法，实现代码复用与扩展\n\n- 多态（Polymorphism）：同一行为在不同对象上有不同实现（重载、重写）\n\n## 二、OOP的优势\n\n- 代码复用性高：继承和组合减少重复代码\n\n- 可维护性强：封装降低模块间耦合，便于修改\n\n- 扩展性好：通过继承、多态轻松扩展功能\n\n- 建模贴近现实：用对象映射现实事物，逻辑更直观\n\n## 三、常见实现语言\n\n- Java：纯面向对象，单继承+接口实现\n\n- Python：支持多继承，动态类型，灵活简洁\n\n- C++：支持多继承，兼顾面向过程与面向对象\n\n- JavaScript：基于原型的面向对象，灵活的原型链\n\n## 四、设计原则（SOLID）\n\n- 单一职责原则（SRP）：一个类只负责一个功能模块\n\n- 开放封闭原则（OCP）：对扩展开放，对修改封闭\n\n- 里氏替换原则（LSP）：子类可替换父类而不影响功能\n\n- 接口隔离原则（ISP）：提供最小化的专用接口\n\n- 依赖倒置原则（DIP）：依赖抽象而非具体实现\n\n## 五、常见设计模式\n\n- 创建型模式：工厂方法、单例、抽象工厂、建造者、原型\n\n- 结构型模式：适配器、装饰器、代理、组合、外观\n\n- 行为型模式：观察者、策略、模板方法、迭代器、命令在面向对象的思维导图中添加类的创建和实例化的内容推荐一些讲解面向对象的视频教程用思维导图的形式总结面向对象的三大特性",
+    "source_url": "https://ts.fyshark.com/html_files/document_1776755985955.html",
+    "progress": 100
+  },
+  {
+    "id": "gen-3f2bf06f",
+    "title": "帮我生成一个讲解 面向对象的思维导图",
+    "type": "mindmap",
+    "status": "completed",
+    "created_at": "2026-04-21",
+    "content": "# 帮我生成一个讲解 面向对象的思维导图\n\nLinked web document generated. Use preview or download to view it.",
+    "source_url": "https://markmap.keepto.top/images/markmap_1776756118756_991.png",
+    "progress": 100
   }
 ]

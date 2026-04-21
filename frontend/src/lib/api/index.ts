@@ -16,6 +16,7 @@ export const api = {
   deleteResource: impl.deleteResource,
   getResourcePreview: impl.getResourcePreview,
   downloadResource: impl.downloadResource,
+  downloadResourceSource: impl.downloadResourceSource,
   generateResource: impl.generateResource,
 
   sendMessage: impl.sendMessage,

@@ -79,10 +79,10 @@ async def generate_resource(req: GenerateReq):
         content = _strip_marked_url(content).strip()
         content = _normalize_generated_content(content, source_url)
         if source_url and not content:
-            content = "Linked web document generated. Use preview or download to view it."
+            content = "已生成网页资源，请使用预览或下载查看。"
         resource = {
             "id": res_id,
-            "title": req.prompt[:20] or "Generated Resource",
+            "title": req.prompt[:20] or "新生成资源",
             "type": req.type,
             "status": "completed",
             "created_at": _now_date(),
@@ -114,7 +114,7 @@ async def get_resource_detail(resource_id: str):
 async def get_resource_preview(resource_id: str):
     item = _find_resource(resource_id)
     if not item:
-        raise HTTPException(status_code=404, detail="resource not found")
+        raise HTTPException(status_code=404, detail="未找到资源")
     link = _resource_source_url(item)
     return ok({"url": link, "available": bool(link)})
 
@@ -123,10 +123,10 @@ async def get_resource_preview(resource_id: str):
 async def get_resource_preview_html(resource_id: str):
     item = _find_resource(resource_id)
     if not item:
-        raise HTTPException(status_code=404, detail="resource not found")
+        raise HTTPException(status_code=404, detail="未找到资源")
     link = _resource_source_url(item)
     if not link:
-        raise HTTPException(status_code=404, detail="preview url not found")
+        raise HTTPException(status_code=404, detail="未找到预览链接")
 
     html = await _fetch_url_text(link)
     safe_link = link.replace('"', '&quot;')
@@ -153,7 +153,7 @@ async def download_resource(resource_id: str):
 async def download_resource_html(resource_id: str):
     item = _find_resource(resource_id)
     if not item:
-        raise HTTPException(status_code=404, detail="resource not found")
+        raise HTTPException(status_code=404, detail="未找到资源")
     link = _resource_source_url(item)
     title = str(item.get("title", "resource")).strip() or "resource"
     filename = _safe_filename(f"{title}.html")
@@ -184,13 +184,36 @@ async def download_resource_html(resource_id: str):
 async def download_resource_pdf(resource_id: str):
     item = _find_resource(resource_id)
     if not item:
-        raise HTTPException(status_code=404, detail="resource not found")
+        raise HTTPException(status_code=404, detail="未找到资源")
     title = str(item.get("title", "resource")).strip() or "resource"
     filename = _safe_filename(f"{title}.pdf")
     pdf_bytes = await _render_resource_pdf(item)
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
+        headers={
+            "Content-Disposition": _build_content_disposition(filename),
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@router.get("/{resource_id}/download/source")
+async def download_resource_source(resource_id: str):
+    item = _find_resource(resource_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="未找到资源")
+    source_url = _resource_source_url(item)
+    if not source_url:
+        raise HTTPException(status_code=404, detail="未找到源文件链接")
+
+    data, content_type = await _fetch_url_binary(source_url)
+    title = str(item.get("title", "resource")).strip() or "resource"
+    ext = _guess_extension(source_url, content_type)
+    filename = _safe_filename(f"{title}{ext}")
+    return StreamingResponse(
+        iter([data]),
+        media_type=content_type or "application/octet-stream",
         headers={
             "Content-Disposition": _build_content_disposition(filename),
             "Cache-Control": "no-store",
@@ -224,9 +247,9 @@ async def get_recommendations():
         return ok([])
 
     reason_map = [
-        ("You need to strengthen fundamentals first, start from this resource.", "remedial"),
-        ("Based on your current stage, this is the best next resource.", "stage"),
-        ("Daily review tip: use this one for reinforcement practice.", "today"),
+        ("因为你当前基础薄弱，建议先从这份资源开始补强。", "remedial"),
+        ("基于你当前学习阶段，这份资源是最合适的下一步。", "stage"),
+        ("今日复习建议：用这份资源做一次巩固练习。", "today"),
     ]
 
     recs: list[dict[str, Any]] = []
@@ -242,20 +265,19 @@ async def get_recommendations():
         )
     return ok(recs)
 
-
 def _default_resources() -> list[dict[str, Any]]:
     return [
         {
             "id": "r1",
-            "title": "Variables and Data Types",
+            "title": "变量与数据类型",
             "type": "document",
             "status": "completed",
             "created_at": "2026-04-15",
-            "content": "# Variables and Data Types\n\n...",
+            "content": "# 变量与数据类型\n\n...",
         },
         {
             "id": "r2",
-            "title": "Python Function Basics PPT",
+            "title": "Python 函数基础 PPT",
             "type": "ppt",
             "status": "completed",
             "created_at": "2026-04-14",
@@ -263,30 +285,30 @@ def _default_resources() -> list[dict[str, Any]]:
         },
         {
             "id": "r3",
-            "title": "Conditional Logic Mindmap",
+            "title": "条件逻辑思维导图",
             "type": "mindmap",
             "status": "completed",
             "created_at": "2026-04-13",
-            "content": "# Conditional Logic\n\n...",
+            "content": "# 条件逻辑\n\n...",
         },
         {
             "id": "r4",
-            "title": "Function Practice Set",
+            "title": "函数练习题集",
             "type": "quiz",
             "status": "completed",
             "created_at": "2026-04-12",
         },
         {
             "id": "r5",
-            "title": "Python Stdlib Extended Reading",
+            "title": "Python 标准库拓展阅读",
             "type": "reading",
             "status": "completed",
             "created_at": "2026-04-11",
-            "content": "# Python Standard Library\n\n...",
+            "content": "# Python 标准库\n\n...",
         },
         {
             "id": "r6",
-            "title": "Decorator Code Example",
+            "title": "装饰器代码案例",
             "type": "code",
             "status": "completed",
             "created_at": "2026-04-10",
@@ -294,49 +316,48 @@ def _default_resources() -> list[dict[str, Any]]:
         },
     ]
 
-
 def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
     base = user_prompt.strip()
     if resource_type == "document":
         return (
-            "Generate a structured learning document in Markdown format. "
-            "Include learning goals, key concepts, examples, common mistakes, and practice suggestions. "
-            "If there is a published webpage link, put exactly one first line as: SOURCE_URL: https://... "
-            "If not available, put: SOURCE_URL: NONE"
-            f"\n\nRequirement: {base}"
+            "请生成结构化学习文档（Markdown 格式）。"
+            "需要包含：学习目标、关键概念、示例、常见错误、练习建议。"
+            "若有可发布网页链接，第一行必须输出：SOURCE_URL: https://... "
+            "若没有，请输出：SOURCE_URL: NONE"
+            f"\n\n需求：{base}"
         )
     if resource_type == "mindmap":
         return (
-            "Generate a mindmap-style Markdown outline with clear levels (topic -> branch -> points). "
-            "If there is a published webpage link, put it on the first line."
-            f"\n\nTopic: {base}"
+            "请生成思维导图，并只输出一条图片 URL。"
+            "第一行必须是：SOURCE_URL: https://... "
+            "若已有图片链接，不要再输出 Markdown 树文本。"
+            f"\n\n主题：{base}"
         )
     if resource_type == "quiz":
         return (
-            "Generate a quiz set in Markdown with question, options, answer, and explanation. "
-            "Include easy/medium/hard progression. "
-            "If there is a published webpage link, put it on the first line."
-            f"\n\nTopic: {base}"
+            "请生成练习题集（Markdown），包含题目、选项、答案、解析。"
+            "难度需覆盖简单/中等/困难。"
+            "若有可发布网页链接，请放在第一行。"
+            f"\n\n主题：{base}"
         )
     if resource_type == "reading":
         return (
-            "Generate an extended reading article in Markdown with background, key knowledge, use cases, and next-reading tips. "
-            "If there is a published webpage link, put it on the first line."
-            f"\n\nTopic: {base}"
+            "请生成拓展阅读文章（Markdown），包含背景、关键知识、应用场景、延伸阅读建议。"
+            "若有可发布网页链接，请放在第一行。"
+            f"\n\n主题：{base}"
         )
     if resource_type == "code":
         return (
-            "Generate a code-learning case in Markdown with problem statement, full code, explanation, and extension exercises. "
-            "If there is a published webpage link, put it on the first line."
-            f"\n\nTopic: {base}"
+            "请生成代码学习案例（Markdown），包含问题描述、完整代码、讲解与扩展练习。"
+            "若有可发布网页链接，请放在第一行。"
+            f"\n\n主题：{base}"
         )
     return base
-
 
 def _fallback_resource_content(resource_type: str, prompt: str) -> str:
     return (
         f"# {prompt}\n\n"
-        f"{resource_type} generation returned empty content. Please retry later."
+        f"{resource_type} 生成结果为空，请稍后重试。"
     )
 
 
@@ -364,19 +385,32 @@ def _extract_first_url(text: str) -> str | None:
 
 async def _fetch_url_text(url: str) -> str:
     if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="invalid preview url")
+        raise HTTPException(status_code=400, detail="预览链接无效")
     try:
         async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             content_type = resp.headers.get("content-type", "").lower()
             if "html" not in content_type and "text/plain" not in content_type:
-                raise HTTPException(status_code=400, detail=f"unsupported content-type: {content_type}")
+                raise HTTPException(status_code=400, detail=f"不支持的内容类型：{content_type}")
             return resp.text
     except HTTPException:
         raise
     except Exception as ex:
-        raise HTTPException(status_code=502, detail=f"fetch preview failed: {ex}") from ex
+        raise HTTPException(status_code=502, detail=f"预览内容拉取失败：{ex}") from ex
+
+
+async def _fetch_url_binary(url: str) -> tuple[bytes, str]:
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="源文件链接无效")
+    try:
+        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            ctype = resp.headers.get("content-type", "application/octet-stream").split(";")[0].strip().lower()
+            return resp.content, ctype
+    except Exception as ex:
+        raise HTTPException(status_code=502, detail=f"源文件拉取失败：{ex}") from ex
 
 
 def _safe_filename(name: str) -> str:
@@ -401,10 +435,26 @@ def _build_content_disposition(filename: str) -> str:
     return f"attachment; filename={ascii_name}; filename*=UTF-8''{utf8_name}"
 
 
+def _guess_extension(url: str, content_type: str) -> str:
+    lowered = (url or "").lower()
+    for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".pdf"):
+        if lowered.endswith(ext):
+            return ext
+    mapping = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+        "image/svg+xml": ".svg",
+        "application/pdf": ".pdf",
+    }
+    return mapping.get((content_type or "").lower(), ".bin")
+
+
 async def _render_resource_pdf(item: dict[str, Any]) -> bytes:
     source_url = _resource_source_url(item)
     html_content = str(item.get("content", "") or "")
-    title = str(item.get("title", "Learning Document") or "Learning Document")
+    title = str(item.get("title", "学习文档") or "学习文档")
 
     try:
         if source_url:
@@ -418,12 +468,12 @@ async def _render_resource_pdf(item: dict[str, Any]) -> bytes:
         raise HTTPException(
             status_code=502,
             detail=(
-                "pdf render failed: Windows event loop policy does not support subprocess. "
-                "Please use WindowsProactorEventLoopPolicy and restart backend."
+                "PDF 渲染失败：当前 Windows 事件循环策略不支持子进程。"
+                "请使用 WindowsProactorEventLoopPolicy 后重启后端。"
             ),
         ) from ex
     except Exception as ex:
-        raise HTTPException(status_code=502, detail=f"pdf render failed: {type(ex).__name__}: {repr(ex)}") from ex
+        raise HTTPException(status_code=502, detail=f"PDF 渲染失败：{type(ex).__name__}: {repr(ex)}") from ex
 
 
 def _render_pdf_from_html_sync(html_doc: str) -> bytes:
@@ -432,7 +482,7 @@ def _render_pdf_from_html_sync(html_doc: str) -> bytes:
     except Exception as ex:  # pragma: no cover
         raise HTTPException(
             status_code=500,
-            detail=f"playwright not installed: {ex}",
+            detail=f"未安装 Playwright：{ex}",
         ) from ex
 
     with sync_playwright() as p:
@@ -454,7 +504,7 @@ def _render_pdf_from_url_sync(source_url: str) -> bytes:
     try:
         from playwright.sync_api import sync_playwright
     except Exception as ex:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"playwright not installed: {ex}") from ex
+        raise HTTPException(status_code=500, detail=f"未安装 Playwright：{ex}") from ex
 
     clean_print_css = """
         @page { size: A4; margin: 14mm; }
@@ -603,3 +653,4 @@ def _normalize_generated_content(content: str, source_url: str) -> str:
                 continue
         kept.append(line)
     return "\n\n".join(kept).strip()
+

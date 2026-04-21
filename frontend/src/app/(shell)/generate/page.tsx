@@ -69,7 +69,7 @@ function PptPreview({ deck }: { deck: PptDeck }) {
       <div className="flex items-center justify-between text-small text-ink-secondary">
         <span>{deck.title}</span>
         <span>
-          第 {slideIndex + 1}/{slides.length} 页 · Step {step}/{maxStep}
+          第 {slideIndex + 1}/{slides.length} 页 · 第 {step}/{maxStep} 步
         </span>
       </div>
 
@@ -222,7 +222,7 @@ export default function GeneratePage() {
     const tempId = `temp-${Date.now()}`
     const tempResource: Resource = {
       id: tempId,
-      title: prompt.slice(0, 20) || 'Generating...',
+      title: prompt.slice(0, 20) || '生成中...',
       type: state.selectedType,
       status: 'generating',
       createdAt: new Date().toISOString(),
@@ -256,7 +256,7 @@ export default function GeneratePage() {
         updates: {
           status: 'failed',
           progress: 0,
-          content: e instanceof Error ? e.message : 'Generation failed',
+          content: e instanceof Error ? e.message : '生成失败',
         },
       })
     } finally {
@@ -337,7 +337,7 @@ export default function GeneratePage() {
           </div>
           <Button onClick={handleGenerate} disabled={!state.prompt.trim() || isGenerating}>
             <Send className="w-4 h-4" />
-            {isGenerating ? 'Generating...' : '生成'}
+            {isGenerating ? '生成中...' : '生成'}
           </Button>
         </div>
       </Card>
@@ -405,15 +405,26 @@ export default function GeneratePage() {
                     <ErrorState type="server" title="生成失败" onRetry={() => handleRetry(selected.id)} />
                   ) : selected.type === 'ppt' && selected.pptSchema ? (
                     <PptPreview deck={selected.pptSchema} />
+                  ) : selected.type === 'mindmap' && selectedLink ? (
+                    <div className="space-y-4">
+                      <div className="rounded-[12px] border border-black/[0.06] bg-bg-hover px-3 py-2 text-small text-ink-secondary">
+                        思维导图图片链接：{selectedLink}
+                      </div>
+                      <img
+                        src={selectedLink}
+                        alt={selected.title}
+                        className="w-full max-h-[620px] object-contain rounded-[12px] border border-black/[0.08] bg-white"
+                      />
+                    </div>
                   ) : selected.type === 'document' && selectedLink ? (
                     <div className="space-y-4">
                       <div className="rounded-[12px] border border-black/[0.06] bg-bg-hover px-3 py-2 text-small text-ink-secondary">
-                        Document URL detected: {selectedLink}
+                        已识别文档链接：{selectedLink}
                       </div>
                       <iframe
                         src={`${API_BASE}/api/resources/${selected.id}/preview/html`}
                         className="w-full h-[560px] rounded-[12px] border border-black/[0.08] bg-white"
-                        title="Document Preview"
+                        title="文档预览"
                       />
                     </div>
                   ) : selected.content ? (
@@ -433,15 +444,19 @@ export default function GeneratePage() {
                       size="sm"
                       onClick={async () => {
                         try {
-                          await api.downloadResource(selected.id)
+                          if (selected.type === 'mindmap') {
+                            await api.downloadResourceSource(selected.id)
+                          } else {
+                            await api.downloadResource(selected.id)
+                          }
                         } catch (e) {
-                          const msg = e instanceof Error ? e.message : 'PDF download failed'
+                          const msg = e instanceof Error ? e.message : 'PDF 下载失败'
                           window.alert(msg)
                         }
                       }}
                     >
                       <Download className="w-4 h-4" />
-                      下载PDF
+                      {selected.type === 'mindmap' ? '下载图片' : '下载PDF'}
                     </Button>
                     <Button
                       size="sm"
@@ -451,7 +466,7 @@ export default function GeneratePage() {
                       disabled={!selectedLink}
                     >
                       <Save className="w-4 h-4" />
-                      Open Link
+                      打开链接
                     </Button>
                   </div>
                 )}

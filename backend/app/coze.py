@@ -41,7 +41,7 @@ class CozeAdapter:
         uid = (user_id or settings.coze_default_user_id or settings.single_user_id).strip() or "single_user"
 
         if not token:
-            yield ("error", {"code": 4001, "message": "coze token missing", "provider": "coze"})
+            yield ("error", {"code": 4001, "message": "缺少 Coze 令牌", "provider": "coze"})
             yield ("done", {"produced": False, "provider": "coze"})
             return
         if not bot_id:
@@ -49,7 +49,7 @@ class CozeAdapter:
                 "error",
                 {
                     "code": 4002,
-                    "message": f"coze bot_id missing for resource type: {resource_type}",
+                    "message": f"资源类型缺少 Coze bot_id：{resource_type}",
                     "provider": "coze",
                 },
             )
@@ -88,7 +88,7 @@ class CozeAdapter:
                             "error",
                             {
                                 "code": resp.status_code,
-                                "message": f"coze http error: {body[:500]}",
+                                "message": f"Coze 接口请求失败：{body[:500]}",
                                 "provider": "coze",
                             },
                         )
@@ -115,7 +115,7 @@ class CozeAdapter:
 
         except Exception as ex:
             logger.exception("coze stream error")
-            yield ("error", {"code": -1, "message": f"coze exception: {ex}", "provider": "coze"})
+            yield ("error", {"code": -1, "message": f"Coze 调用异常：{ex}", "provider": "coze"})
 
         yield ("done", {"produced": produced, "provider": "coze"})
 
@@ -269,10 +269,10 @@ class CozeAdapter:
             return None
         code = payload.get("code")
         if isinstance(code, int) and code != 0:
-            return {"code": code, "message": str(payload.get("msg") or payload.get("message") or "coze error")}
+            return {"code": code, "message": str(payload.get("msg") or payload.get("message") or "Coze 错误")}
         err = payload.get("error")
         if isinstance(err, dict):
-            return {"code": int(err.get("code", -1)), "message": str(err.get("message", "coze error"))}
+            return {"code": int(err.get("code", -1)), "message": str(err.get("message", "Coze 错误"))}
         return None
 
     def _looks_like_control_payload(self, text: str) -> bool:
@@ -292,4 +292,3 @@ class CozeAdapter:
 
 
 coze_adapter = CozeAdapter()
-

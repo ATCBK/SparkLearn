@@ -160,3 +160,7 @@
 {"ts": "2026-04-20T12:53:36.208043Z", "type": "path_node_advice", "node_id": "1.1", "mastery": 0.95}
 {"ts": "2026-04-20T12:54:14.376481Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "fd82e095"}
 {"ts": "2026-04-20T12:54:23.952736Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "e0802864"}
+{"ts": "2026-04-21T07:25:35.225919Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "5c40cd25"}
+{"ts": "2026-04-21T07:25:45.355890Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "7f85821f"}
+{"ts": "2026-04-21T07:35:57.645499Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "e5f0d1da"}
+{"ts": "2026-04-21T07:36:07.633882Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "d71b9d55"}

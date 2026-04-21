@@ -15,7 +15,7 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
   })
   const json = await res.json() as ApiResp<T>
-  if (!res.ok || !json.success) throw new Error(json.error || `Request failed: ${res.status}`)
+  if (!res.ok || !json.success) throw new Error(json.error || `请求失败：${res.status}`)
   return json.data
 }
 
@@ -29,7 +29,7 @@ async function readSSE(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
-  if (!res.body) throw new Error('No stream body')
+  if (!res.body) throw new Error('流式响应体为空')
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
@@ -143,7 +143,7 @@ export async function downloadResource(resourceId: string): Promise<void> {
   }
   if (!res.ok) {
     const raw = await res.text()
-    throw new Error(raw || `Download failed: ${res.status}`)
+    throw new Error(raw || `下载失败：${res.status}`)
   }
 
   const blob = await res.blob()
@@ -161,6 +161,30 @@ export async function downloadResource(resourceId: string): Promise<void> {
   a.click()
   a.remove()
   window.URL.revokeObjectURL(url)
+}
+
+export async function downloadResourceSource(resourceId: string): Promise<void> {
+  const url = `${API_BASE}/api/resources/${resourceId}/download/source?t=${Date.now()}`
+  const res = await fetch(url)
+  if (!res.ok) {
+    const raw = await res.text()
+    throw new Error(raw || `源文件下载失败：${res.status}`)
+  }
+  const blob = await res.blob()
+  const disposition = res.headers.get('content-disposition') || ''
+  const match = disposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/)
+  const encodedName = match?.[1] || ''
+  const plainName = match?.[2] || ''
+  const filename = encodedName ? decodeURIComponent(encodedName) : (plainName || `resource-${resourceId}`)
+
+  const obj = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = obj
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(obj)
 }
 
 export async function generateResource(type: Resource['type'], prompt: string): Promise<Resource> {
@@ -236,7 +260,7 @@ export async function sendMessage(
     if (evt.type === 'error') {
       const err = {
         code: Number(evt.payload.code ?? 0),
-        message: String(evt.payload.message || 'model service error'),
+        message: String(evt.payload.message || '模型服务异常'),
         sid: String(evt.payload.sid || ''),
       }
       lastError = err.message
@@ -394,7 +418,7 @@ export async function uploadTutorFiles(files: File[]): Promise<TutorFile[]> {
   files.forEach(file => form.append('files', file))
   const res = await fetch(`${API_BASE}/api/tutor/files`, { method: 'POST', body: form })
   const json = await res.json() as ApiResp<any[]>
-  if (!res.ok || !json.success) throw new Error(json.error || `Upload failed: ${res.status}`)
+  if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
   return (json.data || []).map(f => ({
     id: Number(f.id),
     filename: String(f.filename || ''),

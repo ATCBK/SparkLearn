@@ -18,6 +18,15 @@ const typeIcons: Record<string, React.ReactNode> = {
   code: <Code className="w-5 h-5" />,
 }
 
+const typeLabels: Record<string, string> = {
+  document: '课程文档',
+  ppt: 'PPT',
+  mindmap: '思维导图',
+  quiz: '练习题',
+  reading: '拓展阅读',
+  code: '代码案例',
+}
+
 export default function FeedPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
@@ -82,7 +91,7 @@ export default function FeedPage() {
               </div>
               <h3 className="text-h3 text-ink mb-1 truncate">{rec.resource.title}</h3>
               <Badge variant="info" size="sm">
-                {rec.resource.type}
+                {typeLabels[rec.resource.type] || rec.resource.type}
               </Badge>
               <p className="text-small text-ink-secondary mt-3 leading-relaxed whitespace-normal break-words">
                 {rec.reason}
