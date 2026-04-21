@@ -1,7 +1,7 @@
 ﻿import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile,
+  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PptDeck, PathNodeAdvice,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -59,6 +59,7 @@ function toResource(raw: any): Resource {
     status: raw.status,
     createdAt: raw.createdAt || raw.created_at,
     content: raw.content,
+    sourceUrl: raw.sourceUrl || raw.source_url,
     videoUrl: raw.videoUrl || raw.video_url,
     docmeeId: raw.docmeeId || raw.docmee_id,
     progress: raw.progress,
@@ -124,7 +125,67 @@ export async function deleteResource(resourceId: string): Promise<void> {
   await fetchJson(`/api/resources/${resourceId}`, { method: 'DELETE' })
 }
 
+export async function getResourcePreview(resourceId: string): Promise<{ url: string | null; available: boolean }> {
+  const data = await fetchJson<{ url: string | null; available: boolean }>(`/api/resources/${resourceId}/preview`)
+  return {
+    url: data?.url ?? null,
+    available: Boolean(data?.available),
+  }
+}
+
+export async function downloadResource(resourceId: string): Promise<void> {
+  const primary = `${API_BASE}/api/resources/${resourceId}/download/pdf?t=${Date.now()}`
+  const fallback = `${API_BASE}/api/resources/${resourceId}/download?t=${Date.now()}`
+
+  let res = await fetch(primary)
+  if (res.status === 404) {
+    res = await fetch(fallback)
+  }
+  if (!res.ok) {
+    const raw = await res.text()
+    throw new Error(raw || `Download failed: ${res.status}`)
+  }
+
+  const blob = await res.blob()
+  const disposition = res.headers.get('content-disposition') || ''
+  const match = disposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/)
+  const encodedName = match?.[1] || ''
+  const plainName = match?.[2] || ''
+  const filename = encodedName ? decodeURIComponent(encodedName) : (plainName || `resource-${resourceId}.pdf`)
+
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(url)
+}
+
 export async function generateResource(type: Resource['type'], prompt: string): Promise<Resource> {
+  if (type === 'ppt') {
+    const deck = await fetchJson<PptDeck>('/api/ppt/generate-schema', {
+      method: 'POST',
+      body: JSON.stringify({
+        topic: prompt,
+        outline: '',
+        style: 'tech-blue',
+        slide_count: 6,
+      }),
+    })
+    return {
+      id: `ppt-${Date.now()}`,
+      title: deck.title || prompt.slice(0, 20) || '新生成PPT',
+      type,
+      status: 'completed',
+      createdAt: new Date().toISOString(),
+      content: `# ${deck.title}\n\n已生成 ${deck.slides.length} 页 HTML 幻灯片。`,
+      pptSchema: deck,
+      progress: 100,
+    }
+  }
+
   const events = await readSSE('/api/resources/generate', { type, prompt })
   let done: { type: string; payload: Record<string, unknown> } | undefined
   for (let i = events.length - 1; i >= 0; i--) {
@@ -444,6 +505,45 @@ export async function getLearningPath(): Promise<LearningPath> {
     currentStage: p.current_stage,
     stages: p.stages,
     knowledgeTree: p.knowledge_tree,
+    knowledgeGraph: p.knowledge_graph
+      ? {
+          nodes: (p.knowledge_graph.nodes || []).map((n: any) => ({
+            id: String(n.id),
+            name: String(n.name),
+            stage: String(n.stage),
+            mastery: Number(n.mastery ?? 0),
+            status: n.status,
+            prerequisites: Array.isArray(n.prerequisites) ? n.prerequisites.map((x: any) => String(x)) : [],
+            learningContents: Array.isArray(n.learning_contents) ? n.learning_contents.map((x: any) => String(x)) : [],
+            recommendedResourceTypes: Array.isArray(n.recommended_resource_types)
+              ? n.recommended_resource_types.map((x: any) => String(x))
+              : [],
+          })),
+          edges: (p.knowledge_graph.edges || []).map((e: any) => ({
+            source: String(e.source),
+            target: String(e.target),
+          })),
+        }
+      : undefined,
+  }
+}
+
+export async function getLearningPathNodeAdvice(nodeId: string): Promise<PathNodeAdvice> {
+  const data = await fetchJson<any>('/api/learning-path/node-advice', {
+    method: 'POST',
+    body: JSON.stringify({ node_id: nodeId }),
+  })
+  return {
+    nodeId: String(data.node_id || nodeId),
+    nodeName: String(data.node_name || ''),
+    mastery: Number(data.mastery ?? 0),
+    suggestion: String(data.suggestion || ''),
+    plainExplanation: String(data.plain_explanation || ''),
+    nextActions: Array.isArray(data.next_actions) ? data.next_actions.map((x: any) => String(x)) : [],
+    learningContents: Array.isArray(data.learning_contents) ? data.learning_contents.map((x: any) => String(x)) : [],
+    recommendedResources: Array.isArray(data.recommended_resources)
+      ? data.recommended_resources.map((x: any) => String(x))
+      : [],
   }
 }
 
@@ -466,4 +566,9 @@ export async function getDailyQuote(): Promise<string> {
 export async function getContributionData(): Promise<ContributionDay[]> {
   return fetchJson('/api/contribution')
 }
+
+
+
+
+
 

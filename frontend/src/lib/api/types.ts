@@ -15,9 +15,49 @@ export interface Resource {
   status: 'generating' | 'completed' | 'failed'
   createdAt: string
   content?: string
+  sourceUrl?: string
+  pptSchema?: PptDeck
   videoUrl?: string
   docmeeId?: string
   progress?: number // 0-100
+}
+
+export type PptLayout = 'cover' | 'bullets' | 'process' | 'summary'
+
+export interface PptBullet {
+  id: string
+  text: string
+  step: number
+}
+
+export interface PptNode {
+  id: string
+  label: string
+  step: number
+}
+
+export interface PptNarration {
+  id: string
+  text: string
+  target: string
+}
+
+export interface PptSlide {
+  id: string
+  layout: PptLayout
+  title: string
+  subtitle?: string
+  bullets?: PptBullet[]
+  nodes?: PptNode[]
+  summary_points?: string[]
+  narration: PptNarration[]
+}
+
+export interface PptDeck {
+  deck_id: string
+  theme: string
+  title: string
+  slides: PptSlide[]
 }
 
 export interface StudentProfile {
@@ -119,6 +159,39 @@ export interface LearningPath {
   currentStage: string
   stages: { name: string; status: 'completed' | 'current' | 'pending' }[]
   knowledgeTree: PathNode[]
+  knowledgeGraph?: KnowledgeGraph
+}
+
+export interface KnowledgeGraphNode {
+  id: string
+  name: string
+  stage: string
+  mastery: number
+  status: 'completed' | 'current' | 'pending'
+  prerequisites: string[]
+  learningContents: string[]
+  recommendedResourceTypes: string[]
+}
+
+export interface KnowledgeGraphEdge {
+  source: string
+  target: string
+}
+
+export interface KnowledgeGraph {
+  nodes: KnowledgeGraphNode[]
+  edges: KnowledgeGraphEdge[]
+}
+
+export interface PathNodeAdvice {
+  nodeId: string
+  nodeName: string
+  mastery: number
+  suggestion: string
+  plainExplanation: string
+  nextActions: string[]
+  learningContents: string[]
+  recommendedResources: string[]
 }
 
 export interface VideoInfo {

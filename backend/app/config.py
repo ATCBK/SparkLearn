@@ -25,6 +25,18 @@ class Settings(BaseSettings):
     spark_use_bridge: bool = True
     spark_bridge_exe: Path = ROOT_DIR / "backend" / "bridge" / "bin" / "spark_bridge.exe"
 
+    # Coze (resource generation)
+    coze_base_url: str = "https://api.coze.cn"
+    coze_api_path_chat: str = "/v3/chat"
+    coze_api_token: str = ""
+    coze_default_user_id: str = "single_user"
+    coze_bot_id_resource_default: str = ""
+    coze_bot_id_resource_document: str = ""
+    coze_bot_id_resource_mindmap: str = ""
+    coze_bot_id_resource_quiz: str = ""
+    coze_bot_id_resource_reading: str = ""
+    coze_bot_id_resource_code: str = ""
+
     single_user_id: str = "single_user"
     cors_origin: str = "http://localhost:3000"
 

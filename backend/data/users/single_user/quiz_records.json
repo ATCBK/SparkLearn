@@ -176,47 +176,6 @@
     "at": "2026-04-20"
   },
   {
-    "quiz_id": "dq_57c2e0f9_2",
-    "answer": "def",
-    "correct": false,
-    "correct_answer": "list",
-    "knowledge_point_id": "1.2",
-    "judge_mode": "rule",
-    "question": {
-      "id": "dq_2e38e83e_1",
-      "type": "single",
-      "content": "以下哪个是 Python 的可变数据类型？",
-      "options": [
-        "tuple",
-        "list",
-        "string",
-        "int"
-      ],
-      "explanation": "list 是可变类型。",
-      "knowledge_point_id": "1.2",
-      "knowledge_point_name": "数据类型"
-    },
-    "at": "2026-04-20"
-  },
-  {
-    "quiz_id": "gq_a6d8f73f_3",
-    "answer": "不知道",
-    "correct": false,
-    "correct_answer": ":",
-    "knowledge_point_id": "3",
-    "judge_mode": "rule",
-    "question": {
-      "id": "gq_a6d8f73f_3",
-      "type": "fill_blank",
-      "content": "在 Python 中，字典的键值对用________表示。",
-      "options": null,
-      "explanation": "在 Python 中，字典的键值对用冒号 : 表示。",
-      "knowledge_point_id": "3",
-      "knowledge_point_name": "Python基础"
-    },
-    "at": "2026-04-20"
-  },
-  {
     "quiz_id": "dq_0173da28_1",
     "answer": "list",
     "correct": true,
@@ -236,24 +195,6 @@
       "explanation": "list 是可变类型。",
       "knowledge_point_id": "1.2",
       "knowledge_point_name": "数据类型"
-    },
-    "at": "2026-04-20"
-  },
-  {
-    "quiz_id": "gq_62423e21_5",
-    "answer": "不知道",
-    "correct": false,
-    "correct_answer": "冒号",
-    "knowledge_point_id": "5",
-    "judge_mode": "rule",
-    "question": {
-      "id": "gq_62423e21_5",
-      "type": "fill_blank",
-      "content": "请填写缺失的部分：`,`在Python中表示什么？",
-      "options": null,
-      "explanation": "在Python中，`,`表示冒号。",
-      "knowledge_point_id": "5",
-      "knowledge_point_name": "Python基础"
     },
     "at": "2026-04-20"
   },
@@ -318,24 +259,6 @@
     "at": "2026-04-20"
   },
   {
-    "quiz_id": "gq_f0c06d15_3",
-    "answer": "不知道",
-    "correct": false,
-    "correct_answer": "def 函数名(参数列表):",
-    "knowledge_point_id": "3.1",
-    "judge_mode": "rule",
-    "question": {
-      "id": "gq_f0c06d15_3",
-      "type": "fill_blank",
-      "content": "请填写Python中函数定义的正确语法。",
-      "options": null,
-      "explanation": "在Python中，函数定义需要使用`def`关键字开始，后面跟着函数名和括号内包含的参数列表。",
-      "knowledge_point_id": "3.1",
-      "knowledge_point_name": "函数定义"
-    },
-    "at": "2026-04-20"
-  },
-  {
     "quiz_id": "gq_f0c06d15_5",
     "answer": [
       "KeyError",
@@ -377,6 +300,47 @@
     "judge_mode": "rule",
     "question": {
       "id": "dq_37a5ae21_1",
+      "type": "single",
+      "content": "以下哪个是 Python 的可变数据类型？",
+      "options": [
+        "tuple",
+        "list",
+        "string",
+        "int"
+      ],
+      "explanation": "list 是可变类型。",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型"
+    },
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "dq_53513073_4",
+    "answer": "不知道",
+    "correct": true,
+    "correct_answer": "import",
+    "knowledge_point_id": "1.1",
+    "judge_mode": "llm_assist",
+    "question": {
+      "id": "dq_53513073_4",
+      "type": "fill_blank",
+      "content": "在 Python 中，使用 ______ 关键字来导入模块。",
+      "options": null,
+      "explanation": "import 用于导入模块。",
+      "knowledge_point_id": "1.1",
+      "knowledge_point_name": "基础语法"
+    },
+    "at": "2026-04-20"
+  },
+  {
+    "quiz_id": "dq_53513073_5",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_53513073_5",
       "type": "single",
       "content": "以下哪个是 Python 的可变数据类型？",
       "options": [

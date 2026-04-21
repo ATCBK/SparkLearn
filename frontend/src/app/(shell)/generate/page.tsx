@@ -13,6 +13,9 @@ import { cn } from '@/lib/utils/cn'
 import { FileText, Presentation, GitBranch, HelpCircle, BookOpen, Code, Send, RotateCcw, Download, Save } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import type { PptDeck, PptSlide } from '@/lib/api/types'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 const typeIcons: Record<string, React.ReactNode> = {
   document: <FileText className="w-5 h-5" />,
@@ -21,6 +24,125 @@ const typeIcons: Record<string, React.ReactNode> = {
   quiz: <HelpCircle className="w-5 h-5" />,
   reading: <BookOpen className="w-5 h-5" />,
   code: <Code className="w-5 h-5" />,
+}
+
+function stepMaxForSlide(slide: PptSlide): number {
+  if (slide.layout === 'bullets') return Math.max(1, ...(slide.bullets || []).map((x) => Number(x.step || 1)))
+  if (slide.layout === 'process') return Math.max(1, ...(slide.nodes || []).map((x) => Number(x.step || 1)))
+  return 1
+}
+
+function PptPreview({ deck }: { deck: PptDeck }) {
+  const [slideIndex, setSlideIndex] = useState(0)
+  const [step, setStep] = useState(1)
+  const slides = deck.slides || []
+  const slide = slides[slideIndex]
+
+  useEffect(() => {
+    setStep(1)
+  }, [slideIndex])
+
+  if (!slide) {
+    return <p className="text-small text-ink-secondary">暂无可预览的幻灯片</p>
+  }
+
+  const maxStep = stepMaxForSlide(slide)
+
+  function nextStepOrSlide() {
+    if (step < maxStep) {
+      setStep((s) => s + 1)
+      return
+    }
+    if (slideIndex < slides.length - 1) setSlideIndex((i) => i + 1)
+  }
+
+  function prevStepOrSlide() {
+    if (step > 1) {
+      setStep((s) => s - 1)
+      return
+    }
+    if (slideIndex > 0) setSlideIndex((i) => i - 1)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between text-small text-ink-secondary">
+        <span>{deck.title}</span>
+        <span>
+          第 {slideIndex + 1}/{slides.length} 页 · Step {step}/{maxStep}
+        </span>
+      </div>
+
+      <div className="rounded-[16px] border border-black/[0.06] bg-white p-8 min-h-[380px] shadow-[0_8px_24px_rgba(4,14,32,0.08)]">
+        <h2 id={`${slide.id}-title`} className="text-[30px] leading-[1.2] font-semibold text-ink">
+          {slide.title}
+        </h2>
+        {slide.subtitle && <p className="mt-3 text-body text-ink-secondary">{slide.subtitle}</p>}
+
+        {slide.layout === 'bullets' && (
+          <ul className="mt-6 space-y-3 list-disc pl-6">
+            {(slide.bullets || []).map((item) => (
+              <li
+                id={item.id}
+                key={item.id}
+                className={cn(
+                  'text-[18px] transition-all',
+                  item.step <= step ? 'opacity-100 text-ink' : 'opacity-20 text-ink-secondary',
+                )}
+              >
+                {item.text}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {slide.layout === 'process' && (
+          <div className="mt-8 grid grid-cols-3 gap-4">
+            {(slide.nodes || []).map((node) => (
+              <div
+                id={node.id}
+                key={node.id}
+                className={cn(
+                  'rounded-[12px] border p-4 text-center text-body transition-all',
+                  node.step <= step
+                    ? 'border-blue bg-blue-light text-ink'
+                    : 'border-black/[0.08] bg-bg-hover text-ink-secondary opacity-50',
+                )}
+              >
+                {node.label}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {slide.layout === 'summary' && (
+          <ul className="mt-6 space-y-3">
+            {(slide.summary_points || []).map((point, idx) => (
+              <li key={idx} className={cn('text-[18px] text-ink', idx + 1 <= step ? 'opacity-100' : 'opacity-20')}>
+                {idx + 1}. {point}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setSlideIndex(0)}>
+            首页
+          </Button>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={prevStepOrSlide} disabled={slideIndex === 0 && step === 1}>
+            上一步
+          </Button>
+          <Button size="sm" onClick={nextStepOrSlide} disabled={slideIndex === slides.length - 1 && step === maxStep}>
+            下一步
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 type GenerateState = {
@@ -34,6 +156,7 @@ type GenerateAction =
   | { type: 'LOAD'; resources: Resource[] }
   | { type: 'ADD'; resource: Resource }
   | { type: 'UPDATE'; id: string; updates: Partial<Resource> }
+  | { type: 'REPLACE_TEMP'; tempId: string; resource: Resource }
   | { type: 'SELECT_TYPE'; resourceType: Resource['type'] }
   | { type: 'SELECT_RESOURCE'; id: string }
   | { type: 'SET_PROMPT'; prompt: string }
@@ -50,6 +173,12 @@ function generateReducer(state: GenerateState, action: GenerateAction): Generate
         resources: state.resources.map(r =>
           r.id === action.id ? { ...r, ...action.updates } : r
         ),
+      }
+    case 'REPLACE_TEMP':
+      return {
+        ...state,
+        resources: state.resources.map(r => (r.id === action.tempId ? action.resource : r)),
+        selectedId: state.selectedId === action.tempId ? action.resource.id : state.selectedId,
       }
     case 'SELECT_TYPE':
       return { ...state, selectedType: action.resourceType }
@@ -69,6 +198,7 @@ export default function GeneratePage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   async function fetchData() {
     try {
@@ -86,31 +216,52 @@ export default function GeneratePage() {
   useEffect(() => { fetchData() }, [])
 
   async function handleGenerate() {
-    if (!state.prompt.trim()) return
-    const resource = await api.generateResource(state.selectedType, state.prompt)
-    dispatch({ type: 'ADD', resource })
-    dispatch({ type: 'SET_PROMPT', prompt: '' })
+    const prompt = state.prompt.trim()
+    if (!prompt || isGenerating) return
 
-    // Simulate generation progress
-    let progress = 0
-    const interval = setInterval(() => {
-      progress += Math.random() * 20
-      if (progress >= 100) {
-        progress = 100
-        clearInterval(interval)
-        dispatch({
-          type: 'UPDATE',
-          id: resource.id,
-          updates: {
-            status: 'completed',
-            progress: 100,
-            content: `# ${state.prompt}\n\n这是 AI 生成的学习资源内容。基于你的学习画像和需求，我们为你准备了以下内容...\n\n## 核心知识点\n\n1. 概念理解\n2. 实际应用\n3. 常见问题\n\n## 示例代码\n\n\`\`\`python\ndef example():\n    print("Hello, SparkLearn!")\n\`\`\``,
-          },
-        })
-      } else {
-        dispatch({ type: 'UPDATE', id: resource.id, updates: { progress: Math.round(progress) } })
-      }
-    }, 800)
+    const tempId = `temp-${Date.now()}`
+    const tempResource: Resource = {
+      id: tempId,
+      title: prompt.slice(0, 20) || 'Generating...',
+      type: state.selectedType,
+      status: 'generating',
+      createdAt: new Date().toISOString(),
+      progress: 8,
+      content: '',
+    }
+    dispatch({ type: 'ADD', resource: tempResource })
+    dispatch({ type: 'SELECT_RESOURCE', id: tempId })
+    dispatch({ type: 'SET_PROMPT', prompt: '' })
+    setIsGenerating(true)
+
+    let progress = 8
+    const timer = setInterval(() => {
+      progress = Math.min(progress + Math.floor(Math.random() * 8) + 3, 88)
+      dispatch({ type: 'UPDATE', id: tempId, updates: { progress } })
+    }, 450)
+
+    try {
+      const resource = await api.generateResource(state.selectedType, prompt)
+      clearInterval(timer)
+      dispatch({
+        type: 'REPLACE_TEMP',
+        tempId,
+        resource: { ...resource, status: 'completed', progress: 100 },
+      })
+    } catch (e) {
+      clearInterval(timer)
+      dispatch({
+        type: 'UPDATE',
+        id: tempId,
+        updates: {
+          status: 'failed',
+          progress: 0,
+          content: e instanceof Error ? e.message : 'Generation failed',
+        },
+      })
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   function handleRetry(id: string) {
@@ -132,6 +283,7 @@ export default function GeneratePage() {
   if (error) return <ErrorState type="server" onRetry={fetchData} />
 
   const selected = state.resources.find(r => r.id === state.selectedId)
+  const selectedLink = selected?.sourceUrl || null
 
   return (
     <div className="space-y-6">
@@ -183,9 +335,9 @@ export default function GeneratePage() {
               </button>
             ))}
           </div>
-          <Button onClick={handleGenerate} disabled={!state.prompt.trim()}>
+          <Button onClick={handleGenerate} disabled={!state.prompt.trim() || isGenerating}>
             <Send className="w-4 h-4" />
-            生成
+            {isGenerating ? 'Generating...' : '生成'}
           </Button>
         </div>
       </Card>
@@ -251,6 +403,19 @@ export default function GeneratePage() {
                     </div>
                   ) : selected.status === 'failed' ? (
                     <ErrorState type="server" title="生成失败" onRetry={() => handleRetry(selected.id)} />
+                  ) : selected.type === 'ppt' && selected.pptSchema ? (
+                    <PptPreview deck={selected.pptSchema} />
+                  ) : selected.type === 'document' && selectedLink ? (
+                    <div className="space-y-4">
+                      <div className="rounded-[12px] border border-black/[0.06] bg-bg-hover px-3 py-2 text-small text-ink-secondary">
+                        Document URL detected: {selectedLink}
+                      </div>
+                      <iframe
+                        src={`${API_BASE}/api/resources/${selected.id}/preview/html`}
+                        className="w-full h-[560px] rounded-[12px] border border-black/[0.08] bg-white"
+                        title="Document Preview"
+                      />
+                    </div>
                   ) : selected.content ? (
                     <div className="prose prose-sm max-w-none">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{selected.content}</ReactMarkdown>
@@ -263,13 +428,30 @@ export default function GeneratePage() {
                 </div>
                 {selected.status === 'completed' && (
                   <div className="p-4 border-t border-black/[0.06] flex gap-2">
-                    <Button variant="secondary" size="sm">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await api.downloadResource(selected.id)
+                        } catch (e) {
+                          const msg = e instanceof Error ? e.message : 'PDF download failed'
+                          window.alert(msg)
+                        }
+                      }}
+                    >
                       <Download className="w-4 h-4" />
-                      下载
+                      下载PDF
                     </Button>
-                    <Button size="sm">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (selectedLink) window.open(selectedLink, '_blank', 'noopener,noreferrer')
+                      }}
+                      disabled={!selectedLink}
+                    >
                       <Save className="w-4 h-4" />
-                      保存到资源中心
+                      Open Link
                     </Button>
                   </div>
                 )}

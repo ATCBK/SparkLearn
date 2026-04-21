@@ -1,118 +1,12 @@
 [
   {
-    "id": "dq_56c0e163_1",
-    "type": "single",
-    "content": "以下哪个是 Python 的可变数据类型？",
-    "options": [
-      "tuple",
-      "list",
-      "string",
-      "int"
-    ],
-    "correct_answer": "list",
-    "explanation": "list 是可变类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_56c0e163_2",
-    "type": "single",
-    "content": "Python 中用于定义函数的关键字是？",
-    "options": [
-      "function",
-      "def",
-      "func",
-      "define"
-    ],
-    "correct_answer": "def",
-    "explanation": "Python 使用 def 定义函数。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
-  },
-  {
-    "id": "dq_56c0e163_3",
-    "type": "multiple",
-    "content": "以下哪些是 Python 内置数据类型？（多选）",
-    "options": [
-      "list",
-      "dict",
-      "array",
-      "set"
-    ],
-    "correct_answer": [
-      "list",
-      "dict",
-      "set"
-    ],
-    "explanation": "list、dict、set 均为 Python 内置类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_56c0e163_4",
+    "id": "gq_e0802864_3",
     "type": "fill_blank",
-    "content": "在 Python 中，使用 ______ 关键字来导入模块。",
-    "correct_answer": "import",
-    "explanation": "import 用于导入模块。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
-  },
-  {
-    "id": "dq_56c0e163_5",
-    "type": "single",
-    "content": "以下哪个是 Python 的可变数据类型？",
-    "options": [
-      "tuple",
-      "list",
-      "string",
-      "int"
-    ],
-    "correct_answer": "list",
-    "explanation": "list 是可变类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_56c0e163_6",
-    "type": "single",
-    "content": "Python 中用于定义函数的关键字是？",
-    "options": [
-      "function",
-      "def",
-      "func",
-      "define"
-    ],
-    "correct_answer": "def",
-    "explanation": "Python 使用 def 定义函数。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
-  },
-  {
-    "id": "dq_56c0e163_7",
-    "type": "multiple",
-    "content": "以下哪些是 Python 内置数据类型？（多选）",
-    "options": [
-      "list",
-      "dict",
-      "array",
-      "set"
-    ],
-    "correct_answer": [
-      "list",
-      "dict",
-      "set"
-    ],
-    "explanation": "list、dict、set 均为 Python 内置类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_56c0e163_8",
-    "type": "fill_blank",
-    "content": "在 Python 中，使用 ______ 关键字来导入模块。",
-    "correct_answer": "import",
-    "explanation": "import 用于导入模块。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
+    "content": "描述Python中参数传递的方式。",
+    "options": null,
+    "correct_answer": "默认参数",
+    "explanation": "默认参数是在函数定义时指定的参数，当调用函数时，如果没有提供相应的参数值，将使用默认值。",
+    "knowledge_point_id": "general",
+    "knowledge_point_name": "通用能力"
   }
 ]

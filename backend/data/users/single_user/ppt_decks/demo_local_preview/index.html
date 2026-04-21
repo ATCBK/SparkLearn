@@ -1,0 +1,125 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HTML PPT Demo</title>
+  <link rel="stylesheet" href="./theme.css" />
+</head>
+<body>
+  <div class="shell">
+    <div class="toolbar">
+      <div class="title">基于大模型的个性化学习系统</div>
+      <div class="meta" id="counter"></div>
+    </div>
+
+    <div class="stage">
+      <section class="slide active" data-slide="1" data-steps="1">
+        <h1 id="s1-title">基于大模型的个性化学习系统</h1>
+        <div class="subtitle">HTML 幻灯片演示样式</div>
+      </section>
+
+      <section class="slide" data-slide="2" data-steps="4">
+        <h1 id="s2-title">系统总体架构</h1>
+        <div class="bullets">
+          <div class="bullet" data-step="1" id="s2-b1">对话式学习画像</div>
+          <div class="bullet" data-step="2" id="s2-b2">知识检索增强</div>
+          <div class="bullet" data-step="3" id="s2-b3">多智能体协同生成</div>
+          <div class="bullet" data-step="4" id="s2-b4">评估闭环与资源推送</div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="3" data-steps="5">
+        <h1 id="s3-title">资源生成流程</h1>
+        <div class="flow">
+          <div class="node" data-step="1" id="s3-n1">意图识别</div>
+          <div class="node" data-step="2" id="s3-n2">任务规划</div>
+          <div class="node" data-step="3" id="s3-n3">Tools执行</div>
+          <div class="node" data-step="4" id="s3-n4">结果审核</div>
+          <div class="node" data-step="5" id="s3-n5">前端渲染</div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="4" data-steps="3">
+        <h1 id="s4-title">总结与下一步</h1>
+        <div class="summary-list">
+          <div class="summary-item" data-step="1">1. 已实现结构化 PPT 生成与预览</div>
+          <div class="summary-item" data-step="2">2. 支持翻页、步进、流程节点展示</div>
+          <div class="summary-item" data-step="3">3. 下一步接入语音与视频时间轴</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">
+      <div class="btns">
+        <button class="secondary" id="prevBtn">上一步</button>
+        <button class="primary" id="nextBtn">下一步</button>
+      </div>
+      <div class="meta" id="stepMeta"></div>
+    </div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const counter = document.getElementById('counter');
+    const stepMeta = document.getElementById('stepMeta');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let index = 0;
+    let step = 1;
+
+    function maxStepOf(slide) {
+      return Number(slide.dataset.steps || '1');
+    }
+
+    function render() {
+      slides.forEach((s, i) => s.classList.toggle('active', i === index));
+      const current = slides[index];
+      const max = maxStepOf(current);
+
+      current.querySelectorAll('[data-step]').forEach((el) => {
+        const s = Number(el.dataset.step || '1');
+        el.classList.toggle('visible', s <= step);
+      });
+
+      counter.textContent = `第 ${index + 1}/${slides.length} 页`;
+      stepMeta.textContent = `Step ${step}/${max}`;
+
+      prevBtn.disabled = index === 0 && step === 1;
+      nextBtn.disabled = index === slides.length - 1 && step === max;
+    }
+
+    function next() {
+      const current = slides[index];
+      const max = maxStepOf(current);
+      if (step < max) {
+        step += 1;
+      } else if (index < slides.length - 1) {
+        index += 1;
+        step = 1;
+      }
+      render();
+    }
+
+    function prev() {
+      if (step > 1) {
+        step -= 1;
+      } else if (index > 0) {
+        index -= 1;
+        step = maxStepOf(slides[index]);
+      }
+      render();
+    }
+
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') next();
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') prev();
+    });
+
+    render();
+  </script>
+</body>
+</html>

@@ -131,3 +131,32 @@
 {"ts": "2026-04-20T08:04:06.465268Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "e0797f65"}
 {"ts": "2026-04-20T08:04:59.802881Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "927945b2"}
 {"ts": "2026-04-20T08:05:09.668120Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "56c0e163"}
+{"ts": "2026-04-20T12:32:20.555448Z", "type": "path_node_advice", "node_id": "1.1", "mastery": 0.9}
+{"ts": "2026-04-20T12:32:30.065721Z", "type": "path_node_advice", "node_id": "1.2", "mastery": 1.0}
+{"ts": "2026-04-20T12:32:40.236353Z", "type": "path_node_advice", "node_id": "3.1", "mastery": 0.59}
+{"ts": "2026-04-20T12:33:08.521615Z", "type": "path_node_advice", "node_id": "5.1", "mastery": 0.3}
+{"ts": "2026-04-20T12:44:51.547767Z", "type": "path_node_advice", "node_id": "1.2", "mastery": 1.0}
+{"ts": "2026-04-20T12:47:40.479155Z", "type": "path_node_advice", "node_id": "2.2", "mastery": 0.7}
+{"ts": "2026-04-20T12:48:06.253112Z", "type": "path_node_advice", "node_id": "3.4", "mastery": 0.2}
+{"ts": "2026-04-20T12:48:55.979793Z", "type": "path_node_advice", "node_id": "1.1", "mastery": 0.9}
+{"ts": "2026-04-20T12:48:59.617643Z", "type": "path_node_advice", "node_id": "1.2", "mastery": 1.0}
+{"ts": "2026-04-20T12:49:01.141489Z", "type": "path_node_advice", "node_id": "1.3", "mastery": 0.0}
+{"ts": "2026-04-20T12:51:25.688097Z", "type": "path_node_advice", "node_id": "4.4", "mastery": 0.0}
+{"ts": "2026-04-20T12:51:26.919915Z", "type": "path_node_advice", "node_id": "2.3", "mastery": 0.0}
+{"ts": "2026-04-20T12:51:49.785126Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "a9752b18"}
+{"ts": "2026-04-20T12:51:58.849450Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "53513073"}
+{"ts": "2026-04-20T12:52:05.495628Z", "type": "submit_quiz", "quiz_id": "dq_53513073_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-04-20T12:52:11.146108Z", "type": "submit_quiz", "quiz_id": "dq_53513073_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-04-20T12:52:16.497931Z", "type": "submit_quiz", "quiz_id": "dq_53513073_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-04-20T12:52:26.159719Z", "type": "submit_quiz", "quiz_id": "dq_53513073_4", "correct": true, "judge_mode": "llm_assist"}
+{"ts": "2026-04-20T12:52:28.341789Z", "type": "delete_wrong_quiz", "quiz_id": "dq_57c2e0f9_2", "removed_count": 1}
+{"ts": "2026-04-20T12:52:28.777611Z", "type": "delete_wrong_quiz", "quiz_id": "gq_a6d8f73f_3", "removed_count": 1}
+{"ts": "2026-04-20T12:52:29.028755Z", "type": "delete_wrong_quiz", "quiz_id": "gq_62423e21_5", "removed_count": 1}
+{"ts": "2026-04-20T12:52:29.223509Z", "type": "delete_wrong_quiz", "quiz_id": "gq_f0c06d15_3", "removed_count": 1}
+{"ts": "2026-04-20T12:52:29.418885Z", "type": "delete_wrong_quiz", "quiz_id": "dq_53513073_1", "removed_count": 1}
+{"ts": "2026-04-20T12:52:29.774960Z", "type": "delete_wrong_quiz", "quiz_id": "dq_53513073_2", "removed_count": 1}
+{"ts": "2026-04-20T12:52:30.168054Z", "type": "delete_wrong_quiz", "quiz_id": "dq_53513073_3", "removed_count": 1}
+{"ts": "2026-04-20T12:52:48.362324Z", "type": "submit_quiz", "quiz_id": "dq_53513073_5", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-04-20T12:53:36.208043Z", "type": "path_node_advice", "node_id": "1.1", "mastery": 0.95}
+{"ts": "2026-04-20T12:54:14.376481Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "fd82e095"}
+{"ts": "2026-04-20T12:54:23.952736Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "e0802864"}

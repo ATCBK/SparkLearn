@@ -14,6 +14,7 @@ export default function ShellLayout({
 
   const marginLeft = sidebarState === 'expanded' ? 260 : sidebarState === 'icons' ? 64 : 0
   const isTutor = pathname === '/tutor'
+  const isPath = pathname === '/path'
 
   return (
     <div className="min-h-screen bg-bg">
@@ -22,7 +23,7 @@ export default function ShellLayout({
         className="min-h-screen transition-[margin-left] duration-300 ease-out"
         style={{ marginLeft }}
       >
-        <div className={isTutor ? 'max-w-none px-0 py-0' : 'max-w-[1200px] mx-auto px-[52px] py-10'}>
+        <div className={isTutor || isPath ? 'max-w-none px-0 py-0' : 'max-w-[1200px] mx-auto px-[52px] py-10'}>
           {children}
         </div>
       </main>

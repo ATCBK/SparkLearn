@@ -14,6 +14,8 @@ export const api = {
 
   getResources: impl.getResources,
   deleteResource: impl.deleteResource,
+  getResourcePreview: impl.getResourcePreview,
+  downloadResource: impl.downloadResource,
   generateResource: impl.generateResource,
 
   sendMessage: impl.sendMessage,
@@ -41,6 +43,7 @@ export const api = {
   getRecommendations: impl.getRecommendations,
 
   getLearningPath: impl.getLearningPath,
+  getLearningPathNodeAdvice: impl.getLearningPathNodeAdvice,
 
   getVideos: impl.getVideos,
 
@@ -52,5 +55,5 @@ export const api = {
 export type {
   Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
-  TutorRole, TutorConversation, TutorFile,
+  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge,
 } from './types'
