@@ -403,6 +403,17 @@ export default function GeneratePage() {
                     </div>
                   ) : selected.status === 'failed' ? (
                     <ErrorState type="server" title="生成失败" onRetry={() => handleRetry(selected.id)} />
+                  ) : selected.type === 'ppt' && selectedLink ? (
+                    <div className="space-y-4">
+                      <div className="rounded-[12px] border border-black/[0.06] bg-bg-hover px-3 py-2 text-small text-ink-secondary">
+                        已识别PPT链接：{selectedLink}
+                      </div>
+                      <iframe
+                        src={`${API_BASE}/api/resources/${selected.id}/preview/html`}
+                        className="w-full h-[560px] rounded-[12px] border border-black/[0.08] bg-white"
+                        title="PPT 预览"
+                      />
+                    </div>
                   ) : selected.type === 'ppt' && selected.pptSchema ? (
                     <PptPreview deck={selected.pptSchema} />
                   ) : selected.type === 'mindmap' && selectedLink ? (
@@ -444,7 +455,7 @@ export default function GeneratePage() {
                       size="sm"
                       onClick={async () => {
                         try {
-                          if (selected.type === 'mindmap') {
+                          if (selected.type === 'mindmap' || selected.type === 'ppt') {
                             await api.downloadResourceSource(selected.id)
                           } else {
                             await api.downloadResource(selected.id)
@@ -456,7 +467,7 @@ export default function GeneratePage() {
                       }}
                     >
                       <Download className="w-4 h-4" />
-                      {selected.type === 'mindmap' ? '下载图片' : '下载PDF'}
+                      {selected.type === 'mindmap' ? '下载图片' : selected.type === 'ppt' ? '下载PPT' : '下载PDF'}
                     </Button>
                     <Button
                       size="sm"

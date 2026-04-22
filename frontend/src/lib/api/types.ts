@@ -74,6 +74,17 @@ export interface StudentProfile {
   practicalAbility: string
 }
 
+export interface ProfileUpdatePayload {
+  goals?: string[]
+  knowledgeLevel?: string
+  weakPoints?: string[]
+  learningPreference?: string[]
+  cognitiveStyle?: string
+  dailyTime?: number
+  practicalAbility?: string
+  currentStage?: string
+}
+
 export interface Message {
   id: string
   role: 'user' | 'assistant'
@@ -81,6 +92,16 @@ export interface Message {
   timestamp: string
   conversationId?: number
   fileNames?: string[]
+}
+
+export interface WorkshopHubEvent {
+  phase: 'profile_analysis' | 'discussion' | 'synthesis' | string
+  round: number
+  agentId: string
+  agentName: string
+  agentKind: 'system' | 'custom' | string
+  content: string
+  timestamp: string
 }
 
 export interface TutorRole {

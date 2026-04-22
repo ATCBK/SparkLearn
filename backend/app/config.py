@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     coze_bot_id_resource_reading: str = ""
     coze_bot_id_resource_code: str = ""
 
+    # iFlytek 智文 PPT
+    xfyun_zw_base_url: str = "https://zwapi.xfyun.cn"
+    xfyun_zw_app_id: str = ""
+    xfyun_zw_api_secret: str = ""
+    xfyun_zw_ppt_author: str = "SparkLearn"
+    xfyun_zw_timeout_sec: int = 240
+
     single_user_id: str = "single_user"
     cors_origin: str = "http://localhost:3000"
 

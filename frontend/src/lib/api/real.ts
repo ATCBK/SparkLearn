@@ -1,7 +1,7 @@
 ﻿import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PptDeck, PathNodeAdvice,
+  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, WorkshopHubEvent, ProfileUpdatePayload,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -116,6 +116,23 @@ export async function getProfile(): Promise<StudentProfile> {
   }
 }
 
+export async function updateProfile(payload: ProfileUpdatePayload): Promise<void> {
+  const body: Record<string, unknown> = {}
+  if (payload.goals !== undefined) body.goal = payload.goals
+  if (payload.knowledgeLevel !== undefined) body.knowledge_level = payload.knowledgeLevel
+  if (payload.weakPoints !== undefined) body.weak_points = payload.weakPoints
+  if (payload.learningPreference !== undefined) body.learning_preference = payload.learningPreference
+  if (payload.cognitiveStyle !== undefined) body.cognitive_style = payload.cognitiveStyle
+  if (payload.dailyTime !== undefined) body.daily_time = payload.dailyTime
+  if (payload.practicalAbility !== undefined) body.practical_ability = payload.practicalAbility
+  if (payload.currentStage !== undefined) body.current_stage = payload.currentStage
+
+  await fetchJson('/api/profile', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
 export async function getResources(): Promise<Resource[]> {
   const resources = await fetchJson<any[]>('/api/resources')
   return resources.map(toResource)
@@ -188,28 +205,6 @@ export async function downloadResourceSource(resourceId: string): Promise<void> 
 }
 
 export async function generateResource(type: Resource['type'], prompt: string): Promise<Resource> {
-  if (type === 'ppt') {
-    const deck = await fetchJson<PptDeck>('/api/ppt/generate-schema', {
-      method: 'POST',
-      body: JSON.stringify({
-        topic: prompt,
-        outline: '',
-        style: 'tech-blue',
-        slide_count: 6,
-      }),
-    })
-    return {
-      id: `ppt-${Date.now()}`,
-      title: deck.title || prompt.slice(0, 20) || '新生成PPT',
-      type,
-      status: 'completed',
-      createdAt: new Date().toISOString(),
-      content: `# ${deck.title}\n\n已生成 ${deck.slides.length} 页 HTML 幻灯片。`,
-      pptSchema: deck,
-      progress: 100,
-    }
-  }
-
   const events = await readSSE('/api/resources/generate', { type, prompt })
   let done: { type: string; payload: Record<string, unknown> } | undefined
   for (let i = events.length - 1; i >= 0; i--) {
@@ -237,10 +232,14 @@ export async function sendMessage(
     roleId?: number
     fileIds?: number[]
     mode?: string
+    workshopEnabled?: boolean
+    workshopRoleIds?: number[]
   },
   handlers?: {
     onText?: (chunk: string) => void
     onError?: (error: { code?: number; message?: string; sid?: string }) => void
+    onHub?: (evt: WorkshopHubEvent) => void
+    onWorkshopPhase?: (evt: { phase: string; round?: number; status: string }) => void
     onDone?: () => void
   },
 ): Promise<Message> {
@@ -251,6 +250,8 @@ export async function sendMessage(
     conversation_id: options?.conversationId,
     role_id: options?.roleId,
     file_ids: options?.fileIds || [],
+    workshop_enabled: Boolean(options?.workshopEnabled),
+    workshop_role_ids: options?.workshopRoleIds || [],
   }, (evt) => {
     if (evt.type === 'text') {
       const chunk = String(evt.payload.content || '')
@@ -265,6 +266,26 @@ export async function sendMessage(
       }
       lastError = err.message
       handlers?.onError?.(err)
+      return
+    }
+    if (evt.type === 'hub') {
+      handlers?.onHub?.({
+        phase: String(evt.payload.phase || 'discussion'),
+        round: Number(evt.payload.round || 0),
+        agentId: String(evt.payload.agent_id || ''),
+        agentName: String(evt.payload.agent_name || '导师'),
+        agentKind: String(evt.payload.agent_kind || 'system'),
+        content: String(evt.payload.content || ''),
+        timestamp: String(evt.payload.timestamp || new Date().toISOString()),
+      })
+      return
+    }
+    if (evt.type === 'workshop_phase') {
+      handlers?.onWorkshopPhase?.({
+        phase: String(evt.payload.phase || 'discussion'),
+        round: evt.payload.round !== undefined ? Number(evt.payload.round) : undefined,
+        status: String(evt.payload.status || ''),
+      })
       return
     }
     if (evt.type === 'done') handlers?.onDone?.()

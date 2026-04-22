@@ -1,6 +1,6 @@
 [
   {
-    "id": "dq_d71b9d55_1",
+    "id": "dq_9e1d99a8_1",
     "type": "single",
     "content": "以下哪个是 Python 的可变数据类型？",
     "options": [
@@ -15,7 +15,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_d71b9d55_2",
+    "id": "dq_9e1d99a8_2",
     "type": "single",
     "content": "Python 中用于定义函数的关键字是？",
     "options": [
@@ -30,7 +30,7 @@
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_d71b9d55_3",
+    "id": "dq_9e1d99a8_3",
     "type": "multiple",
     "content": "以下哪些是 Python 内置数据类型？（多选）",
     "options": [
@@ -49,7 +49,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_d71b9d55_4",
+    "id": "dq_9e1d99a8_4",
     "type": "fill_blank",
     "content": "在 Python 中，使用 ______ 关键字来导入模块。",
     "correct_answer": "import",
@@ -58,7 +58,7 @@
     "knowledge_point_name": "基础语法"
   },
   {
-    "id": "dq_d71b9d55_5",
+    "id": "dq_9e1d99a8_5",
     "type": "single",
     "content": "以下哪个是 Python 的可变数据类型？",
     "options": [
@@ -73,7 +73,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_d71b9d55_6",
+    "id": "dq_9e1d99a8_6",
     "type": "single",
     "content": "Python 中用于定义函数的关键字是？",
     "options": [
@@ -88,7 +88,7 @@
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_d71b9d55_7",
+    "id": "dq_9e1d99a8_7",
     "type": "multiple",
     "content": "以下哪些是 Python 内置数据类型？（多选）",
     "options": [
@@ -107,7 +107,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_d71b9d55_8",
+    "id": "dq_9e1d99a8_8",
     "type": "fill_blank",
     "content": "在 Python 中，使用 ______ 关键字来导入模块。",
     "correct_answer": "import",

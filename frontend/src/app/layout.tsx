@@ -17,6 +17,11 @@ const notoSansSC = Noto_Sans_SC({
 export const metadata: Metadata = {
   title: "SparkLearn - AI 驱动的个性化学习平台",
   description: "学而思 SparkLearn - 基于多 Agent 协作的智能自适应学习系统",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+    shortcut: "/icon.png",
+  },
 };
 
 export default function RootLayout({

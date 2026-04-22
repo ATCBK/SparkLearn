@@ -9,6 +9,7 @@ import {
   ChevronLeft,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { BrandLogo } from '@/components/brand/BrandLogo'
 
 type SidebarState = 'expanded' | 'icons' | 'collapsed'
 
@@ -55,20 +56,11 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
         isExpanded ? 'w-[260px]' : 'w-16',
       )}
     >
-      {/* Logo */}
-      <div className={cn(
-        'flex items-center gap-3 px-5 h-16 shrink-0',
-        !isExpanded && 'justify-center px-0',
-      )}>
-        <div className="w-8 h-8 rounded-lg bg-blue flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">学</span>
-        </div>
-        {isExpanded && (
-          <span className="text-ink font-semibold text-[15px] tracking-tight">SparkLearn</span>
-        )}
+      <div className={cn('flex items-center gap-3 px-5 h-16 shrink-0', !isExpanded && 'justify-center px-0')}>
+        <BrandLogo size={32} />
+        {isExpanded && <span className="text-ink font-semibold text-[15px] tracking-tight">SparkLearn</span>}
       </div>
 
-      {/* Main Nav */}
       <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
           <NavItem
@@ -79,7 +71,6 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
           />
         ))}
 
-        {/* Divider */}
         <div className="my-3 mx-3 border-t border-black/[0.06]" />
 
         {TOOL_ITEMS.map((item) => (
@@ -92,26 +83,16 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Bottom section */}
-      <div className={cn(
-        'px-3 pb-3 space-y-3 shrink-0',
-        !isExpanded && 'px-2',
-      )}>
-        {/* Quote (expanded only) */}
+      <div className={cn('px-3 pb-3 space-y-3 shrink-0', !isExpanded && 'px-2')}>
         {isExpanded && (
           <div className="px-3 py-2 rounded-lg bg-bg-hover/50">
             <p className="text-[11px] text-ink-tertiary italic leading-relaxed">&ldquo;{quote}&rdquo;</p>
           </div>
         )}
 
-        {/* Divider */}
         <div className="border-t border-black/[0.06]" />
 
-        {/* User info */}
-        <div className={cn(
-          'flex items-center gap-3 px-3 py-2',
-          !isExpanded && 'justify-center px-0',
-        )}>
+        <div className={cn('flex items-center gap-3 px-3 py-2', !isExpanded && 'justify-center px-0')}>
           <div className="w-8 h-8 rounded-full bg-blue-light flex items-center justify-center shrink-0">
             <User className="w-4 h-4 text-blue" />
           </div>
@@ -123,7 +104,6 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
           )}
         </div>
 
-        {/* Collapse button */}
         <button
           onClick={handleCollapse}
           className={cn(
@@ -147,7 +127,6 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
   )
 }
 
-// NavItem sub-component
 function NavItem({
   label,
   href,
@@ -164,6 +143,7 @@ function NavItem({
   return (
     <Link
       href={href}
+      prefetch={false}
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative group',
         active
@@ -173,7 +153,6 @@ function NavItem({
       )}
       title={collapsed ? label : undefined}
     >
-      {/* Active indicator bar */}
       {active && (
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue rounded-r-full" />
       )}
@@ -181,7 +160,6 @@ function NavItem({
       {!collapsed && (
         <span className="text-small font-medium">{label}</span>
       )}
-      {/* Tooltip for collapsed state */}
       {collapsed && (
         <div className="absolute left-full ml-2 px-2 py-1 bg-ink text-white text-micro rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
           {label}
@@ -190,3 +168,4 @@ function NavItem({
     </Link>
   )
 }
+

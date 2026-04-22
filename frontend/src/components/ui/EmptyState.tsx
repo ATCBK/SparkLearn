@@ -49,6 +49,7 @@ export function EmptyState({ type = 'generic', title, description, action }: Emp
       {action && (
         <Link
           href={action.href}
+          prefetch={false}
           className="mt-2 h-10 px-6 rounded-[12px] bg-blue text-white font-medium text-body hover:bg-blue-dark transition-colors inline-flex items-center"
         >
           {action.label}

@@ -11,6 +11,7 @@ export const api = {
   getMasteryData: impl.getMasteryData,
 
   getProfile: impl.getProfile,
+  updateProfile: impl.updateProfile,
 
   getResources: impl.getResources,
   deleteResource: impl.deleteResource,
@@ -56,5 +57,5 @@ export const api = {
 export type {
   Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
-  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge,
+  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload,
 } from './types'

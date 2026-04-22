@@ -1,4 +1,5 @@
 ﻿import json
+import re
 import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -24,6 +25,8 @@ class TutorReq(BaseModel):
     conversation_id: int | None = None
     role_id: int | None = None
     file_ids: list[int] = []
+    workshop_enabled: bool = False
+    workshop_role_ids: list[int] = []
 
 
 class EvalRefreshReq(BaseModel):
@@ -399,21 +402,115 @@ async def tutor_chat(req: TutorReq):
             model_role = 'assistant' if row['sender_role'] == 'assistant' else 'user'
             history_for_model.append({'role': model_role, 'content': row['content']})
 
-        assistant_parts: list[str] = []
-        async for evt_type, payload in spark_lite.stream_chat_events(
-            req.message,
-            mode=req.mode,
-            history=history_for_model,
-        ):
-            if evt_type == 'text':
-                chunk = str(payload.get('content', ''))
-                if chunk:
-                    assistant_parts.append(chunk)
-                    yield ('text', {'content': chunk})
-            elif evt_type == 'error':
-                yield ('error', payload)
+        if req.workshop_enabled:
+            profile = _load_profile_snapshot()
+            profile_summary = _profile_summary_text(profile)
+            complexity = _estimate_question_complexity(req.message)
+            rounds = _rounds_for_complexity(complexity)
+            participants = _build_workshop_participants(req, role)
 
-        answer = ''.join(assistant_parts)
+            yield (
+                'workshop_meta',
+                {
+                    'enabled': True,
+                    'complexity': complexity,
+                    'rounds': rounds,
+                    'participants': [
+                        {'id': p['id'], 'name': p['name'], 'kind': p['kind']}
+                        for p in participants
+                    ],
+                },
+            )
+            yield ('workshop_phase', {'phase': 'profile_analysis', 'status': 'running'})
+
+            profile_analysis = _build_profile_analysis(profile)
+            yield (
+                'hub',
+                _hub_message(
+                    phase='profile_analysis',
+                    round_no=0,
+                    agent_id='profile-agent',
+                    agent_name='画像分析师',
+                    agent_kind='system',
+                    content=profile_analysis,
+                ),
+            )
+            yield ('workshop_phase', {'phase': 'profile_analysis', 'status': 'done'})
+
+            hub_log: list[dict[str, Any]] = []
+            hub_log.append(
+                _hub_message(
+                    phase='profile_analysis',
+                    round_no=0,
+                    agent_id='profile-agent',
+                    agent_name='画像分析师',
+                    agent_kind='system',
+                    content=profile_analysis,
+                )
+            )
+
+            for round_no in range(1, rounds + 1):
+                yield ('workshop_phase', {'phase': 'discussion', 'round': round_no, 'status': 'running'})
+                for participant in participants:
+                    participant_reply = await _workshop_agent_reply(
+                        question=req.message,
+                        profile_summary=profile_summary,
+                        participant=participant,
+                        round_no=round_no,
+                        total_rounds=rounds,
+                        hub_log=hub_log,
+                        mode=req.mode,
+                    )
+                    msg = _hub_message(
+                        phase='discussion',
+                        round_no=round_no,
+                        agent_id=participant['id'],
+                        agent_name=participant['name'],
+                        agent_kind=participant['kind'],
+                        content=participant_reply,
+                    )
+                    hub_log.append(msg)
+                    yield ('hub', msg)
+                yield ('workshop_phase', {'phase': 'discussion', 'round': round_no, 'status': 'done'})
+
+            yield ('workshop_phase', {'phase': 'synthesis', 'status': 'running'})
+            answer, final_brief = await _workshop_synthesize_answer(
+                question=req.message,
+                profile_summary=profile_summary,
+                hub_log=hub_log,
+                mode=req.mode,
+                role_prompt=role_prompt,
+            )
+            yield (
+                'hub',
+                _hub_message(
+                    phase='synthesis',
+                    round_no=rounds,
+                    agent_id='final-answer-agent',
+                    agent_name='最终回答智能体',
+                    agent_kind='system',
+                    content=final_brief,
+                ),
+            )
+            for chunk in _chunk_text(answer, 120):
+                yield ('text', {'content': chunk})
+            yield ('workshop_phase', {'phase': 'synthesis', 'status': 'done'})
+        else:
+            assistant_parts: list[str] = []
+            async for evt_type, payload in spark_lite.stream_chat_events(
+                req.message,
+                mode=req.mode,
+                history=history_for_model,
+            ):
+                if evt_type == 'text':
+                    chunk = str(payload.get('content', ''))
+                    if chunk:
+                        assistant_parts.append(chunk)
+                        yield ('text', {'content': chunk})
+                elif evt_type == 'error':
+                    yield ('error', payload)
+
+            answer = ''.join(assistant_parts)
         assistant_id = _execute_returning_id(
             """
             INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, created_at)
@@ -644,6 +741,410 @@ def _build_role_prompt(role: dict[str, Any] | None) -> str:
     return merged
 
 
+def _load_profile_snapshot() -> dict[str, Any]:
+    row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (settings.single_user_id,))
+    if not row:
+        return {}
+    return {
+        'goal': _safe_json_loads(row['goal'], []),
+        'knowledge_level': row['knowledge_level'] or '',
+        'weak_points': _safe_json_loads(row['weak_points'], []),
+        'learning_preference': _safe_json_loads(row['learning_preference'], []),
+        'cognitive_style': row['cognitive_style'] or '',
+        'daily_time': int(row['daily_time'] or 0),
+        'practical_ability': row['practical_ability'] or '',
+        'current_stage': row['current_stage'] or '',
+    }
+
+
+def _profile_summary_text(profile: dict[str, Any]) -> str:
+    if not profile:
+        return '暂无画像数据，请采用循序渐进解释。'
+    return (
+        f"目标: {json.dumps(profile.get('goal', []), ensure_ascii=False)}; "
+        f"基础: {profile.get('knowledge_level', '')}; "
+        f"薄弱点: {json.dumps(profile.get('weak_points', []), ensure_ascii=False)}; "
+        f"偏好: {json.dumps(profile.get('learning_preference', []), ensure_ascii=False)}; "
+        f"认知风格: {profile.get('cognitive_style', '')}; "
+        f"每天可投入: {profile.get('daily_time', 0)}分钟; "
+        f"实践能力: {profile.get('practical_ability', '')}。"
+    )
+
+
+def _build_profile_analysis(profile: dict[str, Any]) -> str:
+    if not profile:
+        return '未读取到完整画像，建议先采用中等难度解释并在回答末尾补充可选进阶路径。'
+
+    weak_points = ', '.join(profile.get('weak_points', [])[:3]) or '暂无'
+    prefs = ', '.join(profile.get('learning_preference', [])[:3]) or '暂无'
+    return (
+        f"学习者当前基础为“{profile.get('knowledge_level', '未知')}”，"
+        f"薄弱点集中在：{weak_points}。"
+        f"建议采用“{prefs}”风格讲解，先给结论再拆步骤，"
+        f"并提供1个可执行练习任务。"
+    )
+
+
+def _estimate_question_complexity(question: str) -> str:
+    text = (question or '').strip()
+    if not text:
+        return 'simple'
+
+    score = 0
+    if len(text) >= 120:
+        score += 2
+    elif len(text) >= 60:
+        score += 1
+
+    advanced_signals = ['对比', '优缺点', '为什么', '原理', '设计', '架构', '证明', '推导', '优化', '权衡']
+    score += sum(1 for s in advanced_signals if s in text)
+    if any(sym in text for sym in ['\n', '；', ';', '，并', '同时', '另外']):
+        score += 1
+
+    if score >= 4:
+        return 'hard'
+    if score >= 2:
+        return 'medium'
+    return 'simple'
+
+
+def _rounds_for_complexity(complexity: str) -> int:
+    mapping = {'simple': 2, 'medium': 3, 'hard': 5}
+    return min(5, max(1, mapping.get(complexity, 3)))
+
+
+def _build_workshop_participants(req: TutorReq, active_role: Any) -> list[dict[str, str]]:
+    participants: list[dict[str, str]] = [
+        {
+            'id': 'clarifier',
+            'name': '提问优化师',
+            'kind': 'system',
+            'prompt': '你擅长把问题重构得更清晰，要求给出目标、约束、上下文缺口。',
+        },
+        {
+            'id': 'subject-tutor',
+            'name': '学科导师',
+            'kind': 'system',
+            'prompt': '你负责给出专业解释与解题路径，强调准确性与步骤。',
+        },
+        {
+            'id': 'challenger',
+            'name': '质疑者',
+            'kind': 'system',
+            'prompt': '你专门发现漏洞、边界条件、易错点，并提出修正建议。',
+        },
+        {
+            'id': 'coach',
+            'name': '行动教练',
+            'kind': 'system',
+            'prompt': '你负责把讨论转化为可执行学习动作，输出可量化下一步。',
+        },
+    ]
+
+    custom_ids = [int(x) for x in req.workshop_role_ids if int(x) > 0]
+    if req.role_id and req.role_id not in custom_ids:
+        custom_ids.append(int(req.role_id))
+    if active_role and req.role_id is None:
+        try:
+            active_id = int(active_role['id'])
+            if active_id not in custom_ids:
+                custom_ids.append(active_id)
+        except (TypeError, ValueError, KeyError):
+            pass
+
+    if custom_ids:
+        placeholders = ','.join('?' for _ in custom_ids)
+        rows = fetch_all(
+            f"""
+            SELECT id, name, persona, background, style_guide, rules
+            FROM tutor_roles
+            WHERE user_id = ? AND id IN ({placeholders})
+            ORDER BY updated_at DESC
+            """,
+            (settings.single_user_id, *custom_ids),
+        )
+        for row in rows:
+            participants.append(
+                {
+                    'id': f"custom-{row['id']}",
+                    'name': str(row['name'] or f"自定义导师{row['id']}"),
+                    'kind': 'custom',
+                    'prompt': _build_role_prompt(dict(row)) or '你是用户自定义导师，请结合你的角色设定参与讨论。',
+                }
+            )
+
+    return participants
+
+
+def _hub_message(
+    *,
+    phase: str,
+    round_no: int,
+    agent_id: str,
+    agent_name: str,
+    agent_kind: str,
+    content: str,
+) -> dict[str, Any]:
+    return {
+        'phase': phase,
+        'round': round_no,
+        'agent_id': agent_id,
+        'agent_name': agent_name,
+        'agent_kind': agent_kind,
+        'content': content,
+        'timestamp': now_iso(),
+    }
+
+
+async def _workshop_agent_reply(
+    *,
+    question: str,
+    profile_summary: str,
+    participant: dict[str, str],
+    round_no: int,
+    total_rounds: int,
+    hub_log: list[dict[str, Any]],
+    mode: str,
+) -> str:
+    recent_log = hub_log[-10:]
+    recent_text = '\n'.join([_hub_line(x) for x in recent_log])
+    last_round_points = _last_round_points(hub_log, round_no - 1)
+    banned = '\n'.join([f"- {x}" for x in _recent_unique_contents(hub_log, limit=8)])
+    prompt = (
+        "你正在参与一场教育问答研讨讨论，请自然发言。\n"
+        f"当前轮次: {round_no}/{total_rounds}\n"
+        f"发言者: {participant.get('name', '导师')}\n"
+        f"你的角色设定: {participant.get('prompt', '')}\n"
+        f"用户画像摘要: {profile_summary}\n"
+        f"用户问题: {question}\n"
+        f"上一轮各角色要点: {last_round_points}\n"
+        f"最近讨论记录:\n{recent_text}\n"
+        f"禁止重复内容:\n{banned}\n"
+        "请给出自然、直接的短发言，补充你认为最有价值的观点。"
+    )
+    text = (await _model_complete(prompt=prompt, mode=mode, history=[])).strip()
+    if not text:
+        return _fallback_agent_reply(participant, round_no)
+
+    if _is_redundant_reply(text, hub_log):
+        rewrite_prompt = (
+            f"你上一版发言与他人重复，原文：{text}\n"
+            "请换一个角度重新表达，保持自然，不要复述已有内容。"
+        )
+        revised = (await _model_complete(prompt=rewrite_prompt, mode=mode, history=[])).strip()
+        if revised and not _is_redundant_reply(revised, hub_log):
+            return revised
+        return _fallback_agent_reply(participant, round_no)
+    return text
+
+
+async def _workshop_synthesize_answer(
+    *,
+    question: str,
+    profile_summary: str,
+    hub_log: list[dict[str, Any]],
+    mode: str,
+    role_prompt: str,
+) -> tuple[str, str]:
+    hub_text = '\n'.join([_to_synthesis_line(x) for x in hub_log[-24:]])
+    round_digest = _build_round_digest(hub_log)
+    system_hint = role_prompt.strip() if role_prompt else '你是严谨、耐心的学习导师。'
+    prompt = (
+        f"{system_hint}\n"
+        "你是 FinalAnswerAgent，请结合每一轮讨论结论，产出面向用户的最终答案。\n"
+        "请基于讨论结果，直接给用户一段完整、自然、可执行的最终答复。\n"
+        "不要使用固定模板标题，不要机械分段，不要暴露内部讨论指令。\n"
+        "只回答当前这一次用户问题，不要回放历史轮次问答，不要写“用户:”“导师名:”这类前缀。\n"
+        "最终只输出一份答案，不要输出多个回答版本。\n"
+        "在结尾追加3条“可追问问题”，帮助用户继续提问。\n"
+        f"用户画像摘要: {profile_summary}\n"
+        f"用户原问题: {question}\n"
+        f"每轮讨论摘要:\n{round_digest}\n"
+        f"讨论摘录:\n{hub_text}"
+    )
+    answer = await _model_complete(prompt=prompt, mode=mode, history=[])
+    final_answer = (answer or '暂时无法生成完整总结，请重试。').strip()
+    if _looks_like_dialogue_transcript(final_answer):
+        final_answer = await _rewrite_to_single_user_answer(
+            question=question,
+            answer_text=final_answer,
+            mode=mode,
+        )
+    brief = await _model_complete(
+        prompt=(
+            "你是 FinalAnswerAgent。请将你刚生成的最终答案提炼成一句20-40字摘要，"
+            "用于在研讨会消息流展示，不要包含固定标题。\n"
+            f"最终答案:\n{final_answer}"
+        ),
+        mode=mode,
+        history=[],
+    )
+    final_brief = (brief or 'FinalAnswerAgent 已完成各轮观点整合并输出最终答复。').strip()
+    return final_answer, final_brief
+
+
+async def _model_complete(prompt: str, mode: str, history: list[dict[str, str]]) -> str:
+    parts: list[str] = []
+    async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode=mode, history=history):
+        if evt_type == 'text':
+            chunk = str(payload.get('content', ''))
+            if chunk:
+                parts.append(chunk)
+    return ''.join(parts).strip()
+
+
+def _chunk_text(text: str, size: int) -> list[str]:
+    if not text:
+        return []
+    return [text[i:i + size] for i in range(0, len(text), size)]
+
+
+def _safe_json_loads(raw: Any, fallback: Any) -> Any:
+    if raw is None:
+        return fallback
+    if isinstance(raw, (list, dict)):
+        return raw
+    try:
+        value = json.loads(str(raw))
+        return value
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return fallback
+
+
+def _to_synthesis_line(item: dict[str, Any]) -> str:
+    role = str(item.get('agent_name', 'Agent'))
+    content = str(item.get('content', '')).strip()
+    content = re.sub(r'回应对象\s*[:：]\s*[^；;。\n]+[；;]?', '', content)
+    content = re.sub(r'新增点\s*[:：]\s*', '', content)
+    content = re.sub(r'行动建议\s*[:：]\s*', '', content)
+    content = re.sub(r'从你的角色补充差异化视角[^。；;\n]*', '', content)
+    content = re.sub(r'\s+', ' ', content).strip(' ;；')
+    return f'{role}: {content}'
+
+
+def _build_round_digest(hub_log: list[dict[str, Any]]) -> str:
+    rounds: dict[int, list[str]] = {}
+    for item in hub_log:
+        if str(item.get('phase', '')) != 'discussion':
+            continue
+        round_no = int(item.get('round', 0) or 0)
+        if round_no <= 0:
+            continue
+        rounds.setdefault(round_no, []).append(
+            f"{item.get('agent_name', 'agent')}: {str(item.get('content', '')).strip()}"
+        )
+
+    if not rounds:
+        return '暂无有效讨论摘要。'
+
+    lines: list[str] = []
+    for r in sorted(rounds.keys()):
+        merged = ' | '.join(rounds[r][:8])
+        lines.append(f"第{r}轮: {merged}")
+    return '\n'.join(lines)
+
+
+def _looks_like_dialogue_transcript(text: str) -> bool:
+    if not text:
+        return False
+    user_hits = len(re.findall(r'(^|\n)\s*用户\s*[:：]', text))
+    role_hits = len(re.findall(r'(^|\n)\s*[^:\n：]{1,16}\s*[:：]', text))
+    return user_hits >= 1 and role_hits >= 3
+
+
+async def _rewrite_to_single_user_answer(*, question: str, answer_text: str, mode: str) -> str:
+    prompt = (
+        "请将下面内容改写成直接给用户的一份最终答案。\n"
+        "要求：\n"
+        "1) 只保留一个最终答案；\n"
+        "2) 不要使用“用户:”“某导师:”前缀；\n"
+        "3) 不要回放历史问答；\n"
+        "4) 在结尾保留3条可追问问题。\n"
+        f"当前问题: {question}\n"
+        f"原始内容:\n{answer_text}"
+    )
+    rewritten = (await _model_complete(prompt=prompt, mode=mode, history=[])).strip()
+    return rewritten or answer_text
+
+
+def _agent_responsibility(participant: dict[str, str]) -> str:
+    agent_id = participant.get('id', '')
+    if agent_id == 'clarifier':
+        return '只做问题重构，补充目标、约束、缺失信息，不给完整教学答案。'
+    if agent_id == 'subject-tutor':
+        return '只给关键原理和最短解题路径，避免泛泛建议。'
+    if agent_id == 'challenger':
+        return '专门找漏洞、边界条件和可能误导点。'
+    if agent_id == 'coach':
+        return '把观点转成可执行训练动作，强调时间和产出。'
+    return '基于你的自定义角色设定提出独特观点，避免复述他人。'
+
+
+def _hub_line(item: dict[str, Any]) -> str:
+    return f"[R{item.get('round', 0)}]{item.get('agent_name', 'agent')}: {item.get('content', '')}"
+
+
+def _last_round_points(hub_log: list[dict[str, Any]], round_no: int) -> str:
+    if round_no <= 0:
+        return '首轮无历史。'
+    rows = [x for x in hub_log if int(x.get('round', 0) or 0) == round_no]
+    if not rows:
+        return '上一轮无有效记录。'
+    compact = [f"{x.get('agent_name', 'agent')}:{str(x.get('content', ''))[:36]}" for x in rows[:8]]
+    return '；'.join(compact)
+
+
+def _recent_unique_contents(hub_log: list[dict[str, Any]], limit: int = 6) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in reversed(hub_log):
+        raw = str(item.get('content', '')).strip()
+        norm = _normalize_for_similarity(raw)
+        if not raw or not norm or norm in seen:
+            continue
+        seen.add(norm)
+        out.append(raw[:60])
+        if len(out) >= limit:
+            break
+    return list(reversed(out))
+
+
+def _normalize_for_similarity(text: str) -> str:
+    return re.sub(r'[^0-9A-Za-z\u4e00-\u9fff]+', '', (text or '').lower())
+
+
+def _similarity_score(a: str, b: str) -> float:
+    if not a or not b:
+        return 0.0
+    sa = set(a)
+    sb = set(b)
+    if not sa or not sb:
+        return 0.0
+    inter = len(sa & sb)
+    union = len(sa | sb)
+    if union == 0:
+        return 0.0
+    return inter / union
+
+
+def _is_redundant_reply(text: str, hub_log: list[dict[str, Any]]) -> bool:
+    current = _normalize_for_similarity(text)
+    if len(current) < 12:
+        return False
+    for item in hub_log[-12:]:
+        prev = _normalize_for_similarity(str(item.get('content', '')))
+        if not prev:
+            continue
+        if _similarity_score(current, prev) >= 0.72:
+            return True
+    return False
+
+
+def _fallback_agent_reply(participant: dict[str, str], round_no: int) -> str:
+    name = participant.get('name', '导师')
+    return f"{name}补充：建议从一个最小可执行练习切入，并用结果验证本轮观点。"
+
+
 async def _generate_conversation_title(message: str) -> str:
     cleaned = (message or '').strip()
     fallback = (cleaned[:24] if cleaned else '新对话')
@@ -667,3 +1168,4 @@ def _execute_returning_id(query: str, params: tuple[Any, ...]) -> int:
     with get_conn() as conn:
         cur = conn.execute(query, params)
         return int(cur.lastrowid)
+

@@ -1,7 +1,7 @@
 import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay,
+  LearningPath, VideoInfo, ContributionDay, ProfileUpdatePayload,
 } from './types'
 
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
@@ -74,6 +74,10 @@ export async function getProfile(): Promise<StudentProfile> {
     dailyTime: 60,
     practicalAbility: '能独立完成小项目',
   }
+}
+
+export async function updateProfile(_payload: ProfileUpdatePayload): Promise<void> {
+  await delay(200)
 }
 
 // ---- Resources ----
