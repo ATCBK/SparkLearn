@@ -229,3 +229,29 @@
 {"ts": "2026-04-22T11:39:32.980924Z", "type": "tutor_chat", "conversation_id": 27, "role_id": 16, "question": "我想学习Python类"}
 {"ts": "2026-04-22T11:41:48.742392Z", "type": "path_node_advice", "node_id": "1.3", "mastery": 0.0}
 {"ts": "2026-04-22T11:42:01.471117Z", "type": "path_node_advice", "node_id": "3.4", "mastery": 0.0}
+{"ts": "2026-04-24T02:17:27.554508Z", "type": "path_node_advice", "node_id": "1.2", "mastery": 0.93}
+{"ts": "2026-04-24T02:17:34.395052Z", "type": "path_node_advice", "node_id": "2.2", "mastery": 0.7}
+{"ts": "2026-04-24T02:17:36.567761Z", "type": "path_node_advice", "node_id": "2.4", "mastery": 0.0}
+{"ts": "2026-04-24T02:17:37.943144Z", "type": "path_node_advice", "node_id": "1.5", "mastery": 0.0}
+{"ts": "2026-04-24T02:17:40.049807Z", "type": "path_node_advice", "node_id": "3.1", "mastery": 0.53}
+{"ts": "2026-04-24T02:17:46.297096Z", "type": "path_node_advice", "node_id": "3.1", "mastery": 0.53}
+{"ts": "2026-04-24T02:17:51.207403Z", "type": "path_node_advice", "node_id": "4.3", "mastery": 0.0}
+{"ts": "2026-04-24T02:18:10.766797Z", "type": "path_node_advice", "node_id": "1.1", "mastery": 0.92}
+{"ts": "2026-04-24T02:22:45.533414Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "9a3e8b73"}
+{"ts": "2026-04-24T02:22:56.036132Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "bd97c190"}
+{"ts": "2026-04-24T02:23:05.958109Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "a6afeb07"}
+{"ts": "2026-04-24T02:23:10.828278Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "0a15a29d"}
+{"ts": "2026-04-24T02:23:12.767012Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "62196e85"}
+{"ts": "2026-04-24T02:23:16.378462Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "cd5affc8"}
+{"ts": "2026-04-24T02:25:46.707671Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "80835c52"}
+{"ts": "2026-04-24T02:25:59.087006Z", "type": "submit_quiz", "quiz_id": "gq_80835c52_4", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-04-24T02:26:24.065718Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "75963ea8"}
+{"ts": "2026-04-25T04:44:53.779904Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "4a68a0b7"}
+{"ts": "2026-04-25T04:45:05.149675Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "74543175"}
+{"ts": "2026-04-25T04:45:22.218002Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "43a19ef1"}
+{"ts": "2026-04-25T04:45:31.095874Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "8f03fe2f"}
+{"ts": "2026-04-25T05:01:35.579369Z", "type": "path_node_advice", "node_id": "1.2", "mastery": 0.93}
+{"ts": "2026-04-25T05:02:00.784646Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "77aefea6"}
+{"ts": "2026-04-25T05:02:15.385515Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "e4ae5c91"}
+{"ts": "2026-04-25T05:02:21.604554Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "1dc7346b"}
+{"ts": "2026-04-25T05:02:22.918197Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "6b6c0c76"}

@@ -1,118 +1,54 @@
 [
   {
-    "id": "dq_9e1d99a8_1",
-    "type": "single",
-    "content": "以下哪个是 Python 的可变数据类型？",
-    "options": [
-      "tuple",
-      "list",
-      "string",
-      "int"
-    ],
-    "correct_answer": "list",
-    "explanation": "list 是可变类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_9e1d99a8_2",
-    "type": "single",
-    "content": "Python 中用于定义函数的关键字是？",
-    "options": [
-      "function",
-      "def",
-      "func",
-      "define"
-    ],
-    "correct_answer": "def",
-    "explanation": "Python 使用 def 定义函数。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
-  },
-  {
-    "id": "dq_9e1d99a8_3",
+    "id": "gq_6b6c0c76_2",
     "type": "multiple",
-    "content": "以下哪些是 Python 内置数据类型？（多选）",
+    "content": "请写出Python中表示列表和元组的关键字。",
     "options": [
       "list",
-      "dict",
-      "array",
-      "set"
+      "tuple"
     ],
     "correct_answer": [
       "list",
-      "dict",
-      "set"
+      "tuple"
     ],
-    "explanation": "list、dict、set 均为 Python 内置类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
+    "explanation": "Python中列表和元组的关键字是'list'和'tuple'。",
+    "knowledge_point_id": "2.1",
+    "knowledge_point_name": "基本数据类型"
   },
   {
-    "id": "dq_9e1d99a8_4",
-    "type": "fill_blank",
-    "content": "在 Python 中，使用 ______ 关键字来导入模块。",
-    "correct_answer": "import",
-    "explanation": "import 用于导入模块。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
-  },
-  {
-    "id": "dq_9e1d99a8_5",
-    "type": "single",
-    "content": "以下哪个是 Python 的可变数据类型？",
-    "options": [
-      "tuple",
-      "list",
-      "string",
-      "int"
-    ],
-    "correct_answer": "list",
-    "explanation": "list 是可变类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_9e1d99a8_6",
-    "type": "single",
-    "content": "Python 中用于定义函数的关键字是？",
-    "options": [
-      "function",
-      "def",
-      "func",
-      "define"
-    ],
-    "correct_answer": "def",
-    "explanation": "Python 使用 def 定义函数。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
-  },
-  {
-    "id": "dq_9e1d99a8_7",
+    "id": "gq_6b6c0c76_4",
     "type": "multiple",
-    "content": "以下哪些是 Python 内置数据类型？（多选）",
+    "content": "请列举Python中三种常见的错误处理机制。",
     "options": [
-      "list",
-      "dict",
-      "array",
-      "set"
+      "try/except",
+      "finally",
+      "with"
     ],
     "correct_answer": [
-      "list",
-      "dict",
-      "set"
+      "try/except",
+      "finally",
+      "with"
     ],
-    "explanation": "list、dict、set 均为 Python 内置类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
+    "explanation": "Python提供了三种常见的错误处理机制：try/except用于捕获异常，finally用于确保资源被释放，而with语句则可以自动管理资源。",
+    "knowledge_point_id": "2.1",
+    "knowledge_point_name": "错误处理机制"
   },
   {
-    "id": "dq_9e1d99a8_8",
-    "type": "fill_blank",
-    "content": "在 Python 中，使用 ______ 关键字来导入模块。",
-    "correct_answer": "import",
-    "explanation": "import 用于导入模块。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
+    "id": "gq_6b6c0c76_6",
+    "type": "multiple",
+    "content": "请列出Python中几种常用的循环结构。",
+    "options": [
+      "for",
+      "while",
+      "if-else"
+    ],
+    "correct_answer": [
+      "for",
+      "while",
+      "if-else"
+    ],
+    "explanation": "Python中有多种循环结构，包括for循环、while循环和if-else条件语句。",
+    "knowledge_point_id": "2.1",
+    "knowledge_point_name": "循环结构"
   }
 ]

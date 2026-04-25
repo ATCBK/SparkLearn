@@ -23,6 +23,9 @@ import {
   FileText,
   Zap,
   BarChart3,
+  Bot,
+  ChevronRight,
+  ShieldCheck,
 } from 'lucide-react'
 
 /* ── 类型 ─────────────────────────────────────────── */
@@ -31,6 +34,7 @@ interface CardOption {
   icon: React.ReactNode
   label: string
   desc: string
+  color?: string // 'blue' | 'purple' | 'green' | 'orange'
 }
 
 interface StepData {
@@ -49,10 +53,10 @@ const STEPS: StepData[] = [
     title: '学习目标',
     question: '你想达成什么样的学习目标？',
     cards: [
-      { icon: <BarChart3 size={22} />, label: '期末提分', desc: '高效备考冲刺' },
-      { icon: <Zap size={22} />, label: '竞赛准备', desc: '算法竞赛训练' },
-      { icon: <Gamepad2 size={22} />, label: '兴趣探索', desc: '发现编程乐趣' },
-      { icon: <Briefcase size={22} />, label: '求职准备', desc: '面试刷题进阶' },
+      { icon: <BarChart3 size={24} />, label: '期末提分', desc: '高效备考冲刺', color: 'blue' },
+      { icon: <Zap size={24} />, label: '竞赛准备', desc: '算法竞赛训练', color: 'purple' },
+      { icon: <Gamepad2 size={24} />, label: '兴趣探索', desc: '发现编程乐趣', color: 'green' },
+      { icon: <Briefcase size={24} />, label: '求职准备', desc: '面试刷题进阶', color: 'orange' },
     ],
   },
   {
@@ -60,10 +64,10 @@ const STEPS: StepData[] = [
     title: '编程基础',
     question: '你的编程基础如何？',
     cards: [
-      { icon: <Lightbulb size={22} />, label: '零基础', desc: '从未接触编程' },
-      { icon: <FileText size={22} />, label: '有一些基础', desc: '了解基本概念' },
-      { icon: <Code size={22} />, label: '基础较好', desc: '能独立写项目' },
-      { icon: <GraduationCap size={22} />, label: '有编程经验', desc: '熟练掌握语言' },
+      { icon: <Lightbulb size={24} />, label: '零基础', desc: '从未接触编程', color: 'blue' },
+      { icon: <FileText size={24} />, label: '有一些基础', desc: '了解基本概念', color: 'purple' },
+      { icon: <Code size={24} />, label: '基础较好', desc: '能独立写项目', color: 'green' },
+      { icon: <GraduationCap size={24} />, label: '有编程经验', desc: '熟练掌握语言', color: 'orange' },
     ],
   },
   {
@@ -77,10 +81,10 @@ const STEPS: StepData[] = [
     title: '学习偏好',
     question: '你喜欢怎样的学习方式？',
     cards: [
-      { icon: <Eye size={22} />, label: '视觉型', desc: '图表动画理解' },
-      { icon: <Headphones size={22} />, label: '听觉型', desc: '视频讲解为主' },
-      { icon: <PenTool size={22} />, label: '实践型', desc: '动手编码练习' },
-      { icon: <BookOpen size={22} />, label: '阅读型', desc: '文档教材学习' },
+      { icon: <Eye size={24} />, label: '视觉型', desc: '图表动画理解', color: 'blue' },
+      { icon: <Headphones size={24} />, label: '听觉型', desc: '视频讲解为主', color: 'purple' },
+      { icon: <PenTool size={24} />, label: '实践型', desc: '动手编码练习', color: 'green' },
+      { icon: <BookOpen size={24} />, label: '阅读型', desc: '文档教材学习', color: 'orange' },
     ],
   },
   {
@@ -88,13 +92,45 @@ const STEPS: StepData[] = [
     title: '学习时间',
     question: '每天能投入多少时间学习？',
     cards: [
-      { icon: <Clock size={22} />, label: '30分钟以内', desc: '碎片时间学习' },
-      { icon: <Clock size={22} />, label: '30-60分钟', desc: '每天一小段' },
-      { icon: <Clock size={22} />, label: '1-2小时', desc: '专注学习时段' },
-      { icon: <Clock size={22} />, label: '2小时以上', desc: '深度沉浸学习' },
+      { icon: <Clock size={24} />, label: '30分钟以内', desc: '碎片时间学习', color: 'blue' },
+      { icon: <Clock size={24} />, label: '30-60分钟', desc: '每天一小段', color: 'purple' },
+      { icon: <Clock size={24} />, label: '1-2小时', desc: '专注学习时段', color: 'green' },
+      { icon: <Clock size={24} />, label: '2小时以上', desc: '深度沉浸学习', color: 'orange' },
     ],
   },
 ]
+
+/* ── 辅助函数 ───────────────────────────────────────── */
+
+const getColorClasses = (color?: string, isActive?: boolean) => {
+  switch (color) {
+    case 'blue':
+      return {
+        icon: isActive ? 'bg-blue text-white' : 'bg-blue/10 text-blue',
+        card: isActive ? 'border-blue bg-blue/5' : 'border-transparent bg-blue/[0.03] hover:bg-blue/[0.06] hover:border-blue/20'
+      }
+    case 'purple':
+      return {
+        icon: isActive ? 'bg-purple text-white' : 'bg-purple/10 text-purple',
+        card: isActive ? 'border-purple bg-purple/5' : 'border-transparent bg-purple/[0.03] hover:bg-purple/[0.06] hover:border-purple/20'
+      }
+    case 'green':
+      return {
+        icon: isActive ? 'bg-success text-white' : 'bg-success/10 text-success',
+        card: isActive ? 'border-success bg-success/5' : 'border-transparent bg-success/[0.03] hover:bg-success/[0.06] hover:border-success/20'
+      }
+    case 'orange':
+      return {
+        icon: isActive ? 'bg-warning text-white' : 'bg-warning/10 text-warning',
+        card: isActive ? 'border-warning bg-warning/5' : 'border-transparent bg-warning/[0.03] hover:bg-warning/[0.06] hover:border-warning/20'
+      }
+    default:
+      return {
+        icon: isActive ? 'bg-blue text-white' : 'bg-bg-hover text-ink-secondary',
+        card: isActive ? 'border-blue bg-blue/5' : 'border-transparent bg-bg-hover hover:border-blue/20'
+      }
+  }
+}
 
 /* ── 主组件 ─────────────────────────────────────────── */
 
@@ -106,7 +142,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     setIsTyping(true)
-    const t = setTimeout(() => setIsTyping(false), 1000)
+    const t = setTimeout(() => setIsTyping(false), 800)
     return () => clearTimeout(t)
   }, [step])
 
@@ -117,213 +153,177 @@ export default function OnboardingPage() {
   function toggle(opt: string) {
     setSelections(prev => {
       const arr = prev[step] || []
+      // 这里可以根据业务逻辑决定是否多选，目前默认单选（符合图片样式）
+      // 如果需要多选，取消下面这行的注释
+      // const newArr = arr.includes(opt) ? arr.filter(o => o !== opt) : [...arr, opt]
+      const newArr = [opt]
       return {
         ...prev,
-        [step]: arr.includes(opt) ? arr.filter(o => o !== opt) : [...arr, opt],
+        [step]: newArr,
       }
     })
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#fbfbfd',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 24px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-    }}>
-      <div style={{ width: '100%', maxWidth: 640, display: 'flex', flexDirection: 'column', flex: 1 }}>
+    <div className="min-h-screen bg-[#f8faff] flex flex-col items-center py-12 px-6 relative overflow-hidden"
+      style={{
+        backgroundImage: 'url(/on_backboard.png)',
+        backgroundSize: '100% 100%',       // 保持比例铺满，多余部分裁剪
+        backgroundPosition: 'center',  // 始终居中
+        backgroundRepeat: 'no-repeat'
+      }}>
+      {/* 背景装饰 */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[20%] right-[10%] w-2 h-2 bg-blue/20 rounded-full" />
+        <div className="absolute top-[25%] right-[12%] w-1.5 h-1.5 bg-blue/10 rounded-full" />
+        <div className="absolute top-[40%] left-[5%] grid grid-cols-4 gap-4 opacity-20">
+          {[...Array(16)].map((_, i) => (
+            <div key={i} className="w-1.5 h-1.5 bg-ink-tertiary rounded-full" />
+          ))}
+        </div>
+      </div>
 
+      <div className="w-full max-w-[1000px] flex flex-col items-center relative z-10">
+        
         {/* ═══ 步骤指示器 ═══ */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 40,
-        }}>
+        <div className="flex items-center justify-center mb-12 w-full max-w-2xl">
           {STEPS.map((s, i) => (
-            <div key={s.key} style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                {/* 圆圈 */}
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: i <= step ? '#fff' : '#aeaeb2',
-                  background: i < step ? '#34c759' : i === step ? '#0071e3' : '#f5f5f7',
-                  boxShadow: i === step ? '0 2px 12px rgba(0,113,227,0.25)' : 'none',
-                  transition: 'all 0.3s',
-                }}>
+            <div key={s.key} className="flex items-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300",
+                  i < step ? "bg-blue/10 text-blue" : i === step ? "bg-blue text-white shadow-lg shadow-blue/25 scale-110" : "bg-bg-hover text-ink-disabled"
+                )}>
                   {i < step ? <CheckCircle2 size={16} /> : i + 1}
                 </div>
-                {/* 标签 */}
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: i < step ? '#34c759' : i === step ? '#0071e3' : '#aeaeb2',
-                  whiteSpace: 'nowrap',
-                }}>
+                <span className={cn(
+                  "text-[11px] font-medium transition-colors duration-300",
+                  i <= step ? "text-blue" : "text-ink-disabled"
+                )}>
                   {s.title}
                 </span>
               </div>
-              {/* 连接线 */}
               {i < STEPS.length - 1 && (
-                <div style={{
-                  width: 48,
-                  height: 2,
-                  borderRadius: 1,
-                  background: i < step ? '#34c759' : '#f5f5f7',
-                  margin: '0 4px',
-                  marginBottom: 22,
-                  transition: 'background 0.3s',
-                }} />
+                <div className={cn(
+                  "w-16 h-[2px] mx-2 -mt-6 transition-colors duration-500",
+                  i < step ? "bg-blue" : "bg-bg-hover"
+                )} />
               )}
             </div>
           ))}
         </div>
 
         {/* ═══ 主内容卡片 ═══ */}
-        <div style={{
-          background: '#fff',
-          borderRadius: 20,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02)',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
-
-          {/* AI 气泡 */}
-          <div style={{ padding: '32px 32px 16px' }}>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: '#0071e3',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>AI</span>
-              </div>
-              <div style={{
-                background: '#f5f5f7',
-                borderRadius: 12,
-                padding: '12px 16px',
-                maxWidth: 400,
-              }}>
-                {isTyping ? (
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#aeaeb2', animation: 'pulse 1.2s infinite' }} />
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#aeaeb2', animation: 'pulse 1.2s 0.2s infinite' }} />
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#aeaeb2', animation: 'pulse 1.2s 0.4s infinite' }} />
+        <div className="bg-white rounded-[32px] shadow-xl shadow-blue/5 w-full overflow-hidden flex flex-col min-h-[580px] border border-blue/5">
+          
+          <div className="p-10 flex flex-col h-full">
+            {/* AI 引导与插画区域 */}
+            <div className="flex justify-between items-start mb-8">
+              <div className="flex-1">
+                {/* AI 气泡 */}
+                <div className="flex gap-4 items-start mb-6 animate-fade-in-up">
+                  <div className="w-12 h-12 rounded-2xl bg-blue/5 flex items-center justify-center flex-shrink-0 border border-blue/10">
+                    <Bot className="text-blue" size={28} />
                   </div>
-                ) : (
-                  <p style={{ fontSize: 15, color: '#1d1d1f', margin: 0, lineHeight: 1.5 }}>{current.question}</p>
-                )}
+                  <div className="bg-bg-hover rounded-2xl rounded-tl-none p-4 max-w-[420px] relative">
+                    <div className="absolute top-0 left-[-8px] w-0 h-0 border-t-[8px] border-t-bg-hover border-l-[8px] border-l-transparent" />
+                    <p className="text-body text-ink font-medium leading-relaxed">
+                      你好！我是 <span className="text-blue font-bold">SparkAI</span><br/>
+                      为了帮你定制最合适的学习路径，我们先从你的学习目标开始吧 ✨
+                    </p>
+                  </div>
+                </div>
+
+                {/* 标题 */}
+                <div className="animate-fade-in-up delay-1">
+                  <h1 className="text-2xl font-bold text-ink mb-2">{current.question}</h1>
+                  <p className="text-small text-ink-secondary">选择一个最符合你当前需求的目标，我们将为你量身定制学习计划</p>
+                </div>
+              </div>
+
+              {/* 右侧插画 (全页面固定展示) */}
+              <div className="hidden md:block animate-scale-in delay-2">
+                <div className="relative w-48 h-48 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-blue/5 rounded-full blur-3xl" />
+                  <div className="relative bg-white p-6 rounded-3xl shadow-lg border border-blue/5 transform hover:rotate-2 transition-transform">
+                    <Target size={80} className="text-blue opacity-80" strokeWidth={1.5} />
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-success rounded-full flex items-center justify-center text-white shadow-lg">
+                      <CheckCircle2 size={18} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* 选项区域 */}
-          {!isTyping && (
-            <div style={{ flex: 1, padding: '8px 32px 32px', display: 'flex', flexDirection: 'column' }}>
-
-              {/* ── 卡片网格 ── */}
+            {/* 选项区域 */}
+            <div className="flex-1 flex flex-col">
               {current.cards && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 12,
-                  marginBottom: 24,
-                }}>
-                  {current.cards.map(card => {
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                  {current.cards.map((card, idx) => {
                     const isActive = selected.includes(card.label)
+                    const styles = getColorClasses(card.color, isActive)
                     return (
                       <button
                         key={card.label}
                         onClick={() => toggle(card.label)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          textAlign: 'center',
-                          padding: '24px 16px',
-                          borderRadius: 16,
-                          border: isActive ? '2px solid #0071e3' : '2px solid rgba(0,0,0,0.06)',
-                          background: isActive ? 'rgba(0,113,227,0.08)' : '#fff',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
+                        className={cn(
+                          "group flex items-center p-5 rounded-2xl border-2 transition-all duration-300 animate-fade-in-up",
+                          styles.card,
+                          isActive && "shadow-md shadow-blue/5",
+                          `delay-${idx + 3}`
+                        )}
                       >
-                        <div style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 14,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginBottom: 10,
-                          background: isActive ? '#0071e3' : '#f5f5f7',
-                          color: isActive ? '#fff' : '#6e6e73',
-                          transition: 'all 0.2s',
-                        }}>
+                        <div className={cn(
+                          "w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110",
+                          styles.icon
+                        )}>
                           {card.icon}
                         </div>
-                        <span style={{
-                          fontSize: 14,
-                          fontWeight: 600,
-                          color: isActive ? '#0071e3' : '#1d1d1f',
-                          marginBottom: 2,
-                        }}>
-                          {card.label}
-                        </span>
-                        <span style={{
-                          fontSize: 11,
-                          color: isActive ? 'rgba(0,113,227,0.6)' : '#aeaeb2',
-                        }}>
-                          {card.desc}
-                        </span>
+                        <div className="ml-5 text-left flex-1">
+                          <h3 className={cn(
+                            "text-base font-bold transition-colors",
+                            isActive ? "text-blue" : "text-ink"
+                          )}>{card.label}</h3>
+                          <p className="text-xs text-ink-secondary mt-1">{card.desc}</p>
+                        </div>
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
+                          isActive ? "bg-blue text-white" : "bg-white text-blue opacity-0 group-hover:opacity-100 shadow-sm"
+                        )}>
+                          <ChevronRight size={18} />
+                        </div>
                       </button>
                     )
                   })}
                 </div>
               )}
 
-              {/* ── 标签云 ── */}
+              {/* 标签云 (薄弱环节) */}
               {current.tags && (
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1f', marginBottom: 12 }}>
-                    选择需要加强的方向（可多选）
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {current.tags.map(tag => {
+                <div className="animate-fade-in-up delay-3">
+                  <div className="text-sm font-bold text-ink mb-4">选择需要加强的方向（可多选）</div>
+                  <div className="flex flex-wrap gap-3">
+                    {current.tags.map((tag, idx) => {
                       const isActive = selected.includes(tag)
                       return (
                         <button
                           key={tag}
-                          onClick={() => toggle(tag)}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: 100,
-                            fontSize: 14,
-                            fontWeight: 500,
-                            border: 'none',
-                            cursor: 'pointer',
-                            background: isActive ? '#0071e3' : '#f5f5f7',
-                            color: isActive ? '#fff' : '#6e6e73',
-                            transition: 'all 0.2s',
+                          onClick={() => {
+                            setSelections(prev => {
+                              const arr = prev[step] || []
+                              const newArr = arr.includes(tag) ? arr.filter(o => o !== tag) : [...arr, tag]
+                              return { ...prev, [step]: newArr }
+                            })
                           }}
+                          className={cn(
+                            "px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border animate-scale-in",
+                            isActive 
+                              ? "bg-blue border-blue text-white shadow-lg shadow-blue/20" 
+                              : "bg-bg-hover border-transparent text-ink-secondary hover:border-blue/30 hover:bg-white",
+                            `delay-${idx % 8}`
+                          )}
                         >
                           {tag}
                         </button>
@@ -333,103 +333,75 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* ── 摘要（最后一步） ── */}
-              {step === STEPS.length - 1 && !isTyping && (
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1f', marginBottom: 16 }}>
+              {/* 摘要 (最后一步) */}
+              {step === STEPS.length - 1 && (
+                <div className="bg-bg-hover rounded-2xl p-6 animate-fade-in-up delay-3">
+                  <div className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
+                    <ShieldCheck className="text-success" size={20} />
                     以下是为你构建的学习画像：
                   </div>
-                  {STEPS.map((s, i) => (
-                    <div key={s.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                      <span style={{ fontSize: 14, color: '#6e6e73', width: 72, flexShrink: 0, paddingTop: 2 }}>
-                        {s.title}
-                      </span>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {(selections[i] || []).length > 0
-                          ? selections[i].map(sel => (
-                              <span key={sel} style={{
-                                padding: '4px 12px',
-                                borderRadius: 100,
-                                fontSize: 11,
-                                fontWeight: 500,
-                                background: 'rgba(0,113,227,0.08)',
-                                color: '#0071e3',
-                              }}>{sel}</span>
-                            ))
-                          : <span style={{ fontSize: 14, color: '#aeaeb2' }}>未选择</span>
-                        }
+                  <div className="space-y-4">
+                    {STEPS.map((s, i) => (
+                      <div key={s.key} className="flex items-start gap-4">
+                        <span className="text-xs font-bold text-ink-tertiary w-16 pt-1 uppercase tracking-wider">
+                          {s.title}
+                        </span>
+                        <div className="flex gap-2 flex-wrap">
+                          {(selections[i] || []).length > 0
+                            ? selections[i].map(sel => (
+                                <span key={sel} className="px-3 py-1 bg-blue/10 text-blue rounded-full text-[11px] font-bold">
+                                  {sel}
+                                </span>
+                              ))
+                            : <span className="text-xs text-ink-disabled italic">未选择</span>
+                          }
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {/* ── 占位，推按钮到底部 ── */}
-              <div style={{ flex: 1 }} />
             </div>
-          )}
+          </div>
         </div>
 
-        {/* ═══ 导航按钮 ═══ */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 24,
-        }}>
-          <button
-            onClick={() => step > 0 && setStep(step - 1)}
-            disabled={step === 0}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              borderRadius: 12,
-              border: 'none',
-              background: 'transparent',
-              fontSize: 15,
-              fontWeight: 500,
-              color: step === 0 ? '#aeaeb2' : '#6e6e73',
-              cursor: step === 0 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <ArrowLeft size={16} />
-            上一步
-          </button>
-          <button
-            onClick={() => {
-              if (step < STEPS.length - 1) setStep(step + 1)
-              else router.push('/')
-            }}
-            disabled={!canNext}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 24px',
-              borderRadius: 12,
-              border: 'none',
-              background: canNext ? '#0071e3' : '#f5f5f7',
-              color: canNext ? '#fff' : '#aeaeb2',
-              fontSize: 15,
-              fontWeight: 500,
-              cursor: canNext ? 'pointer' : 'not-allowed',
-              boxShadow: canNext ? '0 2px 8px rgba(0,113,227,0.04)' : 'none',
-            }}
-          >
-            {step === STEPS.length - 1 ? '开始学习' : '下一步'}
-            <ArrowRight size={16} />
-          </button>
+        {/* ═══ 底部导航与页脚 ═══ */}
+        <div className="w-full mt-10 flex flex-col items-center">
+          <div className="flex items-center justify-between w-full mb-8">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => step > 0 && setStep(step - 1)}
+              disabled={step === 0}
+              className="px-6 rounded-2xl font-bold"
+            >
+              <ArrowLeft size={20} />
+              上一步
+            </Button>
+
+            {/* 页脚提示 */}
+            <div className="hidden sm:flex items-center gap-2 text-ink-tertiary text-xs font-medium">
+              <div className="w-4 h-4 rounded-full bg-blue/10 flex items-center justify-center">
+                <ShieldCheck size={10} className="text-blue" />
+              </div>
+              仅需 5 步，定制你的专属学习路径
+            </div>
+
+            <Button
+              size="lg"
+              onClick={() => {
+                if (step < STEPS.length - 1) setStep(step + 1)
+                else router.push('/')
+              }}
+              disabled={!canNext}
+              className="px-8 rounded-full font-bold shadow-lg shadow-blue/25"
+            >
+              {step === STEPS.length - 1 ? '开启学习之旅' : '下一步'}
+              <ArrowRight size={20} />
+            </Button>
+          </div>
         </div>
       </div>
-
-      {/* 打字动画 keyframes */}
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </div>
   )
 }

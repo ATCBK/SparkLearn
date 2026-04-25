@@ -475,5 +475,27 @@
       "knowledge_point_name": "数据类型"
     },
     "at": "2026-04-22"
+  },
+  {
+    "quiz_id": "gq_80835c52_4",
+    "answer": "关键字参数",
+    "correct": false,
+    "correct_answer": "位置参数和关键字参数",
+    "knowledge_point_id": "3.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "gq_80835c52_4",
+      "type": "single",
+      "content": "请列出Python中参数传递的两种方式。",
+      "options": [
+        "位置参数",
+        "关键字参数",
+        "默认参数"
+      ],
+      "explanation": "在Python中，参数传递有两种主要方式：位置参数和关键字参数。位置参数是在函数调用时直接传入的参数，而关键字参数则是通过关键字来指定参数名和参数值。",
+      "knowledge_point_id": "3.1",
+      "knowledge_point_name": "参数传递"
+    },
+    "at": "2026-04-24"
   }
 ]
