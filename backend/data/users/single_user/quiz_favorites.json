@@ -16,5 +16,18 @@
       "knowledge_point_name": "数据类型"
     },
     "created_at": "2026-04-22"
+  },
+  {
+    "quiz_id": "gq_24ae1ff7_3",
+    "question": {
+      "id": "gq_24ae1ff7_3",
+      "type": "fill_blank",
+      "content": "请用Python创建一个名为'example.py'的文件，并在其中定义一个函数，该函数接收两个参数并返回它们的和。",
+      "options": null,
+      "explanation": "这个函数接收两个参数a和b，然后返回它们的和。",
+      "knowledge_point_id": "3.2",
+      "knowledge_point_name": "参数传递"
+    },
+    "created_at": "2026-04-28"
   }
 ]

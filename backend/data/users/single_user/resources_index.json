@@ -76,5 +76,15 @@
     "cover_img_src": "https://bjcdn.openstorage.cn/zhiwen/prod/common/2026-04-22/103801cf-c67d-42f8-94d1-f96f7a1c2d66/e45756c549a34c23a1054df98ca8f2c2.png",
     "xf_sid": "0585ac5363b84ec2a883061cdb34686f",
     "progress": 100
+  },
+  {
+    "id": "gen-1b713cd8",
+    "title": "帮我生成Python函数的讲解课程文档",
+    "type": "document",
+    "status": "completed",
+    "created_at": "2026-04-28",
+    "content": "# 帮我生成Python函数的讲解课程文档\n\n# 帮我生成Python函数的讲解课程文档\n\ndocument 生成结果为空，请稍后重试。",
+    "source_url": null,
+    "progress": 100
   }
 ]
