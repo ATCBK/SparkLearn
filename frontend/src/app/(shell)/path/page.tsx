@@ -188,8 +188,13 @@ export default function PathPage() {
   if (!path) return null
 
   return (
-    <div className="h-screen bg-bg-card overflow-hidden flex">
-      <aside className="w-[280px] h-full border-r border-black/[0.06] bg-white/85 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="h-screen bg-bg-card overflow-hidden flex "
+      style={{
+        backgroundImage: "url('/blue-gradient-background-clean.png'), linear-gradient(135deg, #f8fbff 0%, #eef5ff 52%, #e1ecff 100%)",
+        backgroundSize: '100%  100%',
+      }}
+    >
+      <aside className="w-[280px] h-80 border-r border-black/[0.06] bg-white/20 backdrop-blur-sm p-4 overflow-y-auto">
         <div className="mb-4">
           <h1 className="text-h2 text-ink">学习路径图谱</h1>
           <p className="text-small text-ink-secondary mt-1">掌握度驱动的动态学习路径</p>

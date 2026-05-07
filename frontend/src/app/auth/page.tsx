@@ -24,7 +24,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex">
       <div className="flex w-full  bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden relative z-10 bg-center bg-cover bg-no-repeat" 
         style={{ 
-          backgroundImage: 'url(/login_backboard.png)',
+          backgroundImage: 'url(/sparklearn-background-no-form.png)',
           backgroundSize: '100% 100%',       // 保持比例铺满，多余部分裁剪
           backgroundPosition: 'center',  // 始终居中
           backgroundRepeat: 'no-repeat'

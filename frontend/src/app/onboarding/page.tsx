@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, type CSSProperties } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils/cn'
 import {
   CheckCircle2,
   ArrowRight,
   ArrowLeft,
-  Target,
   BookOpen,
   Lightbulb,
   Clock,
@@ -23,7 +22,6 @@ import {
   FileText,
   Zap,
   BarChart3,
-  Bot,
   ChevronRight,
   ShieldCheck,
 } from 'lucide-react'
@@ -134,17 +132,83 @@ const getColorClasses = (color?: string, isActive?: boolean) => {
 
 /* ── 主组件 ─────────────────────────────────────────── */
 
+const WEAK_OPTION_META: Record<string, {
+  icon: React.ReactNode
+  desc: string
+  accent: string
+  accentSoft: string
+  accentTint: string
+}> = {
+  数据结构: {
+    icon: <BarChart3 size={24} />,
+    desc: '数组、链表、栈、队列树、图等',
+    accent: '#1677ff',
+    accentSoft: '#eaf3ff',
+    accentTint: '#f6fbff',
+  },
+  算法设计: {
+    icon: <Code size={24} />,
+    desc: '排序、查找、递归动态规划等',
+    accent: '#6f4ee8',
+    accentSoft: '#f0ecff',
+    accentTint: '#faf8ff',
+  },
+  语法基础: {
+    icon: <BookOpen size={24} />,
+    desc: '语言语法、基本语句面向对象等',
+    accent: '#22c55e',
+    accentSoft: '#eafaf1',
+    accentTint: '#f6fdf9',
+  },
+  调试能力: {
+    icon: <Lightbulb size={24} />,
+    desc: '错误分析、调试技巧问题定位等',
+    accent: '#ff9500',
+    accentSoft: '#fff3e1',
+    accentTint: '#fffaf2',
+  },
+  代码规范: {
+    icon: <FileText size={24} />,
+    desc: '代码风格、命名规范可读性优化等',
+    accent: '#16aee5',
+    accentSoft: '#e9f9ff',
+    accentTint: '#f5fcff',
+  },
+  项目实战: {
+    icon: <Zap size={24} />,
+    desc: '代码设计、开发流程工程化实践等',
+    accent: '#ec4899',
+    accentSoft: '#ffeaf4',
+    accentTint: '#fff7fb',
+  },
+  复杂度分析: {
+    icon: <GraduationCap size={24} />,
+    desc: '时间复杂度、空间复杂度性能优化等',
+    accent: '#4f6df5',
+    accentSoft: '#eef2ff',
+    accentTint: '#f8faff',
+  },
+  面向对象: {
+    icon: <Briefcase size={24} />,
+    desc: '类与对象、继承、封装多态等',
+    accent: '#8b5cf6',
+    accentSoft: '#f3edff',
+    accentTint: '#fbf8ff',
+  },
+}
+
+const getWeakOptionMeta = (tag: string) => WEAK_OPTION_META[tag] ?? {
+  icon: <Code size={24} />,
+  desc: '系统将优先推荐相关强化内容',
+  accent: '#1677ff',
+  accentSoft: '#eaf3ff',
+  accentTint: '#f6fbff',
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState<Record<number, string[]>>({})
-  const [isTyping, setIsTyping] = useState(true)
-
-  useEffect(() => {
-    setIsTyping(true)
-    const t = setTimeout(() => setIsTyping(false), 800)
-    return () => clearTimeout(t)
-  }, [step])
 
   const current = STEPS[step]
   const selected = selections[step] || []
@@ -152,10 +216,7 @@ export default function OnboardingPage() {
 
   function toggle(opt: string) {
     setSelections(prev => {
-      const arr = prev[step] || []
-      // 这里可以根据业务逻辑决定是否多选，目前默认单选（符合图片样式）
-      // 如果需要多选，取消下面这行的注释
-      // const newArr = arr.includes(opt) ? arr.filter(o => o !== opt) : [...arr, opt]
+      // 这里可以根据业务逻辑决定是否多选，目前默认单选（符合图片样式）。
       const newArr = [opt]
       return {
         ...prev,
@@ -225,7 +286,14 @@ export default function OnboardingPage() {
                 {/* AI 气泡 */}
                 <div className="flex gap-4 items-start mb-6 animate-fade-in-up">
                   <div className="w-12 h-12 rounded-2xl bg-blue/5 flex items-center justify-center flex-shrink-0 border border-blue/10">
-                    <Bot className="text-blue" size={28} />
+                    <Image
+                      src="/robot.png"
+                      alt="SparkAI"
+                      width={34}
+                      height={35}
+                      className="h-[34px] w-[34px] object-contain"
+                      priority
+                    />
                   </div>
                   <div className="bg-bg-hover rounded-2xl rounded-tl-none p-4 max-w-[420px] relative">
                     <div className="absolute top-0 left-[-8px] w-0 h-0 border-t-[8px] border-t-bg-hover border-l-[8px] border-l-transparent" />
@@ -247,11 +315,15 @@ export default function OnboardingPage() {
               <div className="hidden md:block animate-scale-in delay-2">
                 <div className="relative w-48 h-48 flex items-center justify-center">
                   <div className="absolute inset-0 bg-blue/5 rounded-full blur-3xl" />
-                  <div className="relative bg-white p-6 rounded-3xl shadow-lg border border-blue/5 transform hover:rotate-2 transition-transform">
-                    <Target size={80} className="text-blue opacity-80" strokeWidth={1.5} />
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-success rounded-full flex items-center justify-center text-white shadow-lg">
-                      <CheckCircle2 size={18} />
-                    </div>
+                  <div className="relative flex h-32 w-40 items-center justify-center transform transition-transform hover:rotate-2">
+                    <Image
+                      src="/target.png"
+                      alt=""
+                      width={131}
+                      height={112}
+                      className="h-32 w-40 object-contain drop-shadow-[0_18px_26px_rgba(37,99,235,0.18)]"
+                      priority
+                    />
                   </div>
                 </div>
               </div>
@@ -304,12 +376,20 @@ export default function OnboardingPage() {
               {current.tags && (
                 <div className="animate-fade-in-up delay-3">
                   <div className="text-sm font-bold text-ink mb-4">选择需要加强的方向（可多选）</div>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {current.tags.map((tag, idx) => {
                       const isActive = selected.includes(tag)
+                      const meta = getWeakOptionMeta(tag)
+                      const weakOptionVars = {
+                        '--weak-accent': meta.accent,
+                        '--weak-soft': meta.accentSoft,
+                        '--weak-tint': meta.accentTint,
+                      } as CSSProperties
                       return (
                         <button
                           key={tag}
+                          type="button"
+                          aria-pressed={isActive}
                           onClick={() => {
                             setSelections(prev => {
                               const arr = prev[step] || []
@@ -317,15 +397,37 @@ export default function OnboardingPage() {
                               return { ...prev, [step]: newArr }
                             })
                           }}
+                          style={weakOptionVars}
                           className={cn(
-                            "px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border animate-scale-in",
-                            isActive 
-                              ? "bg-blue border-blue text-white shadow-lg shadow-blue/20" 
-                              : "bg-bg-hover border-transparent text-ink-secondary hover:border-blue/30 hover:bg-white",
+                            "group relative flex min-h-[120px] min-w-0 flex-col rounded-2xl border bg-white p-4 text-left transition-all duration-150 ease-out animate-scale-in",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--weak-accent)] focus-visible:ring-offset-2",
+                            "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45",
+                            isActive
+                              ? "border-[var(--weak-accent)] bg-[var(--weak-tint)] shadow-[0_10px_26px_rgba(22,119,255,0.10)]"
+                              : "border-[#e7edf7] shadow-[0_8px_22px_rgba(15,23,42,0.025)] hover:-translate-y-0.5 hover:border-[var(--weak-accent)] hover:bg-[var(--weak-tint)] hover:shadow-[0_12px_28px_rgba(15,23,42,0.06)]",
                             `delay-${idx % 8}`
                           )}
                         >
-                          {tag}
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--weak-soft)] [color:var(--weak-accent)] transition-transform duration-150 ease-out group-hover:scale-105 md:h-12 md:w-12">
+                              <span className="scale-100 md:scale-110">{meta.icon}</span>
+                            </span>
+                            <span className="min-w-0 flex-1 pt-0.5">
+                              <span className="block truncate text-base font-bold leading-6 text-ink md:text-lg">{tag}</span>
+                              <span className="mt-1 block text-xs leading-5 text-ink-secondary md:text-sm">{meta.desc}</span>
+                            </span>
+                          </div>
+                          <span
+                            className={cn(
+                              "mx-auto mt-auto flex h-5 w-5 items-center justify-center rounded-md border transition-all duration-150 ease-out",
+                              isActive
+                                ? "border-[var(--weak-accent)] bg-[var(--weak-accent)] text-white shadow-[0_6px_14px_rgba(22,119,255,0.22)]"
+                                : "border-[#d5dde8] bg-white text-transparent group-hover:border-[var(--weak-accent)]"
+                            )}
+                            aria-hidden="true"
+                          >
+                            {isActive && <CheckCircle2 size={14} strokeWidth={3} />}
+                          </span>
                         </button>
                       )
                     })}

@@ -145,6 +145,13 @@ textarea {
   text-orientation: mixed;
 }
 
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #1890FF;
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+
 /* ---- Stagger Animation Delays ---- */
 .delay-1 { animation-delay: 50ms; }
 .delay-2 { animation-delay: 100ms; }
@@ -183,5 +190,4 @@ textarea {
 }
 
 /* Typewriter demo styles disabled globally. */
-
 

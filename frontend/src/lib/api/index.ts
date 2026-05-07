@@ -1,4 +1,4 @@
-﻿import * as real from './real'
+import * as real from './real'
 
 const impl = real
 

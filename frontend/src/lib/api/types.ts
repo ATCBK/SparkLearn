@@ -1,4 +1,4 @@
-﻿// API type definitions shared by real and mock implementations.
+// API type definitions shared by real and mock implementations.
 
 export interface Task {
   id: string

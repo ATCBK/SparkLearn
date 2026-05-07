@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, WorkshopHubEvent, ProfileUpdatePayload,

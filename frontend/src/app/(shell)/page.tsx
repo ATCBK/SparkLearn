@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/Badge'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { DashboardSkeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
+import { UserRadar } from '@/components/dashboard/UserRadar'
 import { formatDateChinese, formatDurationShort } from '@/lib/utils/format'
 import {
   Clock, CheckCircle2, Target, Flame, Play, BookOpen,
-  PenTool, Code, ChevronRight, TrendingUp, AlertCircle,
+  PenTool, Code, ChevronRight, AlertCircle,
 } from 'lucide-react'
 
 export default function HomePage() {
@@ -63,7 +64,14 @@ export default function HomePage() {
   const totalContributions = contributions.reduce((sum, d) => sum + d.count, 0)
 
   return (
-    <div className="space-y-8">
+    <div
+      className="space-y-10 rounded-[20px] bg-top bg-no-repeat p-6"
+      style={{
+        backgroundImage: "url('/home_head.png'), linear-gradient(135deg, #f8fbff 0%, #eef5ff 52%, #e1ecff 100%)",
+        backgroundSize: '100% 280px, 100% 100%',
+
+      }}
+    >
       {/* Hero Header */}
       <div className="animate-fade-in-up">
         <p className="text-caption text-ink-tertiary mb-2">{formatDateChinese(new Date())}</p>
@@ -82,8 +90,8 @@ export default function HomePage() {
       </div>
 
       {/* Featured Card */}
-      <Card className="bg-blue-100 p-8 animate-fade-in-up delay-1">
-        <div className="flex items-center gap-8">
+      <Card className="overflow-hidden rounded-[6px] border border-white/70 bg-white/10 p-6 shadow-[0_12px_36px_rgba(24,87,173,0.10)] backdrop-blur-sm animate-fade-in-up delay-1">
+        <div className="flex items-center gap-8 ">
           <LightProgressRing value={75} size={100} strokeWidth={8} />
           <div className="flex-1">
             <h2 className="text-h3 text-ink mb-1">Python 程序设计</h2>
@@ -102,7 +110,7 @@ export default function HomePage() {
       </Card>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-4 animate-fade-in-up delay-2">
+      <div className="grid grid-cols-1 gap-4 animate-fade-in-up delay-2 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={<Clock className="w-5 h-5 text-blue" />}
           label="学习时长"
@@ -130,11 +138,11 @@ export default function HomePage() {
       </div>
 
       {/* Content Grid */}
-      <div className="grid grid-cols-[1fr_360px] gap-6 animate-fade-in-up delay-3">
+      <div className="grid grid-cols-2 gap-6 animate-fade-in-up delay-3 xl:grid-cols-[700px_1fr]">
         {/* Left Column */}
-        <div className="space-y-6">
+        <div className="space-y-6 ">
           {/* Today's Tasks */}
-          <Card className="p-6">
+          <Card className="rounded-[6px] border border-black/[0.04] p-6 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ">
             <h3 className="text-h3 text-ink mb-4">今日任务</h3>
             <div className="space-y-2">
               {tasks.map(task => (
@@ -146,7 +154,7 @@ export default function HomePage() {
           </Card>
 
           {/* Learning Contribution Heatmap */}
-          <Card className="p-6">
+          <Card className="rounded-[6px] border border-black/[0.04] p-6 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-h3 text-ink">学习打卡</h3>
               <span className="text-caption text-ink-tertiary">
@@ -161,7 +169,7 @@ export default function HomePage() {
         <div className="space-y-6">
           {/* Profile Tags */}
           {profile && (
-            <Card className="p-5">
+            <Card className="rounded-[6px] border border-black/[0.04] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
               <h4 className="text-small font-semibold text-ink mb-3">学习画像</h4>
               <div className="flex flex-wrap gap-2">
                 {profile.learningPreference.map(pref => (
@@ -169,11 +177,12 @@ export default function HomePage() {
                 ))}
                 <Badge variant="purple">{profile.cognitiveStyle}</Badge>
               </div>
+              <UserRadar profile={profile} stats={stats} mastery={mastery} />
             </Card>
           )}
 
           {/* Recent Resources */}
-          <Card className="p-5">
+          <Card className="rounded-[6px] border border-black/[0.04] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
             <h4 className="text-small font-semibold text-ink mb-3">最近学习</h4>
             <div className="space-y-2">
               {recentResources.map(res => (
@@ -193,7 +202,7 @@ export default function HomePage() {
 
           {/* Weak Points */}
           {mastery.length > 0 && (
-            <Card className="p-5">
+            <Card className="rounded-[6px] border border-black/[0.04] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
               <div className="flex items-center gap-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-warning" />
                 <h4 className="text-small font-semibold text-ink">待加强知识点</h4>
@@ -226,7 +235,7 @@ export default function HomePage() {
 // Stat Card Component
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
   return (
-    <Card className={`p-5 ${color}`}>
+    <Card className={`rounded-[6px] border border-black/[0.04] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] ${color}`}>
       <div className="flex items-center gap-2 mb-2">{icon}</div>
       <p className="text-h1 text-ink">{value}</p>
       <p className="text-caption text-ink-tertiary">{label}</p>

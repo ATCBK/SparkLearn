@@ -13,14 +13,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled}
         className={cn(
-          'inline-flex items-center justify-center font-medium rounded-[12px] transition-all duration-200',
+          'inline-flex items-center justify-center font-medium rounded-[6px] transition-all duration-200 ease-out',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue/30',
           'disabled:opacity-50 disabled:cursor-not-allowed',
 
           // Variants
           variant === 'primary' && [
             'bg-blue text-white hover:bg-blue-dark active:scale-[0.98]',
-            'shadow-sm hover:shadow-md',
+            'shadow-sm shadow-[inset_0_0_8px_rgba(0,0,0,0.15)] hover:shadow-md',
           ],
           variant === 'secondary' && [
             'bg-bg-card text-ink border border-black/[0.08]',

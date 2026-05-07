@@ -497,5 +497,27 @@
       "knowledge_point_name": "参数传递"
     },
     "at": "2026-04-24"
+  },
+  {
+    "quiz_id": "gq_d28b378d_6",
+    "answer": "文件操作",
+    "correct": false,
+    "correct_answer": "['异常处理', '文件操作', '网络编程']",
+    "knowledge_point_id": "3.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "gq_d28b378d_6",
+      "type": "single",
+      "content": "请列出Python中3个不同的知识点，并解释它们的重要性。",
+      "options": [
+        "异常处理",
+        "文件操作",
+        "网络编程"
+      ],
+      "explanation": "Python中有三个重要的知识点：异常处理、文件操作和网络编程。",
+      "knowledge_point_id": "3.1",
+      "knowledge_point_name": "知识点重要性"
+    },
+    "at": "2026-04-27"
   }
 ]
