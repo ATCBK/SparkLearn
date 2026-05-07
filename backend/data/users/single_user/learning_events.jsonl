@@ -297,3 +297,27 @@
 {"ts": "2026-04-28T12:11:42.285023Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "422acf1a"}
 {"ts": "2026-04-28T12:11:46.942539Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "d5c0db72"}
 {"ts": "2026-04-28T12:11:58.881111Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "abb5d3e9"}
+{"ts": "2026-05-06T08:25:32.025758Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-06T08:25:32.014239Z"}}
+{"ts": "2026-05-06T08:25:32.079799Z", "type": "tutor_chat", "conversation_id": 31, "role_id": 16, "question": "什么是闭包"}
+{"ts": "2026-05-06T08:25:32.099819Z", "type": "quiz_generated", "count": 5, "chapter": "", "batch_id": "d1cc5d60"}
+{"ts": "2026-05-06T08:25:32.110149Z", "type": "submit_quiz", "quiz_id": "dq_d1cc5d60_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-06T08:25:37.021736Z", "type": "tutor_chat", "conversation_id": 32, "role_id": 18, "question": "请解释闭包"}
+{"ts": "2026-05-06T08:25:37.086736Z", "type": "profile_dialog_completed", "session_id": "sess_cf26dbe2", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-06T08:25:37.076740Z"}}
+{"ts": "2026-05-06T08:26:35.732102Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-06T08:26:35.717103Z"}}
+{"ts": "2026-05-06T08:26:35.792767Z", "type": "tutor_chat", "conversation_id": 32, "role_id": 18, "question": "什么是闭包"}
+{"ts": "2026-05-06T08:26:35.813298Z", "type": "quiz_generated", "count": 5, "chapter": "", "batch_id": "ddf3d2b3"}
+{"ts": "2026-05-06T08:26:35.825310Z", "type": "submit_quiz", "quiz_id": "dq_ddf3d2b3_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-06T08:26:40.212357Z", "type": "tutor_chat", "conversation_id": 33, "role_id": 19, "question": "请解释闭包"}
+{"ts": "2026-05-06T08:26:40.285470Z", "type": "profile_dialog_completed", "session_id": "sess_1e61b73f", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-06T08:26:40.271471Z"}}
+{"ts": "2026-05-06T08:27:00.488728Z", "type": "profile_updated", "patch": {"name": "???", "email": "li@sparklearn.ai", "major": "????", "grade": "??", "knowledge_level": "????", "current_stage": "????"}}
+{"ts": "2026-05-06T08:27:00.518726Z", "type": "profile_updated", "patch": {"name": "张同学", "email": "", "major": "计算机科学", "grade": "大二", "knowledge_level": "有一些基础", "current_stage": "函数与模块"}}
+{"ts": "2026-05-06T08:27:47.865129Z", "type": "profile_updated", "patch": {"name": "Test User", "email": "test@sparklearn.ai", "major": "AI", "grade": "G3", "knowledge_level": "advanced", "current_stage": "oop"}}
+{"ts": "2026-05-06T08:27:47.894636Z", "type": "profile_updated", "patch": {"name": "张同学", "email": "", "major": "计算机科学", "grade": "大二", "knowledge_level": "有一些基础", "current_stage": "函数与模块"}}
+{"ts": "2026-05-06T08:28:42.188457Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-06T08:28:42.175454Z"}}
+{"ts": "2026-05-06T08:28:42.243163Z", "type": "tutor_chat", "conversation_id": 33, "role_id": 19, "question": "什么是闭包"}
+{"ts": "2026-05-06T08:28:42.261495Z", "type": "quiz_generated", "count": 5, "chapter": "", "batch_id": "bc67af8c"}
+{"ts": "2026-05-06T08:28:42.272494Z", "type": "submit_quiz", "quiz_id": "dq_bc67af8c_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-06T08:28:46.609209Z", "type": "tutor_chat", "conversation_id": 34, "role_id": 20, "question": "请解释闭包"}
+{"ts": "2026-05-06T08:28:46.679268Z", "type": "profile_dialog_completed", "session_id": "sess_4fa5b6dc", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-06T08:28:46.665269Z"}}
+{"ts": "2026-05-07T02:32:01.692803Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "cfff0ad9"}
+{"ts": "2026-05-07T02:32:14.200314Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "aadda485"}

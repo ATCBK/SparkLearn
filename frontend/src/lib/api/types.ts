@@ -63,6 +63,7 @@ export interface PptDeck {
 export interface StudentProfile {
   id: string
   name: string
+  email: string
   major: string
   grade: string
   goals: string[]
@@ -72,9 +73,14 @@ export interface StudentProfile {
   cognitiveStyle: string
   dailyTime: number // minutes
   practicalAbility: string
+  currentStage: string
 }
 
 export interface ProfileUpdatePayload {
+  name?: string
+  email?: string
+  major?: string
+  grade?: string
   goals?: string[]
   knowledgeLevel?: string
   weakPoints?: string[]

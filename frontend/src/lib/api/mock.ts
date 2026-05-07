@@ -64,6 +64,7 @@ export async function getProfile(): Promise<StudentProfile> {
   return {
     id: 'u1',
     name: '张同学',
+    email: 'student@sparklearn.ai',
     major: '计算机科学',
     grade: '大二',
     goals: ['期末提分', '竞赛准备'],
@@ -73,6 +74,7 @@ export async function getProfile(): Promise<StudentProfile> {
     cognitiveStyle: '归纳型',
     dailyTime: 60,
     practicalAbility: '能独立完成小项目',
+    currentStage: '函数与模块',
   }
 }
 

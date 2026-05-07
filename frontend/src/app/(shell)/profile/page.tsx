@@ -16,6 +16,7 @@ type ProfileForm = {
   email: string
   major: string
   grade: string
+  knowledgeLevel: string
   goals: string
   weakPoints: string
   learningPreference: string
@@ -23,29 +24,6 @@ type ProfileForm = {
   dailyTime: string
   practicalAbility: string
   currentStage: string
-}
-
-type ProfileExtra = {
-  name?: string
-  email?: string
-  major?: string
-  grade?: string
-}
-
-const EXTRA_KEY = 'sparklearn_profile_extra'
-
-function readProfileExtra(): ProfileExtra {
-  if (typeof window === 'undefined') return {}
-  try {
-    return JSON.parse(window.localStorage.getItem(EXTRA_KEY) || '{}') as ProfileExtra
-  } catch {
-    return {}
-  }
-}
-
-function saveProfileExtra(extra: ProfileExtra) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(EXTRA_KEY, JSON.stringify(extra))
 }
 
 function toCommaText(values: string[]): string {
@@ -73,21 +51,21 @@ export default function ProfilePage() {
       setLoading(true)
       setError(null)
       const [p, s] = await Promise.all([api.getProfile(), api.getDashboardStats()])
-      const extra = readProfileExtra()
       setProfile(p)
       setStats(s)
       setForm({
-        name: extra.name || p.name,
-        email: extra.email || 'student@sparklearn.ai',
-        major: extra.major || p.major,
-        grade: extra.grade || p.grade,
+        name: p.name,
+        email: p.email,
+        major: p.major,
+        grade: p.grade,
+        knowledgeLevel: p.knowledgeLevel || '',
         goals: toCommaText(p.goals),
         weakPoints: toCommaText(p.weakPoints),
         learningPreference: toCommaText(p.learningPreference),
         cognitiveStyle: p.cognitiveStyle || '',
         dailyTime: String(p.dailyTime || 60),
         practicalAbility: p.practicalAbility || '',
-        currentStage: '',
+        currentStage: p.currentStage || '',
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败')
@@ -108,7 +86,12 @@ export default function ProfilePage() {
   async function handleSave() {
     if (!form) return
     const payload: ProfileUpdatePayload = {
+      name: form.name.trim(),
+      email: form.email.trim(),
+      major: form.major.trim(),
+      grade: form.grade.trim(),
       goals: fromCommaText(form.goals),
+      knowledgeLevel: form.knowledgeLevel.trim(),
       weakPoints: fromCommaText(form.weakPoints),
       learningPreference: fromCommaText(form.learningPreference),
       cognitiveStyle: form.cognitiveStyle.trim(),
@@ -121,24 +104,21 @@ export default function ProfilePage() {
       setSaving(true)
       setSavedTip('')
       await api.updateProfile(payload)
-      saveProfileExtra({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        major: form.major.trim(),
-        grade: form.grade.trim(),
-      })
       setSavedTip('保存成功')
       setProfile((prev) => prev ? ({
         ...prev,
         name: form.name.trim(),
         major: form.major.trim(),
         grade: form.grade.trim(),
+        email: form.email.trim(),
         goals: payload.goals || prev.goals,
+        knowledgeLevel: payload.knowledgeLevel || prev.knowledgeLevel,
         weakPoints: payload.weakPoints || prev.weakPoints,
         learningPreference: payload.learningPreference || prev.learningPreference,
         cognitiveStyle: payload.cognitiveStyle || prev.cognitiveStyle,
         dailyTime: payload.dailyTime || prev.dailyTime,
         practicalAbility: payload.practicalAbility || prev.practicalAbility,
+        currentStage: payload.currentStage || prev.currentStage,
       }) : prev)
     } catch (e) {
       setSavedTip(e instanceof Error ? e.message : '保存失败')
@@ -199,6 +179,11 @@ export default function ProfilePage() {
           </div>
 
           <div className="mt-4 space-y-4">
+            <Input
+              label="知识基础"
+              value={form.knowledgeLevel}
+              onChange={(e) => setForm({ ...form, knowledgeLevel: e.target.value })}
+            />
             <Input
               label="学习目标（逗号分隔）"
               value={form.goals}

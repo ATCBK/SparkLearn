@@ -103,9 +103,10 @@ export async function getProfile(): Promise<StudentProfile> {
   const p = await fetchJson<any>('/api/profile')
   return {
     id: p.user_id,
-    name: '张同学',
-    major: '计算机科学',
-    grade: '大二',
+    name: String(p.name || '张同学'),
+    email: String(p.email || 'student@sparklearn.ai'),
+    major: String(p.major || '计算机科学'),
+    grade: String(p.grade || '大二'),
     goals: p.goal,
     knowledgeLevel: p.knowledge_level,
     weakPoints: p.weak_points,
@@ -113,11 +114,16 @@ export async function getProfile(): Promise<StudentProfile> {
     cognitiveStyle: p.cognitive_style,
     dailyTime: p.daily_time,
     practicalAbility: p.practical_ability,
+    currentStage: p.current_stage || '',
   }
 }
 
 export async function updateProfile(payload: ProfileUpdatePayload): Promise<void> {
   const body: Record<string, unknown> = {}
+  if (payload.name !== undefined) body.name = payload.name
+  if (payload.email !== undefined) body.email = payload.email
+  if (payload.major !== undefined) body.major = payload.major
+  if (payload.grade !== undefined) body.grade = payload.grade
   if (payload.goals !== undefined) body.goal = payload.goals
   if (payload.knowledgeLevel !== undefined) body.knowledge_level = payload.knowledgeLevel
   if (payload.weakPoints !== undefined) body.weak_points = payload.weakPoints

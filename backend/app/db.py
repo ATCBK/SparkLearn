@@ -36,6 +36,7 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS students (
               user_id TEXT PRIMARY KEY,
               name TEXT DEFAULT '',
+              email TEXT DEFAULT '',
               major TEXT DEFAULT '',
               grade TEXT DEFAULT '',
               created_at TEXT NOT NULL,
@@ -120,13 +121,23 @@ def init_db() -> None:
             """
         )
 
+        _ensure_student_columns(conn)
+
         timestamp = now_iso()
         conn.execute(
             """
-            INSERT OR IGNORE INTO students(user_id, name, major, grade, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO students(user_id, name, email, major, grade, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (settings.single_user_id, '张同学', '计算机科学', '大二', timestamp, timestamp),
+            (settings.single_user_id, '张同学', 'student@sparklearn.ai', '计算机科学', '大二', timestamp, timestamp),
+        )
+        conn.execute(
+            """
+            UPDATE students
+            SET email = ?
+            WHERE user_id = ? AND (email IS NULL OR email = '')
+            """,
+            ('student@sparklearn.ai', settings.single_user_id),
         )
 
         conn.execute(
@@ -153,6 +164,12 @@ def init_db() -> None:
 
         _seed_mastery(conn)
         _seed_tutor_workspace(conn)
+
+
+def _ensure_student_columns(conn: sqlite3.Connection) -> None:
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(students)').fetchall()}
+    if 'email' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN email TEXT DEFAULT ''")
 
 
 def _seed_mastery(conn: sqlite3.Connection) -> None:

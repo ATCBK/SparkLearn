@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { BrandLogo } from '@/components/brand/BrandLogo'
+import { api, StudentProfile } from '@/lib/api'
 
 type SidebarState = 'expanded' | 'icons' | 'collapsed'
 
@@ -31,12 +32,29 @@ const TOOL_ITEMS = [
   { label: '智能辅导', href: '/tutor', icon: MessageCircle },
   { label: '学习报告', href: '/report', icon: BarChart3 },
   { label: '视频播放', href: '/video', icon: Play },
+  { label: '个人信息', href: '/profile', icon: User },
 ]
 
 export function Sidebar({ state, onStateChange }: SidebarProps) {
   const pathname = usePathname()
   const [quote] = useState('学而不思则罔，思而不学则殆。')
+  const [profile, setProfile] = useState<StudentProfile | null>(null)
   const isExpanded = state === 'expanded'
+  const isProfileActive = pathname === '/profile'
+
+  useEffect(() => {
+    let mounted = true
+    api.getProfile()
+      .then((data) => {
+        if (mounted) setProfile(data)
+      })
+      .catch(() => {
+        if (mounted) setProfile(null)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   if (state === 'collapsed') return null
 
@@ -92,17 +110,38 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
 
         <div className="border-t border-black/[0.06]" />
 
-        <div className={cn('flex items-center gap-3 px-3 py-2', !isExpanded && 'justify-center px-0')}>
+        <Link
+          href="/profile"
+          prefetch={false}
+          title={!isExpanded ? '个人信息' : undefined}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative group',
+            isProfileActive
+              ? 'bg-blue-light text-blue'
+              : 'text-ink-secondary hover:bg-bg-hover hover:text-ink',
+            !isExpanded && 'justify-center px-0',
+          )}
+        >
+          {isProfileActive && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue rounded-r-full" />
+          )}
           <div className="w-8 h-8 rounded-full bg-blue-light flex items-center justify-center shrink-0">
             <User className="w-4 h-4 text-blue" />
           </div>
           {isExpanded && (
             <div className="flex-1 min-w-0">
-              <p className="text-small font-medium text-ink truncate">张同学</p>
-              <p className="text-micro text-ink-tertiary">计算机科学 · 大二</p>
+              <p className="text-small font-medium text-ink truncate">{profile?.name || '张同学'}</p>
+              <p className="text-micro text-ink-tertiary truncate">
+                {profile ? `${profile.major || '未填写专业'} · ${profile.grade || '未填写年级'}` : '计算机科学 · 大二'}
+              </p>
             </div>
           )}
-        </div>
+          {!isExpanded && (
+            <div className="absolute left-full ml-2 px-2 py-1 bg-ink text-white text-micro rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+              个人信息
+            </div>
+          )}
+        </Link>
 
         <button
           onClick={handleCollapse}

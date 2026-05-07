@@ -33,6 +33,10 @@ class ProfileOnboardingReq(BaseModel):
 
 
 class ProfileUpdateReq(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    major: str | None = None
+    grade: str | None = None
     goal: list[str] | None = None
     knowledge_level: str | None = None
     weak_points: list[str] | None = None
@@ -102,10 +106,11 @@ async def chat(req: ProfileChatReq):
 
 @router.get("")
 async def get_profile():
-    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
-    if not row:
+    profile_row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
+    if not profile_row:
         return fail("profile not found")
-    return ok(_row_to_profile(row))
+    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+    return ok(_row_to_profile(profile_row, student_row))
 
 
 @router.put("")
@@ -113,14 +118,49 @@ async def update_profile(req: ProfileUpdateReq):
     row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
     if not row:
         return fail("profile not found")
+    student_patch = req.model_dump(include={"name", "email", "major", "grade"}, exclude_none=True)
+    profile_patch = req.model_dump(
+        exclude={"name", "email", "major", "grade"},
+        exclude_none=True,
+    )
+
+    if student_patch:
+        current_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+        if current_student:
+            next_student = {
+                "name": current_student["name"],
+                "email": current_student["email"] if "email" in current_student.keys() else "",
+                "major": current_student["major"],
+                "grade": current_student["grade"],
+                **student_patch,
+            }
+            execute(
+                """
+                UPDATE students
+                SET name = ?, email = ?, major = ?, grade = ?, updated_at = ?
+                WHERE user_id = ?
+                """,
+                (
+                    str(next_student.get("name", "")).strip(),
+                    str(next_student.get("email", "")).strip(),
+                    str(next_student.get("major", "")).strip(),
+                    str(next_student.get("grade", "")).strip(),
+                    now_iso(),
+                    settings.single_user_id,
+                ),
+            )
+
     profile = _row_to_profile(row)
-    patch = req.model_dump(exclude_none=True)
-    profile.update(patch)
+    profile.update(profile_patch)
     profile["version"] = int(profile.get("version", 1)) + 1
     profile["updated_at"] = now_iso()
     _upsert_profile(profile)
     _write_profile_snapshot(profile)
-    append_jsonl(settings.single_user_id, "learning_events.jsonl", {"type": "profile_updated", "patch": patch})
+    append_jsonl(
+        settings.single_user_id,
+        "learning_events.jsonl",
+        {"type": "profile_updated", "patch": {**student_patch, **profile_patch}},
+    )
     return ok({"version": profile["version"]})
 
 
@@ -159,9 +199,13 @@ def _upsert_profile(profile: dict[str, Any]) -> None:
     )
 
 
-def _row_to_profile(row) -> dict[str, Any]:
+def _row_to_profile(row, student_row=None) -> dict[str, Any]:
     return {
         "user_id": row["user_id"],
+        "name": student_row["name"] if student_row else "",
+        "email": student_row["email"] if student_row and "email" in student_row.keys() else "",
+        "major": student_row["major"] if student_row else "",
+        "grade": student_row["grade"] if student_row else "",
         "goal": json.loads(row["goal"] or "[]"),
         "knowledge_level": row["knowledge_level"],
         "weak_points": json.loads(row["weak_points"] or "[]"),
