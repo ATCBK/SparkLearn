@@ -1,0 +1,20 @@
+{
+  "goal": [
+    "期末提分"
+  ],
+  "knowledge_level": "有一些基础",
+  "weak_points": [
+    "函数",
+    "面向对象"
+  ],
+  "learning_preference": [
+    "实践型",
+    "视觉型"
+  ],
+  "cognitive_style": "归纳型",
+  "daily_time": 60,
+  "practical_ability": "能独立完成小项目",
+  "current_stage": "函数与模块",
+  "version": 1,
+  "updated_at": "2026-05-06T08:28:46.665269Z"
+}

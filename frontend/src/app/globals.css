@@ -1,0 +1,187 @@
+﻿@import "tailwindcss";
+
+/* ========================================
+   SparkLearn Design System
+   Apple Pure Design Language
+   ======================================== */
+
+/* ---- Theme (Tailwind v4 CSS-based config) ---- */
+@theme inline {
+  /* Colors - Ink */
+  --color-ink: #1d1d1f;
+  --color-ink-secondary: #6e6e73;
+  --color-ink-tertiary: #86868b;
+  --color-ink-disabled: #aeaeb2;
+
+  /* Colors - Primary */
+  --color-blue: #0071e3;
+  --color-blue-dark: #0077ed;
+  --color-blue-light: rgba(0, 113, 227, 0.08);
+  --color-blue-glow: rgba(0, 113, 227, 0.15);
+
+  /* Colors - Accent */
+  --color-teal: #5ac8fa;
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-danger: #ff3b30;
+  --color-purple: #af52de;
+
+  /* Colors - Background */
+  --color-bg: #fbfbfd;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f5f5f7;
+  --color-bg-sidebar: rgba(251, 251, 253, 0.72);
+
+  /* Font Size */
+  --text-display: 48px;
+  --text-h1: 32px;
+  --text-h2: 21px;
+  --text-h3: 17px;
+  --text-body: 15px;
+  --text-small: 14px;
+  --text-caption: 13px;
+  --text-micro: 11px;
+
+  /* Border Radius */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 100px;
+
+  /* Box Shadow */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.02);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.08);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.1);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+  --spacing-4xl: 40px;
+  --spacing-5xl: 48px;
+
+  /* Animations */
+  --animate-fade-in-up: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-scale-in: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-slide-in-left: slideInLeft 0.3s ease forwards;
+  --animate-pulse-gentle: pulseGentle 2s infinite;
+  --animate-bounce-subtle: bounceSubtle 3s linear infinite;
+
+  /* Keyframes */
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes slideInLeft {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes pulseGentle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes bounceSubtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+}
+
+/* ---- Base Styles ---- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-dm-sans), var(--font-noto-sans-sc), system-ui, sans-serif;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+}
+
+/* Prevent accidental vertical text layout caused by corrupted styles/content. */
+p,
+span,
+a,
+button,
+label,
+li,
+td,
+th,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+input,
+textarea {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+}
+
+/* ---- Stagger Animation Delays ---- */
+.delay-1 { animation-delay: 50ms; }
+.delay-2 { animation-delay: 100ms; }
+.delay-3 { animation-delay: 150ms; }
+.delay-4 { animation-delay: 200ms; }
+.delay-5 { animation-delay: 250ms; }
+.delay-6 { animation-delay: 300ms; }
+.delay-7 { animation-delay: 350ms; }
+.delay-8 { animation-delay: 400ms; }
+
+/* ---- Utility Classes ---- */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-blue) 0%, var(--color-teal) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Typewriter demo styles disabled globally. */
+
+

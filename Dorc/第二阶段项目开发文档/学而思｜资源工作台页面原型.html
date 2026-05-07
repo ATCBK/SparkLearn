@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学而思｜资源工作台页面原型</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-2: #f9fafb;
+      --ink: #172033;
+      --muted: #667085;
+      --soft: #98a2b3;
+      --line: rgba(16, 24, 40, 0.08);
+      --blue: #2563eb;
+      --blue-soft: #eaf1ff;
+      --green: #16a34a;
+      --green-soft: #eaf8ef;
+      --amber: #d97706;
+      --amber-soft: #fff5df;
+      --purple: #7c3aed;
+      --purple-soft: #f1eaff;
+      --danger: #dc2626;
+      --shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .shell {
+      min-height: 100vh;
+      padding: 28px;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 18px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.18;
+      font-weight: 760;
+    }
+
+    .title p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .loop-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(16, 24, 40, 0.05);
+      white-space: nowrap;
+    }
+
+    .loop-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--panel-2);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .loop-item.active {
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .arrow {
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 392px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .left-stack,
+    .right-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card.pad {
+      padding: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .section-head span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .context-main {
+      padding: 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fbff, #ffffff);
+      border: 1px solid rgba(37, 99, 235, 0.13);
+    }
+
+    .context-main strong {
+      display: block;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .context-main p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .meter {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .meter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e9edf3;
+    }
+
+    .bar i {
+      display: block;
+      width: 42%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--amber), var(--blue));
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 620;
+    }
+
+    .chip.blue {
+      color: var(--blue);
+      background: var(--blue-soft);
+      border-color: rgba(37, 99, 235, 0.12);
+    }
+
+    .chip.amber {
+      color: var(--amber);
+      background: var(--amber-soft);
+      border-color: rgba(217, 119, 6, 0.14);
+    }
+
+    .type-groups {
+      display: grid;
+      gap: 12px;
+    }
+
+    .group-title {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .type-card {
+      min-height: 74px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel-2);
+      color: var(--ink);
+      padding: 11px;
+      cursor: pointer;
+      text-align: left;
+      transition: 160ms ease;
+    }
+
+    .type-card:hover,
+    .type-card.active {
+      border-color: rgba(37, 99, 235, 0.38);
+      background: var(--blue-soft);
+      transform: translateY(-1px);
+    }
+
+    .type-card b {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+    }
+
+    .type-card small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .field textarea {
+      width: 100%;
+      min-height: 112px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      outline: none;
+      color: var(--ink);
+      background: var(--panel-2);
+      line-height: 1.55;
+    }
+
+    .field textarea:focus {
+      border-color: rgba(37, 99, 235, 0.48);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.11);
+    }
+
+    .select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .select {
+      height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-2);
+      padding: 0 10px;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 720;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      color: var(--ink);
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+
+    .preview-card {
+      min-height: 660px;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      overflow: hidden;
+    }
+
+    .preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .preview-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .preview-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .process {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcff;
+    }
+
+    .step {
+      position: relative;
+      min-height: 74px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+
+    .step.done {
+      border-color: rgba(22, 163, 74, 0.18);
+      background: var(--green-soft);
+    }
+
+    .step.active {
+      border-color: rgba(37, 99, 235, 0.25);
+      background: var(--blue-soft);
+    }
+
+    .step b {
+      display: block;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .step small {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .preview-body {
+      padding: 20px;
+      overflow: auto;
+    }
+
+    .doc-frame {
+      min-height: 430px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      padding: 26px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+    }
+
+    .doc-frame h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .doc-frame .lead {
+      margin: 10px 0 20px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .outline {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .outline-item {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-2);
+    }
+
+    .outline-item b {
+      font-size: 13px;
+    }
+
+    .outline-item p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .preview-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 20px;
+      border-top: 1px solid var(--line);
+      background: #fbfcff;
+    }
+
+    .action-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .library {
+      margin-top: 18px;
+    }
+
+    .library-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .library-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+
+    .tab {
+      height: 30px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 650;
+      font-size: 12px;
+    }
+
+    .tab.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .resource-card {
+      min-height: 164px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--panel);
+      box-shadow: 0 6px 18px rgba(16, 24, 40, 0.05);
+    }
+
+    .resource-card .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .resource-card h3 {
+      min-height: 42px;
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .resource-card p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .badge.purple {
+      color: var(--purple);
+      background: var(--purple-soft);
+    }
+
+    .badge.green {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .badge.amber {
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .ghost-link {
+      border: 0;
+      padding: 0;
+      margin-top: 12px;
+      background: transparent;
+      color: var(--blue);
+      cursor: pointer;
+      font-weight: 720;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1180px) {
+      .topbar {
+        flex-direction: column;
+      }
+
+      .loop-strip {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-card {
+        min-height: auto;
+      }
+
+      .resource-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        padding: 16px;
+      }
+
+      .process,
+      .outline,
+      .resource-grid,
+      .select-row {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-head,
+      .preview-actions,
+      .library-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="page">
+      <header class="topbar">
+        <div class="title">
+          <h1>资源工作台</h1>
+          <p>基于学习画像、路径节点和错题反馈生成个性化资源，并把学习结果回流到后续推荐。</p>
+        </div>
+        <div class="loop-strip" aria-label="当前学习闭环状态">
+          <span class="loop-item"><i class="dot"></i>画像</span>
+          <span class="arrow">→</span>
+          <span class="loop-item active"><i class="dot"></i>路径节点</span>
+          <span class="arrow">→</span>
+          <span class="loop-item active"><i class="dot"></i>资源生成</span>
+          <span class="arrow">→</span>
+          <span class="loop-item"><i class="dot"></i>练习评估</span>
+          <span class="arrow">→</span>
+          <span class="loop-item"><i class="dot"></i>报告回流</span>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="left-stack">
+          <section class="card pad">
+            <div class="section-head">
+              <h2>学习上下文</h2>
+              <span>来自路径 + 错题</span>
+            </div>
+            <div class="context-main">
+              <strong>Python 函数参数与返回值</strong>
+              <p>当前节点掌握度偏低，最近练习中多次混淆默认参数、关键字参数和返回值。</p>
+              <div class="meter">
+                <div class="meter-row">
+                  <span>掌握度</span>
+                  <b>42%</b>
+                </div>
+                <div class="bar"><i></i></div>
+              </div>
+              <div class="chips">
+                <span class="chip amber">错题 3 道</span>
+                <span class="chip blue">建议先补概念</span>
+                <span class="chip">大二 · 计算机</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="card pad">
+            <div class="section-head">
+              <h2>资源类型</h2>
+              <span>按学习目的分组</span>
+            </div>
+            <div class="type-groups">
+              <div>
+                <p class="group-title">讲解理解</p>
+                <div class="type-grid">
+                  <button class="type-card active">
+                    <b>📄 课程文档</b>
+                    <small>结构化讲义、示例、常见错误</small>
+                  </button>
+                  <button class="type-card">
+                    <b>📊 PPT</b>
+                    <small>适合课堂展示和复习讲解</small>
+                  </button>
+                  <button class="type-card">
+                    <b>🧭 思维导图</b>
+                    <small>梳理概念关系和先修依赖</small>
+                  </button>
+                  <button class="type-card">
+                    <b>🎬 视频/动画</b>
+                    <small>脚本、分镜、字幕和动画方案</small>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <p class="group-title">练习巩固</p>
+                <div class="type-grid">
+                  <button class="type-card">
+                    <b>❓ 练习题</b>
+                    <small>按薄弱点生成分层题目</small>
+                  </button>
+                  <button class="type-card">
+                    <b>💻 代码案例</b>
+                    <small>用完整代码串起知识点</small>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <p class="group-title">拓展提升</p>
+                <div class="type-grid">
+                  <button class="type-card">
+                    <b>📚 拓展阅读</b>
+                    <small>关联应用场景和延伸资料</small>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card pad">
+            <div class="section-head">
+              <h2>生成控制</h2>
+              <span>可编辑推荐需求</span>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="prompt">生成目标</label>
+                <textarea id="prompt">为“Python 函数参数与返回值”生成一份补弱讲义，重点解释默认参数、关键字参数、返回值和常见错误，包含示例代码与练习建议。</textarea>
+              </div>
+              <div class="select-row">
+                <select class="select" aria-label="难度">
+                  <option>难度：基础巩固</option>
+                  <option>难度：进阶提升</option>
+                </select>
+                <select class="select" aria-label="长度">
+                  <option>长度：10 分钟学习</option>
+                  <option>长度：20 分钟学习</option>
+                </select>
+              </div>
+              <div class="chips">
+                <span class="chip">补弱讲义</span>
+                <span class="chip">配套例题</span>
+                <span class="chip">错题重讲</span>
+              </div>
+              <div class="btn-row">
+                <button class="btn secondary">让精灵优化需求</button>
+                <button class="btn">开始生成</button>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <section class="right-stack">
+          <section class="card preview-card">
+            <div class="preview-head">
+              <div>
+                <h2>Python 函数参数补弱讲义</h2>
+                <p>课程文档 · 关联知识点：函数参数 · 来源：错题补弱推荐</p>
+              </div>
+              <span class="status-pill"><i class="dot"></i>已完成</span>
+            </div>
+
+            <div class="process">
+              <div class="step done">
+                <b>画像分析</b>
+                <small>识别基础薄弱、偏好代码示例</small>
+              </div>
+              <div class="step done">
+                <b>路径对齐</b>
+                <small>绑定当前知识图谱节点</small>
+              </div>
+              <div class="step active">
+                <b>资源生成</b>
+                <small>生成讲义、示例和练习建议</small>
+              </div>
+              <div class="step">
+                <b>审核与入库</b>
+                <small>保存资源索引和使用记录</small>
+              </div>
+            </div>
+
+            <div class="preview-body">
+              <article class="doc-frame">
+                <h3>函数参数与返回值：补弱学习文档</h3>
+                <p class="lead">
+                  这份资源用于解决你在默认参数、关键字参数和返回值理解上的错题问题。建议先读概念，再跟着代码运行，最后完成配套练习。
+                </p>
+                <div class="outline">
+                  <div class="outline-item">
+                    <b>1. 参数传递方式</b>
+                    <p>区分位置参数、关键字参数、默认参数和可变参数的调用方式。</p>
+                  </div>
+                  <div class="outline-item">
+                    <b>2. 返回值理解</b>
+                    <p>解释 `return` 与 `print` 的区别，以及多返回值的拆包方式。</p>
+                  </div>
+                  <div class="outline-item">
+                    <b>3. 常见错误</b>
+                    <p>覆盖默认参数可变对象、参数顺序错误、遗漏返回值等高频问题。</p>
+                  </div>
+                  <div class="outline-item">
+                    <b>4. 配套练习</b>
+                    <p>提供 5 道由浅入深的练习，用于检测是否真正掌握。</p>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="preview-actions">
+              <div class="action-group">
+                <button class="btn secondary">下载 PDF</button>
+                <button class="btn secondary">打开预览</button>
+                <button class="btn secondary">让精灵讲解</button>
+              </div>
+              <div class="action-group">
+                <button class="btn secondary">生成配套练习</button>
+                <button class="btn">开始学习</button>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="library">
+        <div class="library-head">
+          <div>
+            <h2>资源库</h2>
+            <p style="margin: 6px 0 0; color: var(--muted); font-size: 13px;">推荐资源、已生成资源和多模态预览统一归口。</p>
+          </div>
+          <div class="tabs" role="tablist" aria-label="资源库分类">
+            <button class="tab active">推荐资源</button>
+            <button class="tab">已生成</button>
+            <button class="tab">多模态</button>
+            <button class="tab">最近使用</button>
+          </div>
+        </div>
+
+        <div class="resource-grid">
+          <article class="resource-card">
+            <div class="meta">
+              <span class="badge amber">错题补弱</span>
+              <span class="badge green">推荐</span>
+            </div>
+            <h3>函数默认参数常见错误讲义</h3>
+            <p>来源：最近 3 道错题。建议先学习，再生成变式题验证。</p>
+            <button class="ghost-link">查看推荐理由</button>
+          </article>
+          <article class="resource-card">
+            <div class="meta">
+              <span class="badge">路径节点</span>
+              <span class="badge purple">PPT</span>
+            </div>
+            <h3>Python 函数基础演示课件</h3>
+            <p>来源：学习路径当前节点。适合快速复盘和课堂展示。</p>
+            <button class="ghost-link">打开预览</button>
+          </article>
+          <article class="resource-card">
+            <div class="meta">
+              <span class="badge">多模态</span>
+              <span class="badge">视频/动画</span>
+            </div>
+            <h3>函数调用过程动画脚本</h3>
+            <p>包含分镜、字幕和讲解稿，后续可接入真实视频生成。</p>
+            <button class="ghost-link">生成脚本</button>
+          </article>
+          <article class="resource-card">
+            <div class="meta">
+              <span class="badge green">已入库</span>
+              <span class="badge">代码案例</span>
+            </div>
+            <h3>用函数封装成绩统计逻辑</h3>
+            <p>来源：手动生成。包含完整代码、讲解和扩展练习。</p>
+            <button class="ghost-link">继续学习</button>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
