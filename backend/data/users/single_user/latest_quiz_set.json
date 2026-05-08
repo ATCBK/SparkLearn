@@ -1,118 +1,36 @@
 [
   {
-    "id": "dq_80174b06_1",
-    "type": "single",
-    "content": "以下哪个是 Python 的可变数据类型？",
+    "id": "gq_eacb8191_2",
+    "type": "multiple",
+    "content": "请列举Python中的三种基本数据类型：整数、浮点数和字符串。",
     "options": [
-      "tuple",
-      "list",
-      "string",
-      "int"
+      "{'type': 'int', 'content': '整数'}",
+      "{'type': 'float', 'content': '浮点数'}",
+      "{'type': 'str', 'content': '字符串'}"
     ],
-    "correct_answer": "list",
-    "explanation": "list 是可变类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_80174b06_2",
-    "type": "single",
-    "content": "Python 中用于定义函数的关键字是？",
-    "options": [
-      "function",
-      "def",
-      "func",
-      "define"
+    "correct_answer": [
+      "整数",
+      "浮点数",
+      "字符串"
     ],
-    "correct_answer": "def",
-    "explanation": "Python 使用 def 定义函数。",
+    "explanation": "在Python中，基本数据类型包括整数（int）、浮点数（float）和字符串（str）。这些类型是Python语言的基础，用于存储和操作不同类型的数据。",
     "knowledge_point_id": "3.1",
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_80174b06_3",
+    "id": "gq_eacb8191_5",
     "type": "multiple",
-    "content": "以下哪些是 Python 内置数据类型？（多选）",
+    "content": "请列举Python中两种常见的循环结构。",
     "options": [
-      "list",
-      "dict",
-      "array",
-      "set"
+      "{'type': 'for', 'content': 'for循环'}",
+      "{'type': 'while', 'content': 'while循环'}"
     ],
     "correct_answer": [
-      "list",
-      "dict",
-      "set"
+      "for循环",
+      "while循环"
     ],
-    "explanation": "list、dict、set 均为 Python 内置类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_80174b06_4",
-    "type": "fill_blank",
-    "content": "在 Python 中，使用 ______ 关键字来导入模块。",
-    "correct_answer": "import",
-    "explanation": "import 用于导入模块。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
-  },
-  {
-    "id": "dq_80174b06_5",
-    "type": "single",
-    "content": "以下哪个是 Python 的可变数据类型？",
-    "options": [
-      "tuple",
-      "list",
-      "string",
-      "int"
-    ],
-    "correct_answer": "list",
-    "explanation": "list 是可变类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_80174b06_6",
-    "type": "single",
-    "content": "Python 中用于定义函数的关键字是？",
-    "options": [
-      "function",
-      "def",
-      "func",
-      "define"
-    ],
-    "correct_answer": "def",
-    "explanation": "Python 使用 def 定义函数。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
-  },
-  {
-    "id": "dq_80174b06_7",
-    "type": "multiple",
-    "content": "以下哪些是 Python 内置数据类型？（多选）",
-    "options": [
-      "list",
-      "dict",
-      "array",
-      "set"
-    ],
-    "correct_answer": [
-      "list",
-      "dict",
-      "set"
-    ],
-    "explanation": "list、dict、set 均为 Python 内置类型。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_80174b06_8",
-    "type": "fill_blank",
-    "content": "在 Python 中，使用 ______ 关键字来导入模块。",
-    "correct_answer": "import",
-    "explanation": "import 用于导入模块。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
+    "explanation": "在Python中，有两种常见的循环结构：for循环和while循环。for循环用于遍历序列（如列表、元组等），而while循环则用于基于条件执行重复操作。",
+    "knowledge_point_id": "3.2",
+    "knowledge_point_name": "参数传递"
   }
 ]
