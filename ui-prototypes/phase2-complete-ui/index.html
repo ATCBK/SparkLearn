@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SparkLearn 第二阶段学习闭环 UI 原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfbfd;
+    --card: #ffffff;
+    --hover: #f5f5f7;
+    --ink: #1d1d1f;
+    --muted: #6e6e73;
+    --soft: #86868b;
+    --line: rgba(0,0,0,.06);
+    --blue: #0071e3;
+    --blue-2: #5ac8fa;
+    --blue-soft: #e8f4fd;
+    --green: #34c759;
+    --green-soft: #e8f8ed;
+    --orange: #ff9500;
+    --orange-soft: #fff5e6;
+    --red: #ff3b30;
+    --red-soft: #fff0ef;
+    --purple: #af52de;
+    --purple-soft: #f5edfa;
+    --shadow: 0 4px 20px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.02);
+    --shadow-lg: 0 16px 55px rgba(0,0,0,.1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "DM Sans", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea { font: inherit; }
+  button { cursor: pointer; }
+  .app { min-height: 100vh; display: flex; }
+  .sidebar {
+    width: 260px;
+    position: fixed;
+    inset: 0 auto 0 0;
+    background: rgba(251,251,253,.74);
+    backdrop-filter: blur(60px) saturate(180%);
+    border-right: 1px solid var(--line);
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+  }
+  .brand { display: flex; gap: 12px; align-items: center; padding: 8px 8px 22px; border-bottom: 1px solid var(--line); }
+  .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: grid; place-items: center;
+    color: white; font-weight: 800;
+    background: linear-gradient(135deg, var(--blue), var(--blue-2));
+    box-shadow: 0 8px 22px rgba(0,113,227,.22);
+  }
+  .brand strong { display: block; font-size: 17px; letter-spacing: -.2px; }
+  .brand span { color: var(--soft); font-size: 11px; }
+  .nav-title {
+    margin: 22px 10px 8px;
+    color: #aeaeb2;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .8px;
+  }
+  .nav-btn {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    margin: 2px 0;
+    border-radius: 10px;
+    text-align: left;
+    transition: .18s ease;
+  }
+  .nav-btn svg { width: 19px; height: 19px; stroke-width: 2; }
+  .nav-btn:hover { background: var(--hover); color: var(--ink); }
+  .nav-btn.active { background: var(--blue-soft); color: var(--blue); }
+  .sidebar-note {
+    margin-top: auto;
+    padding: 14px;
+    border-radius: 14px;
+    background: white;
+    box-shadow: var(--shadow);
+  }
+  .sidebar-note b { display: block; font-size: 13px; margin-bottom: 4px; }
+  .sidebar-note p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  main { margin-left: 260px; width: calc(100% - 260px); }
+  .page {
+    display: none;
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 38px 52px 80px;
+    animation: lift .32s cubic-bezier(.16,1,.3,1);
+  }
+  .page.active { display: block; }
+  @keyframes lift { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .topline { color: var(--soft); font-size: 13px; margin-bottom: 8px; }
+  h1 { margin: 0; font-size: 42px; line-height: 1.1; letter-spacing: -.8px; }
+  h2 { margin: 0; font-size: 21px; letter-spacing: -.2px; }
+  h3 { margin: 0; font-size: 16px; }
+  p { margin: 0; }
+  .lead { color: var(--muted); font-size: 16px; margin-top: 10px; max-width: 760px; }
+  .gradient { background: linear-gradient(135deg, var(--blue), var(--blue-2)); -webkit-background-clip: text; color: transparent; }
+  .grid { display: grid; gap: 18px; }
+  .cols-2 { grid-template-columns: 1.25fr .75fr; }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 22px;
+  }
+  .section { margin-top: 28px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--hover);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .pill.blue { background: var(--blue-soft); color: var(--blue); }
+  .pill.green { background: var(--green-soft); color: var(--green); }
+  .pill.orange { background: var(--orange-soft); color: var(--orange); }
+  .pill.purple { background: var(--purple-soft); color: var(--purple); }
+  .btn {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 15px;
+    background: var(--blue);
+    color: white;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 9px 24px rgba(0,113,227,.22);
+  }
+  .btn.secondary {
+    background: var(--hover);
+    color: var(--ink);
+    box-shadow: none;
+  }
+  .btn.ghost {
+    background: transparent;
+    color: var(--blue);
+    box-shadow: none;
+    padding-inline: 0;
+  }
+  .hero-card {
+    margin-top: 28px;
+    padding: 28px;
+    background: linear-gradient(135deg, #eff7ff, #fff);
+  }
+  .loop-map {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .loop-node {
+    min-height: 106px;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 15px;
+    position: relative;
+  }
+  .loop-node:after {
+    content: "→";
+    position: absolute;
+    right: -11px;
+    top: 38px;
+    color: var(--soft);
+    font-weight: 700;
+  }
+  .loop-node:last-child:after { content: ""; }
+  .loop-node small { color: var(--blue); font-weight: 800; }
+  .loop-node b { display: block; margin: 5px 0; }
+  .loop-node span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .stat { display: flex; align-items: center; gap: 12px; }
+  .iconbox {
+    width: 38px; height: 38px; border-radius: 12px;
+    display: grid; place-items: center;
+    background: var(--blue-soft);
+    color: var(--blue);
+  }
+  .stat strong { display: block; font-size: 27px; letter-spacing: -.4px; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .task {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .task:last-child { border-bottom: 0; }
+  .task b { display: block; font-size: 14px; }
+  .task span { color: var(--muted); font-size: 12px; }
+  .progress { height: 8px; border-radius: 99px; background: #edf0f4; overflow: hidden; }
+  .progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--blue-2)); }
+  .chat-shell {
+    display: grid;
+    grid-template-columns: 1fr 330px;
+    gap: 18px;
+    align-items: stretch;
+  }
+  .chat-panel { min-height: 590px; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .chat-head {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chat-body { padding: 20px; flex: 1; overflow: hidden; }
+  .msg { max-width: 76%; margin-bottom: 14px; display: flex; gap: 10px; }
+  .msg.user { margin-left: auto; justify-content: flex-end; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: var(--blue-soft);
+    color: var(--blue);
+    flex: 0 0 auto;
+    font-weight: 800;
+    font-size: 13px;
+  }
+  .bubble {
+    background: var(--hover);
+    border-radius: 16px;
+    padding: 12px 14px;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .user .bubble { background: var(--blue); color: white; }
+  .quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 16px 40px; }
+  .quick {
+    border: 1px solid rgba(0,113,227,.18);
+    background: var(--blue-soft);
+    color: var(--blue);
+    border-radius: 999px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .chat-input {
+    border-top: 1px solid var(--line);
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+  .chat-input textarea {
+    height: 44px;
+    resize: none;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    border-radius: 14px;
+    padding: 11px 13px;
+    outline: none;
+  }
+  .profile-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .profile-hero {
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 18px;
+    align-items: stretch;
+  }
+  .status-card {
+    background: linear-gradient(135deg, #eef7ff, #fff);
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .bubble-cloud {
+    min-height: 250px;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(0,113,227,.08), transparent 26%),
+      radial-gradient(circle at 82% 72%, rgba(52,199,89,.08), transparent 28%),
+      #fff;
+  }
+  .profile-bubble {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    border-radius: 999px;
+    padding: 14px;
+    color: var(--ink);
+    font-weight: 700;
+    line-height: 1.25;
+    border: 1px solid rgba(0,0,0,.05);
+    box-shadow: 0 10px 28px rgba(0,0,0,.06);
+  }
+  .profile-bubble small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .bubble-lg { width: 150px; height: 150px; font-size: 17px; }
+  .bubble-md { width: 118px; height: 118px; font-size: 14px; }
+  .bubble-sm { width: 92px; height: 92px; font-size: 12px; }
+  .bubble-blue { background: var(--blue-soft); color: var(--blue); }
+  .bubble-green { background: var(--green-soft); color: var(--green); }
+  .bubble-orange { background: var(--orange-soft); color: var(--orange); }
+  .bubble-purple { background: var(--purple-soft); color: var(--purple); }
+  .knowledge-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .knowledge-bubble {
+    min-height: 116px;
+    border-radius: 28px;
+    padding: 16px;
+    background: var(--hover);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .knowledge-bubble.mastered { background: var(--green-soft); }
+  .knowledge-bubble.learning { background: var(--blue-soft); }
+  .knowledge-bubble.weak { background: var(--orange-soft); }
+  .knowledge-bubble b { font-size: 15px; }
+  .knowledge-bubble span { color: var(--muted); font-size: 12px; }
+  .resource-pill {
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .resource-pill:last-child { border-bottom: 0; }
+  .strategy-card {
+    border-radius: 18px;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+  }
+  .mini-metric {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .mini-metric div {
+    border-radius: 16px;
+    background: white;
+    border: 1px solid var(--line);
+    padding: 14px;
+  }
+  .mini-metric b { display: block; font-size: 19px; }
+  .mini-metric span { color: var(--muted); font-size: 12px; }
+  .anatomy-stage {
+    position: relative;
+    height: 720px;
+    margin-top: 26px;
+    border-radius: 28px;
+    background: white;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .anatomy-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
+  }
+  .anatomy-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 48%, transparent 0 24%, rgba(255,255,255,.18) 34%, rgba(255,255,255,.62) 76%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .profile-note {
+    position: absolute;
+    width: 255px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    backdrop-filter: blur(18px) saturate(140%);
+    z-index: 4;
+  }
+  .profile-note h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .profile-note p { color: var(--muted); font-size: 13px; line-height: 1.55; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #f5f5f7;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .tag.blue { background: var(--blue-soft); color: var(--blue); }
+  .tag.green { background: var(--green-soft); color: var(--green); }
+  .tag.orange { background: var(--orange-soft); color: var(--orange); }
+  .tag.purple { background: var(--purple-soft); color: var(--purple); }
+  .note-resources { left: 70px; top: 68px; }
+  .note-goal { right: 96px; top: 66px; }
+  .note-weak { left: 54px; top: 298px; }
+  .note-mastered { right: 52px; top: 310px; }
+  .note-pref { left: 92px; bottom: 72px; }
+  .note-action { right: 98px; bottom: 78px; }
+  .center-caption {
+    position: absolute;
+    left: 50%;
+    top: 66%;
+    transform: translateX(-50%);
+    width: 250px;
+    padding: 14px 18px;
+    text-align: center;
+    border-radius: 18px;
+    background: rgba(255,255,255,.82);
+    border: 1px solid rgba(0,113,227,.12);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+    z-index: 5;
+  }
+  .center-caption b { display: block; font-size: 18px; }
+  .center-caption span { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 5px; }
+  .timeline { position: relative; padding-left: 18px; }
+  .timeline:before { content: ""; position: absolute; left: 4px; top: 8px; bottom: 8px; width: 2px; background: #e5e5ea; }
+  .time-item { position: relative; margin-bottom: 16px; }
+  .time-item:before { content: ""; position: absolute; left: -18px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--blue); }
+  .time-item b { display: block; font-size: 14px; }
+  .time-item span { color: var(--muted); font-size: 12px; }
+  .path-canvas {
+    min-height: 430px;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(0,113,227,.08), transparent 28%),
+      radial-gradient(circle at 82% 62%, rgba(52,199,89,.09), transparent 24%),
+      white;
+    position: relative;
+    overflow: hidden;
+  }
+  .path-node {
+    position: absolute;
+    width: 150px;
+    padding: 14px;
+    border-radius: 18px;
+    background: white;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+  .path-node b { font-size: 14px; }
+  .path-node span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .path-node.current { border-color: rgba(0,113,227,.35); box-shadow: 0 12px 34px rgba(0,113,227,.14); }
+  .line {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, #d8e9fb, #cfeee0);
+    transform-origin: left center;
+  }
+  .drawer {
+    border-left: 1px solid var(--line);
+    padding-left: 18px;
+  }
+  .resource-type {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .type-card {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    background: white;
+  }
+  .type-card.active { border-color: rgba(0,113,227,.35); background: var(--blue-soft); }
+  .type-card b { display: block; margin-top: 8px; font-size: 13px; }
+  .stepper { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 18px 0; }
+  .step {
+    padding: 10px;
+    border-radius: 12px;
+    background: var(--hover);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .step.active { background: var(--blue-soft); color: var(--blue); }
+  .resource-list { display: grid; gap: 12px; }
+  .resource-row {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: white;
+  }
+  .question {
+    padding: 18px;
+    border-radius: 18px;
+    background: #f7fbff;
+    border: 1px solid rgba(0,113,227,.12);
+  }
+  .answer {
+    padding: 13px 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    margin-top: 10px;
+    background: white;
+  }
+  .answer.wrong { border-color: rgba(255,59,48,.26); background: var(--red-soft); }
+  .chart {
+    height: 190px;
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    padding-top: 18px;
+  }
+  .bar { flex: 1; border-radius: 10px 10px 4px 4px; background: linear-gradient(180deg, var(--blue-2), var(--blue)); min-height: 32px; }
+  .ai-float {
+    position: fixed;
+    right: 26px;
+    bottom: 26px;
+    width: 62px;
+    height: 62px;
+    border: 0;
+    border-radius: 20px;
+    color: white;
+    background: linear-gradient(135deg, var(--blue), var(--blue-2));
+    box-shadow: 0 16px 45px rgba(0,113,227,.28);
+    z-index: 30;
+  }
+  .ai-panel {
+    display: none;
+    position: fixed;
+    right: 26px;
+    bottom: 102px;
+    width: 380px;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow-lg);
+    z-index: 29;
+    overflow: hidden;
+  }
+  .ai-panel.open { display: block; }
+  .ai-panel header { padding: 17px 18px; border-bottom: 1px solid var(--line); }
+  .ai-panel .body { padding: 18px; }
+  .context-tip { color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 8px; }
+  @media (max-width: 980px) {
+    .sidebar { width: 72px; }
+    .brand div:not(.logo), .nav-btn span, .nav-title, .sidebar-note { display: none; }
+    main { margin-left: 72px; width: calc(100% - 72px); }
+    .page { padding: 28px 20px 70px; }
+    .cols-2, .cols-3, .cols-4, .chat-shell, .loop-map, .profile-hero, .knowledge-grid, .mini-metric { grid-template-columns: 1fr; }
+    .loop-node:after { content: ""; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div><strong>SparkLearn</strong><span>第二阶段闭环原型</span></div>
+    </div>
+    <div class="nav-title">主学习闭环</div>
+    <button class="nav-btn active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-7h6v7"/></svg><span>学习工作台</span></button>
+    <button class="nav-btn" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg><span>学习画像</span></button>
+    <button class="nav-btn" data-page="path"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h4a5 5 0 0 1 5 5v4"/></svg><span>学习路径</span></button>
+    <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6.3 6.3 4.9 4.9m14.2 14.2-1.4-1.4M18 8l-8 8-4-4"/></svg><span>资源工作台</span></button>
+    <button class="nav-btn" data-page="resources"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5Z"/><path d="M8 7h6"/></svg><span>资源库</span></button>
+    <button class="nav-btn" data-page="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>练习评测</span></button>
+    <button class="nav-btn" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M13 16V6"/><path d="M18 16v-4"/></svg><span>学习报告</span></button>
+    <div class="nav-title">下沉能力</div>
+    <button class="nav-btn" data-page="loop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>交互关系图</span></button>
+    <div class="sidebar-note">
+      <b>一级导航已收敛</b>
+      <p>资源推送、视频播放、AI 辅导作为场景能力下沉，不再占用主入口。</p>
+    </div>
+  </aside>
+
+  <main>
+    <section class="page active" id="dashboard">
+      <div class="topline">学习工作台 / 今天要做什么</div>
+      <h1>继续你的<span class="gradient">学习闭环</span></h1>
+      <p class="lead">首屏不只是统计面板，而是把当前路径、今日任务、推荐资源、错题补弱和 AI 助手聚合到同一个决策入口。</p>
+      <div class="card hero-card">
+        <div class="grid cols-2">
+          <div>
+            <span class="pill blue">当前节点：Python 函数与作用域</span>
+            <h2 style="margin-top:14px">今天建议先补齐“局部变量与返回值”</h2>
+            <p class="lead" style="font-size:14px">来自昨晚练习错题和路径掌握度回写，系统已准备 2 个补弱资源和 1 组短练习。</p>
+            <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+              <button class="btn" data-jump="path">查看路径节点</button>
+              <button class="btn secondary" data-jump="generate">生成补弱资源</button>
+            </div>
+          </div>
+          <div>
+            <div class="progress"><i style="width:72%"></i></div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;color:var(--muted);font-size:13px"><span>阶段进度</span><b>72%</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid cols-4 section">
+        <div class="card stat"><div class="iconbox">⌚</div><div><strong>42h</strong><span>累计学习</span></div></div>
+        <div class="card stat"><div class="iconbox" style="background:var(--green-soft);color:var(--green)">✓</div><div><strong>86%</strong><span>任务完成率</span></div></div>
+        <div class="card stat"><div class="iconbox" style="background:var(--orange-soft);color:var(--orange)">◎</div><div><strong>74%</strong><span>练习正确率</span></div></div>
+        <div class="card stat"><div class="iconbox" style="background:var(--purple-soft);color:var(--purple)">↗</div><div><strong>12天</strong><span>连续学习</span></div></div>
+      </div>
+      <div class="grid cols-2 section">
+        <div class="card">
+          <h2>今日任务</h2>
+          <div class="task"><span class="pill blue">资源</span><div><b>学习《函数返回值可视化讲解》</b><span>预计 12 分钟，来自错题补弱推荐</span></div><button class="btn secondary" data-jump="resources">继续</button></div>
+          <div class="task"><span class="pill green">练习</span><div><b>完成 8 道函数作用域短练习</b><span>结果将回写掌握度与画像</span></div><button class="btn secondary" data-jump="practice">开始</button></div>
+          <div class="task"><span class="pill orange">路径</span><div><b>确认下一节点：模块导入</b><span>根据本轮评估决定是否提前进入</span></div><button class="btn secondary" data-jump="path">查看</button></div>
+        </div>
+        <div class="card">
+          <h2>个性化资源推荐</h2>
+          <div class="resource-list" style="margin-top:16px">
+            <div class="resource-row"><div class="iconbox">▶</div><div><b>5 分钟动画：return 到底返回给谁</b><p class="context-tip">视频作为资源类型下沉到资源体系。</p></div><button class="btn ghost" data-jump="resources">预览</button></div>
+            <div class="resource-row"><div class="iconbox">P</div><div><b>函数作用域错题讲义</b><p class="context-tip">由错题知识点自动生成。</p></div><button class="btn ghost" data-jump="generate">重生成</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="profile">
+      <div class="topline">学习画像 / 画像解读</div>
+      <h1>李明同学的<span class="gradient">学习画像</span></h1>
+      <p class="lead">把学生放在中心，周围拆解目标、资源、掌握情况、薄弱点、学习偏好和今天建议，让学生像读注释图一样看懂自己。</p>
+
+      <section class="anatomy-stage">
+        <img class="anatomy-bg" src="assets/profile-anatomy-bg.png" alt="">
+
+        <article class="profile-note note-resources">
+          <h2>📚 已看资源</h2>
+          <p>最近完成基础语法微课、函数错题讲义，正在学习成绩统计代码案例。</p>
+          <div class="tag-row">
+            <span class="tag green">基础微课 已完成</span>
+            <span class="tag purple">代码案例 进行中</span>
+          </div>
+        </article>
+
+        <article class="profile-note note-goal">
+          <h2>🎯 学习目标</h2>
+          <p>本阶段目标是能独立完成一个 Python 小项目，并把函数、模块、文件处理串起来使用。</p>
+          <div class="tag-row">
+            <span class="tag blue">独立小项目</span>
+            <span class="tag blue">函数模块串联</span>
+          </div>
+        </article>
+
+        <article class="profile-note note-weak">
+          <h2>⚠️ 当前重点</h2>
+          <p>函数返回值和变量作用域容易混淆；模块导入知道概念，但不熟悉拆文件场景。</p>
+          <div class="tag-row">
+            <span class="tag orange">返回值 48%</span>
+            <span class="tag orange">作用域 52%</span>
+            <span class="tag orange">模块导入 61%</span>
+          </div>
+        </article>
+
+        <article class="profile-note note-mastered">
+          <h2>✅ 已掌握</h2>
+          <p>变量、数据类型、条件循环比较稳定；列表和字典能使用，但复杂嵌套还需要练。</p>
+          <div class="tag-row">
+            <span class="tag green">变量 91%</span>
+            <span class="tag green">循环 86%</span>
+            <span class="tag blue">列表 74%</span>
+          </div>
+        </article>
+
+        <article class="profile-note note-pref">
+          <h2>🧭 学习偏好</h2>
+          <p>更适合“短讲解 + 代码案例 + 小练习”的节奏，避免一上来刷长题。</p>
+          <div class="tag-row">
+            <span class="tag purple">短视频</span>
+            <span class="tag purple">案例驱动</span>
+            <span class="tag blue">即时反馈</span>
+          </div>
+        </article>
+
+        <article class="profile-note note-action">
+          <h2>🚀 今天建议</h2>
+          <p>先完成函数返回值补弱包，再做 8 道短练习。达标后进入模块导入节点。</p>
+          <div class="tag-row">
+            <span class="tag blue">生成补弱资源</span>
+            <span class="tag green">开始 8 题练习</span>
+          </div>
+        </article>
+
+        <div class="center-caption">
+          <b>项目实践准备期</b>
+          <span>基础语法较稳，正在补齐函数与模块能力。</span>
+        </div>
+      </section>
+
+      <div class="card section" style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center">
+        <div>
+          <b>画像会随着学习行为更新</b>
+          <p class="context-tip">练习结果、资源学习、错题复盘都会影响周围注释内容。</p>
+        </div>
+        <button class="btn secondary">和 AI 更新画像</button>
+        <button class="btn" data-jump="generate">生成补弱资源</button>
+      </div>
+    </section>
+    <section class="page" id="path">
+      <div class="topline">学习路径 / 规划与上游入口</div>
+      <h1>每个节点都能触发<span class="gradient">学习动作</span></h1>
+      <p class="lead">路径页不是只展示知识图谱，而是连接推荐资源、资源生成和练习评测的上游入口。</p>
+      <div class="grid cols-2 section">
+        <div class="card path-canvas">
+          <div class="line" style="left:154px;top:119px;width:190px;transform:rotate(11deg)"></div>
+          <div class="line" style="left:354px;top:158px;width:205px;transform:rotate(18deg)"></div>
+          <div class="line" style="left:557px;top:233px;width:185px;transform:rotate(-10deg)"></div>
+          <div class="path-node" style="left:40px;top:70px"><b>基础语法</b><span>掌握 91%</span><span class="pill green" style="margin-top:8px">完成</span></div>
+          <div class="path-node current" style="left:270px;top:112px"><b>函数与作用域</b><span>掌握 58%</span><span class="pill blue" style="margin-top:8px">当前</span></div>
+          <div class="path-node" style="left:520px;top:206px"><b>模块导入</b><span>掌握 32%</span><span class="pill orange" style="margin-top:8px">待学习</span></div>
+          <div class="path-node" style="left:760px;top:168px"><b>文件处理</b><span>掌握 18%</span><span class="pill" style="margin-top:8px">后续</span></div>
+        </div>
+        <div class="card drawer">
+          <span class="pill blue">当前节点</span>
+          <h2 style="margin-top:12px">函数与作用域</h2>
+          <p class="context-tip">薄弱来源：昨晚 8 道题中 4 道错误，主要集中在返回值和局部变量。</p>
+          <div class="section" style="display:grid;gap:10px">
+            <button class="btn" data-jump="resources">查看推荐资源</button>
+            <button class="btn secondary" data-jump="generate">按此节点生成资源</button>
+            <button class="btn secondary" data-jump="practice">进入节点练习</button>
+            <button class="btn ghost">让 AI 解释这个节点</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="generate">
+      <div class="topline">资源工作台 / SOP 生成流程</div>
+      <h1>资源生成从<span class="gradient">学习上下文</span>开始</h1>
+      <p class="lead">替代空白 Prompt 工具页。先带入画像、路径节点、薄弱点和错题来源，再选择文档、PPT、导图、题库、视频等资源类型。</p>
+      <div class="card section">
+        <div class="stepper">
+          <div class="step active">1 确认上下文</div><div class="step active">2 选择类型</div><div class="step active">3 配置要求</div><div class="step">4 生成过程</div><div class="step">5 预览</div><div class="step">6 保存学习</div>
+        </div>
+        <div class="grid cols-2">
+          <div>
+            <h2>当前上下文</h2>
+            <div class="profile-tags">
+              <span class="pill blue">路径节点：函数与作用域</span>
+              <span class="pill orange">错题来源：返回值理解</span>
+              <span class="pill purple">偏好：案例驱动</span>
+              <span class="pill green">目标：项目实践</span>
+            </div>
+            <h2 style="margin-top:24px">资源类型</h2>
+            <div class="resource-type" style="margin-top:12px">
+              <div class="type-card active">📄<b>讲义文档</b></div>
+              <div class="type-card">🎞<b>PPT</b></div>
+              <div class="type-card">🧠<b>思维导图</b></div>
+              <div class="type-card">▶<b>讲解视频</b></div>
+              <div class="type-card">📝<b>题库</b></div>
+              <div class="type-card">📚<b>拓展阅读</b></div>
+              <div class="type-card">💻<b>代码案例</b></div>
+              <div class="type-card">✨<b>组合包</b></div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--bg);box-shadow:none">
+            <h2>生成要求</h2>
+            <p class="context-tip">AI 可根据画像自动改写要求，用户也可以手动调整。</p>
+            <div class="answer">用一个“成绩统计小程序”的项目例子解释函数参数、返回值和局部变量，控制在 12 分钟学习量，最后附 5 道检查题。</div>
+            <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+              <button class="btn">开始生成</button>
+              <button class="btn secondary">AI 优化要求</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="resources">
+      <div class="topline">资源库 / 检索、预览与继续学习</div>
+      <h1>资源库不是表格，是真正的<span class="gradient">学习入口</span></h1>
+      <p class="lead">承接资源工作台和推荐场景保存下来的资源，支持筛选、预览、下载、删除和继续学习。</p>
+      <div class="grid cols-2 section">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <h2>已保存资源</h2>
+            <span class="pill blue">筛选：函数薄弱点</span>
+          </div>
+          <div class="resource-list" style="margin-top:16px">
+            <div class="resource-row"><div class="iconbox">▶</div><div><b>return 返回值动画讲解</b><p class="context-tip">视频 · 学习进度 70%</p></div><button class="btn secondary">继续学习</button></div>
+            <div class="resource-row"><div class="iconbox">📄</div><div><b>函数作用域错题讲义</b><p class="context-tip">文档 · 来自练习错题</p></div><button class="btn secondary">预览</button></div>
+            <div class="resource-row"><div class="iconbox">💻</div><div><b>成绩统计小项目代码案例</b><p class="context-tip">代码案例 · 画像偏好匹配</p></div><button class="btn secondary">打开</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="pill blue">资源预览</span>
+          <h2 style="margin-top:12px">函数作用域错题讲义</h2>
+          <p class="context-tip">本资源解释你在练习中反复出错的“函数内变量不会自动影响函数外变量”。</p>
+          <div class="question" style="margin-top:18px">
+            <b>预览片段</b>
+            <p class="context-tip">把函数想成一个独立房间。房间里的临时变量只有通过 return 才能把结果递出来。</p>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+            <button class="btn" data-jump="practice">学完去练习</button>
+            <button class="btn secondary">下载</button>
+            <button class="btn secondary">删除</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="practice">
+      <div class="topline">练习评测 / 错题补弱回流</div>
+      <h1>练习结果会推动<span class="gradient">画像和推荐变化</span></h1>
+      <p class="lead">练习不是孤立刷题页。答题、判题、解析、错题本、补弱资源推荐和掌握度回写组成闭环。</p>
+      <div class="grid cols-2 section">
+        <div class="card">
+          <span class="pill blue">个性化练习</span>
+          <h2 style="margin-top:12px">函数返回值检查题</h2>
+          <div class="question section">
+            <b>运行下面代码后，print(result) 输出什么？</b>
+            <pre style="white-space:pre-wrap;background:#111827;color:white;border-radius:14px;padding:14px;font-size:13px">def add(a, b):
+    total = a + b
+
+result = add(2, 3)
+print(result)</pre>
+          </div>
+          <div class="answer wrong">A. 5</div>
+          <div class="answer">B. None</div>
+          <div class="answer">C. total</div>
+          <div style="display:flex;gap:10px;margin-top:16px"><button class="btn">提交判题</button><button class="btn secondary">收藏题目</button></div>
+        </div>
+        <div class="card">
+          <span class="pill orange">错题回流</span>
+          <h2 style="margin-top:12px">系统识别到的新薄弱点</h2>
+          <div class="timeline section">
+            <div class="time-item"><b>判题结果</b><span>选择 A，但函数没有 return，实际返回 None。</span></div>
+            <div class="time-item"><b>错题沉淀</b><span>归入“函数返回值”错题本。</span></div>
+            <div class="time-item"><b>掌握度回写</b><span>函数返回值掌握度从 62% 调整为 48%。</span></div>
+            <div class="time-item"><b>补弱推荐</b><span>推荐讲义、短视频和 5 道同类题。</span></div>
+          </div>
+          <button class="btn" data-jump="generate">一键生成补弱资源</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="report">
+      <div class="topline">学习报告 / 阶段反馈与下一步行动</div>
+      <h1>报告要回答<span class="gradient">下一步做什么</span></h1>
+      <p class="lead">报告保留统计能力，但重点强化薄弱点分析、AI 总结和可点击行动建议。</p>
+      <div class="grid cols-3 section">
+        <div class="card stat"><div class="iconbox">⏱</div><div><strong>6.5h</strong><span>本周学习</span></div></div>
+        <div class="card stat"><div class="iconbox" style="background:var(--green-soft);color:var(--green)">✓</div><div><strong>81%</strong><span>任务完成</span></div></div>
+        <div class="card stat"><div class="iconbox" style="background:var(--orange-soft);color:var(--orange)">!</div><div><strong>3个</strong><span>高频薄弱点</span></div></div>
+      </div>
+      <div class="grid cols-2 section">
+        <div class="card">
+          <h2>学习行为</h2>
+          <div class="chart">
+            <div class="bar" style="height:60%"></div><div class="bar" style="height:88%"></div><div class="bar" style="height:42%"></div><div class="bar" style="height:74%"></div><div class="bar" style="height:96%"></div><div class="bar" style="height:51%"></div><div class="bar" style="height:68%"></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="pill purple">AI 总结</span>
+          <h2 style="margin-top:12px">本阶段建议</h2>
+          <p class="context-tip">你对基础语法较稳定，但函数返回值和模块导入仍影响项目实践。建议先完成 1 个补弱资源包，再做 8 道同类题，达标后进入文件处理节点。</p>
+          <div style="display:grid;gap:10px;margin-top:18px">
+            <button class="btn" data-jump="generate">生成下一步资源包</button>
+            <button class="btn secondary" data-jump="practice">进入补弱练习</button>
+            <button class="btn secondary" data-jump="path">调整学习路径</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="loop">
+      <div class="topline">页面交互关系图 / 开发对齐</div>
+      <h1>第二阶段页面围绕<span class="gradient">学习闭环</span>组织</h1>
+      <p class="lead">所有一级页面都必须能说明自己在建档、规划、学习、练习、评估、回流中的位置。</p>
+      <div class="card hero-card">
+        <div class="loop-map">
+          <div class="loop-node"><small>01</small><b>对话建档</b><span>AI 问答采集画像，支持快捷推荐和自由输入。</span></div>
+          <div class="loop-node"><small>02</small><b>路径规划</b><span>生成阶段路径、知识图谱和当前节点。</span></div>
+          <div class="loop-node"><small>03</small><b>资源学习</b><span>推荐资源、生成资源、资源库继续学习。</span></div>
+          <div class="loop-node"><small>04</small><b>练习评测</b><span>个性化出题、判题、解析和错题本。</span></div>
+          <div class="loop-node"><small>05</small><b>报告评估</b><span>统计、薄弱点、AI 总结和下一步建议。</span></div>
+          <div class="loop-node"><small>06</small><b>回流更新</b><span>更新画像、掌握度、路径和补弱推荐。</span></div>
+        </div>
+      </div>
+      <div class="grid cols-3 section">
+        <div class="card"><h2>下沉：资源推送</h2><p class="context-tip">出现在工作台、路径节点、错题补弱、报告建议和资源库，不作为一级页面。</p></div>
+        <div class="card"><h2>下沉：视频播放</h2><p class="context-tip">作为资源类型进入资源工作台和资源预览体系。</p></div>
+        <div class="card"><h2>全局：AI 精灵</h2><p class="context-tip">悬浮出现，按当前页面提供画像解释、路径建议、题目讲解、资源解释和报告解读。</p></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<button class="ai-float" id="aiFloat" aria-label="打开 AI 精灵">AI</button>
+<aside class="ai-panel" id="aiPanel">
+  <header><h2>AI 精灵助手</h2><p class="context-tip" id="aiContext">当前在学习工作台，我可以帮你解释今日任务和推荐资源。</p></header>
+  <div class="body">
+    <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">你可以问：为什么今天要先补函数返回值？</div></div>
+    <div class="quick-row" style="margin-left:0">
+      <button class="quick">解释当前页面</button>
+      <button class="quick">给我下一步建议</button>
+      <button class="quick">进入深度会话</button>
+    </div>
+  </div>
+</aside>
+
+<script>
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const pages = document.querySelectorAll('.page');
+  const contexts = {
+    dashboard: ['当前在学习工作台，我可以帮你解释今日任务和推荐资源。', '你可以问：为什么今天要先补函数返回值？'],
+    profile: ['当前在学习画像页，我可以解释你的状态、资源记录和下一步学习建议。', '你可以问：为什么说我适合先补函数返回值？'],
+    path: ['当前在学习路径页，我可以解释节点顺序和掌握度变化。', '你可以问：为什么模块导入要延后？'],
+    generate: ['当前在资源工作台，我可以帮你改写生成要求。', '你可以问：怎样生成更适合项目实践的资源？'],
+    resources: ['当前在资源库，我可以讲解资源内容并建议继续学习动作。', '你可以问：这个讲义解决哪个薄弱点？'],
+    practice: ['当前在练习评测页，我可以讲题并分析错因。', '你可以问：为什么这题答案是 None？'],
+    report: ['当前在学习报告页，我可以解读报告并建议下一轮学习。', '你可以问：下一步先练习还是先看资源？'],
+    loop: ['当前在交互关系图，我可以解释页面职责和闭环边界。', '你可以问：资源推送为什么不做一级入口？']
+  };
+  function showPage(id) {
+    pages.forEach(page => page.classList.toggle('active', page.id === id));
+    navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === id));
+    const ctx = contexts[id] || contexts.dashboard;
+    document.getElementById('aiContext').textContent = ctx[0];
+    document.getElementById('aiBubble').textContent = ctx[1];
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  navButtons.forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.page)));
+  document.querySelectorAll('[data-jump]').forEach(btn => {
+    btn.addEventListener('click', () => showPage(btn.dataset.jump));
+  });
+  document.getElementById('aiFloat').addEventListener('click', () => {
+    document.getElementById('aiPanel').classList.toggle('open');
+  });
+  const input = document.getElementById('profileInput');
+  const chat = document.getElementById('profileChat');
+  const profileUpdatePanel = document.getElementById('profileUpdatePanel');
+  const openProfileUpdate = document.getElementById('openProfileUpdate');
+  if (openProfileUpdate && profileUpdatePanel) {
+    openProfileUpdate.addEventListener('click', () => {
+      profileUpdatePanel.style.display = profileUpdatePanel.style.display === 'none' ? 'flex' : 'none';
+      profileUpdatePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+  function appendUserMessage(text) {
+    if (!text || !text.trim() || !chat || !input) return;
+    const user = document.createElement('div');
+    user.className = 'msg user';
+    user.innerHTML = '<div class="bubble"></div>';
+    user.querySelector('.bubble').textContent = text;
+    chat.appendChild(user);
+    const ai = document.createElement('div');
+    ai.className = 'msg';
+    ai.innerHTML = '<div class="avatar">AI</div><div class="bubble">收到，我会把这条回答纳入画像，并继续追问学习时间、材料偏好或当前薄弱点。</div>';
+    chat.appendChild(ai);
+    input.value = '';
+  }
+  document.querySelectorAll('[data-quick]').forEach(btn => {
+    btn.addEventListener('click', () => appendUserMessage(btn.dataset.quick));
+  });
+  const sendProfile = document.getElementById('sendProfile');
+  if (sendProfile && input) {
+    sendProfile.addEventListener('click', () => appendUserMessage(input.value));
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        appendUserMessage(input.value);
+      }
+    });
+  }
+</script>
+</body>
+</html>

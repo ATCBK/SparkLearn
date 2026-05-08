@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SparkLearn 学习画像解剖式原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfbfd;
+    --card: #fff;
+    --ink: #1d1d1f;
+    --muted: #6e6e73;
+    --soft: #86868b;
+    --line: rgba(0,0,0,.08);
+    --blue: #0071e3;
+    --blue2: #5ac8fa;
+    --blue-soft: #e8f4fd;
+    --green: #34c759;
+    --green-soft: #e8f8ed;
+    --orange: #ff9500;
+    --orange-soft: #fff5e6;
+    --purple: #af52de;
+    --purple-soft: #f5edfa;
+    --shadow: 0 4px 20px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.02);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "DM Sans", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { min-height: 100vh; display: flex; }
+  .sidebar {
+    width: 240px;
+    position: fixed;
+    inset: 0 auto 0 0;
+    background: rgba(251,251,253,.78);
+    backdrop-filter: blur(52px) saturate(180%);
+    border-right: 1px solid var(--line);
+    padding: 22px 14px;
+  }
+  .brand { display: flex; gap: 12px; align-items: center; padding: 8px 8px 24px; border-bottom: 1px solid var(--line); }
+  .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), var(--blue2));
+    color: white; display: grid; place-items: center; font-weight: 800;
+  }
+  .brand b { display: block; }
+  .brand span { color: var(--soft); font-size: 11px; }
+  .nav-title { margin: 22px 10px 8px; color: #aeaeb2; font-size: 11px; font-weight: 700; letter-spacing: .8px; }
+  .nav {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    color: var(--muted); margin: 3px 0; font-size: 14px;
+  }
+  .nav.active { background: var(--blue); color: white; }
+  .shell { margin-left: 240px; width: calc(100% - 240px); }
+  .topbar {
+    height: 66px;
+    display: grid;
+    grid-template-columns: 260px 1fr auto;
+    align-items: center;
+    gap: 18px;
+    padding: 0 38px;
+    background: rgba(251,251,253,.82);
+    backdrop-filter: blur(36px);
+    border-bottom: 1px solid var(--line);
+  }
+  .crumb { color: var(--muted); font-size: 13px; }
+  .crumb b { color: var(--ink); }
+  .search {
+    height: 38px; max-width: 460px;
+    border: 1px solid var(--line);
+    background: white;
+    border-radius: 999px;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    color: var(--muted);
+  }
+  .top-actions { display: flex; align-items: center; gap: 14px; color: var(--muted); }
+  .mini-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--blue), var(--blue2));
+    color: white; font-weight: 800;
+  }
+  main { max-width: 1220px; margin: 0 auto; padding: 34px 42px 70px; }
+  h1 { margin: 0; font-size: 36px; letter-spacing: -.5px; line-height: 1.18; }
+  h2 { margin: 0; font-size: 18px; }
+  p { margin: 0; }
+  .lead { color: var(--muted); margin-top: 8px; line-height: 1.65; max-width: 760px; }
+  .stage {
+    position: relative;
+    height: 720px;
+    margin-top: 26px;
+    border-radius: 28px;
+    background: white;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .stage-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
+  }
+  .stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 48%, transparent 0 24%, rgba(255,255,255,.18) 34%, rgba(255,255,255,.62) 76%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .center-person {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 260px;
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+  }
+  .center-caption {
+    position: absolute;
+    left: 50%;
+    top: 66%;
+    transform: translateX(-50%);
+    width: 250px;
+    padding: 14px 18px;
+    text-align: center;
+    border-radius: 18px;
+    background: rgba(255,255,255,.82);
+    border: 1px solid rgba(0,113,227,.12);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(18px);
+    z-index: 5;
+  }
+  .center-caption b { display: block; font-size: 18px; }
+  .center-caption span { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 5px; }
+  .head {
+    width: 118px; height: 118px;
+    border-radius: 40px;
+    display: grid; place-items: center;
+    color: white;
+    font-size: 44px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--blue), var(--blue2));
+    box-shadow: 0 18px 46px rgba(0,113,227,.28);
+    border: 6px solid white;
+  }
+  .body {
+    width: 190px;
+    height: 154px;
+    margin-top: -8px;
+    border-radius: 48px 48px 34px 34px;
+    background: linear-gradient(180deg, #f2f8ff, #fff);
+    border: 1px solid rgba(0,113,227,.14);
+    box-shadow: 0 16px 38px rgba(0,0,0,.06);
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 24px;
+  }
+  .body b { display: block; font-size: 19px; }
+  .body span { display: block; color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.45; }
+  .ring {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 360px; height: 360px;
+    border: 1px dashed rgba(0,113,227,.24);
+    border-radius: 50%;
+    display: none;
+  }
+  .ring.outer { width: 520px; height: 520px; border-color: rgba(0,0,0,.08); }
+  .note {
+    position: absolute;
+    width: 255px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    padding: 16px;
+    backdrop-filter: blur(18px) saturate(140%);
+    z-index: 4;
+  }
+  .note h2 { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .note p { color: var(--muted); font-size: 13px; line-height: 1.55; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  .tag {
+    display: inline-flex; align-items: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #f5f5f7;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .tag.blue { background: var(--blue-soft); color: var(--blue); }
+  .tag.green { background: var(--green-soft); color: var(--green); }
+  .tag.orange { background: var(--orange-soft); color: var(--orange); }
+  .tag.purple { background: var(--purple-soft); color: var(--purple); }
+  .note.resources { left: 70px; top: 68px; }
+  .note.goal { right: 96px; top: 66px; }
+  .note.weak { left: 54px; top: 298px; }
+  .note.mastered { right: 52px; top: 310px; }
+  .note.preference { left: 92px; bottom: 72px; }
+  .note.action { right: 98px; bottom: 78px; }
+  .connector {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(0,113,227,.24), rgba(0,113,227,.04));
+    transform-origin: left center;
+    z-index: 2;
+    display: none;
+  }
+  .dot {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 0 6px rgba(0,113,227,.08);
+    z-index: 3;
+    display: none;
+  }
+  .c1 { left: 282px; top: 178px; width: 250px; transform: rotate(20deg); }
+  .d1 { left: 528px; top: 262px; }
+  .c2 { right: 304px; top: 176px; width: 238px; transform: rotate(160deg); }
+  .d2 { right: 535px; top: 256px; }
+  .c3 { left: 286px; top: 390px; width: 236px; transform: rotate(-7deg); }
+  .d3 { left: 518px; top: 354px; }
+  .c4 { right: 294px; top: 398px; width: 232px; transform: rotate(187deg); }
+  .d4 { right: 520px; top: 358px; }
+  .c5 { left: 310px; bottom: 190px; width: 236px; transform: rotate(-25deg); }
+  .d5 { left: 538px; bottom: 284px; }
+  .c6 { right: 310px; bottom: 192px; width: 238px; transform: rotate(205deg); }
+  .d6 { right: 540px; bottom: 284px; }
+  .bottom-bar {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+  }
+  .btn {
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 15px;
+    background: var(--blue);
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 9px 24px rgba(0,113,227,.22);
+  }
+  .btn.secondary { background: #f5f5f7; color: var(--ink); box-shadow: none; }
+  @media (max-width: 1100px) {
+    .sidebar { display: none; }
+    .shell { margin-left: 0; width: 100%; }
+    .topbar { grid-template-columns: 1fr; height: auto; padding: 14px 20px; }
+    .search, .top-actions { display: none; }
+    main { padding: 26px 18px 50px; }
+    .stage { height: auto; padding: 24px; display: grid; gap: 14px; }
+    .center-person, .note, .ring, .connector, .dot { position: static; transform: none; width: auto; }
+    .center-person { height: auto; }
+    .ring, .connector, .dot { display: none; }
+    .bottom-bar { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">S</div>
+      <div><b>SparkLearn</b><span>个性化学习系统</span></div>
+    </div>
+    <div class="nav-title">学习闭环</div>
+    <div class="nav">⌂ 学习工作台</div>
+    <div class="nav active">♙ 学习画像</div>
+    <div class="nav">⌁ 学习路径</div>
+    <div class="nav">✦ 资源工作台</div>
+    <div class="nav">□ 资源库</div>
+    <div class="nav">✎ 练习评测</div>
+    <div class="nav">▥ 学习报告</div>
+  </aside>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="crumb">学习画像 &gt; <b>画像解读</b></div>
+      <div class="search">⌕ 搜索课程、知识点或资源</div>
+      <div class="top-actions"><span>🔔</span><span>💬</span><div class="mini-avatar">李</div><b style="color:var(--ink);font-size:13px">李明同学</b></div>
+    </header>
+
+    <main>
+      <h1>李明同学的学习画像</h1>
+      <p class="lead">把学生放在中心，周围拆解目标、资源、掌握情况、薄弱点、学习偏好和今天建议，让学生像读注释图一样看懂自己。</p>
+
+      <section class="stage">
+        <img class="stage-bg" src="assets/profile-anatomy-bg.png" alt="">
+        <div class="ring"></div>
+        <div class="ring outer"></div>
+
+        <div class="connector c1"></div><div class="dot d1"></div>
+        <div class="connector c2"></div><div class="dot d2"></div>
+        <div class="connector c3"></div><div class="dot d3"></div>
+        <div class="connector c4"></div><div class="dot d4"></div>
+        <div class="connector c5"></div><div class="dot d5"></div>
+        <div class="connector c6"></div><div class="dot d6"></div>
+
+        <div class="center-caption">
+          <b>项目实践准备期</b>
+          <span>基础语法较稳，正在补齐函数与模块能力。</span>
+        </div>
+
+        <article class="note resources">
+          <h2>📚 已看资源</h2>
+          <p>最近完成基础语法微课、函数错题讲义，正在学习成绩统计代码案例。</p>
+          <div class="tag-row">
+            <span class="tag green">基础微课 已完成</span>
+            <span class="tag purple">代码案例 进行中</span>
+          </div>
+        </article>
+
+        <article class="note goal">
+          <h2>🎯 学习目标</h2>
+          <p>本阶段目标是能独立完成一个 Python 小项目，并把函数、模块、文件处理串起来使用。</p>
+          <div class="tag-row">
+            <span class="tag blue">独立小项目</span>
+            <span class="tag blue">函数模块串联</span>
+          </div>
+        </article>
+
+        <article class="note weak">
+          <h2>⚠️ 当前重点</h2>
+          <p>函数返回值和变量作用域容易混淆；模块导入知道概念，但不熟悉拆文件场景。</p>
+          <div class="tag-row">
+            <span class="tag orange">返回值 48%</span>
+            <span class="tag orange">作用域 52%</span>
+            <span class="tag orange">模块导入 61%</span>
+          </div>
+        </article>
+
+        <article class="note mastered">
+          <h2>✅ 已掌握</h2>
+          <p>变量、数据类型、条件循环比较稳定；列表和字典能使用，但复杂嵌套还需要练。</p>
+          <div class="tag-row">
+            <span class="tag green">变量 91%</span>
+            <span class="tag green">循环 86%</span>
+            <span class="tag blue">列表 74%</span>
+          </div>
+        </article>
+
+        <article class="note preference">
+          <h2>🧭 学习偏好</h2>
+          <p>更适合“短讲解 + 代码案例 + 小练习”的节奏，避免一上来刷长题。</p>
+          <div class="tag-row">
+            <span class="tag purple">短视频</span>
+            <span class="tag purple">案例驱动</span>
+            <span class="tag blue">即时反馈</span>
+          </div>
+        </article>
+
+        <article class="note action">
+          <h2>🚀 今天建议</h2>
+          <p>先完成函数返回值补弱包，再做 8 道短练习。达标后进入模块导入节点。</p>
+          <div class="tag-row">
+            <span class="tag blue">生成补弱资源</span>
+            <span class="tag green">开始 8 题练习</span>
+          </div>
+        </article>
+      </section>
+
+      <div class="bottom-bar">
+        <div>
+          <b>画像会随着学习行为更新</b>
+          <p class="lead" style="font-size:13px;margin-top:3px">练习结果、资源学习、错题复盘都会影响周围注释内容。</p>
+        </div>
+        <button class="btn secondary">和 AI 更新画像</button>
+        <button class="btn">开始今日补弱</button>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>
