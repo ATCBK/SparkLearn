@@ -1,6 +1,6 @@
 [
   {
-    "id": "dq_aadda485_1",
+    "id": "dq_80174b06_1",
     "type": "single",
     "content": "以下哪个是 Python 的可变数据类型？",
     "options": [
@@ -15,7 +15,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_aadda485_2",
+    "id": "dq_80174b06_2",
     "type": "single",
     "content": "Python 中用于定义函数的关键字是？",
     "options": [
@@ -30,7 +30,7 @@
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_aadda485_3",
+    "id": "dq_80174b06_3",
     "type": "multiple",
     "content": "以下哪些是 Python 内置数据类型？（多选）",
     "options": [
@@ -49,7 +49,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_aadda485_4",
+    "id": "dq_80174b06_4",
     "type": "fill_blank",
     "content": "在 Python 中，使用 ______ 关键字来导入模块。",
     "correct_answer": "import",
@@ -58,7 +58,7 @@
     "knowledge_point_name": "基础语法"
   },
   {
-    "id": "dq_aadda485_5",
+    "id": "dq_80174b06_5",
     "type": "single",
     "content": "以下哪个是 Python 的可变数据类型？",
     "options": [
@@ -73,7 +73,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_aadda485_6",
+    "id": "dq_80174b06_6",
     "type": "single",
     "content": "Python 中用于定义函数的关键字是？",
     "options": [
@@ -88,7 +88,7 @@
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_aadda485_7",
+    "id": "dq_80174b06_7",
     "type": "multiple",
     "content": "以下哪些是 Python 内置数据类型？（多选）",
     "options": [
@@ -107,7 +107,7 @@
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_aadda485_8",
+    "id": "dq_80174b06_8",
     "type": "fill_blank",
     "content": "在 Python 中，使用 ______ 关键字来导入模块。",
     "correct_answer": "import",

@@ -321,3 +321,13 @@
 {"ts": "2026-05-06T08:28:46.679268Z", "type": "profile_dialog_completed", "session_id": "sess_4fa5b6dc", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-06T08:28:46.665269Z"}}
 {"ts": "2026-05-07T02:32:01.692803Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "cfff0ad9"}
 {"ts": "2026-05-07T02:32:14.200314Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "aadda485"}
+{"ts": "2026-05-07T10:22:06.946592Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "7507641d"}
+{"ts": "2026-05-07T10:22:16.761122Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "136d6696"}
+{"ts": "2026-05-07T10:34:23.702306Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "1bcfb025"}
+{"ts": "2026-05-07T10:34:32.984033Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "67c239bd"}
+{"ts": "2026-05-07T10:39:22.683102Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "c958b885"}
+{"ts": "2026-05-07T10:39:32.026876Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "0c0bc62b"}
+{"ts": "2026-05-07T10:41:44.461847Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "5e34932c"}
+{"ts": "2026-05-07T10:41:52.490109Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "033eb6db"}
+{"ts": "2026-05-07T10:45:16.367263Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "062c5e2a"}
+{"ts": "2026-05-07T10:45:28.612827Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "80174b06"}
