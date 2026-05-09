@@ -8,18 +8,18 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f5f8fc;
+    --bg: #f6f8fb;
     --card: #ffffff;
     --solid: #fff;
-    --ink: #07133b;
-    --text: #172554;
-    --muted: #64748b;
-    --soft: #93a4bb;
-    --line: rgba(30,80,160,.12);
-    --blue: #2f80ed;
+    --ink: #111827;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --soft: #9ca3af;
+    --line: #e5e7eb;
+    --blue: #2563eb;
     --blue-2: #68a8f8;
-    --blue-soft: #edf5ff;
-    --green: #22c55e;
+    --blue-soft: #eff6ff;
+    --green: #16a34a;
     --green-soft: #eafaf0;
     --orange: #f59e0b;
     --orange-soft: #fff7e8;
@@ -27,8 +27,8 @@
     --red-soft: #fff0f0;
     --purple: #8b5cf6;
     --purple-soft: #f3efff;
-    --shadow: 0 8px 24px rgba(30,80,160,.06);
-    --shadow-sm: 0 6px 18px rgba(30,80,160,.05);
+    --shadow: 0 4px 16px rgba(15,23,42,.04);
+    --shadow-sm: 0 2px 10px rgba(15,23,42,.035);
   }
   * { box-sizing: border-box; }
   body {
@@ -45,10 +45,10 @@
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    width: 236px;
-    padding: 20px 12px;
+    width: 232px;
+    padding: 18px 12px;
     background: #ffffff;
-    border-right: 1px solid #e5edf7;
+    border-right: 1px solid var(--line);
     z-index: 20;
   }
   .brand {
@@ -61,7 +61,7 @@
   .brand img { width: 42px; height: 36px; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(47,128,237,.12)); }
   .brand strong { display: block; font-size: 17px; letter-spacing: -.2px; }
   .brand span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
-  .nav-title { margin: 20px 10px 8px; color: #8fa0b8; font-size: 11px; font-weight: 800; letter-spacing: .8px; }
+  .nav-title { margin: 20px 10px 8px; color: var(--soft); font-size: 11px; font-weight: 800; letter-spacing: .8px; }
   .nav-btn {
     width: 100%;
     border: 0;
@@ -72,23 +72,23 @@
     gap: 11px;
     padding: 10px 12px;
     margin: 2px 0;
-    border-radius: 10px;
+    border-radius: 8px;
     text-align: left;
     font-weight: 700;
     transition: .18s ease;
   }
   .nav-btn svg { width: 19px; height: 19px; stroke-width: 2; }
-  .nav-btn:hover { background: #f4f8fd; color: var(--ink); }
-  .nav-btn.active { background: var(--blue-soft); color: var(--blue); box-shadow: inset 0 0 0 1px rgba(47,128,237,.16); }
+  .nav-btn:hover { background: #f3f4f6; color: var(--ink); }
+  .nav-btn.active { background: var(--blue-soft); color: var(--blue); box-shadow: inset 3px 0 0 var(--blue); }
   .side-note {
     position: absolute;
     left: 14px;
     right: 14px;
     bottom: 18px;
     padding: 14px;
-    border-radius: 14px;
-    background: #f8fbff;
-    border: 1px solid #e5edf7;
+    border-radius: 12px;
+    background: #f9fafb;
+    border: 1px solid var(--line);
     box-shadow: var(--shadow-sm);
   }
   .side-note b { display: block; font-size: 13px; }
@@ -96,21 +96,61 @@
   .status-list { display: grid; gap: 8px; margin-top: 10px; }
   .status-list div { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
   .status-list strong { color: var(--ink); font-weight: 800; }
-  main { margin-left: 236px; width: calc(100% - 236px); }
+  main { margin-left: 232px; padding-top: 56px; width: calc(100% - 232px); }
+  .topbar {
+    position: fixed;
+    left: 232px;
+    right: 0;
+    top: 0;
+    height: 56px;
+    z-index: 19;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 0 32px;
+    background: rgba(255,255,255,.96);
+    border-bottom: 1px solid var(--line);
+  }
+  .breadcrumb { color: var(--muted); font-size: 13px; font-weight: 700; }
+  .breadcrumb b { color: var(--ink); font-weight: 800; }
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+  .global-search {
+    width: 320px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0 12px;
+    background: #f9fafb;
+    outline: none;
+  }
+  .global-search, .top-icon { display: none; }
+  .top-icon {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+  }
+  .user-chip { display: flex; align-items: center; gap: 9px; color: var(--text); font-size: 13px; font-weight: 800; }
+  .avatar-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center; font-size: 12px; }
   .page {
     display: none;
-    max-width: 1200px;
+    max-width: 1360px;
     margin: 0 auto;
-    padding: 32px 32px 80px;
+    padding: 28px 32px 56px;
     animation: lift .28s cubic-bezier(.16,1,.3,1);
   }
   .page.active { display: block; }
   @keyframes lift { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .topline { color: var(--soft); font-size: 13px; font-weight: 800; margin-bottom: 9px; }
   .title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  h1 { margin: 0; font-size: 32px; line-height: 1.22; letter-spacing: 0; }
-  h2 { margin: 0; font-size: 20px; letter-spacing: 0; }
-  h3 { margin: 0; font-size: 16px; letter-spacing: 0; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.25; letter-spacing: 0; font-weight: 700; }
+  h2 { margin: 0; font-size: 18px; letter-spacing: 0; font-weight: 700; }
+  h3 { margin: 0; font-size: 15px; letter-spacing: 0; font-weight: 700; }
   p { margin: 0; }
   .lead { max-width: 760px; margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.7; }
   .blue { color: var(--blue); }
@@ -118,23 +158,23 @@
   .cols-2 { grid-template-columns: 1.15fr .85fr; }
   .cols-3 { grid-template-columns: repeat(3, 1fr); }
   .cols-4 { grid-template-columns: repeat(4, 1fr); }
-  .section { margin-top: 24px; }
+  .section { margin-top: 20px; }
   .card {
     background: var(--card);
-    border: 1px solid #e8eff8;
-    border-radius: 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
     box-shadow: var(--shadow);
-    padding: 24px;
+    padding: 20px;
   }
-  .soft-card { background: #f8fbff; border: 1px solid #e8eff8; border-radius: 14px; padding: 16px; }
+  .soft-card { background: #f9fafb; border: 1px solid #eef2f7; border-radius: 10px; padding: 14px; }
   .pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    border-radius: 999px;
+    border-radius: 6px;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
     white-space: nowrap;
     background: #f1f6fc;
     color: #52627b;
@@ -146,24 +186,24 @@
   .pill.red { background: var(--red-soft); color: var(--red); }
   .btn {
     border: 0;
-    border-radius: 999px;
-    padding: 10px 15px;
+    border-radius: 8px;
+    padding: 9px 14px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
     color: white;
     background: var(--blue);
-    box-shadow: 0 8px 18px rgba(47,128,237,.16);
-    font-weight: 800;
+    box-shadow: none;
+    font-weight: 700;
   }
-  .btn.secondary { background: #fff; color: var(--blue); box-shadow: inset 0 0 0 1px rgba(47,128,237,.28); }
+  .btn.secondary { background: #fff; color: var(--blue); box-shadow: inset 0 0 0 1px #bfdbfe; }
   .btn.tertiary { background: #f2f6fb; color: var(--ink); box-shadow: none; }
   .btn.ghost { background: transparent; color: var(--blue); box-shadow: none; padding-inline: 2px; }
-  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
   .page-head > div:first-child { min-width: 0; }
   .status-summary { display: grid; grid-template-columns: repeat(3, auto); gap: 10px; align-items: center; }
-  .summary-chip { min-width: 118px; padding: 11px 13px; border-radius: 14px; background: #fff; border: 1px solid #e8eff8; box-shadow: var(--shadow-sm); }
+  .summary-chip { min-width: 118px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1px solid var(--line); box-shadow: none; }
   .summary-chip b { display: block; font-size: 16px; }
   .summary-chip span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
   .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
@@ -172,9 +212,9 @@
   .hero-panel {
     position: relative;
     overflow: hidden;
-    min-height: 260px;
-    padding: 24px;
-    background: linear-gradient(135deg, #ffffff, #edf5ff);
+    min-height: 220px;
+    padding: 22px;
+    background: #fff;
   }
   .hero-panel::after {
     content: "";
@@ -202,8 +242,9 @@
   .step-card small { color: var(--blue); font-weight: 900; }
   .step-card b { display: block; margin-top: 7px; }
   .step-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-  .metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .metric { padding: 16px; border-radius: 14px; background: #fff; border: 1px solid #e8eff8; }
+  .metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .metric { padding: 16px 18px; border-right: 1px solid #eef2f7; background: #fff; }
+  .metric:last-child { border-right: 0; }
   .metric b { display: block; font-size: 20px; }
   .metric span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.5; }
   .task-row {
@@ -212,11 +253,18 @@
     align-items: center;
     gap: 12px;
     padding: 14px 0;
-    border-bottom: 1px solid rgba(37,99,235,.1);
+    border-bottom: 1px solid #eef2f7;
   }
   .task-row:last-child { border-bottom: 0; }
   .task-row b { display: block; font-size: 15px; }
   .task-row span { color: var(--muted); font-size: 12px; }
+  .task-check { width: 18px; height: 18px; accent-color: var(--blue); }
+  .task-row.done b, .task-row.done span { text-decoration: line-through; color: var(--soft); }
+  .task-delete { border: 0; background: transparent; color: var(--soft); font-size: 18px; }
+  .task-input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 14px; }
+  .resource-reco { display: grid; gap: 12px; }
+  .resource-reco-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eef2f7; }
+  .resource-reco-item:last-child { border-bottom: 0; }
   .timeline { position: relative; padding-left: 18px; }
   .timeline::before { content: ""; position: absolute; left: 4px; top: 8px; bottom: 8px; width: 2px; background: #d7e8fb; }
   .time-item { position: relative; margin-bottom: 15px; }
@@ -403,7 +451,7 @@
   .condition-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 12px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   .bar { height: 8px; border-radius: 999px; background: #dfeafa; overflow: hidden; }
   .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--blue-2)); }
-  .flow-shell { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+  .flow-shell { display: block; }
   .flow-rail { position: sticky; top: 22px; display: grid; gap: 8px; }
   .flow-step {
     width: 100%;
@@ -418,7 +466,14 @@
   .flow-step span { display: block; margin-bottom: 4px; color: var(--soft); font-size: 11px; }
   .flow-step.active { background: var(--blue-soft); color: var(--blue); border-color: rgba(11,116,255,.24); }
   .flow-step.done { color: var(--green); background: var(--green-soft); }
-  .flow-view { display: none; min-height: 430px; }
+  .flow-stepper { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; min-width: 760px; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .flow-stepper .flow-step { border: 0; border-right: 1px solid #eef2f7; border-radius: 0; background: #fff; min-height: 64px; }
+  .flow-stepper .flow-step:last-child { border-right: 0; }
+  .flow-stepper .flow-step.active { background: var(--blue-soft); box-shadow: inset 0 -3px 0 var(--blue); }
+  .flow-workspace { padding: 0; overflow: hidden; }
+  .flow-workspace-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); background: #f9fafb; }
+  .flow-workspace-body { padding: 22px; }
+  .flow-view { display: none; min-height: 520px; }
   .flow-view.active { display: block; }
   .flow-page-head { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 22px; }
   .flow-page-head p { max-width: 650px; }
@@ -448,6 +503,14 @@
   .source-card.selected { background: var(--blue-soft); border-color: rgba(47,128,237,.28); }
   .source-card b { display: block; font-size: 14px; }
   .source-card span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .source-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #f9fafb; }
+  .modal-mask { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(15,23,42,.28); align-items: center; justify-content: center; padding: 24px; }
+  .modal-mask.open { display: flex; }
+  .modal { width: min(760px, 100%); max-height: 82vh; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 60px rgba(15,23,42,.14); display: grid; grid-template-rows: auto 1fr auto; }
+  .modal-head, .modal-foot { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .modal-foot { border-bottom: 0; border-top: 1px solid var(--line); }
+  .modal-body { padding: 18px 20px; overflow: auto; }
+  .modal-close { border: 0; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; }
   .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .type-card {
     min-height: 86px;
@@ -500,12 +563,13 @@
   .kb-stat { padding: 14px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   .kb-stat b { display: block; font-size: 20px; }
   .material-page { max-width: 1560px; }
-  .material-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .material-stat { min-height: 120px; display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; }
+  .material-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .material-stat { min-height: 88px; display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; border: 0; border-right: 1px solid #eef2f7; border-radius: 0; box-shadow: none; }
+  .material-stat:last-child { border-right: 0; }
   .material-stat b { display: block; margin-top: 7px; font-size: 28px; line-height: 1; }
-  .material-icon { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; }
-  .material-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
-  .material-middle { display: grid; grid-template-columns: 380px 1fr; gap: 16px; align-items: stretch; }
+  .material-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; }
+  .material-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .material-middle { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: stretch; }
   .material-upload, .material-table-card { min-height: 310px; }
   .material-upload-zone { height: 168px; border: 1.5px dashed #bfdbfe; border-radius: 14px; background: #f8fbff; display: grid; place-items: center; text-align: center; padding: 18px; margin-top: 14px; }
   .material-upload-zone b { display: block; margin: 10px 0 12px; }
@@ -558,13 +622,41 @@
   .answer.correct { border-color: rgba(34,197,94,.36); background: var(--green-soft); }
   .analysis-panel { display: none; }
   .analysis-panel.open { display: block; }
+  #practice { padding-bottom: 28px; }
+  #practice .page-head { margin-bottom: 16px; }
+  .practice-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+  .practice-layout > .card { min-height: calc(100vh - 250px); }
+  .practice-sidebar { display: grid; gap: 12px; }
+  .practice-sidebar .card { padding: 16px; }
+  .practice-sidebar .section { margin-top: 12px; }
+  .question-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .question-index { height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-weight: 800; }
+  .question-index.active { background: var(--blue-soft); color: var(--blue); border-color: #bfdbfe; }
+  .question-index.done { background: var(--green-soft); color: var(--green); border-color: #bbf7d0; }
+  .mistake-list { display: grid; gap: 10px; }
+  .mistake-item { padding: 12px; border: 1px solid #eef2f7; border-radius: 10px; background: #f9fafb; }
+  .mistake-item b { display: block; font-size: 13px; }
+  .number-stepper { display: grid; grid-template-columns: 36px 1fr 36px; gap: 8px; align-items: center; }
+  .number-stepper button { height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); font-weight: 900; }
+  .number-stepper input { height: 36px; border: 1px solid var(--line); border-radius: 8px; text-align: center; outline: none; font-weight: 800; }
+  .detail-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .detail-table th, .detail-table td { padding: 12px 10px; border-bottom: 1px solid #eef2f7; text-align: left; vertical-align: top; }
+  .detail-table th { color: var(--soft); font-size: 12px; }
   .chart { display: flex; align-items: end; gap: 11px; height: 180px; padding-top: 18px; }
   .chart div { flex: 1; border-radius: 10px 10px 4px 4px; min-height: 30px; background: linear-gradient(180deg, var(--blue-2), var(--blue)); }
   .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .ai-float {
+  .ai-widget {
     position: fixed;
     right: 24px;
     bottom: 24px;
+    z-index: 50;
+    width: 390px;
+    display: grid;
+    justify-items: end;
+    gap: 10px;
+  }
+  .ai-widget.minimized { width: auto; }
+  .ai-float {
     width: 126px;
     height: 44px;
     border: 0;
@@ -572,25 +664,28 @@
     color: white;
     background: var(--blue);
     box-shadow: 0 10px 26px rgba(47,128,237,.18);
-    z-index: 50;
     font-weight: 900;
     font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
+  .ai-widget.minimized .ai-float { width: 54px; border-radius: 50%; font-size: 0; }
+  .ai-widget.minimized .ai-float::before { content: "AI"; font-size: 13px; }
+  .ai-float.dragging { cursor: grabbing; }
   .ai-panel {
     display: none;
-    position: fixed;
-    right: 24px;
-    bottom: 82px;
     width: 390px;
     overflow: hidden;
-    border-radius: 18px;
+    border-radius: 12px;
     background: #fff;
-    border: 1px solid #e8eff8;
-    box-shadow: 0 18px 45px rgba(30,80,160,.12);
-    z-index: 49;
+    border: 1px solid var(--line);
+    box-shadow: 0 18px 45px rgba(15,23,42,.12);
   }
   .ai-panel.open { display: block; }
-  .ai-panel header { padding: 18px; border-bottom: 1px solid var(--line); }
+  .ai-panel header { padding: 14px 16px; border-bottom: 1px solid var(--line); cursor: move; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .ai-panel-actions { display: flex; gap: 6px; }
+  .ai-panel-actions button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); }
   .ai-panel .body { padding: 16px; }
   .quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .quick { border: 1px solid rgba(47,128,237,.18); border-radius: 999px; background: var(--blue-soft); color: var(--blue); padding: 7px 10px; font-size: 12px; font-weight: 800; }
@@ -602,7 +697,7 @@
     h1 { font-size: 30px; }
     .page-head { display: grid; }
     .status-summary { grid-template-columns: 1fr; }
-    .cols-2, .cols-3, .cols-4, .steps, .metric-strip, .chat-box, .resource-layout, .knowledge-layout, .material-stats, .material-middle, .material-bottom, .material-mini-grid, .usage-grid, .evidence-grid, .path-hero, .flow-shell, .strategy-grid, .path-main-grid, .current-node-panel, .path-actions, .kb-grid { grid-template-columns: 1fr; }
+    .cols-2, .cols-3, .cols-4, .steps, .metric-strip, .chat-box, .resource-layout, .knowledge-layout, .material-stats, .material-middle, .material-bottom, .material-mini-grid, .usage-grid, .evidence-grid, .path-hero, .flow-shell, .strategy-grid, .path-main-grid, .current-node-panel, .path-actions, .practice-layout, .kb-grid { grid-template-columns: 1fr; }
     .path-onepage .path-overview { grid-template-columns: 1fr; }
     .path-onepage .overview-item { border-right: 0; border-bottom: 1px solid #e8eff8; padding-bottom: 10px; }
     .anatomy-stage { height: auto; padding: 14px; display: grid; gap: 12px; }
@@ -627,13 +722,12 @@
     <div class="nav-title">学习中心</div>
     <button class="nav-btn active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-7h6v7"/></svg><span>学习工作台</span></button>
     <button class="nav-btn" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg><span>学习画像</span></button>
-    <button class="nav-btn" data-page="path"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h4a5 5 0 0 1 5 5v4"/></svg><span>学习路径</span></button>
+    <button class="nav-btn" data-page="path"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h4a5 5 0 0 1 5 5v4"/></svg><span>个性化路径</span></button>
     <div class="nav-title">资源与练习</div>
     <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6 6 4.5 4.5m15 15L18 18M18 6l1.5-1.5M4.5 19.5 6 18"/><circle cx="12" cy="12" r="3"/></svg><span>资源中心</span></button>
     <button class="nav-btn" data-page="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>练习评测</span></button>
     <div class="nav-title">分析与反馈</div>
     <button class="nav-btn" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5m4 5V8m4 8v-3"/></svg><span>学习报告</span></button>
-    <button class="nav-btn" data-page="loop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>闭环关系图</span></button>
     <div class="side-note">
       <b>今日学习状态</b>
       <div class="status-list">
@@ -645,6 +739,12 @@
   </aside>
 
   <main>
+    <div class="topbar">
+      <div class="breadcrumb">SparkLearn / <b id="topbarPage">学习工作台</b></div>
+      <div class="topbar-actions">
+        <div class="user-chip"><span class="avatar-dot">李</span><span>李明</span></div>
+      </div>
+    </div>
     <section class="page active" id="dashboard">
       <div class="page-head">
         <div>
@@ -686,19 +786,22 @@
 
       <div class="grid cols-2 section">
         <div class="card">
-          <div class="toolbar"><h2>今日任务顺序</h2><span class="pill blue">三步完成</span></div>
-          <div class="task-row"><span class="pill blue">01</span><div><b>资源学习</b><span>看 5 分钟动画讲解，状态：未开始。</span></div><button class="btn tertiary" data-jump="resources">继续</button></div>
-          <div class="task-row"><span class="pill green">02</span><div><b>针对练习</b><span>完成 8 道函数返回值练习，状态：待完成。</span></div><button class="btn tertiary" data-jump="practice">开始</button></div>
-          <div class="task-row"><span class="pill orange">03</span><div><b>路径确认</b><span>确认是否进入模块导入，状态：待确认。</span></div><button class="btn tertiary" data-jump="path">查看</button></div>
+          <div class="toolbar"><h2>今日任务</h2><span class="pill blue" id="taskCount">3 项</span></div>
+          <div id="todayTaskList">
+            <div class="task-row"><input class="task-check" type="checkbox"><div><b>资源学习</b><span>看 5 分钟动画讲解，状态：未开始。</span></div><button class="btn tertiary" data-jump="resources">继续</button><button class="task-delete" aria-label="删除">×</button></div>
+            <div class="task-row"><input class="task-check" type="checkbox"><div><b>针对练习</b><span>完成 8 道函数返回值练习，状态：待完成。</span></div><button class="btn tertiary" data-jump="practice">开始</button><button class="task-delete" aria-label="删除">×</button></div>
+            <div class="task-row"><input class="task-check" type="checkbox"><div><b>路径确认</b><span>确认是否进入模块导入，状态：待确认。</span></div><button class="btn tertiary" data-jump="path">查看</button><button class="task-delete" aria-label="删除">×</button></div>
+          </div>
+          <div class="task-input-row"><input class="search" id="newTaskInput" placeholder="添加自定义任务，例如：复习错题本 10 分钟"><button class="btn" id="addTask">添加任务</button></div>
         </div>
         <div class="card">
-          <h2>学习闭环记录</h2>
-          <div class="timeline section">
-            <div class="time-item"><b>昨晚 20:31 · 练习完成</b><span>函数返回值相关题目错误率偏高，系统生成补弱任务。</span></div>
-            <div class="time-item"><b>今日 08:12 · 画像更新</b><span>薄弱点新增“函数返回值”，学习偏好保持案例驱动。</span></div>
-            <div class="time-item"><b>今日待完成 · 路径确认</b><span>完成练习后判断是否进入下一节。</span></div>
+          <div class="toolbar"><h2>每日资源推荐</h2><button class="btn ghost" data-jump="resources">查看全部 →</button></div>
+          <div class="resource-reco section">
+            <div class="resource-reco-item"><div><b>return 到底返回给谁</b><p class="meta">5 分钟动画 · 对应薄弱点：函数返回值</p></div><button class="btn tertiary" data-jump="resources">学习</button></div>
+            <div class="resource-reco-item"><div><b>函数作用域错题讲义</b><p class="meta">文档 · 来自错题本与练习记录</p></div><button class="btn tertiary" data-jump="resources">查看</button></div>
+            <div class="resource-reco-item"><div><b>成绩统计小项目代码案例</b><p class="meta">代码案例 · 符合你的案例驱动偏好</p></div><button class="btn tertiary" data-jump="resources">继续</button></div>
           </div>
-          <button class="btn ghost" data-jump="report">查看上轮报告 →</button>
+          <button class="btn secondary section" data-jump="generate">根据今日任务生成新资源</button>
         </div>
       </div>
     </section>
@@ -764,12 +867,20 @@
           </div>
         </div>
         <div class="card">
-          <h2>画像影响范围</h2>
+          <div class="toolbar"><h2>最近学习过的资源</h2><button class="btn ghost" data-jump="resources">查看全部 →</button></div>
+          <p class="meta section">这些资源会帮助系统判断你的薄弱点、学习偏好和下一步推荐。</p>
           <div class="stack section">
-            <div class="soft-card"><b>影响路径</b><p class="meta">返回值未达标时，模块导入节点暂缓。</p></div>
-            <div class="soft-card"><b>影响资源</b><p class="meta">优先推荐短动画、代码案例和 5-8 道小练习。</p></div>
-            <div class="soft-card"><b>影响练习</b><p class="meta">题目难度先聚焦概念题，再进入项目题。</p></div>
+            <div class="soft-card">
+              <div class="toolbar"><div><b>return 到底返回给谁</b><p class="meta">视频 · 已学习 70% · 来源：错题补弱</p></div><span class="pill blue">继续学习</span></div>
+            </div>
+            <div class="soft-card">
+              <div class="toolbar"><div><b>函数作用域错题讲义</b><p class="meta">文档 · 已打开 2 次 · 来源：练习错题</p></div><span class="pill green">已纳入画像</span></div>
+            </div>
+            <div class="soft-card">
+              <div class="toolbar"><div><b>成绩统计小项目代码案例</b><p class="meta">代码案例 · 已学习 35% · 来源：画像偏好</p></div><span class="pill orange">待完成</span></div>
+            </div>
           </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn secondary" data-jump="resources">继续最近资源</button><button class="btn tertiary" data-jump="generate">生成补弱资源</button></div>
         </div>
       </div>
 
@@ -870,24 +981,23 @@
           <div class="title-row"><h1>资源中心</h1><button class="btn secondary" data-jump="resources">进入资源库</button><button class="btn secondary" data-jump="knowledge">我的资料库</button></div>
           <p class="lead">在这里生成个性化学习资源，也可以进入资源库或我的资料库管理已保存内容和用户上传文件。</p>
         </div>
-        <div class="status-summary">
-          <div class="summary-chip"><b>6 步</b><span>生成流程</span></div>
-          <div class="summary-chip"><b>当前节点</b><span>函数返回值</span></div>
-          <div class="summary-chip"><b>代码案例</b><span>默认偏好</span></div>
+        <div class="flow-stepper" aria-label="资源生成步骤">
+          <button class="flow-step active" data-flow-step="0"><span>01</span>确认上下文</button>
+          <button class="flow-step" data-flow-step="1"><span>02</span>选择类型</button>
+          <button class="flow-step" data-flow-step="2"><span>03</span>配置要求</button>
+          <button class="flow-step" data-flow-step="3"><span>04</span>生成中</button>
+          <button class="flow-step" data-flow-step="4"><span>05</span>预览结果</button>
+          <button class="flow-step" data-flow-step="5"><span>06</span>保存学习</button>
         </div>
       </div>
 
       <div class="flow-shell section">
-        <aside class="card flow-rail" aria-label="资源生成流程">
-          <button class="flow-step active" data-flow-step="0"><span>01</span>确认学习上下文</button>
-          <button class="flow-step" data-flow-step="1"><span>02</span>选择资源类型</button>
-          <button class="flow-step" data-flow-step="2"><span>03</span>配置生成要求</button>
-          <button class="flow-step" data-flow-step="3"><span>04</span>生成过程页</button>
-          <button class="flow-step" data-flow-step="4"><span>05</span>结果预览页</button>
-          <button class="flow-step" data-flow-step="5"><span>06</span>保存与开始学习</button>
-        </aside>
-
-        <div class="card">
+        <div class="card flow-workspace">
+          <div class="flow-workspace-head">
+            <div><b>资源生成流程</b><p class="meta">按步骤确认上下文、资料来源和生成要求，完成后保存到资源库。</p></div>
+            <span class="pill blue">当前：函数返回值补弱</span>
+          </div>
+          <div class="flow-workspace-body">
           <div class="flow-view active" data-flow-view="0">
             <div class="flow-page-head">
               <div><span class="pill blue">第 1 步</span><h2 style="margin-top:12px">确认这次资源要解决什么问题</h2><p class="meta section">生成前先锁定学习上下文，避免资源脱离当前路径、画像和错题证据。</p></div>
@@ -934,13 +1044,11 @@
                   <div class="choice-card"><b>达标练习优先</b><span>先给题，再按错误类型补讲解。</span></div>
                 </div>
                 <div class="section">
-                  <div class="toolbar"><h3>参考我的资料</h3><button class="btn ghost" data-jump="knowledge">管理资料 →</button></div>
-                  <div class="choice-list section" id="sourceList">
-                    <label class="source-card selected"><input type="checkbox" class="source-check" checked data-title="函数返回值错题整理.pdf"><div><b>函数返回值错题整理.pdf</b><span>已整理 · 错题补弱 · 适合生成讲义和达标题</span></div></label>
-                    <label class="source-card"><input type="checkbox" class="source-check" data-title="阶段练习成绩.xlsx"><div><b>阶段练习成绩.xlsx</b><span>已整理 · 练习数据 · 适合调整难度和题量</span></div></label>
-                    <label class="source-card"><input type="checkbox" class="source-check" data-title="老师课堂笔记.docx"><div><b>老师课堂笔记.docx</b><span>整理中 · 课堂笔记 · 可先作为补充参考</span></div></label>
+                  <h3>参考我的资料</h3>
+                  <div class="source-summary section">
+                    <div><b id="sourceSummaryTitle">已选择 1 份资料</b><p class="meta" id="sourceHint">函数返回值错题整理.pdf。生成内容会优先参考这份资料。</p></div>
+                    <button class="btn secondary" id="openSourceModal">选择资料</button>
                   </div>
-                  <p class="meta section" id="sourceHint">已选择：函数返回值错题整理.pdf。生成内容会优先参考这份资料。</p>
                 </div>
               </div>
               <div>
@@ -995,6 +1103,7 @@
               <div class="soft-card"><h3>进入达标练习</h3><p class="meta section">用生成资源配套的 5 道检查题完成节点达标。</p><button class="btn secondary section" data-jump="practice">生成配套练习</button></div>
             </div>
             <div class="flow-footer"><button class="btn secondary" data-flow-prev="4">上一步</button><button class="btn secondary" data-flow-next="0">重新生成一份</button></div>
+          </div>
           </div>
         </div>
       </div>
@@ -1135,7 +1244,7 @@
       <div class="page-head">
         <div>
           <div class="topline">练习评测 / 判题、解析、错题</div>
-          <h1>练习评测</h1>
+          <div class="title-row"><h1>练习评测</h1><button class="btn secondary" data-jump="mistakes">错题本</button><button class="btn secondary" data-jump="favorites">收藏题目</button></div>
           <p class="lead">完成针对练习后，系统会回写画像、错题本和学习路径。</p>
         </div>
         <div class="status-summary">
@@ -1145,9 +1254,9 @@
         </div>
       </div>
 
-      <div class="grid cols-2 section">
+      <div class="practice-layout section">
         <div class="card">
-          <span class="pill blue">个性化练习 · 函数返回值</span>
+          <div class="toolbar"><div><span class="pill blue">个性化练习 · 函数返回值</span><h2 style="margin-top:12px">第 3 题：函数默认返回值</h2></div><span class="meta">当前题组：8 题 · 预计 12 分钟</span></div>
           <div class="question section">
             <b>运行下面代码后，print(result) 输出什么？</b>
             <pre>def add(a, b):
@@ -1162,24 +1271,96 @@ print(result)</pre>
             <button class="answer" data-answer="wrong">C. total</button>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn" id="submitPractice">提交判题</button><button class="btn secondary">收藏题目</button></div>
-        </div>
-        <div class="card">
-          <div class="analysis-panel open" id="beforeAnalysis">
-            <h2>等待作答</h2>
-            <p class="meta section">提交后会显示判题结果、答案解析、错因分析、错题沉淀和补弱推荐。</p>
+          <div class="analysis-panel open section" id="beforeAnalysis">
+            <div class="soft-card"><b>等待作答</b><p class="meta section">提交后会显示判题结果、答案解析、错因分析，并自动判断是否加入错题本。</p></div>
           </div>
-          <div class="analysis-panel" id="afterAnalysis">
-            <span class="pill red">判题结果：错误</span>
-            <h2 style="margin-top:12px">正确答案是 None</h2>
-            <p class="meta section">函数 `add` 内部计算了 total，但没有 `return total`。没有 return 的函数默认返回 None，所以 result 是 None。</p>
-            <div class="timeline section">
-              <div class="time-item"><b>错题沉淀</b><span>已归入“函数返回值”错题本。</span></div>
-              <div class="time-item"><b>掌握度回写</b><span>返回值掌握度从 52% 调整为 48%。</span></div>
-              <div class="time-item"><b>补弱推荐</b><span>推荐 1 个短视频、1 份错题讲义、5 道同类题。</span></div>
+          <div class="analysis-panel section" id="afterAnalysis">
+            <div class="soft-card">
+              <span class="pill red">判题结果：错误</span>
+              <h2 style="margin-top:12px">正确答案是 None</h2>
+              <p class="meta section">函数 `add` 内部计算了 total，但没有 `return total`。没有 return 的函数默认返回 None，所以 result 是 None。</p>
+              <div class="timeline section">
+                <div class="time-item"><b>已加入错题本</b><span>分类：函数返回值 / 默认返回 None。</span></div>
+                <div class="time-item"><b>掌握度回写</b><span>返回值掌握度从 52% 调整为 48%。</span></div>
+                <div class="time-item"><b>补弱推荐</b><span>推荐 1 个短视频、1 份错题讲义、5 道同类题。</span></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn" data-jump="generate">一键生成补弱资源</button><button class="btn secondary" data-jump="resources">查看推荐资源</button></div>
             </div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn" data-jump="generate">一键生成补弱资源</button><button class="btn secondary" data-jump="resources">查看推荐资源</button></div>
           </div>
         </div>
+        <aside class="practice-sidebar">
+          <div class="card">
+            <div class="toolbar"><h2>生成练习</h2><span class="pill blue">个性化</span></div>
+            <div class="section">
+              <label class="meta">题目数量</label>
+              <div class="number-stepper" style="margin-top:8px"><button id="decreaseQuestion">-</button><input id="questionCount" value="8"><button id="increaseQuestion">+</button></div>
+            </div>
+            <div class="filter-row" style="grid-template-columns:1fr;margin-top:12px">
+              <select class="select"><option>针对薄弱点</option><option>混合复习</option><option>项目应用</option></select>
+            </div>
+            <button class="btn" id="generatePracticeSet" style="width:100%;margin-top:12px">生成练习题</button>
+          </div>
+          <div class="card">
+            <div class="toolbar"><h2>答题进度</h2><span class="pill blue">3 / 8</span></div>
+            <div class="question-nav section">
+              <button class="question-index done">1</button><button class="question-index done">2</button><button class="question-index active">3</button><button class="question-index">4</button>
+              <button class="question-index">5</button><button class="question-index">6</button><button class="question-index">7</button><button class="question-index">8</button>
+            </div>
+            <div class="condition section">
+              <div class="condition-row"><div><b>完成</b><p class="meta">2 题</p></div><span class="pill green">2 对</span></div>
+              <div class="condition-row"><div><b>正确率</b><p class="meta">达标线 80%</p></div><span class="pill blue">100%</span></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn secondary" data-jump="mistakes">错题本</button><button class="btn tertiary" data-jump="favorites">收藏题目</button></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="page" id="mistakes">
+      <div class="page-head">
+        <div>
+          <div class="topline">练习评测 / 错题本</div>
+          <div class="title-row"><h1>错题本</h1><button class="btn secondary" data-jump="practice">返回练习评测</button><button class="btn" data-jump="generate">生成错题讲义</button></div>
+          <p class="lead">按知识点和错因整理练习中的错误，支持查看详情、生成补弱资源和再次练习。</p>
+        </div>
+      </div>
+      <div class="metric-strip section">
+        <div class="metric"><b>6 题</b><span>当前错题</span></div>
+        <div class="metric"><b>3 类</b><span>主要错因</span></div>
+        <div class="metric"><b>48%</b><span>返回值掌握</span></div>
+        <div class="metric"><b>2 题</b><span>已订正</span></div>
+      </div>
+      <div class="card section">
+        <div class="toolbar"><h2>错题明细</h2><div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索错题、知识点或错因"><select class="select"><option>全部错因</option><option>函数返回值</option><option>作用域</option></select></div></div>
+        <table class="detail-table section">
+          <thead><tr><th>题目</th><th>知识点</th><th>错因</th><th>最近错误</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>函数没有 return 时输出什么？</td><td><span class="pill blue">函数返回值</span></td><td>把 print 当作 return</td><td>今天 10:12</td><td><span class="pill orange">待订正</span></td><td><button class="material-link">查看详情</button> <button class="material-link">再练一次</button></td></tr>
+            <tr><td>局部变量 total 在函数外能否访问？</td><td><span class="pill blue">作用域</span></td><td>局部变量范围混淆</td><td>昨天 21:40</td><td><span class="pill orange">待订正</span></td><td><button class="material-link">查看详情</button> <button class="material-link">再练一次</button></td></tr>
+            <tr><td>return total 应写在哪一行？</td><td><span class="pill blue">函数返回值</span></td><td>返回语句位置错误</td><td>5-18 19:22</td><td><span class="pill green">已订正</span></td><td><button class="material-link">查看详情</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="page" id="favorites">
+      <div class="page-head">
+        <div>
+          <div class="topline">练习评测 / 收藏题目</div>
+          <div class="title-row"><h1>收藏题目</h1><button class="btn secondary" data-jump="practice">返回练习评测</button><button class="btn" id="generateFromFavorites">用收藏生成练习</button></div>
+          <p class="lead">保存你想复习或反复练习的题目，后续可用于生成个性化练习和复习计划。</p>
+        </div>
+      </div>
+      <div class="card section">
+        <div class="toolbar"><h2>收藏列表</h2><div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索收藏题目"><select class="select"><option>全部标签</option><option>函数</option><option>项目题</option></select></div></div>
+        <table class="detail-table section">
+          <thead><tr><th>题目</th><th>类型</th><th>标签</th><th>收藏时间</th><th>来源</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>return 和 print 的区别是什么？</td><td><span class="pill">概念题</span></td><td><span class="pill blue">函数</span> <span class="pill blue">返回值</span></td><td>今天 09:58</td><td>针对练习</td><td><button class="material-link">查看详情</button> <button class="material-link">加入练习</button></td></tr>
+            <tr><td>成绩统计小项目补全 return</td><td><span class="pill">代码题</span></td><td><span class="pill blue">项目实践</span></td><td>昨天 20:31</td><td>资源配套题</td><td><button class="material-link">查看详情</button> <button class="material-link">加入练习</button></td></tr>
+            <tr><td>函数参数传入后变量在哪里生效？</td><td><span class="pill">选择题</span></td><td><span class="pill blue">作用域</span></td><td>5-18 22:30</td><td>阶段测评</td><td><button class="material-link">查看详情</button> <button class="material-link">加入练习</button></td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -1197,11 +1378,11 @@ print(result)</pre>
         </div>
       </div>
 
-      <div class="grid cols-4 section">
-        <div class="card metric"><b>6.5h</b><span>本周学习</span></div>
-        <div class="card metric"><b>81%</b><span>任务完成</span></div>
-        <div class="card metric"><b>74%</b><span>练习正确率</span></div>
-        <div class="card metric"><b>3 个</b><span>高频薄弱点</span></div>
+      <div class="metric-strip section">
+        <div class="metric"><b>6.5h</b><span>本周学习</span></div>
+        <div class="metric"><b>81%</b><span>任务完成</span></div>
+        <div class="metric"><b>74%</b><span>练习正确率</span></div>
+        <div class="metric"><b>3 个</b><span>高频薄弱点</span></div>
       </div>
       <div class="grid cols-2 section">
         <div class="card">
@@ -1253,21 +1434,48 @@ print(result)</pre>
         <div class="card"><h2>AI 学习助手全局化</h2><p class="meta section">悬浮出现，按当前页面提供画像解释、路径建议、题目讲解、资源解释和报告解读。</p></div>
       </div>
     </section>
+
   </main>
 </div>
 
-<button class="ai-float" id="aiFloat" aria-label="打开 AI 学习助手">AI 学习助手</button>
-<aside class="ai-panel" id="aiPanel">
-  <header><h2>AI 学习助手</h2><p class="meta" id="aiContext">当前在学习工作台，我可以解释今日任务为什么这样安排。</p></header>
-  <div class="body">
-    <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">你可以问：为什么今天先补函数返回值？</div></div>
-    <div class="quick-row">
-      <button class="quick" id="quickExplain">我看不懂这节</button>
-      <button class="quick" id="quickNext">调整今日任务</button>
-      <button class="quick" id="quickProfile">更新学习画像</button>
+<div class="modal-mask" id="sourceModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-label="选择参考资料">
+    <div class="modal-head">
+      <div><h2>选择参考资料</h2><p class="meta" style="margin-top:4px">选择后，AI 生成资源时会优先参考这些已上传资料。</p></div>
+      <button class="modal-close" id="closeSourceModal" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索资料名称、标签或内容"><button class="btn secondary" data-jump="knowledge">管理资料</button></div>
+      <div class="choice-list section" id="sourceList">
+        <label class="source-card selected"><input type="checkbox" class="source-check" checked data-title="函数返回值错题整理.pdf"><div><b>函数返回值错题整理.pdf</b><span>已整理 · 错题补弱 · 适合生成讲义和达标题</span></div></label>
+        <label class="source-card"><input type="checkbox" class="source-check" data-title="阶段练习成绩.xlsx"><div><b>阶段练习成绩.xlsx</b><span>已整理 · 练习数据 · 适合调整难度和题量</span></div></label>
+        <label class="source-card"><input type="checkbox" class="source-check" data-title="老师课堂笔记.docx"><div><b>老师课堂笔记.docx</b><span>整理中 · 课堂笔记 · 可先作为补充参考</span></div></label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="meta" id="sourceModalHint">已选择 1 份资料</span>
+      <div style="display:flex;gap:10px"><button class="btn secondary" id="cancelSourceModal">取消</button><button class="btn" id="confirmSourceModal">确认使用</button></div>
     </div>
   </div>
-</aside>
+</div>
+
+<div class="ai-widget minimized" id="aiWidget">
+  <aside class="ai-panel" id="aiPanel">
+    <header id="aiDragHandle">
+      <div><h2>AI 学习助手</h2><p class="meta" id="aiContext">当前在学习工作台，我可以解释今日任务为什么这样安排。</p></div>
+      <div class="ai-panel-actions"><button id="aiMinimize" aria-label="缩小">−</button></div>
+    </header>
+    <div class="body">
+      <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">你可以问：为什么今天先补函数返回值？</div></div>
+      <div class="quick-row">
+        <button class="quick" id="quickExplain">我看不懂这节</button>
+        <button class="quick" id="quickNext">调整今日任务</button>
+        <button class="quick" id="quickProfile">更新学习画像</button>
+      </div>
+    </div>
+  </aside>
+  <button class="ai-float" id="aiFloat" aria-label="打开 AI 学习助手">AI 学习助手</button>
+</div>
 
 <script>
   const navButtons = document.querySelectorAll('.nav-btn');
@@ -1280,15 +1488,31 @@ print(result)</pre>
     resources: ['当前在资源库，我可以讲解资源内容并建议下一步学习动作。', '你可以问：这个资源解决哪个薄弱点？'],
     knowledge: ['当前在我的资料库，我可以帮你整理上传资料，并说明 AI 会怎样参考这些资料回答和生成资源。', '你可以问：这份资料能帮我复习什么？'],
     practice: ['当前在练习评测页，我可以讲题、分析错因并推荐补弱资源。', '你可以问：为什么这题答案是 None？'],
+    mistakes: ['当前在错题本，我可以按知识点解释错因，并生成同类练习。', '你可以问：为什么这些题都错在 return？'],
+    favorites: ['当前在收藏题目页，我可以把收藏题整理成复习练习。', '你可以问：用收藏题生成 10 道复习题。'],
     report: ['当前在学习报告页，我可以解读证据并生成下一轮行动建议。', '你可以问：下一步先练习还是先看资源？'],
     loop: ['当前在闭环关系图，我可以解释页面职责和能力下沉边界。', '你可以问：资源推送为什么不做一级入口？']
+  };
+  const pageNames = {
+    dashboard: '学习工作台',
+    profile: '学习画像',
+    path: '个性化路径',
+    generate: '资源中心',
+    resources: '资源库',
+    knowledge: '我的资料库',
+    practice: '练习评测',
+    mistakes: '错题本',
+    favorites: '收藏题目',
+    report: '学习报告',
+    loop: '闭环关系图'
   };
   function showPage(id, options = {}) {
     pages.forEach(page => page.classList.toggle('active', page.id === id));
     navButtons.forEach(btn => {
-      const pageId = ['resources', 'knowledge'].includes(id) ? 'generate' : id;
+      const pageId = ['resources', 'knowledge'].includes(id) ? 'generate' : ['mistakes', 'favorites'].includes(id) ? 'practice' : id;
       btn.classList.toggle('active', btn.dataset.page === pageId);
     });
+    document.getElementById('topbarPage').textContent = pageNames[id] || pageNames.dashboard;
     const ctx = contexts[id] || contexts.dashboard;
     document.getElementById('aiContext').textContent = ctx[0];
     document.getElementById('aiBubble').textContent = ctx[1];
@@ -1300,7 +1524,73 @@ print(result)</pre>
   const initialPage = window.location.hash.replace('#', '');
   if (contexts[initialPage]) showPage(initialPage, { keepHash: true });
 
-  document.getElementById('aiFloat').addEventListener('click', () => document.getElementById('aiPanel').classList.toggle('open'));
+  const aiWidget = document.getElementById('aiWidget');
+  const aiPanel = document.getElementById('aiPanel');
+  function openAI() {
+    aiWidget.classList.remove('minimized');
+    aiPanel.classList.add('open');
+  }
+  function minimizeAI() {
+    aiPanel.classList.remove('open');
+    aiWidget.classList.add('minimized');
+  }
+  const aiFloat = document.getElementById('aiFloat');
+  let floatDragging = false;
+  let floatMoved = false;
+  let floatOffsetX = 0;
+  let floatOffsetY = 0;
+  aiFloat.addEventListener('pointerdown', event => {
+    if (!aiWidget.classList.contains('minimized')) return;
+    floatDragging = true;
+    floatMoved = false;
+    const rect = aiWidget.getBoundingClientRect();
+    floatOffsetX = event.clientX - rect.left;
+    floatOffsetY = event.clientY - rect.top;
+    aiFloat.classList.add('dragging');
+    aiFloat.setPointerCapture(event.pointerId);
+  });
+  aiFloat.addEventListener('pointermove', event => {
+    if (!floatDragging) return;
+    floatMoved = true;
+    const left = Math.min(window.innerWidth - 56, Math.max(12, event.clientX - floatOffsetX));
+    const top = Math.min(window.innerHeight - 56, Math.max(12, event.clientY - floatOffsetY));
+    aiWidget.style.left = `${left}px`;
+    aiWidget.style.top = `${top}px`;
+    aiWidget.style.right = 'auto';
+    aiWidget.style.bottom = 'auto';
+  });
+  aiFloat.addEventListener('pointerup', () => {
+    if (floatDragging) {
+      floatDragging = false;
+      aiFloat.classList.remove('dragging');
+      if (!floatMoved) openAI();
+      return;
+    }
+    if (aiPanel.classList.contains('open')) minimizeAI();
+    else openAI();
+  });
+  document.getElementById('aiMinimize').addEventListener('click', minimizeAI);
+  const dragHandle = document.getElementById('aiDragHandle');
+  let aiDragging = false;
+  let aiOffsetX = 0;
+  let aiOffsetY = 0;
+  dragHandle.addEventListener('pointerdown', event => {
+    aiDragging = true;
+    const rect = aiWidget.getBoundingClientRect();
+    aiOffsetX = event.clientX - rect.left;
+    aiOffsetY = event.clientY - rect.top;
+    dragHandle.setPointerCapture(event.pointerId);
+  });
+  dragHandle.addEventListener('pointermove', event => {
+    if (!aiDragging) return;
+    const left = Math.min(window.innerWidth - 72, Math.max(12, event.clientX - aiOffsetX));
+    const top = Math.min(window.innerHeight - 56, Math.max(12, event.clientY - aiOffsetY));
+    aiWidget.style.left = `${left}px`;
+    aiWidget.style.top = `${top}px`;
+    aiWidget.style.right = 'auto';
+    aiWidget.style.bottom = 'auto';
+  });
+  dragHandle.addEventListener('pointerup', () => { aiDragging = false; });
   document.getElementById('quickExplain').addEventListener('click', () => {
     document.getElementById('aiBubble').textContent = '我会先用一个更短的例子解释当前薄弱点，再给你 2 道检查题确认是否听懂。';
   });
@@ -1310,8 +1600,39 @@ print(result)</pre>
   document.getElementById('quickProfile').addEventListener('click', () => {
     document.getElementById('aiBubble').textContent = '我会根据你的回答更新学习画像，并说明更新后会影响哪些资源、练习和路径节点。';
   });
+  const todayTaskList = document.getElementById('todayTaskList');
+  function updateTaskCount() {
+    const total = todayTaskList.querySelectorAll('.task-row').length;
+    const done = todayTaskList.querySelectorAll('.task-row.done').length;
+    document.getElementById('taskCount').textContent = `${done}/${total} 完成`;
+  }
+  function bindTaskRow(row) {
+    row.querySelector('.task-check').addEventListener('change', event => {
+      row.classList.toggle('done', event.target.checked);
+      updateTaskCount();
+    });
+    row.querySelector('.task-delete').addEventListener('click', () => {
+      row.remove();
+      updateTaskCount();
+    });
+  }
+  todayTaskList.querySelectorAll('.task-row').forEach(bindTaskRow);
+  document.getElementById('addTask').addEventListener('click', () => {
+    const input = document.getElementById('newTaskInput');
+    const value = input.value.trim();
+    if (!value) return;
+    const row = document.createElement('div');
+    row.className = 'task-row';
+    row.innerHTML = '<input class="task-check" type="checkbox"><div><b></b><span>用户自定义任务</span></div><button class="btn tertiary" type="button">查看</button><button class="task-delete" aria-label="删除">×</button>';
+    row.querySelector('b').textContent = value;
+    bindTaskRow(row);
+    todayTaskList.appendChild(row);
+    input.value = '';
+    updateTaskCount();
+  });
+  updateTaskCount();
   document.getElementById('askPathAI').addEventListener('click', () => {
-    document.getElementById('aiPanel').classList.add('open');
+    openAI();
     document.getElementById('aiBubble').textContent = '模块导入依赖你能理解函数如何传出结果。当前返回值掌握度只有 48%，直接进入模块导入会让后续 import、调用和拆分代码更难理解。';
   });
 
@@ -1376,14 +1697,34 @@ print(result)</pre>
   function updateSelectedSources() {
     const selectedSources = [...document.querySelectorAll('.source-check:checked')].map(input => input.dataset.title);
     document.querySelectorAll('.source-card').forEach(card => card.classList.toggle('selected', card.querySelector('.source-check').checked));
+    document.getElementById('sourceSummaryTitle').textContent = selectedSources.length ? `已选择 ${selectedSources.length} 份资料` : '未选择资料';
     document.getElementById('sourceHint').textContent = selectedSources.length
-      ? `已选择：${selectedSources.join('、')}。生成内容会优先参考这些资料。`
-      : '未选择资料。本次生成只基于学习画像、路径节点和生成要求。';
+      ? `${selectedSources.join('、')}。生成内容会优先参考这些资料。`
+      : '本次生成只基于学习画像、路径节点和生成要求。';
+    document.getElementById('sourceModalHint').textContent = selectedSources.length ? `已选择 ${selectedSources.length} 份资料` : '未选择资料';
     const prompt = document.getElementById('promptText');
     const clean = prompt.value.replace(/^请优先参考我已上传的资料：.*?。/, '');
     prompt.value = selectedSources.length ? `请优先参考我已上传的资料：${selectedSources.join('、')}。${clean}` : clean;
   }
   document.querySelectorAll('.source-check').forEach(input => input.addEventListener('change', updateSelectedSources));
+  const sourceModal = document.getElementById('sourceModal');
+  document.getElementById('openSourceModal').addEventListener('click', () => {
+    sourceModal.classList.add('open');
+    sourceModal.setAttribute('aria-hidden', 'false');
+  });
+  function closeSourceModal() {
+    sourceModal.classList.remove('open');
+    sourceModal.setAttribute('aria-hidden', 'true');
+  }
+  document.getElementById('closeSourceModal').addEventListener('click', closeSourceModal);
+  document.getElementById('cancelSourceModal').addEventListener('click', closeSourceModal);
+  document.getElementById('confirmSourceModal').addEventListener('click', () => {
+    updateSelectedSources();
+    closeSourceModal();
+  });
+  sourceModal.addEventListener('click', event => {
+    if (event.target === sourceModal) closeSourceModal();
+  });
   updateSelectedSources();
   document.getElementById('startGenerate').addEventListener('click', () => {
     showFlow(3);
@@ -1417,7 +1758,7 @@ print(result)</pre>
   document.getElementById('saveResource').addEventListener('click', () => {
     document.getElementById('saveState').textContent = '已保存到资源库';
     document.getElementById('saveState').className = 'pill green';
-    document.getElementById('aiPanel').classList.add('open');
+    openAI();
     document.getElementById('aiBubble').textContent = '资源已保存到资源库，并关联到“函数返回值与作用域修正”节点。下一步建议直接开始学习，再做 5 道达标题。';
   });
 
@@ -1448,7 +1789,7 @@ print(result)</pre>
     });
   });
   document.getElementById('explainResource').addEventListener('click', () => {
-    document.getElementById('aiPanel').classList.add('open');
+    openAI();
     document.getElementById('aiBubble').textContent = '这个资源主要解决函数返回值：函数内部算出的 total 不会自动传到外面，必须通过 return 交给调用处。';
   });
 
@@ -1468,7 +1809,7 @@ print(result)</pre>
     if (!list) {
       const names = [...event.target.files].map(file => file.name).join('、');
       if (names) {
-        document.getElementById('aiPanel').classList.add('open');
+        openAI();
         document.getElementById('aiBubble').textContent = `${names} 已加入上传队列。我会先整理重点内容，之后可用于答疑、生成资料和复习建议。`;
       }
       event.target.value = '';
@@ -1499,18 +1840,37 @@ print(result)</pre>
     active.dataset.summary = `${active.dataset.name} 已整理完成。AI 学习助手可在回答问题和生成资源时参考这份资料。`;
     active.querySelector('.file-meta').innerHTML = '<span class="pill green">已整理</span><span class="pill">12 条内容</span><span class="pill blue">AI 可参考</span>';
     document.getElementById('knowledgeSummary').textContent = active.dataset.summary;
-    document.getElementById('aiPanel').classList.add('open');
+    openAI();
     document.getElementById('aiBubble').textContent = `${active.dataset.name} 已整理完成。之后你提问或生成资源时，我会优先参考这份资料，并告诉你参考来源。`;
   });
   document.getElementById('testRetrieval').addEventListener('click', () => {
     const active = document.querySelector('.file-item.active');
-    document.getElementById('aiPanel').classList.add('open');
+    openAI();
     document.getElementById('aiBubble').textContent = `我会参考 ${active ? active.dataset.name : '当前文件'} 来回答：return 会把函数内部结果交给调用处，这部分可以用来生成函数返回值讲义。`;
   });
   document.getElementById('askKnowledgeAI').addEventListener('click', () => {
-    document.getElementById('aiPanel').classList.add('open');
+    openAI();
     document.getElementById('aiBubble').textContent = '你上传资料后，我会先帮你整理重点。之后你问问题、生成讲义或做复习计划时，我会优先参考这些资料，并说明参考了哪份文件。';
   });
+  const questionCount = document.getElementById('questionCount');
+  document.getElementById('decreaseQuestion').addEventListener('click', () => {
+    questionCount.value = Math.max(3, Number(questionCount.value || 8) - 1);
+  });
+  document.getElementById('increaseQuestion').addEventListener('click', () => {
+    questionCount.value = Math.min(30, Number(questionCount.value || 8) + 1);
+  });
+  document.getElementById('generatePracticeSet').addEventListener('click', () => {
+    openAI();
+    document.getElementById('aiBubble').textContent = `已按你的薄弱点生成 ${questionCount.value} 道个性化练习，重点覆盖函数返回值、print 和 return 混淆。`;
+  });
+  const generateFromFavorites = document.getElementById('generateFromFavorites');
+  if (generateFromFavorites) {
+    generateFromFavorites.addEventListener('click', () => {
+      showPage('practice');
+      openAI();
+      document.getElementById('aiBubble').textContent = '已基于收藏题生成复习练习，建议先做概念题，再做项目代码题。';
+    });
+  }
 
   let selectedAnswer = null;
   document.querySelectorAll('.answer').forEach(answer => {
@@ -1527,6 +1887,8 @@ print(result)</pre>
     });
     document.getElementById('beforeAnalysis').classList.remove('open');
     document.getElementById('afterAnalysis').classList.add('open');
+    document.querySelector('.question-index.active').classList.add('done');
+    document.querySelector('.question-index.active').textContent = '错';
   });
 </script>
 </body>
