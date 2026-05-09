@@ -8,17 +8,17 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f7fbff;
-    --card: rgba(255,255,255,.86);
+    --bg: #f5f8fc;
+    --card: #ffffff;
     --solid: #fff;
     --ink: #07133b;
     --text: #172554;
     --muted: #64748b;
     --soft: #93a4bb;
-    --line: rgba(37,99,235,.12);
-    --blue: #0b74ff;
-    --blue-2: #5aa2ff;
-    --blue-soft: #eaf4ff;
+    --line: rgba(30,80,160,.12);
+    --blue: #2f80ed;
+    --blue-2: #68a8f8;
+    --blue-soft: #edf5ff;
     --green: #22c55e;
     --green-soft: #eafaf0;
     --orange: #f59e0b;
@@ -27,17 +27,15 @@
     --red-soft: #fff0f0;
     --purple: #8b5cf6;
     --purple-soft: #f3efff;
-    --shadow: 0 18px 55px rgba(28,86,145,.12), 0 0 0 1px rgba(255,255,255,.7);
-    --shadow-sm: 0 10px 30px rgba(28,86,145,.08);
+    --shadow: 0 8px 24px rgba(30,80,160,.06);
+    --shadow-sm: 0 6px 18px rgba(30,80,160,.05);
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     min-height: 100vh;
     color: var(--ink);
-    background:
-      radial-gradient(circle at 20% 0%, rgba(90,162,255,.13), transparent 30%),
-      linear-gradient(180deg, #f8fcff, #eef7ff);
+    background: var(--bg);
     font-family: "DM Sans", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -47,11 +45,10 @@
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    width: 248px;
-    padding: 22px 14px;
-    background: rgba(255,255,255,.68);
-    border-right: 1px solid rgba(37,99,235,.1);
-    backdrop-filter: blur(30px) saturate(160%);
+    width: 236px;
+    padding: 20px 12px;
+    background: #ffffff;
+    border-right: 1px solid #e5edf7;
     z-index: 20;
   }
   .brand {
@@ -61,10 +58,10 @@
     padding: 8px 8px 20px;
     border-bottom: 1px solid var(--line);
   }
-  .brand img { width: 44px; height: 38px; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(11,116,255,.18)); }
+  .brand img { width: 42px; height: 36px; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(47,128,237,.12)); }
   .brand strong { display: block; font-size: 17px; letter-spacing: -.2px; }
   .brand span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
-  .nav-title { margin: 22px 10px 8px; color: #9aa8bc; font-size: 11px; font-weight: 800; letter-spacing: .8px; }
+  .nav-title { margin: 20px 10px 8px; color: #8fa0b8; font-size: 11px; font-weight: 800; letter-spacing: .8px; }
   .nav-btn {
     width: 100%;
     border: 0;
@@ -75,43 +72,47 @@
     gap: 11px;
     padding: 10px 12px;
     margin: 2px 0;
-    border-radius: 12px;
+    border-radius: 10px;
     text-align: left;
     font-weight: 700;
     transition: .18s ease;
   }
   .nav-btn svg { width: 19px; height: 19px; stroke-width: 2; }
-  .nav-btn:hover { background: rgba(255,255,255,.72); color: var(--ink); }
-  .nav-btn.active { background: var(--blue-soft); color: var(--blue); box-shadow: inset 0 0 0 1px rgba(11,116,255,.12); }
+  .nav-btn:hover { background: #f4f8fd; color: var(--ink); }
+  .nav-btn.active { background: var(--blue-soft); color: var(--blue); box-shadow: inset 0 0 0 1px rgba(47,128,237,.16); }
   .side-note {
     position: absolute;
     left: 14px;
     right: 14px;
     bottom: 18px;
     padding: 14px;
-    border-radius: 18px;
-    background: rgba(255,255,255,.78);
-    border: 1px solid rgba(255,255,255,.8);
+    border-radius: 14px;
+    background: #f8fbff;
+    border: 1px solid #e5edf7;
     box-shadow: var(--shadow-sm);
   }
   .side-note b { display: block; font-size: 13px; }
   .side-note p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
-  main { margin-left: 248px; width: calc(100% - 248px); }
+  .status-list { display: grid; gap: 8px; margin-top: 10px; }
+  .status-list div { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+  .status-list strong { color: var(--ink); font-weight: 800; }
+  main { margin-left: 236px; width: calc(100% - 236px); }
   .page {
     display: none;
-    max-width: 1240px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 34px 42px 86px;
+    padding: 32px 32px 80px;
     animation: lift .28s cubic-bezier(.16,1,.3,1);
   }
   .page.active { display: block; }
   @keyframes lift { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   .topline { color: var(--soft); font-size: 13px; font-weight: 800; margin-bottom: 9px; }
-  h1 { margin: 0; font-size: 38px; line-height: 1.15; letter-spacing: -.5px; }
-  h2 { margin: 0; font-size: 22px; letter-spacing: -.2px; }
-  h3 { margin: 0; font-size: 16px; }
+  .title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 32px; line-height: 1.22; letter-spacing: 0; }
+  h2 { margin: 0; font-size: 20px; letter-spacing: 0; }
+  h3 { margin: 0; font-size: 16px; letter-spacing: 0; }
   p { margin: 0; }
-  .lead { max-width: 760px; margin-top: 10px; color: var(--muted); font-size: 15px; line-height: 1.75; }
+  .lead { max-width: 760px; margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.7; }
   .blue { color: var(--blue); }
   .grid { display: grid; gap: 16px; }
   .cols-2 { grid-template-columns: 1.15fr .85fr; }
@@ -120,13 +121,12 @@
   .section { margin-top: 24px; }
   .card {
     background: var(--card);
-    border: 1px solid rgba(255,255,255,.82);
-    border-radius: 22px;
+    border: 1px solid #e8eff8;
+    border-radius: 16px;
     box-shadow: var(--shadow);
-    backdrop-filter: blur(22px) saturate(150%);
-    padding: 20px;
+    padding: 24px;
   }
-  .soft-card { background: rgba(255,255,255,.58); border: 1px solid rgba(255,255,255,.72); border-radius: 18px; padding: 16px; }
+  .soft-card { background: #f8fbff; border: 1px solid #e8eff8; border-radius: 14px; padding: 16px; }
   .pill {
     display: inline-flex;
     align-items: center;
@@ -153,29 +153,34 @@
     justify-content: center;
     gap: 7px;
     color: white;
-    background: linear-gradient(135deg, var(--blue), var(--blue-2));
-    box-shadow: 0 12px 28px rgba(11,116,255,.22);
-    font-weight: 900;
+    background: var(--blue);
+    box-shadow: 0 8px 18px rgba(47,128,237,.16);
+    font-weight: 800;
   }
-  .btn.secondary { background: rgba(255,255,255,.72); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+  .btn.secondary { background: #fff; color: var(--blue); box-shadow: inset 0 0 0 1px rgba(47,128,237,.28); }
+  .btn.tertiary { background: #f2f6fb; color: var(--ink); box-shadow: none; }
   .btn.ghost { background: transparent; color: var(--blue); box-shadow: none; padding-inline: 2px; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+  .page-head > div:first-child { min-width: 0; }
+  .status-summary { display: grid; grid-template-columns: repeat(3, auto); gap: 10px; align-items: center; }
+  .summary-chip { min-width: 118px; padding: 11px 13px; border-radius: 14px; background: #fff; border: 1px solid #e8eff8; box-shadow: var(--shadow-sm); }
+  .summary-chip b { display: block; font-size: 16px; }
+  .summary-chip span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
   .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
   .stack { display: grid; gap: 12px; }
   .meta { color: var(--muted); font-size: 13px; line-height: 1.6; }
   .hero-panel {
     position: relative;
     overflow: hidden;
-    min-height: 310px;
-    padding: 28px;
-    background:
-      linear-gradient(90deg, rgba(255,255,255,.9), rgba(255,255,255,.66)),
-      url("assets/auth-home-bg.png") center / cover no-repeat;
+    min-height: 260px;
+    padding: 24px;
+    background: linear-gradient(135deg, #ffffff, #edf5ff);
   }
   .hero-panel::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 80% 20%, rgba(90,162,255,.22), transparent 26%);
+    background: none;
     pointer-events: none;
   }
   .hero-panel > * { position: relative; z-index: 1; }
@@ -184,23 +189,23 @@
     display: grid;
     gap: 14px;
   }
-  .decision h2 { font-size: 30px; line-height: 1.2; }
+  .decision h2 { font-size: 24px; line-height: 1.28; }
   .why-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
   .step-card {
     min-height: 122px;
     padding: 15px;
-    border-radius: 18px;
-    background: rgba(255,255,255,.76);
-    border: 1px solid rgba(255,255,255,.86);
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e8eff8;
   }
   .step-card small { color: var(--blue); font-weight: 900; }
   .step-card b { display: block; margin-top: 7px; }
   .step-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
   .metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .metric { padding: 13px 15px; border-radius: 16px; background: rgba(255,255,255,.68); border: 1px solid rgba(255,255,255,.8); }
+  .metric { padding: 16px; border-radius: 14px; background: #fff; border: 1px solid #e8eff8; }
   .metric b { display: block; font-size: 20px; }
-  .metric span { color: var(--muted); font-size: 12px; }
+  .metric span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.5; }
   .task-row {
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -221,25 +226,24 @@
   .time-item span { color: var(--muted); font-size: 12px; line-height: 1.5; }
   .anatomy-stage {
     position: relative;
-    height: 650px;
+    height: 560px;
     overflow: hidden;
-    border-radius: 28px;
+    border-radius: 16px;
     background: white;
-    border: 1px solid rgba(255,255,255,.86);
+    border: 1px solid #e8eff8;
     box-shadow: var(--shadow);
   }
   .anatomy-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
-  .anatomy-stage::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 48%, transparent 0 24%, rgba(255,255,255,.3) 38%, rgba(255,255,255,.64) 80%); pointer-events: none; }
+  .anatomy-stage::after { content: ""; position: absolute; inset: 0; background: rgba(245,248,252,.28); pointer-events: none; }
   .profile-note {
     position: absolute;
     z-index: 2;
     width: 238px;
     padding: 14px;
-    border-radius: 18px;
-    background: rgba(255,255,255,.86);
-    border: 1px solid rgba(255,255,255,.86);
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e8eff8;
     box-shadow: var(--shadow-sm);
-    backdrop-filter: blur(18px) saturate(150%);
   }
   .profile-note h3 { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
   .profile-note p { color: var(--muted); font-size: 12px; line-height: 1.55; }
@@ -249,12 +253,19 @@
   .tag.green { background: var(--green-soft); color: var(--green); }
   .tag.orange { background: var(--orange-soft); color: var(--orange); }
   .tag.purple { background: var(--purple-soft); color: var(--purple); }
-  .note-a { left: 42px; top: 54px; }
-  .note-b { right: 56px; top: 56px; }
-  .note-c { left: 36px; top: 272px; }
-  .note-d { right: 40px; top: 286px; }
-  .note-e { left: 70px; bottom: 60px; }
-  .note-f { right: 72px; bottom: 64px; }
+  .profile-board { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: stretch; }
+  .portrait-card { position: relative; overflow: hidden; min-height: 360px; display: grid; align-content: end; }
+  .portrait-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .portrait-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.92)); }
+  .portrait-caption { position: relative; z-index: 1; padding: 18px; border-radius: 14px; background: rgba(255,255,255,.9); border: 1px solid #e8eff8; }
+  .profile-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .profile-summary-grid .card { min-height: 174px; }
+  .note-a { left: 32px; top: 34px; }
+  .note-b { right: 36px; top: 34px; }
+  .note-c { left: 32px; top: 224px; }
+  .note-d { right: 36px; top: 224px; }
+  .note-e { left: 58px; bottom: 42px; }
+  .note-f { right: 58px; bottom: 42px; }
   .center-caption {
     position: absolute;
     z-index: 3;
@@ -264,9 +275,9 @@
     transform: translateX(-50%);
     padding: 14px 18px;
     text-align: center;
-    border-radius: 18px;
-    background: rgba(255,255,255,.84);
-    border: 1px solid rgba(11,116,255,.14);
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(47,128,237,.16);
     box-shadow: var(--shadow-sm);
   }
   .center-caption b { display: block; font-size: 18px; }
@@ -290,14 +301,12 @@
   .goal-board {
     position: relative;
     overflow: hidden;
-    min-height: 260px;
-    background:
-      linear-gradient(135deg, rgba(255,255,255,.94), rgba(234,244,255,.76)),
-      radial-gradient(circle at 88% 16%, rgba(90,162,255,.24), transparent 30%);
+    min-height: 240px;
+    background: #fff;
   }
   .goal-board .lead { max-width: 620px; }
   .strategy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
-  .strategy-card { padding: 14px; border-radius: 16px; background: rgba(255,255,255,.72); border: 1px solid rgba(37,99,235,.1); }
+  .strategy-card { padding: 14px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   .strategy-card b { display: block; font-size: 18px; }
   .strategy-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
   .route-panel { display: grid; gap: 14px; }
@@ -308,9 +317,9 @@
     gap: 13px;
     align-items: start;
     padding: 16px;
-    border-radius: 20px;
-    background: rgba(255,255,255,.74);
-    border: 1px solid rgba(37,99,235,.12);
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #e8eff8;
   }
   .route-node::before {
     content: "";
@@ -322,11 +331,11 @@
     background: linear-gradient(180deg, rgba(11,116,255,.22), rgba(34,197,94,.18));
   }
   .route-node:last-child::before { display: none; }
-  .route-node.current { background: rgba(234,244,255,.82); border-color: rgba(11,116,255,.28); box-shadow: 0 18px 42px rgba(11,116,255,.12); }
+  .route-node.current { background: var(--blue-soft); border-color: rgba(47,128,237,.28); box-shadow: 0 8px 22px rgba(47,128,237,.08); }
   .route-index {
     width: 42px;
     height: 42px;
-    border-radius: 15px;
+    border-radius: 12px;
     display: grid;
     place-items: center;
     background: white;
@@ -340,11 +349,58 @@
   .route-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
   .route-action { display: grid; gap: 8px; min-width: 132px; }
   .reason-list { display: grid; gap: 10px; }
-  .reason-item { padding: 13px; border-radius: 16px; background: rgba(255,255,255,.66); border: 1px solid rgba(37,99,235,.1); }
+  .reason-item { padding: 13px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   .reason-item b { display: block; font-size: 14px; }
   .reason-item span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .path-overview { display: grid; grid-template-columns: 1.25fr .9fr .8fr .8fr .8fr auto; gap: 18px; align-items: center; }
+  .overview-item { padding-right: 18px; border-right: 1px solid #e8eff8; min-height: 72px; display: grid; align-content: center; }
+  .overview-item:last-child { border-right: 0; padding-right: 0; }
+  .overview-item span { color: var(--muted); font-size: 12px; }
+  .overview-item b { display: block; margin-top: 8px; font-size: 20px; }
+  .progress-ring { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); font-weight: 900; background: conic-gradient(var(--blue) 62%, #e1ebf8 0); position: relative; }
+  .progress-ring::after { content: ""; position: absolute; width: 48px; height: 48px; border-radius: 50%; background: #fff; }
+  .progress-ring span { position: relative; z-index: 1; color: var(--ink); font-size: 16px; }
+  .path-steps { display: grid; grid-template-columns: repeat(7, 1fr); align-items: start; gap: 0; padding: 24px 16px 18px; }
+  .path-step { position: relative; display: grid; justify-items: center; gap: 8px; text-align: center; }
+  .path-step::before { content: ""; position: absolute; left: -50%; right: 50%; top: 20px; height: 2px; background: #d9e4f2; z-index: 0; }
+  .path-step:first-child::before { display: none; }
+  .path-step.done::before, .path-step.active::before { background: var(--blue); }
+  .step-dot { position: relative; z-index: 1; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 2px solid #d9e4f2; color: var(--muted); font-weight: 900; }
+  .path-step.done .step-dot { border-color: var(--green); color: var(--green); }
+  .path-step.active .step-dot { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+  .path-step.locked .step-dot { color: #94a3b8; background: #f8fbff; }
+  .path-step b { font-size: 14px; }
+  .path-step small { color: var(--muted); font-size: 12px; }
+  .path-task-table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 12px; font-size: 13px; }
+  .path-task-table th, .path-task-table td { padding: 11px 12px; border-bottom: 1px solid #e8eff8; text-align: left; }
+  .path-task-table th { background: #f8fbff; color: var(--muted); font-size: 12px; }
+  .path-task-table tr:last-child td { border-bottom: 0; }
+  .evidence-item { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; padding: 10px 0; }
+  .evidence-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 900; font-size: 12px; }
+  #path { padding-bottom: 28px; }
+  #path .page-head { margin-bottom: 16px; }
+  .path-onepage { display: grid; gap: 12px; }
+  .path-onepage .card { padding: 18px; }
+  .path-main-grid { display: grid; grid-template-columns: minmax(0, 1.38fr) minmax(300px, .62fr); gap: 12px; align-items: stretch; }
+  .path-side { display: grid; gap: 12px; }
+  .path-onepage .path-overview { grid-template-columns: 1.25fr .85fr .75fr .75fr auto; gap: 12px; }
+  .path-onepage .overview-item { min-height: 54px; padding-right: 12px; }
+  .path-onepage .overview-item b { margin-top: 5px; font-size: 17px; }
+  .path-onepage .progress-ring { width: 54px; height: 54px; }
+  .path-onepage .progress-ring::after { width: 40px; height: 40px; }
+  .path-onepage .path-steps { padding: 18px 6px 10px; }
+  .path-onepage .step-dot { width: 38px; height: 38px; }
+  .path-onepage .path-step b { font-size: 13px; }
+  .path-onepage .path-step .pill { padding: 4px 7px; font-size: 11px; }
+  .current-node-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+  .node-answer { padding: 12px; border-radius: 12px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .node-answer b { display: block; font-size: 13px; }
+  .node-answer span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .path-evidence-compact { display: grid; gap: 8px; margin-top: 12px; }
+  .path-evidence-compact .evidence-item { padding: 0; }
+  .path-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
   .condition { display: grid; gap: 9px; margin-top: 14px; }
-  .condition-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px; border-radius: 14px; background: rgba(255,255,255,.68); }
+  .condition-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 12px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   .bar { height: 8px; border-radius: 999px; background: #dfeafa; overflow: hidden; }
   .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--blue-2)); }
   .flow-shell { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
@@ -352,9 +408,9 @@
   .flow-step {
     width: 100%;
     border: 1px solid rgba(37,99,235,.1);
-    border-radius: 16px;
+    border-radius: 14px;
     padding: 12px;
-    background: rgba(255,255,255,.64);
+    background: #fff;
     color: var(--muted);
     text-align: left;
     font-weight: 900;
@@ -362,55 +418,132 @@
   .flow-step span { display: block; margin-bottom: 4px; color: var(--soft); font-size: 11px; }
   .flow-step.active { background: var(--blue-soft); color: var(--blue); border-color: rgba(11,116,255,.24); }
   .flow-step.done { color: var(--green); background: var(--green-soft); }
-  .flow-view { display: none; min-height: 470px; }
+  .flow-view { display: none; min-height: 430px; }
   .flow-view.active { display: block; }
   .flow-page-head { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 22px; }
   .flow-page-head p { max-width: 650px; }
   .choice-list { display: grid; gap: 10px; }
   .choice-card {
     border: 1px solid rgba(37,99,235,.12);
-    border-radius: 18px;
-    background: rgba(255,255,255,.68);
+    border-radius: 14px;
+    background: #fff;
     padding: 15px;
     cursor: pointer;
   }
   .choice-card.active { background: var(--blue-soft); border-color: rgba(11,116,255,.28); color: var(--blue); }
   .choice-card b { display: block; }
   .choice-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .source-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 12px;
+    border: 1px solid #e8eff8;
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .source-card input { margin-top: 3px; accent-color: var(--blue); }
+  .source-card.selected { background: var(--blue-soft); border-color: rgba(47,128,237,.28); }
+  .source-card b { display: block; font-size: 14px; }
+  .source-card span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.45; }
   .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .type-card {
     min-height: 86px;
     padding: 13px;
     border: 1px solid rgba(37,99,235,.12);
-    border-radius: 16px;
-    background: rgba(255,255,255,.7);
+    border-radius: 14px;
+    background: #fff;
     display: grid;
     align-content: center;
     gap: 7px;
   }
   .type-card.active { background: var(--blue-soft); color: var(--blue); border-color: rgba(11,116,255,.26); }
   .process { display: grid; gap: 9px; }
-  .process-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; background: rgba(255,255,255,.66); }
+  .process-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   .dot-status { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
   .process-row.done .dot-status { background: var(--green); }
   .process-row.active .dot-status { background: var(--blue); box-shadow: 0 0 0 5px rgba(11,116,255,.12); }
   .flow-footer { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
   .resource-layout { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+  .knowledge-layout { display: grid; grid-template-columns: 380px 1fr; gap: 16px; }
   .filter-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 14px; }
+  .upload-zone {
+    border: 1.5px dashed rgba(47,128,237,.32);
+    border-radius: 16px;
+    background: #f8fbff;
+    padding: 22px;
+    display: grid;
+    gap: 12px;
+    place-items: center;
+    text-align: center;
+  }
+  .upload-zone input { display: none; }
+  .format-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .file-list { display: grid; gap: 10px; margin-top: 16px; }
+  .file-item {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 13px;
+    border: 1px solid #e8eff8;
+    border-radius: 14px;
+    background: #fff;
+  }
+  .file-item.active { background: var(--blue-soft); border-color: rgba(47,128,237,.24); }
+  .file-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .kb-detail { display: grid; gap: 14px; align-content: start; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kb-stat { padding: 14px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .kb-stat b { display: block; font-size: 20px; }
+  .material-page { max-width: 1560px; }
+  .material-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .material-stat { min-height: 120px; display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; }
+  .material-stat b { display: block; margin-top: 7px; font-size: 28px; line-height: 1; }
+  .material-icon { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; }
+  .material-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .material-middle { display: grid; grid-template-columns: 380px 1fr; gap: 16px; align-items: stretch; }
+  .material-upload, .material-table-card { min-height: 310px; }
+  .material-upload-zone { height: 168px; border: 1.5px dashed #bfdbfe; border-radius: 14px; background: #f8fbff; display: grid; place-items: center; text-align: center; padding: 18px; margin-top: 14px; }
+  .material-upload-zone b { display: block; margin: 10px 0 12px; }
+  .material-progress { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin-top: 16px; align-items: start; }
+  .material-searchbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .material-searchbar .search { width: 280px; }
+  .filter-chip { border: 1px solid #e8eff8; border-radius: 999px; background: #fff; color: var(--muted); padding: 8px 12px; font-size: 13px; font-weight: 800; }
+  .filter-chip.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .material-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .material-table th, .material-table td { padding: 10px 9px; border-bottom: 1px solid #edf2f7; text-align: left; vertical-align: middle; }
+  .material-table th { color: var(--soft); font-size: 12px; }
+  .material-table td:first-child { color: var(--ink); font-weight: 800; }
+  .material-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .material-link { border: 0; background: transparent; color: var(--blue); font-weight: 800; padding: 0; }
+  .material-more { color: var(--soft); font-weight: 900; letter-spacing: 2px; }
+  .material-view-all { display: flex; justify-content: center; align-items: center; gap: 6px; color: var(--blue); font-size: 13px; font-weight: 900; padding-top: 10px; }
+  .material-bottom { display: grid; grid-template-columns: 1.2fr .85fr .95fr; gap: 16px; }
+  .material-mini-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .material-mini, .usage-tile { padding: 13px; border-radius: 12px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .material-mini b { display: block; font-size: 21px; margin-bottom: 6px; }
+  .usage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .privacy-list { display: grid; gap: 14px; }
+  .privacy-row { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+  .privacy-row svg { width: 23px; height: 23px; fill: none; stroke: var(--blue); stroke-width: 2; }
   .resource-item {
     display: grid;
     grid-template-columns: 42px 1fr;
     gap: 11px;
     padding: 13px;
-    border-radius: 16px;
+    border-radius: 14px;
     border: 1px solid rgba(37,99,235,.1);
-    background: rgba(255,255,255,.62);
+    background: #fff;
     cursor: pointer;
   }
   .resource-item.active { background: var(--blue-soft); border-color: rgba(11,116,255,.24); }
-  .iconbox { width: 42px; height: 42px; border-radius: 15px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 900; }
+  .iconbox { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 900; font-size: 12px; }
   .preview { min-height: 360px; display: grid; gap: 14px; align-content: start; }
-  .question { padding: 18px; border-radius: 18px; background: rgba(234,244,255,.72); border: 1px solid rgba(11,116,255,.14); }
+  .question { padding: 18px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   pre { margin: 12px 0 0; white-space: pre-wrap; background: #111827; color: white; border-radius: 14px; padding: 14px; font-size: 13px; }
   .answer {
     width: 100%;
@@ -432,42 +565,46 @@
     position: fixed;
     right: 24px;
     bottom: 24px;
-    width: 62px;
-    height: 62px;
+    width: 126px;
+    height: 44px;
     border: 0;
-    border-radius: 22px;
+    border-radius: 999px;
     color: white;
-    background: linear-gradient(135deg, var(--blue), var(--blue-2));
-    box-shadow: 0 18px 48px rgba(11,116,255,.28);
+    background: var(--blue);
+    box-shadow: 0 10px 26px rgba(47,128,237,.18);
     z-index: 50;
     font-weight: 900;
+    font-size: 13px;
   }
   .ai-panel {
     display: none;
     position: fixed;
     right: 24px;
-    bottom: 96px;
+    bottom: 82px;
     width: 390px;
     overflow: hidden;
-    border-radius: 24px;
-    background: rgba(255,255,255,.9);
-    border: 1px solid rgba(255,255,255,.9);
-    box-shadow: 0 24px 70px rgba(28,86,145,.18);
-    backdrop-filter: blur(24px) saturate(160%);
+    border-radius: 18px;
+    background: #fff;
+    border: 1px solid #e8eff8;
+    box-shadow: 0 18px 45px rgba(30,80,160,.12);
     z-index: 49;
   }
   .ai-panel.open { display: block; }
   .ai-panel header { padding: 18px; border-bottom: 1px solid var(--line); }
   .ai-panel .body { padding: 16px; }
   .quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .quick { border: 0; border-radius: 999px; background: var(--blue-soft); color: var(--blue); padding: 7px 10px; font-size: 12px; font-weight: 800; }
+  .quick { border: 1px solid rgba(47,128,237,.18); border-radius: 999px; background: var(--blue-soft); color: var(--blue); padding: 7px 10px; font-size: 12px; font-weight: 800; }
   @media (max-width: 980px) {
     .sidebar { width: 74px; }
     .brand div, .nav-title, .nav-btn span, .side-note { display: none; }
     main { margin-left: 74px; width: calc(100% - 74px); }
     .page { padding: 28px 18px 80px; }
     h1 { font-size: 30px; }
-    .cols-2, .cols-3, .cols-4, .steps, .metric-strip, .chat-box, .resource-layout, .evidence-grid, .path-hero, .flow-shell, .strategy-grid { grid-template-columns: 1fr; }
+    .page-head { display: grid; }
+    .status-summary { grid-template-columns: 1fr; }
+    .cols-2, .cols-3, .cols-4, .steps, .metric-strip, .chat-box, .resource-layout, .knowledge-layout, .material-stats, .material-middle, .material-bottom, .material-mini-grid, .usage-grid, .evidence-grid, .path-hero, .flow-shell, .strategy-grid, .path-main-grid, .current-node-panel, .path-actions, .kb-grid { grid-template-columns: 1fr; }
+    .path-onepage .path-overview { grid-template-columns: 1fr; }
+    .path-onepage .overview-item { border-right: 0; border-bottom: 1px solid #e8eff8; padding-bottom: 10px; }
     .anatomy-stage { height: auto; padding: 14px; display: grid; gap: 12px; }
     .anatomy-bg, .anatomy-stage::after, .center-caption { display: none; }
     .profile-note { position: static; width: auto; }
@@ -487,30 +624,46 @@
       <img src="assets/sparklearn-logo.png" alt="学而思 SparkLearn">
       <div><strong>学而思 SparkLearn</strong><span>个性化学习闭环</span></div>
     </div>
-    <div class="nav-title">主学习闭环</div>
+    <div class="nav-title">学习中心</div>
     <button class="nav-btn active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-7h6v7"/></svg><span>学习工作台</span></button>
     <button class="nav-btn" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg><span>学习画像</span></button>
     <button class="nav-btn" data-page="path"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h4a5 5 0 0 1 5 5v4"/></svg><span>学习路径</span></button>
-    <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6 6 4.5 4.5m15 15L18 18M18 6l1.5-1.5M4.5 19.5 6 18"/><circle cx="12" cy="12" r="3"/></svg><span>资源工作台</span></button>
-    <button class="nav-btn" data-page="resources"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5z"/><path d="M8 7h7"/></svg><span>资源库</span></button>
+    <div class="nav-title">资源与练习</div>
+    <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6 6 4.5 4.5m15 15L18 18M18 6l1.5-1.5M4.5 19.5 6 18"/><circle cx="12" cy="12" r="3"/></svg><span>资源中心</span></button>
     <button class="nav-btn" data-page="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>练习评测</span></button>
+    <div class="nav-title">分析与反馈</div>
     <button class="nav-btn" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5m4 5V8m4 8v-3"/></svg><span>学习报告</span></button>
-    <div class="nav-title">开发对齐</div>
     <button class="nav-btn" data-page="loop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg><span>闭环关系图</span></button>
-    <div class="side-note"><b>当前原型准则</b><p>主页面围绕画像、路径、资源、练习、报告形成因果闭环；资源推送、视频和 AI 辅导只作为场景能力。</p></div>
+    <div class="side-note">
+      <b>今日学习状态</b>
+      <div class="status-list">
+        <div><span>薄弱点</span><strong>函数返回值</strong></div>
+        <div><span>建议耗时</span><strong>24 分钟</strong></div>
+        <div><span>路径状态</span><strong>待确认</strong></div>
+      </div>
+    </div>
   </aside>
 
   <main>
     <section class="page active" id="dashboard">
-      <div class="topline">学习工作台 / 今日决策</div>
-      <h1>今天先解决一个关键薄弱点</h1>
-      <p class="lead">工作台不是统计面板，而是告诉学生：今天为什么这样安排，先做什么，做完会影响画像、路径和下一轮推荐。</p>
+      <div class="page-head">
+        <div>
+          <div class="topline">学习中心 / 今日任务</div>
+          <h1>今日学习工作台</h1>
+          <p class="lead">根据你的学习画像与最近练习结果，系统已生成今日学习建议。</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>24 分钟</b><span>今日预计</span></div>
+          <div class="summary-chip"><b>1 项</b><span>路径待确认</span></div>
+          <div class="summary-chip"><b>12 天</b><span>连续学习</span></div>
+        </div>
+      </div>
 
       <div class="card hero-panel section">
         <div class="decision">
-          <span class="pill blue">AI 今日判断 · 来自昨晚练习与路径回写</span>
-          <h2>先补齐“函数返回值”，再确认是否进入模块导入</h2>
-          <p class="meta">昨晚 8 道练习中，返回值相关错 4 道，掌握度从 62% 降到 48%。系统已把今天任务调整为“短资源学习 + 针对练习 + 路径确认”。</p>
+          <span class="pill blue">优先薄弱点</span>
+          <h2>函数返回值</h2>
+          <p class="meta">系统判断依据：昨晚 8 道练习中，返回值相关题目错误 4 道，掌握度由 62% 降至 48%。建议先补齐概念，再做 8 道针对练习，最后确认是否进入下一模块。</p>
           <div class="why-row">
             <span class="pill orange">错题证据：4 道</span>
             <span class="pill blue">当前节点：函数与作用域</span>
@@ -522,33 +675,28 @@
             <button class="btn secondary" data-jump="profile">查看画像依据</button>
           </div>
         </div>
-        <div class="steps">
-          <div class="step-card"><small>01 资源</small><b>看 5 分钟动画讲解</b><span>理解 return 把结果交回调用处。</span></div>
-          <div class="step-card"><small>02 练习</small><b>完成 8 道短练习</b><span>判题后回写掌握度和错题本。</span></div>
-          <div class="step-card"><small>03 路径</small><b>确认下一节点</b><span>达标后进入模块导入，否则继续补弱。</span></div>
-        </div>
       </div>
 
       <div class="metric-strip section">
-        <div class="metric"><b>72%</b><span>阶段进度</span></div>
-        <div class="metric"><b>48%</b><span>返回值掌握度</span></div>
-        <div class="metric"><b>12 天</b><span>连续学习</span></div>
-        <div class="metric"><b>1 项</b><span>路径待确认</span></div>
+        <div class="metric"><b>72%</b><span>阶段进度<br>已完成当前模块大部分内容</span></div>
+        <div class="metric"><b>48%</b><span>薄弱掌握度<br>低于进入下一节标准</span></div>
+        <div class="metric"><b>12 天</b><span>连续学习<br>学习节奏稳定</span></div>
+        <div class="metric"><b>1 项</b><span>路径待确认<br>完成今日任务后可确认</span></div>
       </div>
 
       <div class="grid cols-2 section">
         <div class="card">
-          <div class="toolbar"><h2>今日任务顺序</h2><span class="pill blue">做完自动进入下一步</span></div>
-          <div class="task-row"><span class="pill blue">资源</span><div><b>学习《return 到底返回给谁》</b><span>来自错题补弱推荐，预计 5 分钟。</span></div><button class="btn secondary" data-jump="resources">继续</button></div>
-          <div class="task-row"><span class="pill green">练习</span><div><b>完成 8 道函数返回值短练习</b><span>提交后更新画像、路径掌握度和报告。</span></div><button class="btn secondary" data-jump="practice">开始</button></div>
-          <div class="task-row"><span class="pill orange">路径</span><div><b>确认是否进入模块导入</b><span>正确率达 80% 后开放下一节点。</span></div><button class="btn secondary" data-jump="path">查看</button></div>
+          <div class="toolbar"><h2>今日任务顺序</h2><span class="pill blue">三步完成</span></div>
+          <div class="task-row"><span class="pill blue">01</span><div><b>资源学习</b><span>看 5 分钟动画讲解，状态：未开始。</span></div><button class="btn tertiary" data-jump="resources">继续</button></div>
+          <div class="task-row"><span class="pill green">02</span><div><b>针对练习</b><span>完成 8 道函数返回值练习，状态：待完成。</span></div><button class="btn tertiary" data-jump="practice">开始</button></div>
+          <div class="task-row"><span class="pill orange">03</span><div><b>路径确认</b><span>确认是否进入模块导入，状态：待确认。</span></div><button class="btn tertiary" data-jump="path">查看</button></div>
         </div>
         <div class="card">
-          <h2>最近学习与闭环状态</h2>
+          <h2>学习闭环记录</h2>
           <div class="timeline section">
-            <div class="time-item"><b>昨晚 20:31 · 练习完成</b><span>返回值题错误率偏高，生成错题记录。</span></div>
-            <div class="time-item"><b>今天 08:12 · 画像更新</b><span>薄弱点增加“函数返回值”，学习偏好保持案例驱动。</span></div>
-            <div class="time-item"><b>当前 · 任务生成</b><span>工作台推荐 1 个短资源和 1 组短练习。</span></div>
+            <div class="time-item"><b>昨晚 20:31 · 练习完成</b><span>函数返回值相关题目错误率偏高，系统生成补弱任务。</span></div>
+            <div class="time-item"><b>今日 08:12 · 画像更新</b><span>薄弱点新增“函数返回值”，学习偏好保持案例驱动。</span></div>
+            <div class="time-item"><b>今日待完成 · 路径确认</b><span>完成练习后判断是否进入下一节。</span></div>
           </div>
           <button class="btn ghost" data-jump="report">查看上轮报告 →</button>
         </div>
@@ -556,24 +704,59 @@
     </section>
 
     <section class="page" id="profile">
-      <div class="topline">学习画像 / 状态、证据与更新</div>
-      <h1>李明同学的学习画像</h1>
-      <p class="lead">画像不是静态资料页。每个标签都要能看到来源，并能通过 AI 对话修正，修正后影响路径、资源和练习难度。</p>
+      <div class="page-head">
+        <div>
+          <div class="topline">学习画像 / 状态、证据与更新</div>
+          <h1>学习画像</h1>
+          <p class="lead">每个画像标签都展示来源，并影响路径、资源和练习难度。</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>48%</b><span>返回值掌握</span></div>
+          <div class="summary-chip"><b>案例驱动</b><span>学习偏好</span></div>
+          <div class="summary-chip"><b>08:12</b><span>最近更新</span></div>
+        </div>
+      </div>
 
-      <section class="anatomy-stage section">
-        <img class="anatomy-bg" src="assets/profile-anatomy-bg.png" alt="">
-        <article class="profile-note note-a"><h3>已看资源</h3><p>基础语法微课、函数错题讲义、成绩统计代码案例。</p><div class="tags"><span class="tag blue">资源库 3 个</span><span class="tag">最近 70%</span></div></article>
-        <article class="profile-note note-b"><h3>学习目标</h3><p>两周内完成 Python 小项目实践，能独立拆解简单数据处理任务。</p><div class="tags"><span class="tag green">项目实践</span><span class="tag">14 天</span></div></article>
-        <article class="profile-note note-c"><h3>薄弱点</h3><p>函数返回值、局部变量作用域、模块导入。来源：练习错题和路径评估。</p><div class="tags"><span class="tag orange">返回值 48%</span><span class="tag orange">作用域 52%</span></div></article>
-        <article class="profile-note note-d"><h3>已掌握</h3><p>变量、循环、条件判断稳定；列表字典可使用，但复杂嵌套需要练习。</p><div class="tags"><span class="tag green">变量 91%</span><span class="tag green">循环 86%</span></div></article>
-        <article class="profile-note note-e"><h3>学习偏好</h3><p>更适合短讲解、代码案例和小练习的节奏，避免直接长题刷题。</p><div class="tags"><span class="tag purple">案例驱动</span><span class="tag blue">即时反馈</span></div></article>
-        <article class="profile-note note-f"><h3>今天建议</h3><p>先完成返回值补弱资源，再做 8 道短练习；达标后进入模块导入。</p><div class="tags"><span class="tag blue">生成补弱</span><span class="tag green">开始练习</span></div></article>
-        <div class="center-caption"><b>项目实践准备期</b><span>基础语法较稳，正在补齐函数与模块能力。</span></div>
-      </section>
+      <div class="profile-board section">
+        <div class="card portrait-card">
+          <img src="assets/profile-anatomy-bg.png" alt="学生人物画像">
+          <div class="portrait-caption">
+            <span class="pill blue">人物画像</span>
+            <h2 style="margin-top:10px">李明 · 项目实践准备期</h2>
+            <p class="meta section">基础语法较稳，正在补齐函数与模块能力。画像由练习、资源学习和对话共同更新。</p>
+          </div>
+        </div>
+        <div class="profile-summary-grid">
+          <div class="card">
+            <span class="pill orange">需要关注</span>
+            <h2 style="margin-top:12px">函数返回值</h2>
+            <p class="meta section">来源：昨晚练习错题和路径评估。掌握度由 62% 回落到 48%。</p>
+            <div class="bar section"><i style="width:48%"></i></div>
+          </div>
+          <div class="card">
+            <span class="pill purple">学习偏好</span>
+            <h2 style="margin-top:12px">案例驱动</h2>
+            <p class="meta section">短讲解、代码案例和小练习的完成率更高。</p>
+            <div class="why-row section"><span class="pill blue">短讲解</span><span class="pill green">即时反馈</span></div>
+          </div>
+          <div class="card">
+            <span class="pill green">阶段目标</span>
+            <h2 style="margin-top:12px">完成 Python 小项目</h2>
+            <p class="meta section">当前重点是把函数和模块能力补齐。</p>
+            <div class="why-row section"><span class="pill green">变量 91%</span><span class="pill orange">作用域 52%</span></div>
+          </div>
+          <div class="card">
+            <span class="pill blue">今日建议</span>
+            <h2 style="margin-top:12px">补弱后再确认路径</h2>
+            <p class="meta section">先完成返回值资源和 8 道短练，再判断是否进入模块导入。</p>
+            <button class="btn secondary section" data-jump="path">查看路径</button>
+          </div>
+        </div>
+      </div>
 
       <div class="grid cols-2 section">
         <div class="card">
-          <div class="toolbar"><h2>画像更新记录</h2><button class="btn secondary" id="toggleProfileChat">和 AI 更新画像</button></div>
+          <div class="toolbar"><h2>画像证据</h2><button class="btn secondary" id="toggleProfileChat">和 AI 更新画像</button></div>
           <div class="timeline section">
             <div class="time-item"><b>今天 08:12 · 练习回写</b><span>函数返回值掌握度从 62% 调整为 48%。</span></div>
             <div class="time-item"><b>昨天 21:04 · 资源学习</b><span>完成函数作用域错题讲义 70%，偏好保持“短讲解”。</span></div>
@@ -581,7 +764,7 @@
           </div>
         </div>
         <div class="card">
-          <h2>画像会影响什么</h2>
+          <h2>画像影响范围</h2>
           <div class="stack section">
             <div class="soft-card"><b>影响路径</b><p class="meta">返回值未达标时，模块导入节点暂缓。</p></div>
             <div class="soft-card"><b>影响资源</b><p class="meta">优先推荐短动画、代码案例和 5-8 道小练习。</p></div>
@@ -600,107 +783,99 @@
         </div>
         <div class="card">
           <h2>待确认更新</h2>
-          <p class="meta section">如果确认，本次回答会把学习偏好更新为“代码案例优先”，并影响资源工作台默认生成要求。</p>
+          <p class="meta section">如果确认，本次回答会把学习偏好更新为“代码案例优先”，并影响资源中心默认生成要求。</p>
           <button class="btn" data-jump="generate">确认并生成资源</button>
         </div>
       </div>
     </section>
 
     <section class="page" id="path">
-      <div class="topline">学习路径 / 个性化路线、变化原因与达标动作</div>
-      <h1>今天的路线不是知识图谱，是为这个学生排出的下一段路</h1>
-      <p class="lead">路径页回答“我在哪、为什么这样安排、什么时候能进入下一步、每个节点怎么学”，并把资源和练习入口放在节点动作里。</p>
-
-      <div class="path-hero section">
-        <div class="card goal-board">
-          <span class="pill blue">当前目标</span>
-          <h2 style="margin-top:12px;font-size:30px">先补稳函数返回值，再进入模块导入</h2>
-          <p class="lead">系统根据最近 7 天错题、画像偏好和资源完成度，把“模块导入”暂缓半天，先用项目案例修正 return 的理解偏差。</p>
-          <div class="strategy-grid">
-            <div class="strategy-card"><b>48%</b><span>返回值掌握度低于进入下一节点阈值</span></div>
-            <div class="strategy-card"><b>代码案例</b><span>画像显示学生更容易通过项目例子理解概念</span></div>
-            <div class="strategy-card"><b>80%</b><span>短练正确率达到后自动解锁模块导入</span></div>
-          </div>
+      <div class="page-head">
+        <div>
+          <div class="topline">学习路径 / 个性化路线</div>
+          <h1>个性化学习路径</h1>
+          <p class="lead">展示当前节点、推荐原因、达标条件和路径变化依据。</p>
         </div>
-        <div class="card">
-          <h2>路径为什么变化</h2>
-          <div class="reason-list section">
-            <div class="reason-item"><b>错题触发</b><span>昨晚 5 道题里有 3 道把函数内部变量误认为能自动传到外部。</span></div>
-            <div class="reason-item"><b>画像影响</b><span>学生在纯概念讲解后的保持率偏低，项目化案例后的练习正确率提升更明显。</span></div>
-            <div class="reason-item"><b>节奏保护</b><span>模块导入依赖函数调用和返回值。提前进入会增加 import、调用链和拆分文件的理解负担。</span></div>
-          </div>
-          <button class="btn ghost section" id="askPathAI">让 AI 解释这次调整 →</button>
+        <div class="status-summary">
+          <div class="summary-chip"><b>函数与作用域</b><span>当前节点</span></div>
+          <div class="summary-chip"><b>80%</b><span>解锁标准</span></div>
+          <div class="summary-chip"><b>暂缓</b><span>模块导入</span></div>
         </div>
       </div>
 
-      <div class="grid cols-2 section">
+      <div class="path-onepage">
         <div class="card">
-          <div class="toolbar">
-            <h2>个性化学习路线</h2>
-            <span class="pill blue">今日更新 21:40</span>
-          </div>
-          <div class="route-panel section">
-            <div class="route-node">
-              <div class="route-index">1</div>
-              <div>
-                <h3>基础语法复盘</h3>
-                <p class="meta">状态：已完成。完成条件：基础语法短练连续两次超过 85%。</p>
-                <div class="route-tags"><span class="pill green">完成</span><span class="pill">掌握 91%</span><span class="pill">影响：低</span></div>
-              </div>
-              <div class="route-action"><button class="btn secondary" data-jump="report">看证据</button></div>
-            </div>
-            <div class="route-node current">
-              <div class="route-index">2</div>
-              <div>
-                <h3>函数返回值与作用域修正</h3>
-                <p class="meta">状态：当前。推荐原因：返回值错题影响后续模块导入，且学生偏好代码案例。</p>
-                <div class="route-tags"><span class="pill blue">当前</span><span class="pill orange">掌握 58%</span><span class="pill purple">错题驱动</span><span class="pill green">推荐资源 3 个</span></div>
-              </div>
-              <div class="route-action"><button class="btn" data-jump="resources">学资源</button><button class="btn secondary" data-jump="practice">做达标练习</button></div>
-            </div>
-            <div class="route-node">
-              <div class="route-index">3</div>
-              <div>
-                <h3>模块导入与文件拆分</h3>
-                <p class="meta">状态：待解锁。进入条件：返回值掌握度达到 80%，并完成 1 次项目案例复述。</p>
-                <div class="route-tags"><span class="pill orange">暂缓</span><span class="pill">掌握 32%</span><span class="pill red">受返回值影响</span></div>
-              </div>
-              <div class="route-action"><button class="btn secondary" data-jump="generate">生成预习资源</button></div>
-            </div>
-            <div class="route-node">
-              <div class="route-index">4</div>
-              <div>
-                <h3>文件处理小项目</h3>
-                <p class="meta">状态：后续。节点目标：把函数、模块和文件读写串成一个完整项目。</p>
-                <div class="route-tags"><span class="pill">后续</span><span class="pill">掌握 18%</span><span class="pill">项目实践</span></div>
-              </div>
-              <div class="route-action"><button class="btn secondary" data-jump="path">未开放</button></div>
-            </div>
+          <div class="path-overview">
+            <div class="overview-item"><span>当前目标</span><b>Python 函数与模块</b></div>
+            <div class="overview-item"><span>路径进度</span><div style="display:flex;align-items:center;gap:10px;margin-top:6px"><div class="progress-ring"><span>62%</span></div><div class="bar" style="width:72px"><i style="width:62%"></i></div></div></div>
+            <div class="overview-item"><span>当前阶段</span><b>薄弱点补强</b><p class="meta">第 2 / 7 步</p></div>
+            <div class="overview-item"><span>路径变化</span><b>模块导入暂缓</b><p class="meta">返回值掌握度下降</p></div>
+            <div style="display:grid;gap:8px;min-width:150px"><button class="btn" data-jump="resources">开始今日路径</button><button class="btn secondary" data-jump="profile">调整目标</button></div>
           </div>
         </div>
-        <div class="card">
-          <span class="pill blue">当前节点达标板</span>
-          <h2 style="margin-top:12px">函数返回值与作用域修正</h2>
-          <p class="meta section">这个节点不是单纯“看完资源”就结束，而是要用练习和复述证明学生能说清楚值从哪里来、返回给谁。</p>
-          <div class="condition">
-            <div class="condition-row"><div><b>返回值掌握度</b><div class="bar" style="margin-top:8px"><i style="width:48%"></i></div></div><span class="pill orange">48/80</span></div>
-            <div class="condition-row"><div><b>短练正确率</b><div class="bar" style="margin-top:8px"><i style="width:74%"></i></div></div><span class="pill blue">74%</span></div>
-            <div class="condition-row"><div><b>项目案例复述</b><div class="bar" style="margin-top:8px"><i style="width:35%"></i></div></div><span class="pill">未通过</span></div>
-            <div class="condition-row"><div><b>推荐资源完成度</b><div class="bar" style="margin-top:8px"><i style="width:70%"></i></div></div><span class="pill green">70%</span></div>
+
+        <div class="path-main-grid">
+          <div class="card">
+            <div class="toolbar"><h2>个性化路线图</h2><span class="meta">当前停留在第 2 步</span></div>
+            <div class="path-steps">
+              <div class="path-step done"><div class="step-dot">✓</div><b>学习诊断</b><span class="pill green">已完成</span><small>15 分钟</small></div>
+              <div class="path-step active"><div class="step-dot">02</div><b>薄弱点补强</b><span class="pill blue">进行中</span><small>45 分钟</small></div>
+              <div class="path-step"><div class="step-dot">03</div><b>概念理解</b><span class="pill">待开始</span><small>60 分钟</small></div>
+              <div class="path-step"><div class="step-dot">04</div><b>针对练习</b><span class="pill">待开始</span><small>50 分钟</small></div>
+              <div class="path-step"><div class="step-dot">05</div><b>综合应用</b><span class="pill">待开始</span><small>45 分钟</small></div>
+              <div class="path-step"><div class="step-dot">06</div><b>阶段测评</b><span class="pill">待开始</span><small>30 分钟</small></div>
+              <div class="path-step locked"><div class="step-dot">锁</div><b>下一单元</b><span class="pill">待解锁</span><small>--</small></div>
+            </div>
+            <div class="current-node-panel">
+              <div class="node-answer"><b>我现在在哪？</b><span>正在补强“函数返回值与作用域修正”，先解决 return、print 和局部变量混淆。</span></div>
+              <div class="node-answer"><b>为什么这样安排？</b><span>最近 3 道错题都和返回值有关，直接学模块导入会增加理解负担。</span></div>
+              <div class="node-answer"><b>什么时候进入下一步？</b><span>完成 5 道达标题且正确率达到 80%，即可进入核心概念理解。</span></div>
+              <div class="node-answer"><b>这个节点怎么学？</b><span>先看 12 分钟代码案例讲义，再做返回值短练，最后让 AI 解释错因。</span></div>
+            </div>
+            <div class="path-actions">
+              <button class="btn" data-jump="resources">学习推荐资源</button>
+              <button class="btn secondary" data-jump="practice">进入达标练习</button>
+              <button class="btn tertiary" data-jump="generate">生成补弱资源</button>
+            </div>
           </div>
-          <div class="stack section">
-            <button class="btn" data-jump="resources">查看当前节点资源</button>
-            <button class="btn secondary" data-jump="generate">按这个节点生成新资源</button>
-            <button class="btn secondary" data-jump="practice">进入达标练习</button>
+
+          <div class="path-side">
+            <div class="card">
+              <h2>推荐依据</h2>
+              <div class="path-evidence-compact">
+                <div class="evidence-item"><div class="evidence-icon">错</div><div><b>最近错误点</b><p class="meta">返回值相关错误率偏高</p></div></div>
+                <div class="evidence-item"><div class="evidence-icon">度</div><div><b>掌握度</b><p class="meta">模块导入掌握度 48%</p></div></div>
+                <div class="evidence-item"><div class="evidence-icon">偏</div><div><b>学习偏好</b><p class="meta">偏好案例驱动讲解</p></div></div>
+                <div class="evidence-item"><div class="evidence-icon">节</div><div><b>学习节奏</b><p class="meta">已连续学习 12 天</p></div></div>
+              </div>
+            </div>
+            <div class="card">
+              <h2>路径调整规则</h2>
+              <div class="reason-list section">
+                <div class="reason-item"><b>连续两次达标后进入下一模块</b></div>
+                <div class="reason-item"><b>正确率低于 60% 插入补强内容</b></div>
+                <div class="reason-item"><b>停留过久时调整资源类型</b></div>
+              </div>
+              <button class="btn ghost section" id="askPathAI">让 AI 解释这次调整 →</button>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
     <section class="page" id="generate">
-      <div class="topline">资源工作台 / 页面式生成流程</div>
-      <h1>资源生成改成一段清晰的学习流程</h1>
-      <p class="lead">资源工作台仍是一级入口，但生成过程拆成多个独立流程页：确认上下文、选择类型、配置要求、生成过程、结果预览、保存并开始学习。</p>
+      <div class="page-head">
+        <div>
+          <div class="topline">资源中心 / 生成与资源库</div>
+          <div class="title-row"><h1>资源中心</h1><button class="btn secondary" data-jump="resources">进入资源库</button><button class="btn secondary" data-jump="knowledge">我的资料库</button></div>
+          <p class="lead">在这里生成个性化学习资源，也可以进入资源库或我的资料库管理已保存内容和用户上传文件。</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>6 步</b><span>生成流程</span></div>
+          <div class="summary-chip"><b>当前节点</b><span>函数返回值</span></div>
+          <div class="summary-chip"><b>代码案例</b><span>默认偏好</span></div>
+        </div>
+      </div>
 
       <div class="flow-shell section">
         <aside class="card flow-rail" aria-label="资源生成流程">
@@ -733,14 +908,14 @@
               <span class="pill purple">推荐：代码案例讲义</span>
             </div>
             <div class="type-grid">
-              <div class="type-card active">💻<b>代码案例讲义</b><span class="meta">项目案例 + 概念解释 + 检查题</span></div>
-              <div class="type-card">📄<b>错题讲义</b><span class="meta">针对错因逐题拆解</span></div>
-              <div class="type-card">📝<b>达标题库</b><span class="meta">按知识点生成短练</span></div>
-              <div class="type-card">▶<b>讲解视频脚本</b><span class="meta">用于后续视频资源</span></div>
-              <div class="type-card">🎞<b>PPT</b><span class="meta">适合课堂复盘</span></div>
-              <div class="type-card">🧠<b>思维导图</b><span class="meta">梳理概念关系</span></div>
-              <div class="type-card">📚<b>拓展阅读</b><span class="meta">补充阅读材料</span></div>
-              <div class="type-card">✨<b>组合包</b><span class="meta">讲义 + 练习 + 复述卡</span></div>
+              <div class="type-card active"><span class="pill blue">推荐</span><b>代码案例讲义</b><span class="meta">项目案例 + 概念解释 + 检查题</span></div>
+              <div class="type-card"><span class="pill">文档</span><b>错题讲义</b><span class="meta">针对错因逐题拆解</span></div>
+              <div class="type-card"><span class="pill">练习</span><b>达标题库</b><span class="meta">按知识点生成短练</span></div>
+              <div class="type-card"><span class="pill">视频</span><b>讲解视频脚本</b><span class="meta">用于后续视频资源</span></div>
+              <div class="type-card"><span class="pill">课件</span><b>PPT</b><span class="meta">适合课堂复盘</span></div>
+              <div class="type-card"><span class="pill">结构</span><b>思维导图</b><span class="meta">梳理概念关系</span></div>
+              <div class="type-card"><span class="pill">阅读</span><b>拓展阅读</b><span class="meta">补充阅读材料</span></div>
+              <div class="type-card"><span class="pill">组合</span><b>组合包</b><span class="meta">讲义 + 练习 + 复述卡</span></div>
             </div>
             <div class="flow-footer"><button class="btn secondary" data-flow-prev="0">上一步</button><button class="btn" data-flow-next="2">下一步，配置要求</button></div>
           </div>
@@ -758,6 +933,15 @@
                   <div class="choice-card"><b>错题拆解优先</b><span>逐题解释为什么 print 输出不等于 return。</span></div>
                   <div class="choice-card"><b>达标练习优先</b><span>先给题，再按错误类型补讲解。</span></div>
                 </div>
+                <div class="section">
+                  <div class="toolbar"><h3>参考我的资料</h3><button class="btn ghost" data-jump="knowledge">管理资料 →</button></div>
+                  <div class="choice-list section" id="sourceList">
+                    <label class="source-card selected"><input type="checkbox" class="source-check" checked data-title="函数返回值错题整理.pdf"><div><b>函数返回值错题整理.pdf</b><span>已整理 · 错题补弱 · 适合生成讲义和达标题</span></div></label>
+                    <label class="source-card"><input type="checkbox" class="source-check" data-title="阶段练习成绩.xlsx"><div><b>阶段练习成绩.xlsx</b><span>已整理 · 练习数据 · 适合调整难度和题量</span></div></label>
+                    <label class="source-card"><input type="checkbox" class="source-check" data-title="老师课堂笔记.docx"><div><b>老师课堂笔记.docx</b><span>整理中 · 课堂笔记 · 可先作为补充参考</span></div></label>
+                  </div>
+                  <p class="meta section" id="sourceHint">已选择：函数返回值错题整理.pdf。生成内容会优先参考这份资料。</p>
+                </div>
               </div>
               <div>
                 <h3>要求文本</h3>
@@ -774,10 +958,11 @@
             </div>
             <div class="process">
               <div class="process-row" data-process="0"><span class="dot-status"></span><b>读取画像偏好</b><span class="meta">待开始</span></div>
-              <div class="process-row" data-process="1"><span class="dot-status"></span><b>匹配路径节点</b><span class="meta">待开始</span></div>
-              <div class="process-row" data-process="2"><span class="dot-status"></span><b>生成资源大纲</b><span class="meta">待开始</span></div>
-              <div class="process-row" data-process="3"><span class="dot-status"></span><b>内容安全检查</b><span class="meta">待开始</span></div>
-              <div class="process-row" data-process="4"><span class="dot-status"></span><b>生成预览与练习</b><span class="meta">待开始</span></div>
+              <div class="process-row" data-process="1"><span class="dot-status"></span><b>读取我的资料</b><span class="meta">待开始</span></div>
+              <div class="process-row" data-process="2"><span class="dot-status"></span><b>匹配路径节点</b><span class="meta">待开始</span></div>
+              <div class="process-row" data-process="3"><span class="dot-status"></span><b>生成资源大纲</b><span class="meta">待开始</span></div>
+              <div class="process-row" data-process="4"><span class="dot-status"></span><b>内容安全检查</b><span class="meta">待开始</span></div>
+              <div class="process-row" data-process="5"><span class="dot-status"></span><b>生成预览与练习</b><span class="meta">待开始</span></div>
             </div>
             <div class="flow-footer"><button class="btn secondary" data-flow-prev="2">上一步</button><button class="btn secondary" data-flow-next="4">查看预览</button></div>
           </div>
@@ -790,7 +975,7 @@
             <div id="generatedPreview" class="soft-card">
               <span class="pill blue">已生成</span>
               <h3 style="margin-top:10px">函数返回值项目讲义</h3>
-              <p class="meta" style="margin-top:8px">包含 1 个成绩统计案例、3 个关键概念解释和 5 道检查题。关联路径节点：函数返回值与作用域修正。</p>
+              <p class="meta" style="margin-top:8px">包含 1 个成绩统计案例、3 个关键概念解释和 5 道检查题。已参考：函数返回值错题整理.pdf。关联路径节点：函数返回值与作用域修正。</p>
               <div class="condition">
                 <div class="condition-row"><div><b>学习时长</b><p class="meta">约 12 分钟</p></div><span class="pill">短资源</span></div>
                 <div class="condition-row"><div><b>保存位置</b><p class="meta">资源库 / 错题补弱 / 当前路径节点</p></div><span class="pill blue">待保存</span></div>
@@ -806,7 +991,7 @@
             </div>
             <div class="grid cols-3">
               <div class="soft-card"><h3>保存到资源库</h3><p class="meta section">写入资源库，并带上节点、错因和画像偏好来源。</p><button class="btn section" id="saveResource">保存资源</button></div>
-              <div class="soft-card"><h3>开始学习</h3><p class="meta section">跳转到资源库预览页，继续学习当前讲义。</p><button class="btn secondary section" data-jump="resources">开始学习</button></div>
+              <div class="soft-card"><h3>进入资源库学习</h3><p class="meta section">打开资源库预览页，继续学习当前讲义或查看历史资源。</p><button class="btn secondary section" data-jump="resources">进入资源库</button></div>
               <div class="soft-card"><h3>进入达标练习</h3><p class="meta section">用生成资源配套的 5 道检查题完成节点达标。</p><button class="btn secondary section" data-jump="practice">生成配套练习</button></div>
             </div>
             <div class="flow-footer"><button class="btn secondary" data-flow-prev="4">上一步</button><button class="btn secondary" data-flow-next="0">重新生成一份</button></div>
@@ -816,18 +1001,27 @@
     </section>
 
     <section class="page" id="resources">
-      <div class="topline">资源库 / 搜索、筛选、预览与继续学习</div>
-      <h1>资源库是真正的学习入口</h1>
-      <p class="lead">资源要能看出来源、关联知识点、学习进度和下一步动作，而不是简单文件列表。</p>
+      <div class="page-head">
+        <div>
+          <div class="topline">资源库 / 搜索、筛选、预览</div>
+          <div class="title-row"><h1>资源库</h1><button class="btn secondary" data-jump="generate">返回资源中心</button></div>
+          <p class="lead">查看资源来源、关联薄弱点、学习进度和下一步动作。</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>3 个</b><span>已保存资源</span></div>
+          <div class="summary-chip"><b>70%</b><span>当前进度</span></div>
+          <div class="summary-chip"><b>1 个</b><span>待练习资源</span></div>
+        </div>
+      </div>
 
       <div class="resource-layout section">
         <div class="card">
           <h2>已保存资源</h2>
           <div class="filter-row"><input class="search" id="resourceSearch" placeholder="搜索资源、知识点或来源"><select class="select" id="resourceFilter"><option>全部</option><option>错题补弱</option><option>路径节点</option><option>项目实践</option></select></div>
           <div class="stack section" id="resourceList">
-            <div class="resource-item active" data-title="return 到底返回给谁" data-type="视频" data-progress="70%" data-source="错题补弱" data-weak="函数返回值"><div class="iconbox">▶</div><div><b>return 到底返回给谁</b><p class="meta">视频 · 进度 70% · 错题补弱</p></div></div>
-            <div class="resource-item" data-title="函数作用域错题讲义" data-type="文档" data-progress="0%" data-source="练习错题" data-weak="局部变量"><div class="iconbox">📄</div><div><b>函数作用域错题讲义</b><p class="meta">文档 · 来自练习错题</p></div></div>
-            <div class="resource-item" data-title="成绩统计小项目代码案例" data-type="代码案例" data-progress="35%" data-source="画像偏好" data-weak="项目实践"><div class="iconbox">💻</div><div><b>成绩统计小项目代码案例</b><p class="meta">代码案例 · 画像偏好匹配</p></div></div>
+            <div class="resource-item active" data-title="return 到底返回给谁" data-type="视频" data-progress="70%" data-source="错题补弱" data-weak="函数返回值"><div class="iconbox">视频</div><div><b>return 到底返回给谁</b><p class="meta">视频 · 进度 70% · 错题补弱</p></div></div>
+            <div class="resource-item" data-title="函数作用域错题讲义" data-type="文档" data-progress="0%" data-source="练习错题" data-weak="局部变量"><div class="iconbox">文档</div><div><b>函数作用域错题讲义</b><p class="meta">文档 · 来自练习错题</p></div></div>
+            <div class="resource-item" data-title="成绩统计小项目代码案例" data-type="代码案例" data-progress="35%" data-source="画像偏好" data-weak="项目实践"><div class="iconbox">案例</div><div><b>成绩统计小项目代码案例</b><p class="meta">代码案例 · 画像偏好匹配</p></div></div>
           </div>
         </div>
         <div class="card preview">
@@ -839,6 +1033,7 @@
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn" data-jump="practice">学完去练习</button>
             <button class="btn secondary" id="explainResource">让 AI 讲解</button>
+            <button class="btn secondary" data-jump="knowledge">管理我的资料</button>
             <button class="btn secondary">下载</button>
             <button class="btn secondary">删除</button>
           </div>
@@ -846,10 +1041,109 @@
       </div>
     </section>
 
+    <section class="page material-page" id="knowledge">
+      <div class="page-head">
+        <div>
+          <div class="topline">我的资料库 / 上传、整理、用于学习</div>
+          <div class="title-row"><h1>我的资料库</h1><button class="btn secondary" data-jump="generate">返回资源中心</button><button class="btn secondary" data-jump="resources">进入资源库</button></div>
+          <p class="lead">上传的学习资料将由 AI 智能结构化，用于问答、生成资料与复习建议，助你高效学习。</p>
+        </div>
+      </div>
+
+      <div class="material-stats section">
+        <div class="card material-stat"><div class="material-icon blue"><svg viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg></div><div><span class="meta">上传文件</span><b>12 个</b><p class="meta">本月新增 3 个文件</p></div></div>
+        <div class="card material-stat"><div class="material-icon green"><svg viewBox="0 0 24 24"><path d="M7 7h12v12H7z"/><path d="M5 5h12"/><path d="M3 3h12"/></svg></div><div><span class="meta">已整理资料</span><b>9 个</b><p class="meta">整理完成率 75%</p></div></div>
+        <div class="card material-stat"><div class="material-icon purple"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></svg></div><div><span class="meta">知识片段</span><b>186 条</b><p class="meta">可用于学习与检索</p></div></div>
+        <div class="card material-stat"><div class="material-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M9 15c1.5 1 4.5 1 6 0"/></svg></div><div><span class="meta">AI 引用次数</span><b>28 次</b><p class="meta">近30天使用 18 次</p></div></div>
+      </div>
+
+      <div class="material-middle section">
+        <div class="card material-upload">
+          <h2>上传学习资料</h2>
+          <label class="material-upload-zone" for="knowledgeUpload">
+            <input id="knowledgeUpload" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style="display:none">
+            <div>
+              <div class="material-icon blue" style="margin:0 auto"><svg viewBox="0 0 24 24"><path d="M12 16V5"/><path d="m8 9 4-4 4 4"/><path d="M20 16.5A4.5 4.5 0 0 1 15.5 21h-7A5.5 5.5 0 1 1 10 10.2"/></svg></div>
+              <b>拖拽文件到这里，或点击上传</b>
+              <span class="btn">上传资料</span>
+              <p class="meta" style="margin-top:10px">支持格式：PDF、DOCX、PPT、XLSX、TXT</p>
+            </div>
+          </label>
+          <div class="material-progress">
+            <div><b>正在处理 1 个文件</b><p class="meta" style="margin-top:6px">期中复习笔记.docx</p></div>
+            <div style="display:flex;gap:10px;align-items:start"><span class="meta">预计剩余 00:18</span><button class="close" type="button">×</button></div>
+            <div class="bar" style="grid-column:1 / -1"><i style="width:62%"></i></div>
+          </div>
+        </div>
+
+        <div class="card material-table-card">
+          <div class="toolbar">
+            <h2>资料库管理</h2>
+            <div class="material-searchbar">
+              <input class="search" placeholder="搜索文件名、标签或内容">
+              <button class="filter-chip active">全部</button><button class="filter-chip">已整理</button><button class="filter-chip">待补充</button>
+              <button class="btn secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>筛选</button>
+            </div>
+          </div>
+          <table class="material-table">
+            <thead><tr><th>文件名</th><th>类型</th><th>标签</th><th>更新时间</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>函数返回值错误整理.pdf</td><td><span class="pill">PDF</span></td><td><div class="tags"><span class="pill blue">函数</span><span class="pill blue">错误</span><span class="pill">+2</span></div></td><td>今天 10:24</td><td><span class="pill green">已整理</span></td><td><div class="material-actions"><button class="material-link">查看</button><span class="material-more">···</span></div></td></tr>
+              <tr><td>阶段练习成绩.xlsx</td><td><span class="pill">XLSX</span></td><td><div class="tags"><span class="pill blue">成绩</span><span class="pill blue">数据</span><span class="pill blue">阶段练习</span></div></td><td>昨天 21:15</td><td><span class="pill green">已整理</span></td><td><div class="material-actions"><button class="material-link">查看</button><button class="material-link">设为AI参考</button><span class="material-more">···</span></div></td></tr>
+              <tr><td>老师课堂笔记.docx</td><td><span class="pill">DOCX</span></td><td><div class="tags"><span class="pill blue">课堂笔记</span><span class="pill blue">重点</span><span class="pill blue">知识点</span></div></td><td>昨天 16:43</td><td><span class="pill blue">处理中</span></td><td><div class="material-actions"><button class="material-link">继续整理</button><span class="material-more">···</span></div></td></tr>
+              <tr><td>自我复盘.txt</td><td><span class="pill">TXT</span></td><td><div class="tags"><span class="pill blue">复盘</span><span class="pill blue">反思</span></div></td><td>5-18 22:30</td><td><span class="pill orange">待补充</span></td><td><div class="material-actions"><button class="material-link">查看</button><button class="material-link">设为AI参考</button><span class="material-more">···</span></div></td></tr>
+            </tbody>
+          </table>
+          <div class="material-view-all">查看全部资料（12） <span>↓</span></div>
+        </div>
+      </div>
+
+      <div class="material-bottom section">
+        <div class="card">
+          <div class="toolbar"><h2>AI 结构化提取（基于已整理资料）</h2><button class="material-link">查看全部</button></div>
+          <div class="material-mini-grid section">
+            <div class="material-mini"><b>48 题</b><p class="meta">高频错题</p><p class="meta">集中在函数与数列</p></div>
+            <div class="material-mini"><b>32 个</b><p class="meta">知识点</p><p class="meta">已提炼核心概念</p></div>
+            <div class="material-mini"><b>18 条</b><p class="meta">课堂笔记</p><p class="meta">重点内容总结</p></div>
+            <div class="material-mini"><b>9 条</b><p class="meta">复盘摘要</p><p class="meta">学习反思与改进</p></div>
+          </div>
+          <p class="meta section">最近更新：函数返回值错误整理.pdf · 今天 10:24</p>
+        </div>
+        <div class="card">
+          <h2>资料可用于</h2>
+          <div class="usage-grid section">
+            <div class="usage-tile"><b>用于问答</b><p class="meta">基于资料答疑问</p></div>
+            <div class="usage-tile"><b>生成讲义</b><p class="meta">自动生成学习讲义</p></div>
+            <div class="usage-tile"><b>生成练习</b><p class="meta">智能生成练习题</p></div>
+            <div class="usage-tile"><b>生成复习建议</b><p class="meta">个性化复习规划</p></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px"><button class="btn secondary" id="testRetrieval">试问 AI</button><button class="btn" data-jump="generate">用已生成资源</button></div>
+        </div>
+        <div class="card">
+          <h2>隐私与引用说明</h2>
+          <div class="privacy-list section">
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3.5 8.5 7 10 3.5-1.5 7-5 7-10V6z"/></svg><div><b>仅你可见</b><p class="meta">资料仅对你个人可见，学而思不会用于模型训练。</p></div></div>
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M9 11h6"/><path d="M9 15h6"/><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg><div><b>来源可追溯</b><p class="meta">AI 使用资料内容时，会明确标注引用来源。</p></div></div>
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div><b>安全存储</b><p class="meta">采用企业级加密存储，保障你的数据安全。</p></div></div>
+          </div>
+          <button class="btn ghost section" id="askKnowledgeAI">了解更多隐私政策 →</button>
+        </div>
+      </div>
+    </section>
+
     <section class="page" id="practice">
-      <div class="topline">练习评测 / 判题、解析、错题与补弱</div>
-      <h1>练习结果会推动画像和推荐变化</h1>
-      <p class="lead">练习页不只是刷题，必须让学生知道为什么错、错题保存在哪里、系统接下来怎么帮他补。</p>
+      <div class="page-head">
+        <div>
+          <div class="topline">练习评测 / 判题、解析、错题</div>
+          <h1>练习评测</h1>
+          <p class="lead">完成针对练习后，系统会回写画像、错题本和学习路径。</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>8 题</b><span>今日练习</span></div>
+          <div class="summary-chip"><b>80%</b><span>达标线</span></div>
+          <div class="summary-chip"><b>48%</b><span>当前掌握</span></div>
+        </div>
+      </div>
 
       <div class="grid cols-2 section">
         <div class="card">
@@ -890,9 +1184,18 @@ print(result)</pre>
     </section>
 
     <section class="page" id="report">
-      <div class="topline">学习报告 / 证据、总结与回流</div>
-      <h1>报告要回答下一轮怎么开始</h1>
-      <p class="lead">报告不仅是统计，还要说明证据、薄弱点和系统已经如何更新画像、路径和推荐。</p>
+      <div class="page-head">
+        <div>
+          <div class="topline">学习报告 / 证据、总结与回流</div>
+          <h1>学习报告</h1>
+          <p class="lead">总结本轮学习证据，并说明画像、路径和推荐如何更新。</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>81%</b><span>任务完成</span></div>
+          <div class="summary-chip"><b>74%</b><span>练习正确率</span></div>
+          <div class="summary-chip"><b>3 个</b><span>薄弱点</span></div>
+        </div>
+      </div>
 
       <div class="grid cols-4 section">
         <div class="card metric"><b>6.5h</b><span>本周学习</span></div>
@@ -929,37 +1232,39 @@ print(result)</pre>
     </section>
 
     <section class="page" id="loop">
-      <div class="topline">闭环关系图 / 开发对齐</div>
-      <h1>页面围绕学习因果链组织</h1>
-      <p class="lead">所有一级页面都必须能说明自己在建档、规划、学习、练习、评估、回流中的位置。</p>
-      <div class="card hero-panel section">
-        <div class="steps">
-          <div class="step-card"><small>01</small><b>画像建档</b><span>对话和行为共同更新画像。</span></div>
-          <div class="step-card"><small>02</small><b>路径规划</b><span>根据画像和掌握度调整节点。</span></div>
-          <div class="step-card"><small>03</small><b>资源学习</b><span>推荐或生成与薄弱点相关的资源。</span></div>
-          <div class="step-card"><small>04</small><b>练习评测</b><span>判题、解析、错题沉淀。</span></div>
-          <div class="step-card"><small>05</small><b>报告评估</b><span>总结证据和下一步行动。</span></div>
-          <div class="step-card"><small>06</small><b>回流更新</b><span>更新画像、路径、资源推荐和工作台。</span></div>
+      <div class="page-head">
+        <div>
+          <div class="topline">闭环关系图 / 开发对齐</div>
+          <h1>学习闭环关系图</h1>
+          <p class="lead">说明画像、路径、资源、练习和报告之间的数据回流关系。</p>
         </div>
       </div>
       <div class="grid cols-3 section">
-        <div class="card"><h2>下沉：资源推送</h2><p class="meta section">出现在工作台、路径节点、错题补弱、报告建议和资源库，不作为一级页面。</p></div>
-        <div class="card"><h2>下沉：视频播放</h2><p class="meta section">作为资源类型进入资源工作台和资源预览体系。</p></div>
-        <div class="card"><h2>全局：AI 精灵</h2><p class="meta section">悬浮出现，按当前页面提供画像解释、路径建议、题目讲解、资源解释和报告解读。</p></div>
+        <div class="card"><span class="pill blue">01</span><h2 style="margin-top:12px">画像建档</h2><p class="meta section">对话、练习和资源学习共同更新画像，形成薄弱点和偏好判断。</p></div>
+        <div class="card"><span class="pill blue">02</span><h2 style="margin-top:12px">路径规划</h2><p class="meta section">根据画像和掌握度调整节点，明确当前目标和解锁条件。</p></div>
+        <div class="card"><span class="pill blue">03</span><h2 style="margin-top:12px">资源学习</h2><p class="meta section">推荐或生成与当前薄弱点相关的资源，并保存到资源库。</p></div>
+        <div class="card"><span class="pill blue">04</span><h2 style="margin-top:12px">练习评测</h2><p class="meta section">完成判题、解析、错题沉淀和掌握度回写。</p></div>
+        <div class="card"><span class="pill blue">05</span><h2 style="margin-top:12px">报告评估</h2><p class="meta section">总结证据，给出下一轮工作台任务和路径调整建议。</p></div>
+        <div class="card"><span class="pill blue">06</span><h2 style="margin-top:12px">回流更新</h2><p class="meta section">画像、路径、资源推荐和今日任务同步更新，形成下一轮学习闭环。</p></div>
+      </div>
+      <div class="grid cols-3 section">
+        <div class="card"><h2>资源推送下沉</h2><p class="meta section">出现在工作台、路径节点、错题补弱、报告建议和资源库，不作为一级页面。</p></div>
+        <div class="card"><h2>视频播放下沉</h2><p class="meta section">作为资源类型进入资源中心和资源预览体系。</p></div>
+        <div class="card"><h2>AI 学习助手全局化</h2><p class="meta section">悬浮出现，按当前页面提供画像解释、路径建议、题目讲解、资源解释和报告解读。</p></div>
       </div>
     </section>
   </main>
 </div>
 
-<button class="ai-float" id="aiFloat" aria-label="打开 AI 精灵">AI</button>
+<button class="ai-float" id="aiFloat" aria-label="打开 AI 学习助手">AI 学习助手</button>
 <aside class="ai-panel" id="aiPanel">
-  <header><h2>AI 精灵助手</h2><p class="meta" id="aiContext">当前在学习工作台，我可以解释今日任务为什么这样安排。</p></header>
+  <header><h2>AI 学习助手</h2><p class="meta" id="aiContext">当前在学习工作台，我可以解释今日任务为什么这样安排。</p></header>
   <div class="body">
     <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">你可以问：为什么今天先补函数返回值？</div></div>
     <div class="quick-row">
-      <button class="quick" id="quickExplain">解释当前页面</button>
-      <button class="quick" id="quickNext">给我下一步建议</button>
-      <button class="quick">进入深度会话</button>
+      <button class="quick" id="quickExplain">我看不懂这节</button>
+      <button class="quick" id="quickNext">调整今日任务</button>
+      <button class="quick" id="quickProfile">更新学习画像</button>
     </div>
   </div>
 </aside>
@@ -971,15 +1276,19 @@ print(result)</pre>
     dashboard: ['当前在学习工作台，我可以解释今日任务为什么这样安排。', '你可以问：为什么今天先补函数返回值？'],
     profile: ['当前在学习画像页，我可以解释画像标签的来源，并帮助更新画像。', '你可以问：为什么我的返回值掌握度只有 48%？'],
     path: ['当前在学习路径页，我可以解释节点顺序、达标条件和路径调整原因。', '你可以问：为什么模块导入暂缓？'],
-    generate: ['当前在资源工作台，我可以帮你优化生成要求并解释生成过程。', '你可以问：怎样生成更适合项目实践的资源？'],
+    generate: ['当前在资源中心，我可以帮你优化生成要求、解释生成过程，或带你进入资源库和我的资料库。', '你可以问：怎样生成更适合项目实践的资源？'],
     resources: ['当前在资源库，我可以讲解资源内容并建议下一步学习动作。', '你可以问：这个资源解决哪个薄弱点？'],
+    knowledge: ['当前在我的资料库，我可以帮你整理上传资料，并说明 AI 会怎样参考这些资料回答和生成资源。', '你可以问：这份资料能帮我复习什么？'],
     practice: ['当前在练习评测页，我可以讲题、分析错因并推荐补弱资源。', '你可以问：为什么这题答案是 None？'],
     report: ['当前在学习报告页，我可以解读证据并生成下一轮行动建议。', '你可以问：下一步先练习还是先看资源？'],
     loop: ['当前在闭环关系图，我可以解释页面职责和能力下沉边界。', '你可以问：资源推送为什么不做一级入口？']
   };
   function showPage(id, options = {}) {
     pages.forEach(page => page.classList.toggle('active', page.id === id));
-    navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === id));
+    navButtons.forEach(btn => {
+      const pageId = ['resources', 'knowledge'].includes(id) ? 'generate' : id;
+      btn.classList.toggle('active', btn.dataset.page === pageId);
+    });
     const ctx = contexts[id] || contexts.dashboard;
     document.getElementById('aiContext').textContent = ctx[0];
     document.getElementById('aiBubble').textContent = ctx[1];
@@ -993,10 +1302,13 @@ print(result)</pre>
 
   document.getElementById('aiFloat').addEventListener('click', () => document.getElementById('aiPanel').classList.toggle('open'));
   document.getElementById('quickExplain').addEventListener('click', () => {
-    document.getElementById('aiBubble').textContent = '我会根据当前页面的数据来源、用户动作和下一步影响来解释，不只说明页面功能。';
+    document.getElementById('aiBubble').textContent = '我会先用一个更短的例子解释当前薄弱点，再给你 2 道检查题确认是否听懂。';
   });
   document.getElementById('quickNext').addEventListener('click', () => {
-    document.getElementById('aiBubble').textContent = '建议先完成当前主任务，再查看系统回写到画像、路径或报告中的变化。';
+    document.getElementById('aiBubble').textContent = '可以调整今日任务顺序，但建议保留“资源学习、针对练习、路径确认”这三个动作。';
+  });
+  document.getElementById('quickProfile').addEventListener('click', () => {
+    document.getElementById('aiBubble').textContent = '我会根据你的回答更新学习画像，并说明更新后会影响哪些资源、练习和路径节点。';
   });
   document.getElementById('askPathAI').addEventListener('click', () => {
     document.getElementById('aiPanel').classList.add('open');
@@ -1021,7 +1333,7 @@ print(result)</pre>
       chat.appendChild(user);
       const ai = document.createElement('div');
       ai.className = 'msg';
-      ai.innerHTML = '<div class="avatar">AI</div><div class="bubble">收到。我会把“代码案例优先”作为偏好候选，并在资源工作台默认生成项目案例型资源。</div>';
+      ai.innerHTML = '<div class="avatar">AI</div><div class="bubble">收到。我会把“代码案例优先”作为偏好候选，并在资源中心默认生成项目案例型资源。</div>';
       chat.appendChild(ai);
       input.value = '';
       chat.scrollTop = chat.scrollHeight;
@@ -1045,7 +1357,9 @@ print(result)</pre>
   document.querySelectorAll('[data-flow-prev]').forEach(btn => btn.addEventListener('click', () => showFlow(Number(btn.dataset.flowPrev))));
 
   document.getElementById('optimizePrompt').addEventListener('click', () => {
-    document.getElementById('promptText').value = '请基于“成绩统计小程序”生成一份 12 分钟代码案例讲义：先用生活化类比解释 return，再给出可运行代码案例，明确区分 print、局部变量和返回值，最后提供 5 道由浅入深的检查题，并标注每题对应知识点和达标条件。';
+    const selectedSources = [...document.querySelectorAll('.source-check:checked')].map(input => input.dataset.title);
+    const sourceText = selectedSources.length ? `请优先参考我已上传的资料：${selectedSources.join('、')}。` : '';
+    document.getElementById('promptText').value = `${sourceText}请基于“成绩统计小程序”生成一份 12 分钟代码案例讲义：先用生活化类比解释 return，再给出可运行代码案例，明确区分 print、局部变量和返回值，最后提供 5 道由浅入深的检查题，并标注每题对应知识点和达标条件。`;
   });
   document.querySelectorAll('.type-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -1059,6 +1373,18 @@ print(result)</pre>
       card.classList.add('active');
     });
   });
+  function updateSelectedSources() {
+    const selectedSources = [...document.querySelectorAll('.source-check:checked')].map(input => input.dataset.title);
+    document.querySelectorAll('.source-card').forEach(card => card.classList.toggle('selected', card.querySelector('.source-check').checked));
+    document.getElementById('sourceHint').textContent = selectedSources.length
+      ? `已选择：${selectedSources.join('、')}。生成内容会优先参考这些资料。`
+      : '未选择资料。本次生成只基于学习画像、路径节点和生成要求。';
+    const prompt = document.getElementById('promptText');
+    const clean = prompt.value.replace(/^请优先参考我已上传的资料：.*?。/, '');
+    prompt.value = selectedSources.length ? `请优先参考我已上传的资料：${selectedSources.join('、')}。${clean}` : clean;
+  }
+  document.querySelectorAll('.source-check').forEach(input => input.addEventListener('change', updateSelectedSources));
+  updateSelectedSources();
   document.getElementById('startGenerate').addEventListener('click', () => {
     showFlow(3);
     const rows = [...document.querySelectorAll('.process-row')];
@@ -1124,6 +1450,66 @@ print(result)</pre>
   document.getElementById('explainResource').addEventListener('click', () => {
     document.getElementById('aiPanel').classList.add('open');
     document.getElementById('aiBubble').textContent = '这个资源主要解决函数返回值：函数内部算出的 total 不会自动传到外面，必须通过 return 交给调用处。';
+  });
+
+  function bindKnowledgeItem(item) {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      const summary = document.getElementById('knowledgeSummary');
+      const tags = document.getElementById('knowledgeTags');
+      if (summary) summary.textContent = item.dataset.summary;
+      if (tags) tags.innerHTML = item.dataset.tags.split(',').map(tag => `<span class="pill blue">${tag}</span>`).join('');
+    });
+  }
+  document.querySelectorAll('.file-item').forEach(bindKnowledgeItem);
+  document.getElementById('knowledgeUpload').addEventListener('change', event => {
+    const list = document.getElementById('knowledgeList');
+    if (!list) {
+      const names = [...event.target.files].map(file => file.name).join('、');
+      if (names) {
+        document.getElementById('aiPanel').classList.add('open');
+        document.getElementById('aiBubble').textContent = `${names} 已加入上传队列。我会先整理重点内容，之后可用于答疑、生成资料和复习建议。`;
+      }
+      event.target.value = '';
+      return;
+    }
+    [...event.target.files].forEach(file => {
+      const ext = (file.name.split('.').pop() || 'file').toUpperCase();
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.dataset.name = file.name;
+      item.dataset.type = ext;
+      item.dataset.status = '待处理';
+      item.dataset.tags = '用户上传,待整理,我的资料';
+      item.dataset.summary = `${file.name} 已加入资料库，等待系统整理重点内容。整理完成后，AI 可以参考它回答问题和生成学习资源。`;
+      item.innerHTML = `<div class="iconbox">${ext.slice(0, 3)}</div><div><b></b><div class="file-meta"><span class="pill orange">待处理</span><span class="pill">0 条内容</span><span class="pill">用户上传</span></div></div><button class="btn tertiary">查看</button>`;
+      item.querySelector('b').textContent = file.name;
+      bindKnowledgeItem(item);
+      list.prepend(item);
+      item.click();
+    });
+    event.target.value = '';
+  });
+  const indexKnowledge = document.getElementById('indexKnowledge');
+  if (indexKnowledge) indexKnowledge.addEventListener('click', () => {
+    const active = document.querySelector('.file-item.active');
+    if (!active) return;
+    active.dataset.status = '已整理';
+    active.dataset.summary = `${active.dataset.name} 已整理完成。AI 学习助手可在回答问题和生成资源时参考这份资料。`;
+    active.querySelector('.file-meta').innerHTML = '<span class="pill green">已整理</span><span class="pill">12 条内容</span><span class="pill blue">AI 可参考</span>';
+    document.getElementById('knowledgeSummary').textContent = active.dataset.summary;
+    document.getElementById('aiPanel').classList.add('open');
+    document.getElementById('aiBubble').textContent = `${active.dataset.name} 已整理完成。之后你提问或生成资源时，我会优先参考这份资料，并告诉你参考来源。`;
+  });
+  document.getElementById('testRetrieval').addEventListener('click', () => {
+    const active = document.querySelector('.file-item.active');
+    document.getElementById('aiPanel').classList.add('open');
+    document.getElementById('aiBubble').textContent = `我会参考 ${active ? active.dataset.name : '当前文件'} 来回答：return 会把函数内部结果交给调用处，这部分可以用来生成函数返回值讲义。`;
+  });
+  document.getElementById('askKnowledgeAI').addEventListener('click', () => {
+    document.getElementById('aiPanel').classList.add('open');
+    document.getElementById('aiBubble').textContent = '你上传资料后，我会先帮你整理重点。之后你问问题、生成讲义或做复习计划时，我会优先参考这些资料，并说明参考了哪份文件。';
   });
 
   let selectedAnswer = null;
