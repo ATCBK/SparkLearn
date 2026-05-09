@@ -1,0 +1,2729 @@
+<!DOCTYPE html>
+<!-- saved from url=(0082)file:///D:/Project_building/SparkLearn/ui-prototypes/phase2-complete-ui/index.html -->
+<html lang="zh-CN"><head><meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学而思 SparkLearn 全页面学习闭环原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="https://fonts.googleapis.com/css2family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --card: #ffffff;
+    --solid: #fff;
+    --ink: #111827;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --soft: #9ca3af;
+    --line: #e5e7eb;
+    --blue: #2563eb;
+    --blue-2: #68a8f8;
+    --blue-soft: #eff6ff;
+    --green: #16a34a;
+    --green-soft: #eafaf0;
+    --orange: #f59e0b;
+    --orange-soft: #fff7e8;
+    --red: #ef4444;
+    --red-soft: #fff0f0;
+    --purple: #8b5cf6;
+    --purple-soft: #f3efff;
+    --shadow: 0 4px 16px rgba(15,23,42,.04);
+    --shadow-sm: 0 2px 10px rgba(15,23,42,.035);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background: var(--bg);
+    font-family: "DM Sans", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea, select { font: inherit; }
+  button { cursor: pointer; }
+  .app { min-height: 100vh; display: flex; }
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 232px;
+    padding: 18px 12px;
+    background: #ffffff;
+    border-right: 1px solid var(--line);
+    z-index: 20;
+  }
+  .brand {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 8px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand img { width: 42px; height: 36px; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(47,128,237,.12)); }
+  .brand strong { display: block; font-size: 17px; letter-spacing: -.2px; }
+  .brand span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
+  .nav-title { margin: 20px 10px 8px; color: var(--soft); font-size: 11px; font-weight: 800; letter-spacing: .8px; }
+  .nav-btn {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #52627b;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 12px;
+    margin: 2px 0;
+    border-radius: 8px;
+    text-align: left;
+    font-weight: 700;
+    transition: .18s ease;
+  }
+  .nav-btn svg { width: 19px; height: 19px; stroke-width: 2; }
+  .nav-btn:hover { background: #f3f4f6; color: var(--ink); }
+  .nav-btn.active { background: var(--blue-soft); color: var(--blue); box-shadow: inset 3px 0 0 var(--blue); }
+  .side-note {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 18px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #f9fafb;
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  .side-note b { display: block; font-size: 13px; }
+  .side-note p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .status-list { display: grid; gap: 8px; margin-top: 10px; }
+  .status-list div { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+  .status-list strong { color: var(--ink); font-weight: 800; }
+  main { margin-left: 232px; padding-top: 56px; width: calc(100% - 232px); }
+  .topbar {
+    position: fixed;
+    left: 232px;
+    right: 0;
+    top: 0;
+    height: 56px;
+    z-index: 19;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 0 32px;
+    background: rgba(255,255,255,.96);
+    border-bottom: 1px solid var(--line);
+  }
+  .breadcrumb { color: var(--muted); font-size: 13px; font-weight: 700; }
+  .breadcrumb b { color: var(--ink); font-weight: 800; }
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+  .global-search {
+    width: 320px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0 12px;
+    background: #f9fafb;
+    outline: none;
+  }
+  .global-search, .top-icon { display: none; }
+  .top-icon {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+  }
+  .user-chip { display: flex; align-items: center; gap: 9px; color: var(--text); font-size: 13px; font-weight: 800; }
+  .avatar-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center; font-size: 12px; }
+  .page {
+    display: none;
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 28px 32px 56px;
+    animation: lift .28s cubic-bezier(.16,1,.3,1);
+  }
+  .page.active { display: block; }
+  @keyframes lift { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .topline { color: var(--soft); font-size: 13px; font-weight: 800; margin-bottom: 9px; }
+  .title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.25; letter-spacing: 0; font-weight: 700; }
+  h2 { margin: 0; font-size: 18px; letter-spacing: 0; font-weight: 700; }
+  h3 { margin: 0; font-size: 15px; letter-spacing: 0; font-weight: 700; }
+  p { margin: 0; }
+  .lead { max-width: 760px; margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .blue { color: var(--blue); }
+  .grid { display: grid; gap: 16px; }
+  .cols-2 { grid-template-columns: 1.15fr .85fr; }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .section { margin-top: 20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+  .soft-card { background: #f9fafb; border: 1px solid #eef2f7; border-radius: 10px; padding: 14px; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    background: #f1f6fc;
+    color: #52627b;
+  }
+  .pill.blue { background: var(--blue-soft); color: var(--blue); }
+  .pill.green { background: var(--green-soft); color: var(--green); }
+  .pill.orange { background: var(--orange-soft); color: var(--orange); }
+  .pill.purple { background: var(--purple-soft); color: var(--purple); }
+  .pill.red { background: var(--red-soft); color: var(--red); }
+  .btn {
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: white;
+    background: var(--blue);
+    box-shadow: none;
+    font-weight: 700;
+  }
+  .btn.secondary { background: #fff; color: var(--blue); box-shadow: inset 0 0 0 1px #bfdbfe; }
+  .btn.tertiary { background: #f2f6fb; color: var(--ink); box-shadow: none; }
+  .btn.ghost { background: transparent; color: var(--blue); box-shadow: none; padding-inline: 2px; }
+  .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .page-head > div:first-child { min-width: 0; }
+  .status-summary { display: grid; grid-template-columns: repeat(3, auto); gap: 10px; align-items: center; }
+  .summary-chip { min-width: 118px; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1px solid var(--line); box-shadow: none; }
+  .summary-chip b { display: block; font-size: 16px; }
+  .summary-chip span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  .stack { display: grid; gap: 12px; }
+  .meta { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .hero-panel {
+    position: relative;
+    overflow: hidden;
+    min-height: 220px;
+    padding: 22px;
+    background: #fff;
+  }
+  .hero-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: none;
+    pointer-events: none;
+  }
+  .hero-panel > * { position: relative; z-index: 1; }
+  .decision {
+    max-width: 680px;
+    display: grid;
+    gap: 14px;
+  }
+  .decision h2 { font-size: 24px; line-height: 1.28; }
+  .why-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+  .step-card {
+    min-height: 122px;
+    padding: 15px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e8eff8;
+  }
+  .step-card small { color: var(--blue); font-weight: 900; }
+  .step-card b { display: block; margin-top: 7px; }
+  .step-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .metric-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .metric { padding: 16px 18px; border-right: 1px solid #eef2f7; background: #fff; }
+  .metric:last-child { border-right: 0; }
+  .metric b { display: block; font-size: 20px; }
+  .metric span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .task-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid #eef2f7;
+  }
+  .task-row:last-child { border-bottom: 0; }
+  .task-row b { display: block; font-size: 15px; }
+  .task-row span { color: var(--muted); font-size: 12px; }
+  .task-check { width: 18px; height: 18px; accent-color: var(--blue); }
+  .task-row.done b, .task-row.done span { text-decoration: line-through; color: var(--soft); }
+  .task-delete { border: 0; background: transparent; color: var(--soft); font-size: 18px; }
+  .task-input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 14px; }
+  .resource-reco { display: grid; gap: 12px; }
+  .resource-reco-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 0; border-bottom: 1px solid #eef2f7; }
+  .resource-reco-item:last-child { border-bottom: 0; }
+  .timeline { position: relative; padding-left: 18px; }
+  .timeline::before { content: ""; position: absolute; left: 4px; top: 8px; bottom: 8px; width: 2px; background: #d7e8fb; }
+  .time-item { position: relative; margin-bottom: 15px; }
+  .time-item:last-child { margin-bottom: 0; }
+  .time-item::before { content: ""; position: absolute; left: -18px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--blue); }
+  .time-item b { display: block; font-size: 14px; }
+  .time-item span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .anatomy-stage {
+    position: relative;
+    height: 560px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: white;
+    border: 1px solid #e8eff8;
+    box-shadow: var(--shadow);
+  }
+  .anatomy-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .anatomy-stage::after { content: ""; position: absolute; inset: 0; background: rgba(245,248,252,.28); pointer-events: none; }
+  .profile-note {
+    position: absolute;
+    z-index: 2;
+    width: 238px;
+    padding: 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e8eff8;
+    box-shadow: var(--shadow-sm);
+  }
+  .profile-note h3 { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+  .profile-note p { color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag { padding: 5px 8px; border-radius: 999px; background: #f1f6fc; color: #52627b; font-size: 11px; font-weight: 800; }
+  .tag.blue { background: var(--blue-soft); color: var(--blue); }
+  .tag.green { background: var(--green-soft); color: var(--green); }
+  .tag.orange { background: var(--orange-soft); color: var(--orange); }
+  .tag.purple { background: var(--purple-soft); color: var(--purple); }
+  .profile-board { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: stretch; }
+  .portrait-card { position: relative; overflow: hidden; min-height: 360px; display: grid; align-content: end; }
+  .portrait-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .portrait-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.92)); }
+  .portrait-caption { position: relative; z-index: 1; padding: 18px; border-radius: 14px; background: rgba(255,255,255,.9); border: 1px solid #e8eff8; }
+  .portrait-floating {
+    position: absolute;
+    z-index: 1;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(232,239,248,.95);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+  }
+  .portrait-floating b { display: block; font-size: 18px; }
+  .portrait-floating span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .portrait-floating.top { top: 18px; left: 18px; }
+  .portrait-floating.mid { top: 106px; right: 18px; max-width: 164px; }
+  .portrait-floating.bottom { left: 18px; bottom: 126px; max-width: 190px; }
+  .profile-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .profile-summary-grid .card { min-height: 174px; }
+  .profile-focus-card {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 16px;
+    align-items: center;
+    background:
+      radial-gradient(circle at top left, rgba(248,194,70,.16), transparent 42%),
+      linear-gradient(135deg, #fffdf7, #ffffff);
+  }
+  .focus-dial {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at center, #fff 0 40px, transparent 41px),
+      conic-gradient(var(--orange) 0 48%, #e8eff8 48% 100%);
+    border: 1px solid #eef3f9;
+    box-shadow: inset 0 0 0 10px rgba(255,255,255,.7);
+  }
+  .focus-dial b { font-size: 28px; line-height: 1; }
+  .focus-dial span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .focus-points { display: grid; gap: 8px; }
+  .focus-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #edf2f8;
+    color: #55657d;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .focus-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); flex: 0 0 auto; }
+  .profile-preference-card {
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, rgba(88, 109, 255, .06), rgba(95, 199, 142, .05)),
+      #fff;
+  }
+  .preference-mosaic {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 10px;
+    margin-top: 14px;
+    align-items: stretch;
+  }
+  .mosaic-main, .mosaic-mini {
+    border-radius: 16px;
+    border: 1px solid #e8eff8;
+    background: #fff;
+    padding: 12px;
+  }
+  .mosaic-main {
+    min-height: 118px;
+    display: grid;
+    align-content: space-between;
+    background:
+      radial-gradient(circle at top right, rgba(47,128,237,.12), transparent 45%),
+      #fff;
+  }
+  .mosaic-main .code-lines { display: grid; gap: 7px; }
+  .mosaic-main .code-lines i,
+  .mosaic-mini .mini-bars i {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #cfe1f8, #8bb7ef);
+  }
+  .mosaic-main .code-lines i:nth-child(1) { width: 82%; }
+  .mosaic-main .code-lines i:nth-child(2) { width: 68%; }
+  .mosaic-main .code-lines i:nth-child(3) { width: 56%; }
+  .mosaic-mini-wrap { display: grid; gap: 10px; }
+  .mosaic-mini {
+    min-height: 54px;
+    display: grid;
+    gap: 7px;
+    align-content: center;
+  }
+  .mosaic-mini b { font-size: 12px; }
+  .mosaic-mini .mini-bars { display: grid; gap: 6px; }
+  .mosaic-mini .mini-bars i:nth-child(1) { width: 74%; }
+  .mosaic-mini .mini-bars i:nth-child(2) { width: 52%; }
+  .profile-goal-card {
+    display: grid;
+    gap: 14px;
+    background:
+      linear-gradient(180deg, rgba(95,199,142,.08), rgba(255,255,255,1) 46%);
+  }
+  .goal-track {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+  .goal-step {
+    position: relative;
+    padding-top: 28px;
+    color: #5f6f84;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .goal-step::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: -10px;
+    height: 2px;
+    background: #d9e7f5;
+  }
+  .goal-step:last-child::before { right: 0; }
+  .goal-step::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #c7d8eb;
+    box-sizing: border-box;
+  }
+  .goal-step.done::before,
+  .goal-step.current::before { background: #93d0aa; }
+  .goal-step.done::after { background: var(--green); border-color: var(--green); }
+  .goal-step.current::after { border-color: var(--green); background: #effaf3; }
+  .goal-step b { display: block; margin-bottom: 6px; color: var(--text); font-size: 13px; }
+  .profile-plan-card {
+    display: grid;
+    gap: 12px;
+    background:
+      radial-gradient(circle at bottom right, rgba(47,128,237,.12), transparent 40%),
+      #fff;
+  }
+  .plan-stack { display: grid; gap: 10px; margin-top: 6px; }
+  .plan-step {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border-radius: 16px;
+    background: #f8fbff;
+    border: 1px solid #e4eef8;
+  }
+  .plan-index {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    border: 1px solid #dce8f5;
+    font-weight: 900;
+    color: var(--blue);
+  }
+  .plan-step b { display: block; font-size: 14px; }
+  .plan-step span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .plan-time {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #dce8f5;
+    color: #5b6c85;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .profile-radar-card {
+    display: grid;
+    gap: 14px;
+    background:
+      radial-gradient(circle at top left, rgba(47,128,237,.08), transparent 38%),
+      linear-gradient(180deg, rgba(255,255,255,1), rgba(248,251,255,1));
+  }
+  .radar-wrap {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  .radar-chart {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+  }
+  .radar-chart svg { width: 100%; height: 100%; display: block; }
+  .radar-ring { fill: none; stroke: #dbe7f3; stroke-width: 1; }
+  .radar-axis { stroke: #d5e2f0; stroke-width: 1; }
+  .radar-area { fill: rgba(47,128,237,.18); stroke: var(--blue); stroke-width: 2; }
+  .radar-point { fill: var(--blue); }
+  .radar-label {
+    position: absolute;
+    color: #51627b;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .radar-label.top { top: -4px; left: 50%; transform: translateX(-50%); }
+  .radar-label.right { top: 28%; right: -10px; }
+  .radar-label.bottom-right { right: 8px; bottom: 14px; }
+  .radar-label.bottom-left { left: 8px; bottom: 14px; }
+  .radar-label.left { top: 28%; left: -10px; }
+  .radar-legend { display: grid; gap: 10px; }
+  .radar-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.88);
+    border: 1px solid #e4edf7;
+  }
+  .radar-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+  .radar-item b { font-size: 13px; }
+  .radar-item span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .radar-score {
+    color: #49607f;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .note-a { left: 32px; top: 34px; }
+  .note-b { right: 36px; top: 34px; }
+  .note-c { left: 32px; top: 224px; }
+  .note-d { right: 36px; top: 224px; }
+  .note-e { left: 58px; bottom: 42px; }
+  .note-f { right: 58px; bottom: 42px; }
+  .center-caption {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: 80px;
+    width: 250px;
+    transform: translateX(-50%);
+    padding: 14px 18px;
+    text-align: center;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(47,128,237,.16);
+    box-shadow: var(--shadow-sm);
+  }
+  .center-caption b { display: block; font-size: 18px; }
+  .center-caption span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .chat-box { display: none; grid-template-columns: 1fr 300px; gap: 14px; margin-top: 14px; }
+  .chat-box.open { display: grid; }
+  .chat-log { min-height: 250px; max-height: 320px; overflow: auto; display: grid; align-content: start; gap: 10px; }
+  .msg { max-width: 82%; display: flex; gap: 8px; align-items: start; }
+  .msg.user { margin-left: auto; justify-content: end; }
+  .avatar { width: 28px; height: 28px; border-radius: 10px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 900; font-size: 12px; flex: 0 0 auto; }
+  .bubble { padding: 10px 12px; border-radius: 15px; background: #f3f7fb; color: var(--text); font-size: 13px; line-height: 1.55; }
+  .user .bubble { background: var(--blue); color: white; }
+  .input-line { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+  .input-line input, .input-line textarea, .select, .search { width: 100%; border: 1px solid #d8e6f4; border-radius: 14px; background: rgba(255,255,255,.82); outline: none; padding: 11px 12px; color: var(--ink); }
+  .path-hero {
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .goal-board {
+    position: relative;
+    overflow: hidden;
+    min-height: 240px;
+    background: #fff;
+  }
+  .goal-board .lead { max-width: 620px; }
+  .strategy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
+  .strategy-card { padding: 14px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .strategy-card b { display: block; font-size: 18px; }
+  .strategy-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .route-panel { display: grid; gap: 14px; }
+  .route-node {
+    position: relative;
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    gap: 13px;
+    align-items: start;
+    padding: 16px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #e8eff8;
+  }
+  .route-node::before {
+    content: "";
+    position: absolute;
+    left: 36px;
+    top: 58px;
+    bottom: -24px;
+    width: 2px;
+    background: linear-gradient(180deg, rgba(11,116,255,.22), rgba(34,197,94,.18));
+  }
+  .route-node:last-child::before { display: none; }
+  .route-node.current { background: var(--blue-soft); border-color: rgba(47,128,237,.28); box-shadow: 0 8px 22px rgba(47,128,237,.08); }
+  .route-index {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: white;
+    color: var(--blue);
+    font-weight: 900;
+    box-shadow: inset 0 0 0 1px rgba(11,116,255,.14);
+    z-index: 1;
+  }
+  .route-node h3 { font-size: 17px; }
+  .route-node .meta { margin-top: 5px; }
+  .route-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .route-action { display: grid; gap: 8px; min-width: 132px; }
+  .reason-list { display: grid; gap: 10px; }
+  .reason-item { padding: 13px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .reason-item b { display: block; font-size: 14px; }
+  .reason-item span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .path-overview { display: grid; grid-template-columns: 1.25fr .9fr .8fr .8fr .8fr auto; gap: 18px; align-items: center; }
+  .overview-item { padding-right: 18px; border-right: 1px solid #e8eff8; min-height: 72px; display: grid; align-content: center; }
+  .overview-item:last-child { border-right: 0; padding-right: 0; }
+  .overview-item span { color: var(--muted); font-size: 12px; }
+  .overview-item b { display: block; margin-top: 8px; font-size: 20px; }
+  .progress-ring { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); font-weight: 900; background: conic-gradient(var(--blue) 62%, #e1ebf8 0); position: relative; }
+  .progress-ring::after { content: ""; position: absolute; width: 48px; height: 48px; border-radius: 50%; background: #fff; }
+  .progress-ring span { position: relative; z-index: 1; color: var(--ink); font-size: 16px; }
+  .path-steps { display: grid; grid-template-columns: repeat(7, 1fr); align-items: start; gap: 0; padding: 24px 16px 18px; }
+  .path-step { position: relative; display: grid; justify-items: center; gap: 8px; text-align: center; }
+  .path-step::before { content: ""; position: absolute; left: -50%; right: 50%; top: 20px; height: 2px; background: #d9e4f2; z-index: 0; }
+  .path-step:first-child::before { display: none; }
+  .path-step.done::before, .path-step.active::before { background: var(--blue); }
+  .step-dot { position: relative; z-index: 1; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 2px solid #d9e4f2; color: var(--muted); font-weight: 900; }
+  .path-step.done .step-dot { border-color: var(--green); color: var(--green); }
+  .path-step.active .step-dot { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+  .path-step.locked .step-dot { color: #94a3b8; background: #f8fbff; }
+  .path-step b { font-size: 14px; }
+  .path-step small { color: var(--muted); font-size: 12px; }
+  .path-task-table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 12px; font-size: 13px; }
+  .path-task-table th, .path-task-table td { padding: 11px 12px; border-bottom: 1px solid #e8eff8; text-align: left; }
+  .path-task-table th { background: #f8fbff; color: var(--muted); font-size: 12px; }
+  .path-task-table tr:last-child td { border-bottom: 0; }
+  .evidence-item { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; padding: 10px 0; }
+  .evidence-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 900; font-size: 12px; }
+  #path { padding-bottom: 28px; }
+  #path .page-head { margin-bottom: 16px; }
+  .path-onepage { display: grid; gap: 12px; }
+  .path-onepage .card { padding: 18px; }
+  .path-main-grid { display: grid; grid-template-columns: minmax(0, 1.38fr) minmax(300px, .62fr); gap: 12px; align-items: stretch; }
+  .path-side { display: grid; gap: 12px; }
+  .path-goal-entry {
+    min-width: 360px;
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+  }
+  .path-goal-entry .meta { font-size: 12px; color: var(--muted); }
+  .path-goal-entry-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .path-goal-entry-row input {
+    width: 100%;
+    border: 1px solid #d8e6f4;
+    border-radius: 14px;
+    background: rgba(255,255,255,.9);
+    outline: none;
+    padding: 10px 12px;
+    color: var(--ink);
+  }
+  .path-onepage .path-overview { grid-template-columns: 1.25fr .85fr .75fr .75fr auto; gap: 12px; }
+  .path-onepage .overview-item { min-height: 54px; padding-right: 12px; }
+  .path-onepage .overview-item b { margin-top: 5px; font-size: 17px; }
+  .path-onepage .progress-ring { width: 54px; height: 54px; }
+  .path-onepage .progress-ring::after { width: 40px; height: 40px; }
+  .path-graph-card {
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(47,128,237,.08), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(95,199,142,.08), transparent 30%),
+      #fff;
+  }
+  .path-graph-stage {
+    position: relative;
+    min-height: 560px;
+    margin-top: 16px;
+    border-radius: 18px;
+    background:
+      linear-gradient(rgba(235,242,250,.75) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(235,242,250,.75) 1px, transparent 1px),
+      linear-gradient(180deg, #fbfdff, #f6faff);
+    background-size: 36px 36px, 36px 36px, auto;
+    border: 1px solid #e6eef8;
+  }
+  .path-map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+  .path-map path {
+    fill: none;
+    stroke: rgba(160, 180, 205, .9);
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .path-map path.active {
+    stroke: rgba(69, 149, 233, .95);
+  }
+  .path-map path.branch {
+    stroke-dasharray: 5 6;
+    stroke: rgba(180, 193, 211, .95);
+  }
+  .kg-cluster-label {
+    position: absolute;
+    z-index: 2;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.94);
+    border: 1px solid #e3ebf6;
+    color: #5a6b84;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .path-node {
+    position: absolute;
+    z-index: 2;
+    width: 116px;
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 7px;
+  }
+  .path-node .node-core {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    border: 3px solid #dce8f5;
+    box-shadow: 0 4px 12px rgba(15,23,42,.08);
+  }
+  .path-node.done .node-core {
+    border-color: rgba(95,199,142,.45);
+    background: linear-gradient(180deg, #ffffff, #f3fcf7);
+  }
+  .path-node.current .node-core {
+    border-color: rgba(47,128,237,.48);
+    background: linear-gradient(180deg, #ffffff, #eef6ff);
+    box-shadow: 0 0 0 10px rgba(47,128,237,.10), 0 8px 20px rgba(47,128,237,.14);
+  }
+  .path-node.locked .node-core {
+    border-color: #e1e9f3;
+    background: #f8fbff;
+    box-shadow: none;
+  }
+  .path-node h3 {
+    font-size: 13px;
+    margin: 0;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid #e3ebf6;
+    box-shadow: 0 4px 14px rgba(15,23,42,.05);
+    white-space: nowrap;
+  }
+  .path-node p { color: var(--muted); font-size: 11px; line-height: 1.4; margin: 0; }
+  .node-chip {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f1f6fc;
+    color: #5d6e86;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .node-chip.blue { background: var(--blue-soft); color: var(--blue); }
+  .node-chip.green { background: var(--green-soft); color: var(--green); }
+  .node-chip.gray { background: #eef3f8; color: #8495aa; }
+  .path-node.current::after {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    width: 42px;
+    height: 42px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    border: 1px dashed rgba(47,128,237,.28);
+    pointer-events: none;
+  }
+  .path-method-list, .path-resource-list { display: grid; gap: 10px; margin-top: 14px; }
+  .path-method-item, .path-resource-item {
+    padding: 13px;
+    border-radius: 15px;
+    background: #f8fbff;
+    border: 1px solid #e4edf7;
+  }
+  .path-method-item b, .path-resource-item b { display: block; font-size: 14px; }
+  .path-method-item p, .path-resource-item p { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .path-resource-item .resource-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .nav-graph-stage {
+    position: relative;
+    min-height: 700px;
+    margin-top: 14px;
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      linear-gradient(rgba(228,236,246,.72) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(228,236,246,.72) 1px, transparent 1px),
+      #f8fbff;
+    background-size: 24px 24px, 24px 24px, auto;
+    border: 1px solid #e5eaf2;
+  }
+  .path-graph-shell {
+    border-radius: 16px;
+    border: 1px solid #e5eaf2;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15,23,42,.04);
+    padding: 14px;
+  }
+  .path-graph-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 4px 4px 10px;
+  }
+  .path-graph-goal {
+    min-width: 420px;
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+  }
+  .path-graph-goal .meta { font-size: 12px; color: var(--muted); }
+  .path-graph-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 900;
+  }
+  .path-graph-title::before {
+    content: "";
+    width: 4px;
+    height: 20px;
+    border-radius: 6px;
+    background: #2f80ed;
+  }
+  .path-graph-subtitle { color: #6b7b91; font-size: 13px; }
+  .route-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .route-lines path {
+    fill: none;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .route-lines .line-left { stroke: rgba(47,128,237,.72); }
+  .route-lines .line-mid { stroke: rgba(34,197,94,.62); }
+  .route-lines .line-right { stroke: rgba(148,163,184,.65); }
+  .nav-hub {
+    position: absolute;
+    left: 50%;
+    top: 26px;
+    transform: translateX(-50%);
+    z-index: 4;
+    width: 300px;
+    padding: 16px 14px 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e5eaf2;
+    box-shadow: 0 8px 24px rgba(15,23,42,.04);
+    text-align: center;
+  }
+  .nav-hub-dot {
+    width: 12px;
+    height: 12px;
+    margin: 0 auto 8px;
+    border-radius: 50%;
+    background: #2f80ed;
+  }
+  .nav-hub h3 { font-size: 16px; }
+  .branch-grid {
+    position: relative;
+    z-index: 3;
+    padding: 200px 30px 22px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 26px;
+    align-items: start;
+  }
+  .branch-badge {
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e3e9f3;
+    color: #5d6d83;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .branch-badge i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .branch-badge.blue { color: #2f80ed; }
+  .branch-badge.green { color: #22c55e; }
+  .branch-badge.gray { color: #94a3b8; }
+  .route-column {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    gap: 12px;
+    align-content: start;
+  }
+  .route-column.active .route-item.current .route-node {
+    border-color: #6faef6;
+    background: #edf5ff;
+  }
+  .branch-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #dfe6f1;
+    color: #5c6d85;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .route-column.blue .branch-title { color: #2f80ed; }
+  .route-column.green .branch-title { color: #22a65b; }
+  .route-column.gray .branch-title { color: #94a3b8; }
+  .branch-title .icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1px solid currentColor;
+    font-size: 11px;
+    line-height: 1;
+  }
+  .route-list {
+    display: grid;
+    gap: 10px;
+  }
+  .route-item {
+    display: grid;
+    grid-template-columns: 30px 1fr auto;
+    align-items: center;
+    gap: 10px;
+  }
+  .route-index {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid #d9e3ef;
+    background: #fff;
+    color: #607188;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .route-node {
+    height: 56px;
+    border-radius: 10px;
+    border: 1px solid #dfe6f1;
+    background: #fff;
+    padding: 0 12px;
+    display: grid;
+    align-items: center;
+    color: #4f6179;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .route-item.current .route-index {
+    border-color: #78b4f7;
+    color: #2f80ed;
+    box-shadow: 0 0 0 4px rgba(47,128,237,.10);
+  }
+  .route-item.current .route-node {
+    border-color: #78b4f7;
+    background: #edf5ff;
+  }
+  .route-item.done .route-index {
+    border-color: #7ed9a3;
+    color: #22a65b;
+  }
+  .route-item.done .route-node {
+    border-color: #bfead1;
+    background: #f2fcf6;
+  }
+  .route-item.locked .route-index,
+  .route-item.locked .route-node {
+    color: #94a3b8;
+    border-color: #e3e9f3;
+    background: #f8fbff;
+  }
+  .route-tag {
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .route-tag.blue { color: #2f80ed; background: #edf5ff; border-color: #bfdbfe; }
+  .route-tag.green { color: #22a65b; background: #f1fcf6; border-color: #bbe8ce; }
+  .route-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #7ed9a3;
+    color: #22a65b;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .graph-legend {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .graph-legend-item {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid #e1e8f2;
+    font-size: 11px;
+    font-weight: 800;
+    color: #5d6f86;
+  }
+  .graph-legend-item i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .graph-legend-item.green i { background: #22c55e; }
+  .graph-legend-item.blue i { background: #2f80ed; }
+  .graph-legend-item.gray i { background: #94a3b8; }
+  .path-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .path-actions .btn,
+  .path-actions .btn.secondary,
+  .path-actions .btn.tertiary {
+    height: 52px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 900;
+  }
+  .path-actions .btn { background: #2f80ed; border-color: #2f80ed; color: #fff; }
+  .path-actions .btn.secondary {
+    background: #fff;
+    border: 1px solid #6eaef5;
+    color: #2f80ed;
+  }
+  .path-actions .btn.tertiary {
+    background: #fff;
+    border: 1px solid #c8d5e6;
+    color: #5f7087;
+  }
+  .branch-panel { display: none; }
+  .branch-panel.active { display: block; }
+  .path-goal-entry {
+    min-width: 360px;
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+  }
+  .path-goal-entry .meta { font-size: 12px; color: var(--muted); }
+  .path-goal-entry-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .path-goal-entry-row input {
+    width: 100%;
+    border: 1px solid #d8e6f4;
+    border-radius: 14px;
+    background: rgba(255,255,255,.9);
+    outline: none;
+    padding: 10px 12px;
+    color: var(--ink);
+  }
+  .path-goal-entry-row .btn {
+    min-width: 104px;
+  }
+  .path-goal-entry-row .btn.secondary {
+    border: 1px solid #d4dfef;
+    color: #5f7188;
+    background: #fff;
+  }
+  .path-goal-entry-row .btn.secondary.active {
+    border-color: #78b4f7;
+    color: #2f80ed;
+    background: #edf5ff;
+  }
+  .path-strip-grid {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .phase-loop {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+  }
+  .phase-arrow {
+    margin-top: 86px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid #dbe5f2;
+    background: #f7faff;
+    color: #8ba0b8;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    font-size: 18px;
+  }
+  .phase-return {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+  }
+  .phase-return-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid #dbe5f2;
+    background: #f7faff;
+    color: #6f839c;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .current-analysis {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid #e5eaf2;
+    background: #f8fbff;
+  }
+  .current-analysis h3 {
+    font-size: 14px;
+    font-weight: 900;
+    color: #35506f;
+  }
+  .current-analysis p {
+    margin-top: 8px;
+    color: #5f7188;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .path-strip {
+    border: 1px solid #e5eaf2;
+    border-radius: 12px;
+    background: #fff;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+  }
+  .path-strip .strip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .path-strip .strip-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 900;
+    color: #4f6179;
+  }
+  .path-strip .strip-title i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .path-strip.blue .strip-title { color: #2f80ed; }
+  .path-strip.green .strip-title { color: #22a65b; }
+  .path-strip.gray .strip-title { color: #94a3b8; }
+  .path-strip.active {
+    border-color: #b7d5fb;
+    box-shadow: 0 8px 18px rgba(47,128,237,.10);
+  }
+  .strip-tag {
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    border: 1px solid #dce6f3;
+    color: #607187;
+    background: #fff;
+  }
+  .strip-tag.active {
+    color: #2f80ed;
+    border-color: #bfdbfe;
+    background: #edf5ff;
+  }
+  .strip-tag.done {
+    color: #22a65b;
+    border-color: #bbe8ce;
+    background: #f1fcf6;
+  }
+  .strip-item {
+    height: 56px;
+    border-radius: 10px;
+    border: 1px solid #dfe6f1;
+    background: #fff;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4f6179;
+  }
+  .strip-item.current {
+    border-color: #78b4f7;
+    background: #edf5ff;
+    color: #2f80ed;
+  }
+  .strip-item.done {
+    border-color: #bfead1;
+    background: #f2fcf6;
+    color: #1f8f4f;
+  }
+  .strip-item.locked {
+    color: #94a3b8;
+    border-color: #e3e9f3;
+    background: #f8fbff;
+  }
+  .branch-node {
+    display: grid;
+    justify-items: start;
+    gap: 7px;
+    cursor: pointer;
+  }
+  .branch-node-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #d7e4f2;
+    box-shadow: 0 4px 12px rgba(15,23,42,.08);
+  }
+  .branch-node.done .branch-node-dot { border-color: rgba(95,199,142,.46); }
+  .branch-node.current .branch-node-dot {
+    border-color: rgba(47,128,237,.48);
+    box-shadow: 0 0 0 8px rgba(47,128,237,.10), 0 6px 14px rgba(47,128,237,.14);
+  }
+  .branch-node.locked .branch-node-dot { border-color: #e1e9f3; background: #f8fbff; box-shadow: none; }
+  .branch-node-label {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid #e0e9f4;
+    color: #4d6079;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .branch-node.current .branch-node-label { color: var(--blue); border-color: rgba(47,128,237,.28); background: var(--blue-soft); }
+  .branch-node.done .branch-node-label { color: var(--green); border-color: rgba(95,199,142,.28); background: #f3fcf7; }
+  .branch-node.locked .branch-node-label { color: #8f9eb1; }
+  .path-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .legend-chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid #e1e9f3;
+    color: #607187;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .branch-panel { display: none; }
+  .branch-panel.active { display: block; }
+  .path-onepage .path-steps { padding: 18px 6px 10px; }
+  .path-onepage .step-dot { width: 38px; height: 38px; }
+  .path-onepage .path-step b { font-size: 13px; }
+  .path-onepage .path-step .pill { padding: 4px 7px; font-size: 11px; }
+  .current-node-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+  .node-answer { padding: 12px; border-radius: 12px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .node-answer b { display: block; font-size: 13px; }
+  .node-answer span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .path-evidence-compact { display: grid; gap: 8px; margin-top: 12px; }
+  .path-evidence-compact .evidence-item { padding: 0; }
+  .path-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .condition { display: grid; gap: 9px; margin-top: 14px; }
+  .condition-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 12px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .bar { height: 8px; border-radius: 999px; background: #dfeafa; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--blue-2)); }
+  .flow-shell { display: block; }
+  .flow-rail { position: sticky; top: 22px; display: grid; gap: 8px; }
+  .flow-step {
+    width: 100%;
+    border: 1px solid rgba(37,99,235,.1);
+    border-radius: 14px;
+    padding: 12px;
+    background: #fff;
+    color: var(--muted);
+    text-align: left;
+    font-weight: 900;
+  }
+  .flow-step span { display: block; margin-bottom: 4px; color: var(--soft); font-size: 11px; }
+  .flow-step.active { background: var(--blue-soft); color: var(--blue); border-color: rgba(11,116,255,.24); }
+  .flow-step.done { color: var(--green); background: var(--green-soft); }
+  .flow-stepper { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; min-width: 760px; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .flow-stepper .flow-step { border: 0; border-right: 1px solid #eef2f7; border-radius: 0; background: #fff; min-height: 64px; }
+  .flow-stepper .flow-step:last-child { border-right: 0; }
+  .flow-stepper .flow-step.active { background: var(--blue-soft); box-shadow: inset 0 -3px 0 var(--blue); }
+  .flow-workspace { padding: 0; overflow: hidden; }
+  .flow-workspace-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); background: #f9fafb; }
+  .flow-workspace-body { padding: 22px; }
+  .flow-view { display: none; min-height: 520px; }
+  .flow-view.active { display: block; }
+  .flow-page-head { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 22px; }
+  .flow-page-head p { max-width: 650px; }
+  .choice-list { display: grid; gap: 10px; }
+  .choice-card {
+    border: 1px solid rgba(37,99,235,.12);
+    border-radius: 14px;
+    background: #fff;
+    padding: 15px;
+    cursor: pointer;
+  }
+  .choice-card.active { background: var(--blue-soft); border-color: rgba(11,116,255,.28); color: var(--blue); }
+  .choice-card b { display: block; }
+  .choice-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+  .source-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 12px;
+    border: 1px solid #e8eff8;
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+  }
+  .source-card input { margin-top: 3px; accent-color: var(--blue); }
+  .source-card.selected { background: var(--blue-soft); border-color: rgba(47,128,237,.28); }
+  .source-card b { display: block; font-size: 14px; }
+  .source-card span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .source-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #f9fafb; }
+  .modal-mask { display: none; position: fixed; inset: 0; z-index: 80; background: rgba(15,23,42,.28); align-items: center; justify-content: center; padding: 24px; }
+  .modal-mask.open { display: flex; }
+  .modal { width: min(760px, 100%); max-height: 82vh; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 60px rgba(15,23,42,.14); display: grid; grid-template-rows: auto 1fr auto; }
+  .modal-head, .modal-foot { padding: 18px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .modal-foot { border-bottom: 0; border-top: 1px solid var(--line); }
+  .modal-body { padding: 18px 20px; overflow: auto; }
+  .modal-close { border: 0; background: transparent; color: var(--muted); font-size: 22px; line-height: 1; }
+  .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .type-card {
+    min-height: 86px;
+    padding: 13px;
+    border: 1px solid rgba(37,99,235,.12);
+    border-radius: 14px;
+    background: #fff;
+    display: grid;
+    align-content: center;
+    gap: 7px;
+  }
+  .type-card.active { background: var(--blue-soft); color: var(--blue); border-color: rgba(11,116,255,.26); }
+  .process { display: grid; gap: 9px; }
+  .process-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .dot-status { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+  .process-row.done .dot-status { background: var(--green); }
+  .process-row.active .dot-status { background: var(--blue); box-shadow: 0 0 0 5px rgba(11,116,255,.12); }
+  .report-switch {
+    display: inline-flex;
+    gap: 6px;
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid #dce7f4;
+    background: #f7faff;
+  }
+  .report-tab {
+    border: 0;
+    background: transparent;
+    color: #607289;
+    border-radius: 9px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .report-tab.active {
+    background: #fff;
+    color: #2f80ed;
+    box-shadow: 0 4px 10px rgba(47,128,237,.12);
+  }
+  .report-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(320px, .7fr);
+    gap: 14px;
+  }
+  .heatmap-wrap {
+    margin-top: 14px;
+    display: grid;
+    gap: 10px;
+  }
+  .heatmap-head,
+  .heatmap-row {
+    display: grid;
+    gap: 7px;
+    align-items: center;
+  }
+  .heatmap-rows {
+    display: grid;
+    gap: 8px;
+  }
+  .heatmap-head {
+    color: #7a8ba0;
+    font-size: 11px;
+    text-align: center;
+    font-weight: 800;
+  }
+  .heatmap-row-label {
+    color: #52627b;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .heatmap-row-cells {
+    display: grid;
+    gap: 7px;
+  }
+  .heatmap-cell {
+    aspect-ratio: 1/1;
+    border-radius: 7px;
+    border: 1px solid #e5ebf4;
+    background: #f4f7fc;
+  }
+  .heatmap-cell.lv1 { background: #e6f1ff; border-color: #d5e6fb; }
+  .heatmap-cell.lv2 { background: #bfdcff; border-color: #a8ccf5; }
+  .heatmap-cell.lv3 { background: #87bbf8; border-color: #72aae9; }
+  .heatmap-cell.lv4 { background: #3c8ff2; border-color: #2b7fdf; }
+  .heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6a7c92;
+    font-size: 12px;
+  }
+  .heatmap-legend i {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    border: 1px solid #dce7f4;
+    display: inline-block;
+  }
+  .summary-ai-card {
+    border: 1px solid #e2e9f3;
+    border-radius: 12px;
+    background: #f8fbff;
+    padding: 14px;
+  }
+  .flow-footer { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .resource-layout { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+  .knowledge-layout { display: grid; grid-template-columns: 380px 1fr; gap: 16px; }
+  .filter-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 14px; }
+  .upload-zone {
+    border: 1.5px dashed rgba(47,128,237,.32);
+    border-radius: 16px;
+    background: #f8fbff;
+    padding: 22px;
+    display: grid;
+    gap: 12px;
+    place-items: center;
+    text-align: center;
+  }
+  .upload-zone input { display: none; }
+  .format-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .file-list { display: grid; gap: 10px; margin-top: 16px; }
+  .file-item {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 13px;
+    border: 1px solid #e8eff8;
+    border-radius: 14px;
+    background: #fff;
+  }
+  .file-item.active { background: var(--blue-soft); border-color: rgba(47,128,237,.24); }
+  .file-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .kb-detail { display: grid; gap: 14px; align-content: start; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .kb-stat { padding: 14px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .kb-stat b { display: block; font-size: 20px; }
+  .material-page { max-width: 1560px; }
+  .material-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .material-stat { min-height: 88px; display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; border: 0; border-right: 1px solid #eef2f7; border-radius: 0; box-shadow: none; }
+  .material-stat:last-child { border-right: 0; }
+  .material-stat b { display: block; margin-top: 7px; font-size: 28px; line-height: 1; }
+  .material-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; }
+  .material-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .material-middle { display: grid; grid-template-columns: 360px 1fr; gap: 16px; align-items: stretch; }
+  .material-upload, .material-table-card { min-height: 310px; }
+  .material-upload-zone { height: 168px; border: 1.5px dashed #bfdbfe; border-radius: 14px; background: #f8fbff; display: grid; place-items: center; text-align: center; padding: 18px; margin-top: 14px; }
+  .material-upload-zone b { display: block; margin: 10px 0 12px; }
+  .material-progress { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin-top: 16px; align-items: start; }
+  .material-searchbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .material-searchbar .search { width: 280px; }
+  .filter-chip { border: 1px solid #e8eff8; border-radius: 999px; background: #fff; color: var(--muted); padding: 8px 12px; font-size: 13px; font-weight: 800; }
+  .filter-chip.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .material-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  .material-table th, .material-table td { padding: 10px 9px; border-bottom: 1px solid #edf2f7; text-align: left; vertical-align: middle; }
+  .material-table th { color: var(--soft); font-size: 12px; }
+  .material-table td:first-child { color: var(--ink); font-weight: 800; }
+  .material-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .material-link { border: 0; background: transparent; color: var(--blue); font-weight: 800; padding: 0; }
+  .material-more { color: var(--soft); font-weight: 900; letter-spacing: 2px; }
+  .material-view-all { display: flex; justify-content: center; align-items: center; gap: 6px; color: var(--blue); font-size: 13px; font-weight: 900; padding-top: 10px; }
+  .material-bottom { display: grid; grid-template-columns: 1.2fr .85fr .95fr; gap: 16px; }
+  .material-mini-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .material-mini, .usage-tile { padding: 13px; border-radius: 12px; background: #f8fbff; border: 1px solid #e8eff8; }
+  .material-mini b { display: block; font-size: 21px; margin-bottom: 6px; }
+  .usage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .privacy-list { display: grid; gap: 14px; }
+  .privacy-row { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+  .privacy-row svg { width: 23px; height: 23px; fill: none; stroke: var(--blue); stroke-width: 2; }
+  .resource-item {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 11px;
+    padding: 13px;
+    border-radius: 14px;
+    border: 1px solid rgba(37,99,235,.1);
+    background: #fff;
+    cursor: pointer;
+  }
+  .resource-item.active { background: var(--blue-soft); border-color: rgba(11,116,255,.24); }
+  .iconbox { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue); font-weight: 900; font-size: 12px; }
+  .preview { min-height: 360px; display: grid; gap: 14px; align-content: start; }
+  .question { padding: 18px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
+  pre { margin: 12px 0 0; white-space: pre-wrap; background: #111827; color: white; border-radius: 14px; padding: 14px; font-size: 13px; }
+  .answer {
+    width: 100%;
+    border: 1px solid rgba(37,99,235,.12);
+    border-radius: 14px;
+    background: rgba(255,255,255,.74);
+    padding: 12px 13px;
+    text-align: left;
+    color: var(--ink);
+  }
+  .answer.selected { border-color: rgba(239,68,68,.36); background: var(--red-soft); }
+  .answer.correct { border-color: rgba(34,197,94,.36); background: var(--green-soft); }
+  .analysis-panel { display: none; }
+  .analysis-panel.open { display: block; }
+  #practice { padding-bottom: 28px; }
+  #practice .page-head { margin-bottom: 16px; }
+  .practice-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+  .practice-layout > .card { min-height: calc(100vh - 250px); }
+  .practice-sidebar { display: grid; gap: 12px; }
+  .practice-sidebar .card { padding: 16px; }
+  .practice-sidebar .section { margin-top: 12px; }
+  .question-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .question-index { height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-weight: 800; }
+  .question-index.active { background: var(--blue-soft); color: var(--blue); border-color: #bfdbfe; }
+  .question-index.done { background: var(--green-soft); color: var(--green); border-color: #bbf7d0; }
+  .mistake-list { display: grid; gap: 10px; }
+  .mistake-item { padding: 12px; border: 1px solid #eef2f7; border-radius: 10px; background: #f9fafb; }
+  .mistake-item b { display: block; font-size: 13px; }
+  .number-stepper { display: grid; grid-template-columns: 36px 1fr 36px; gap: 8px; align-items: center; }
+  .number-stepper button { height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--blue); font-weight: 900; }
+  .number-stepper input { height: 36px; border: 1px solid var(--line); border-radius: 8px; text-align: center; outline: none; font-weight: 800; }
+  .detail-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .detail-table th, .detail-table td { padding: 12px 10px; border-bottom: 1px solid #eef2f7; text-align: left; vertical-align: top; }
+  .detail-table th { color: var(--soft); font-size: 12px; }
+  .chart { display: flex; align-items: end; gap: 11px; height: 180px; padding-top: 18px; }
+  .chart div { flex: 1; border-radius: 10px 10px 4px 4px; min-height: 30px; background: linear-gradient(180deg, var(--blue-2), var(--blue)); }
+  .evidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .ai-widget {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 50;
+    width: 390px;
+    display: grid;
+    justify-items: end;
+    gap: 10px;
+  }
+  .ai-widget.minimized { width: auto; }
+  .ai-float {
+    width: 126px;
+    height: 44px;
+    border: 0;
+    border-radius: 999px;
+    color: white;
+    background: var(--blue);
+    box-shadow: 0 10px 26px rgba(47,128,237,.18);
+    font-weight: 900;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ai-widget.minimized .ai-float { width: 54px; border-radius: 50%; font-size: 0; }
+  .ai-widget.minimized .ai-float::before { content: "AI"; font-size: 13px; }
+  .ai-float.dragging { cursor: grabbing; }
+  .ai-panel {
+    display: none;
+    width: 390px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    box-shadow: 0 18px 45px rgba(15,23,42,.12);
+  }
+  .ai-panel.open { display: block; }
+  .ai-panel header { padding: 14px 16px; border-bottom: 1px solid var(--line); cursor: move; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .ai-panel-actions { display: flex; gap: 6px; }
+  .ai-panel-actions button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); }
+  .ai-panel .body { padding: 16px; }
+  .quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .quick { border: 1px solid rgba(47,128,237,.18); border-radius: 999px; background: var(--blue-soft); color: var(--blue); padding: 7px 10px; font-size: 12px; font-weight: 800; }
+  @media (max-width: 980px) {
+    .sidebar { width: 74px; }
+    .brand div, .nav-title, .nav-btn span, .side-note { display: none; }
+    main { margin-left: 74px; width: calc(100% - 74px); }
+    .page { padding: 28px 18px 80px; }
+    h1 { font-size: 30px; }
+    .page-head { display: grid; }
+    .path-goal-entry { min-width: 0; justify-items: stretch; }
+    .status-summary { grid-template-columns: 1fr; }
+    .phase-loop { grid-template-columns: 1fr; }
+    .phase-arrow {
+      margin: 0;
+      height: 32px;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    .phase-return { justify-content: stretch; }
+    .phase-return-chip { justify-content: center; width: 100%; }
+    .cols-2, .cols-3, .cols-4, .steps, .metric-strip, .chat-box, .resource-layout, .knowledge-layout, .material-stats, .material-middle, .material-bottom, .material-mini-grid, .usage-grid, .evidence-grid, .path-hero, .flow-shell, .strategy-grid, .path-main-grid, .current-node-panel, .path-actions, .practice-layout, .kb-grid { grid-template-columns: 1fr; }
+    .path-onepage .path-overview { grid-template-columns: 1fr; }
+    .path-onepage .overview-item { border-right: 0; border-bottom: 1px solid #e8eff8; padding-bottom: 10px; }
+    .anatomy-stage { height: auto; padding: 14px; display: grid; gap: 12px; }
+    .anatomy-bg, .anatomy-stage::after, .center-caption { display: none; }
+    .profile-note { position: static; width: auto; }
+    .portrait-floating { position: static; max-width: none; margin: 0 18px; }
+    .profile-focus-card { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .focus-points { width: 100%; }
+    .preference-mosaic, .goal-track, .radar-wrap { grid-template-columns: 1fr; }
+    .path-graph-stage, .nav-graph-stage { min-height: 0; padding: 14px; display: grid; gap: 12px; }
+    .path-map { display: none; }
+    .path-node { position: static; width: auto; }
+    .nav-graph-lines { display: none; }
+    .nav-hub, .nav-branch, .branch-badge { position: static; transform: none; width: auto; }
+    .nav-hub { margin-bottom: 8px; }
+    .nav-branch, .nav-branch.center { width: auto; }
+    .branch-node { justify-items: start; }
+    .goal-step::before { left: 9px; right: auto; top: -8px; bottom: -10px; width: 2px; height: auto; }
+    .goal-step:last-child::before { display: none; }
+    .goal-step { padding-top: 0; padding-left: 32px; }
+    .goal-step::after { top: 0; left: 0; }
+    .plan-step { grid-template-columns: 44px 1fr; }
+    .plan-time { grid-column: 2; justify-self: start; }
+    .radar-chart { width: 100%; max-width: 220px; }
+    .type-grid { grid-template-columns: repeat(2, 1fr); }
+    .flow-rail { position: static; grid-template-columns: repeat(2, 1fr); }
+    .flow-view { min-height: 0; }
+    .flow-page-head { display: grid; }
+    .route-node { grid-template-columns: 42px 1fr; }
+    .route-action { grid-column: 2; min-width: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="assets/sparklearn-logo.png" alt="学而思 SparkLearn">
+      <div><strong>学而思 SparkLearn</strong><span>个性化学习闭环</span></div>
+    </div>
+    <div class="nav-title">学习中心</div>
+    <button class="nav-btn active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5V21H3z"></path><path d="M9 21v-7h6v7"></path></svg><span>学习工作台</span></button>
+    <button class="nav-btn" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg><span>学习画像</span></button>
+    <button class="nav-btn" data-page="path"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 6h4a5 5 0 0 1 5 5v4"></path></svg><span>个性化路径</span></button>
+    <div class="nav-title">资源与练习</div>
+    <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6 6 4.5 4.5m15 15L18 18M18 6l1.5-1.5M4.5 19.5 6 18"></path><circle cx="12" cy="12" r="3"></circle></svg><span>资源中心</span></button>
+    <button class="nav-btn" data-page="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg><span>练习评测</span></button>
+    <div class="nav-title">分析与反馈</div>
+    <button class="nav-btn" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 16v-5m4 5V8m4 8v-3"></path></svg><span>学习报表</span></button>
+    <div class="side-note">
+      <b>今日学习状态</b>
+      <div class="status-list">
+        <div><span>薄弱</span><strong>函数返回值</strong></span></div><strong>
+        <div><span>建议耗时</span><strong>24 分钟</strong></div>
+        <div><span>路径状态</span><strong>待确认</strong></span></div><strong>
+      </strong></div><strong><strong>
+    </strong></b></div><b><strong><strong>
+  </strong></b></div></aside><b><strong><strong>
+
+  <main>
+    <div class="topbar">
+      <div class="breadcrumb">SparkLearn / <b id="topbarPage">学习工作台</b></div><b id="topbarPage">
+      <div class="topbar-actions">
+        <div class="user-chip"><span class="avatar-dot"></span><span>李明</span></div>
+      </div>
+    </b></div><b id="topbarPage">
+    <section class="page active" id="dashboard">
+      <div class="page-head">
+        <div>
+          <div class="topline">学习中心 / 资源回顾与新推荐</div>
+          <h1>今日学习工作台</h1>
+          <p class="lead">今天先把当前卡点补上，再完成一轮短练习，最后确认是否进入下一个模块</p>
+        </p></h1></div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>24 分钟</b><span>今日预计</span></div>
+          <div class="summary-chip"><b>1 个</b><span>路径待确认</span></b></div><b>
+          <div class="summary-chip"><b>12 </b><span>连续学习</span></b></div><b>
+        </b></div><b><b>
+      </b></div><b><b>
+
+      <div class="card hero-panel section">
+        <div class="decision">
+          <span class="pill blue">优先薄弱</span>
+          <h2>函数返回值</h2>
+          <p class="meta">先补“return 到底把结果交给谁”，再做 8 道短练习。做完这一轮，今天的路径就能继续往前走</p>
+          </p><div class="why-row">
+            <span class="pill orange">先补当前卡点</span>
+            <span class="pill blue">再做 8 道练</span>
+            <span class="pill purple">做完确认下一</span>
+            <span class="pill green">预计 24 分钟</span>
+          </span></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+            <button class="btn" data-jump="resources">开始回顾资源</button>
+            </button><button class="btn secondary" data-jump="practice">先做练习</button>
+          </div>
+        </h2></span></div>
+      </div>
+
+      <div class="metric-strip section">
+        <div class="metric"><b>72%</b><span>当前模块<br>已完成大部分内容</span></div>
+        <div class="metric"><b>8 </b><span>今日短练<br>做完就能判断下一</span></b></div><b>
+        <div class="metric"><b>12 </b><span>连续学习<br>保持得不错</span></b></div><b>
+        <div class="metric"><b>1 个</b><span>待确认<br>今天学完即可解锁</span></b></div><b>
+      </b></b></div><b><b><b>
+
+      <div class="grid cols-2 section">
+        <div class="card">
+          <div class="toolbar"><h2>资源回顾推荐</h2><span class="pill blue">3 条待回顾</span></h2></div>
+          <p class="meta section">把你学过但还没完全吃透的内容重新推回来，优先复习最近中断或容易遗忘的资源</p>
+          </p><div class="resource-reco section">
+            <div class="resource-reco-item"><div><b>return 到底返回给谁</b><p class="meta">上次学习70% 路 适合先快速回5 分钟核心片段</p></div><button class="btn tertiary" data-jump="resources">继续回顾</button></div>
+            <div class="resource-reco-item"><div><b>函数作用域错题讲</b><p class="meta">已打开 2 次 · 建议先看易错点结，再做同类题</p></b></div><b><button class="btn tertiary" data-jump="resources">查看重点</button></b></div><b>
+            <div class="resource-reco-item"><div><b>成绩统计小项目代码案</b><p class="meta">已学35% 路 适合在补完返回值后接着复习</p></b></div><b><button class="btn tertiary" data-jump="resources">接着学习</button></b></div><b>
+          </b></div><b><b>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+            <button class="btn secondary" data-jump="resources">进入资源</button>
+            </button><button class="btn tertiary" data-jump="mistakes">结合错题回顾</button>
+          </div>
+        </b></div><b><b>
+        <div class="card">
+          <div class="toolbar"><h2>今日新资源推</h2><button class="btn ghost" data-jump="resources">查看全部 </button></h2></div>
+          <div class="resource-reco section">
+            <div class="resource-reco-item"><div><b>return 到底返回给谁</b><p class="meta">5 分钟动画 路 对应薄弱点：函数返回</p></div><button class="btn tertiary" data-jump="resources">学习</button></div>
+            <div class="resource-reco-item"><div><b>函数作用域错题讲</b><p class="meta">文档 路 来自错题本与练习记录</p></b></div><b><button class="btn tertiary" data-jump="resources">查看</button></b></div><b>
+            <div class="resource-reco-item"><div><b>成绩统计小项目代码案</b><p class="meta">代码案例 路 符合你的案例驱动偏好</p></b></div><b><button class="btn tertiary" data-jump="resources">继续</button></b></div><b>
+          </b></div><b><b>
+          <button class="btn secondary section" data-jump="generate">根据当前卡点生成新资</button>
+        </button></b></div><b><b>
+      </b></b></div><b><b><b>
+    </b></b></b></b></section><b><b><b>
+
+    <section class="page" id="profile">
+      <div class="page-head">
+        <div>
+          <div class="topline">学习画像 / 你现在更适合怎么</div>
+          <h1>学习画像</h1>
+          <p class="lead">这一页只保留会直接影响你学习体验的内容：当前卡点、适合的学法和本阶段目标</p>
+        </p></div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>48%</b><span>返回值掌</span></div>
+          <div class="summary-chip"><b>案例驱动</b><span>学习偏好</span></div>
+          <div class="summary-chip"><b>08:12</b><span>最近更</span></div>
+        </div>
+      </div>
+
+      <div class="profile-board section">
+        <div class="card portrait-card">
+          <img src="assets/profile-anatomy-bg.png" alt="学生人物画像">
+          <div class="portrait-floating top"><b>12 </b><span>学习连续性稳</span></b></div><b>
+          <div class="portrait-floating mid"><b>案例驱动</b><span>更适合先看可运行例子，再开始短练习</span></div>
+          <div class="portrait-floating bottom"><b>当前卡点</b><span>`return`、`print` 和局部变量这三个点还容易混在一起</span></div>
+          <div class="portrait-caption">
+            <span class="pill blue">人物画像</span>
+            <h2 style="margin-top:10px">李明 路 项目实践准备</h2>
+            <p class="meta section">基础语法已经够用，当前重点是把函数和模块这块学顺，尽快回到小项目实践</p>
+          </p></h2></div>
+        </b></div><b>
+        <div class="profile-summary-grid">
+          <div class="card profile-focus-card">
+            <div class="focus-dial"><div><b>48%</b><span>当前稳定</span></div>
+            <div>
+              <span class="pill orange">霢要关</span>
+              <h2 style="margin-top:12px">函数返回值</h2>
+              <p class="meta section">这块不是完全不会，而是关键概念容易串线，导致一做题就乱</p>
+              </p><div class="focus-points">
+                <div class="focus-pill"><span class="focus-dot"></span> `return` `print` 容易</div>
+                <div class="focus-pill"><span class="focus-dot"></span> 局部变量作用范围不够稳</div>
+              </div>
+            </div>
+          </h2></span></div>
+          <div class="card profile-preference-card">
+            <span class="pill purple">更适合的学</span>
+            <h2 style="margin-top:12px">先看例子，再做短</h2>
+            <p class="meta section">和纯文字解释相比，你更吃“短讲解 + 可运行代码+ 立刻验证”这丢套</p>
+            </p><div class="preference-mosaic">
+              <div class="mosaic-main">
+                <b>代码案例朢容易进入状</b>
+                <div class="code-lines"><i></i><i></i><i></i></div>
+              </b></div><b>
+              <div class="mosaic-mini-wrap">
+                <div class="mosaic-mini">
+                  <b>短讲</b>
+                  <div class="mini-bars"><i></i><i></i></div>
+                </b></div><b>
+                <div class="mosaic-mini">
+                  <b>即时反馈</b>
+                  <div class="mini-bars"><i></i><i></i></div>
+                </div>
+              </b></div><b>
+            </b></div><b><b>
+          </b></h2></span></div><b><b>
+          <div class="card profile-goal-card">
+            <span class="pill green">阶段目标</span>
+            <h2 style="margin-top:12px">完成 Python 小项</h2>
+            <p class="meta section">当前不是重学整章，是把进入项目实践前的最后一段补顺</p>
+            </p><div class="goal-track">
+              <div class="goal-step done"><b>基础语法</b><span>变量、分支和循环已经够用</span></div>
+              <div class="goal-step current"><b>函数补强</b><span>先把返回值和作用域彻底理顺</span></div>
+              <div class="goal-step"><b>模块导入</b><span>通过后回到小项目拆分与调用</span></div>
+            </div>
+          </h2></div>
+          <div class="card profile-plan-card">
+            <span class="pill blue">今天先做</span>
+            <h2 style="margin-top:12px">补弱后再确认路径</h2>
+            <div class="plan-stack">
+              <div class="plan-step">
+                <div class="plan-index">01</div>
+                <div><b>12 分钟案例讲义</b><span>把结果怎么传出来这件事先看顺</span></div>
+                <div class="plan-time">12 分钟</div>
+              </div>
+              <div class="plan-step">
+                <div class="plan-index">02</div>
+                <div><b>8 道返回值短</b><span>只测这一类题，不再分散到其他知识点</span></b></div><b>
+                <div class="plan-time">8 </div>
+              </div>
+            </b></div><b>
+            <button class="btn secondary" data-jump="path">查看路径</button>
+          </b></div><b>
+        </b></div><b>
+      </b></b></div><b><b><b>
+
+      <div class="grid cols-2 section">
+        <div class="card profile-radar-card">
+          <div class="toolbar"><h2>能力雷达</h2><button class="btn secondary" id="toggleProfileChat">告诉 AI 你想怎么</button></div>
+          <div class="radar-wrap section">
+            <div class="radar-chart">
+              <svg viewBox="0 0 220 220" aria-label="学习能力雷达>
+                <polygon class=" radar-ring"="" points="110,28 187.97,84.65 158.19,176.35 61.81,176.35 32.03,84.65">
+                <polygon class="radar-ring" points="110,48 168.95,90.82 146.42,160.18 73.58,160.18 51.05,90.82"></polygon>
+                <polygon class="radar-ring" points="110,68 149.92,96.98 134.65,144.02 85.35,144.02 70.08,96.98"></polygon>
+                <polygon class="radar-ring" points="110,88 130.89,103.15 122.89,127.85 97.11,127.85 89.11,103.15"></polygon>
+                <line class="radar-axis" x1="110" y1="110" x2="110" y2="28"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="187.97" y2="84.65"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="158.19" y2="176.35"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="61.81" y2="176.35"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="32.03" y2="84.65"></line>
+                <polygon class="radar-area" points="110,60.8 141.83,99.66 141.33,153.13 89.14,138.53 51.52,91"></polygon>
+                <circle class="radar-point" cx="110" cy="60.8" r="3.5"></circle>
+                <circle class="radar-point" cx="141.83" cy="99.66" r="3.5"></circle>
+                <circle class="radar-point" cx="141.33" cy="153.13" r="3.5"></circle>
+                <circle class="radar-point" cx="89.14" cy="138.53" r="3.5"></circle>
+                <circle class="radar-point" cx="51.52" cy="91" r="3.5"></circle>
+              </svg>
+              <div class="radar-label top">语法基础</div>
+              <div class="radar-label right">案例理解</div>
+              <div class="radar-label bottom-right">练习稳定</div>
+              <div class="radar-label bottom-left">项目迁移</div>
+              <div class="radar-label left">结果传</div>
+            </div>
+            <div class="radar-legend">
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>语法基础</b><span>变量、分支和循环已经够用</span></div><span class="radar-score">84</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>案例理解</b><span>看着例子学，理解速度更快</span></div><span class="radar-score">68</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>练习稳定</b><span>短练习里已经开始回稳，但还不够扎实</span></div><span class="radar-score">57</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>项目迁移</b><span>离项目实践只差函数和模块这一步</span></div><span class="radar-score">42</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>结果传</b><span>`return` 相关理解还是当前朢低点</span></b></div><b><span class="radar-score">53</span></b></div><b>
+            </b></div><b>
+          </b></div><b>
+        </b></div><b>
+        <div class="card">
+          <div class="toolbar"><h2>最近学习过的资</h2><button class="btn ghost" data-jump="resources">查看全部 </button></h2></div>
+          <p class="meta section">从这里继续上次没学完的内容，不用重新找入口</p>
+          </p><div class="stack section">
+            <div class="soft-card">
+              <div class="toolbar"><div><b>return 到底返回给谁</b><p class="meta">视频 路 已学70% 路 来源：错题补</p></div><span class="pill blue">继续学习</span></div>
+            </div>
+            <div class="soft-card">
+              <div class="toolbar"><div><b>函数作用域错题讲</b><p class="meta">文档 路 已打开 2 次 · 来源：练习错</p></b></div><b><span class="pill green">已纳入画</span></b></div><b>
+            </b></div><b>
+            <div class="soft-card">
+              <div class="toolbar"><div><b>成绩统计小项目代码案</b><p class="meta">代码案例 路 已学35% 路 来源：画像偏</p></b></div><b><span class="pill orange">待完</span></b></div><b>
+            </b></div><b>
+          </b></div><b><b>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn secondary" data-jump="resources">继续最近资</button><button class="btn tertiary" data-jump="generate">生成补弱资源</button></div>
+        </b></div><b><b>
+      </b></b></div><b><b><b>
+
+      <div class="chat-box" id="profileChatBox">
+        <div class="card">
+          <h2>告诉 AI 你想怎么</h2>
+          <div class="chat-log" id="profileChat">
+            <div class="msg"><div class="avatar">AI</div><div class="bubble">我看到你最近在返回值上连续出错。你更想先看动画讲解，还是直接做代码案例</div>
+          </div>
+          <div class="input-line"><input id="profileInput" placeholder="例如：我想先看代码案例，再做短练><button class=" btn"="">发</button></div>
+        </div>
+        <div class="card">
+          <h2>立即开始</h2>
+          <p class="meta section">选定你更想要的学法后，直接去生成对应资源或开始当前练习</p>
+          </p><div style="display:grid;gap:10px">
+            <button class="btn" data-jump="generate">按我的学法生成资</button>
+            </button><button class="btn secondary" data-jump="practice">直接开始短练习</button>
+          </div>
+        </h2></div>
+      </h2></div>
+    </div></b></b></div></b></b></div></b></div></section><b><b><b>
+
+    <section class="page" id="path">
+      <div class="page-head">
+        <div>
+          <div class="topline">学习路径 / 你现在要走的下一</div>
+          <h1>个性化学习路径</h1>
+          <p class="lead">这一页只保留当前阶段、完成标准和下一步入口，不再堆系统解释</p>
+        </p></div>
+      </div>
+
+      <div class="path-onepage">
+        <div class="card">
+          <div class="path-overview">
+            <div class="overview-item"><span>当前目标</span><b>Python 函数与模</b></div><b>
+            <div class="overview-item"><span>路径进度</span><div style="display:flex;align-items:center;gap:10px;margin-top:6px"><div class="progress-ring"><span>62%</span></div><div class="bar" style="width:72px"><i style="width:62%"></i></div></div>
+            <div class="overview-item"><span>当前阶段</span><b>薄弱点补</b><p class="meta">2 / 7 </p></b></div><b>
+            <div class="overview-item"><span>当前重点</span><b>先补返回</b><p class="meta">通过后再进模块导</p></b></div><b>
+            <div style="display:grid;gap:8px;min-width:150px"><button class="btn" data-jump="resources">开始今日路</button><button class="btn secondary" data-jump="profile">调整目标</button></div>
+          </b></b></div><b><b><b>
+        </b></b></div><b><b><b>
+
+        <div class="path-main-grid">
+          <div class="card path-graph-shell">
+            <div class="path-graph-head">
+              <h2 class="path-graph-title">当前导航</h2>
+              <div class="path-graph-goal">
+                <span class="meta">输入目标</span>
+                <div class="path-goal-entry-row">
+                  <input id="pathTargetInput" placeholder="例如：我想自己写丢个成绩统计程>
+                  <button class=" btn"="">生成路径
+                </div>
+              </div>
+            </h2></div>
+            <div class="phase-loop">
+              <div class="path-strip blue nav-branch active" data-branch="weak">
+                <div class="strip-head">
+                  <div class="strip-title"><i></i>阶段1：先补卡</div>
+                  <span class="strip-tag active">当前推荐</span>
+                </div>
+                <div class="strip-item current branch-node" data-branch="weak">回看返回值短讲义 <span class="strip-tag active">当前推荐</span></div>
+                <div class="strip-item branch-node" data-branch="weak">补清作用域混</div>
+                <div class="strip-item branch-node" data-branch="weak">5 题补弱练</div>
+                <div class="strip-item branch-node" data-branch="weak">进入下一次检</div>
+              </div>
+              <div class="phase-arrow"></div>
+
+              <div class="path-strip green nav-branch" data-branch="standard">
+                <div class="strip-head">
+                  <div class="strip-title"><i></i>阶段2：稳步过</div>
+                  <span class="strip-tag done">达标推进</span>
+                </div>
+                <div class="strip-item done branch-node" data-branch="standard">回顾函数定义 <span class="route-check"></span></div>
+                <div class="strip-item done branch-node" data-branch="standard">完成返回值理<span class="route-check"></span></div>
+                <div class="strip-item branch-node" data-branch="standard">完成 8 题达标练</div>
+                <div class="strip-item branch-node" data-branch="standard">进入模块导入</div>
+              </div>
+              <div class="phase-arrow"></div>
+
+              <div class="path-strip gray nav-branch" data-branch="goal">
+                <div class="strip-head">
+                  <div class="strip-title"><i></i>阶段3：直达目</div>
+                  <span class="strip-tag">目标导向</span>
+                </div>
+                <div class="strip-item locked branch-node" data-branch="goal" id="goalPathNode1">进入模块导入</div>
+                <div class="strip-item locked branch-node" data-branch="goal" id="goalPathNode2">学习文件读写</div>
+                <div class="strip-item locked branch-node" data-branch="goal" id="goalPathNode3">完成成绩统计项目</div>
+                <div class="strip-item locked branch-node" data-branch="goal">进入综合应用</div>
+              </div>
+            </div>
+            <div class="phase-return">
+              <span class="phase-return-chip">阶段3完成后回到阶，进入下一轮学习回</span>
+            </span></div>
+            <div class="path-actions">
+              <button class="btn" data-jump="resources">学习当前节点资源</button>
+              <button class="btn secondary" data-jump="practice">进入当前节点练习</button>
+              <button class="btn tertiary" data-jump="generate">生成补弱资源</button>
+            </div>
+            <div class="current-analysis">
+              <h3>现在情况分析</h3>
+              <p>你目前的学习主阻塞点在函数返回值与作用域这组知识上，导致后续模块导入和项目实践没有稳定衔接。基础语法与函数定义已具备，说明你不是从零开始，当前更适合走先补卡-> 稳步过线 -> 直达目标”的回路：先用短讲义补清关键概念，再通过达标练习验证理解，最后按目标推进到模块与项目阶段</p>
+            </p></div>
+          </div>
+
+          <div class="path-side">
+            <div class="card branch-panel active" data-branch-panel="weak">
+              <h2>补弱路径建议</h2>
+              <div class="path-method-list">
+                <div class="path-method-item"><b>先补返回值，再补作用</b><p>这条路径优先解决当前朢卡的两个点，尽快把理解上的阻塞打通</p></b></div><b>
+                <div class="path-method-item"><b>建议节奏：资10 分钟 + 练习 5 </b><p>不用铺开整章，先把最小补救做完，再决定要不要回主线</p></b></div><b>
+                <div class="path-method-item"><b>סͻ17ֽ17</b><p>先看更短的例子，再回来看讲义，比死磕长解释更有效</p></b></div><b>
+              </b></b></div><b><b><b>
+              <h2 style="margin-top:18px">对应资源</h2>
+              <div class="path-resource-list">
+                <div class="path-resource-item"><b>函数返回值项目讲</b><p>12 分钟短讲义，直击当前卡点</p><div class="resource-meta"><span class="tag blue">讲义</span><span class="tag green">优先学习</span></div></b></div><b>
+                <div class="path-resource-item"><b>函数作用域错题讲</b><p>先拆弢易错点，再回头做补弱题</p><div class="resource-meta"><span class="tag">错题讲义</span><span class="tag orange">待复</span></div></b></div><b>
+                <div class="path-resource-item"><b>返回值补弱短</b><p>5 题短练，只测返回值和作用域</p><div class="resource-meta"><span class="tag blue">练习</span><span class="tag">5 </span></div></b></div><b>
+              </b></b></div><b><b><b>
+            </b></b></b></div><b><b><b>
+
+            <div class="card branch-panel" data-branch-panel="standard">
+              <h2>达标路径建议</h2>
+              <div class="path-method-list">
+                <div class="path-method-item"><b>按标准路线推</b><p>先完成当前知识点理解，再8 题练习，达到 80% 就进入下丢节点</p></b></div><b>
+                <div class="path-method-item"><b>保持当前节奏</b><p>这条路径朢稳，不追求最短，但适合稳定推进，不容易反复回</p></div>
+                <div class="path-method-item"><b>达标再解锁后</b><p>做完这轮后，模块导入会成为真正的下一步，而不是提前插入</p></b></div><b>
+              </b></div><b><b>
+              <h2 style="margin-top:18px">对应资源</h2>
+              <div class="path-resource-list">
+                <div class="path-resource-item"><b>return 到底返回给谁</b><p>5 分钟短动画，适合达标前快速过丢遍核心概念</p><div class="resource-meta"><span class="tag blue">视频</span><span class="tag">已学 70%</span></div>
+                <div class="path-resource-item"><b>达标题库：返回</b><p>8 题达标练习，做完即可判断是否进入下一步</p><div class="resource-meta"><span class="tag blue">练习</span><span class="tag">80% 通过</span></div></b></div><b>
+                <div class="path-resource-item"><b>函数定义与调用回顾卡</b><p>用于进入练习前快速复习前置知识</p><div class="resource-meta"><span class="tag">复习</span><span class="tag green">前置回顾</span></div>
+              </b></div><b>
+            </b></b></div><b><b>
+
+            <div class="card branch-panel" data-branch-panel="goal">
+              <h2>目标路径建议</h2>
+              <div class="path-method-list">
+                <div class="path-method-item"><b>先补阻塞点，再朝目标</b><p>不会直接硬跳到目标，而是先补会阻塞目标达成的关键节点</p></b></div><b>
+                <div class="path-method-item"><b>目标会重排后续路</b><p>你的目标不同，后面的知识顺序和资源也会一起变化</p></b></div><b>
+                <div class="path-method-item"><b>优先靠近结果</b><p>这条路径更偏结果导向，适合目标明确、想尽快进入项目或新模块时使用</p></div>
+              </b></div><b><b>
+              <h2 style="margin-top:18px">对应资源</h2>
+              <div class="path-resource-list">
+                <div class="path-resource-item"><b id="goalResourceTitle1">模块导入过渡讲义</b><p id="goalResourceDesc1">先把返回值和调用关系打，再衔接到模块导入</p><div class="resource-meta"><span class="tag blue">讲义</span><span class="tag">目标相关</span></div>
+                <div class="path-resource-item"><b id="goalResourceTitle2">文件读写入门</b><p id="goalResourceDesc2">当目标涉及项目时，后续会自动补上文件读写这类知识点</p><div class="resource-meta"><span class="tag">补充资源</span><span class="tag gray">后续解锁</span></div></b></div><b id="goalResourceTitle2">
+                <div class="path-resource-item"><b id="goalResourceTitle3">项目准备清单</b><p id="goalResourceDesc3">围绕朢终目标整理接下来要学的节点和资源</p><div class="resource-meta"><span class="tag green">目标</span><span class="tag">自动规划</span></div>
+              </b></div><b id="goalResourceTitle2">
+            </b></b></div><b><b><b id="goalResourceTitle2">
+
+          </b></b></b></b></div><b><b><b id="goalResourceTitle2">
+        </b></b></div><b><b><b id="goalResourceTitle2">
+      </b></b></div><b><b><b id="goalResourceTitle2">
+    </b></b></div></div></div></div></b></b></div></section><b><b><b id="goalResourceTitle2">
+
+    <section class="page" id="generate">
+      <div class="page-head">
+        <div>
+          <div class="topline">资源中心 / 生成与资源库</div>
+          <div class="title-row"><h1>资源中心</h1><button class="btn secondary" data-jump="resources">进入资源</button><button class="btn secondary" data-jump="knowledge">我的资料</button></div>
+          <p class="lead">在这里生成个性化学习资源，也可以进入资源库或我的资料库管理已保存内容和用户上传文件</p>
+        </p></div>
+        <div class="flow-stepper" aria-label="资源生成步骤">
+          <button class="flow-step active" data-flow-step="0"><span>01</span>确认上下</button>
+          </button><button class="flow-step" data-flow-step="1"><span>02</span>选择类型</button>
+          <button class="flow-step" data-flow-step="2"><span>03</span>配置要求</button>
+          <button class="flow-step" data-flow-step="3"><span>04</span>生成</button>
+          </button><button class="flow-step" data-flow-step="4"><span>05</span>预览结果</button>
+          <button class="flow-step" data-flow-step="5"><span>06</span>保存学习</button>
+        </div>
+      </div>
+
+      <div class="flow-shell section">
+        <div class="card flow-workspace">
+          <div class="flow-workspace-head">
+            <div><b>资源生成流程</b><p class="meta">按步骤确认上下文、资料来源和生成要求，完成后保存到资源库</p></div>
+            <span class="pill blue">当前：函数返回值补</span>
+          </span></div>
+          <div class="flow-workspace-body">
+          <div class="flow-view active" data-flow-view="0">
+            <div class="flow-page-head">
+              <div><span class="pill blue">1 </span><h2 style="margin-top:12px">确认这次资源要解决什么问</h2><p class="meta section">生成前先锁定学习上下文，避免资源脱离当前路径、画像和错题证据</p></h2></span></div>
+              <span class="pill orange">来自学习路径</span>
+            </div>
+            <div class="grid cols-2">
+              <div class="soft-card"><h3>当前节点</h3><p class="meta section">函数返回值与作用域修正模块导入已暂缓，需要先修正 return 返回给调用处的理解</p></div>
+              <div class="soft-card"><h3>学生偏好</h3><p class="meta section">代码案例优先，短讲义加检查题效果朢好，不适合先看长视频</p></div>
+              <div class="soft-card"><h3>错题证据</h3><p class="meta section">3 道题把局部变量返回值和 print 输出混在一起</p></div>
+              <div class="soft-card"><h3>本次目标</h3><p class="meta section">12 分钟内能解释“函数内部算出的结果如何交给主流程</p></div>
+            </div>
+            <div class="flow-footer"><button class="btn secondary" data-jump="path">回到学习路径</button><button class="btn" data-flow-next="1">确认上下文，下一</button></div>
+          </div>
+
+          <div class="flow-view" data-flow-view="1">
+            <div class="flow-page-head">
+              <div><span class="pill blue">2 </span><h2 style="margin-top:12px">选择朢适合这个节点的资源类</h2><p class="meta section">类型选择会影响内容结构练习密度和后续保存到资源库的展示方式</p></h2></span></div>
+              <span class="pill purple">推荐：代码案例讲</span>
+            </span></div>
+            <div class="type-grid">
+              <div class="type-card active"><span class="pill blue">推荐</span><b>代码案例讲义</b><span class="meta">项目案例 + 概念解释 + 棢查题</span></div>
+              <div class="type-card"><span class="pill">文档</span><b>错题讲义</b><span class="meta">针对错因逐题拆解</span></div>
+              <div class="type-card"><span class="pill">练习</span><b>达标题库</b><span class="meta">按知识点生成短练</span></div>
+              <div class="type-card"><span class="pill">视频</span><b>讲解视频脚本</b><span class="meta">用于后续视频资源</span></div>
+              <div class="type-card"><span class="pill">课件</span><b>PPT</b><span class="meta">适合课堂复盘</span></div>
+              <div class="type-card"><span class="pill">结构</span><b>思维导图</b><span class="meta">梳理概念关系</span></div>
+              <div class="type-card"><span class="pill">阅读</span><b>拓展阅读</b><span class="meta">补充阅读材料</span></div>
+              <div class="type-card"><span class="pill">组合</span><b>组合</b><span class="meta">讲义 + 练习 + 复述</span></b></div><b>
+            </b></div><b>
+            <div class="flow-footer"><button class="btn secondary" data-flow-prev="0">上一</button><button class="btn" data-flow-next="2">下一步，配置要求</button></div>
+          </b></div><b>
+
+          <div class="flow-view" data-flow-view="2">
+            <div class="flow-page-head">
+              <div><span class="pill blue">3 </span><h2 style="margin-top:12px">配置生成要求</h2><p class="meta section">这一页只处理生成要求，不再把过程和结果挤在同丢屏</p></span></div>
+              <button class="btn secondary" id="optimizePrompt">AI 优化要求</button>
+            </div>
+            <div class="grid cols-2">
+              <div>
+                <h3>生成侧重</h3>
+                <div class="choice-list section">
+                  <div class="choice-card active"><b>项目案例优先</b><span>用成绩统计小程序”承载函数参数返回值和局部变量</span></div>
+                  <div class="choice-card"><b>错题拆解优先</b><span>逐题解释为什print 输出不等return</span></div>
+                  <div class="choice-card"><b>达标练习优先</b><span>先给题，再按错误类型补讲解</span></div>
+                </div>
+                <div class="section">
+                  <h3>参我的资</h3>
+                  <div class="source-summary section">
+                    <div><b id="sourceSummaryTitle">已择 1 份资</b><p class="meta" id="sourceHint">函数返回值错题整pdf。生成内容会优先参这份资料</p></b></div><b id="sourceSummaryTitle">
+                    <button class="btn secondary" id="openSourceModal">选择资料</button>
+                  </b></div><b id="sourceSummaryTitle">
+                </b></h3></div><b id="sourceSummaryTitle">
+              </b></h3></div><b id="sourceSummaryTitle">
+              <div>
+                <h3>要求文本</h3>
+                <textarea id="promptText" rows="8" style="width:100%;margin-top:12px;border:1px solid #d8e6f4;border-radius:14px;padding:12px;background:rgba(255,255,255,.82);outline:none">用一个成绩统计小程序”的项目例子解释函数参数、返回值和局部变量，控制12 分钟学习量，朢后附 5 道检查题</textarea>
+              </div>
+            </div>
+            <div class="flow-footer"><button class="btn secondary" data-flow-prev="1">上一</button><button class="btn" id="startGenerate">开始生</button></div>
+          </div>
+
+          <div class="flow-view" data-flow-view="3">
+            <div class="flow-page-head">
+              <div><span class="pill blue">4 </span><h2 style="margin-top:12px">生成过程</h2><p class="meta section">把系统如何读取画像匹配路径生成内容和棢查安全单独展示，便于理解资源来源</p></div>
+              <span class="pill" id="generateState">等待弢</span>
+            </div>
+            <div class="process">
+              <div class="process-row" data-process="0"><span class="dot-status"></span><b>读取画像偏好</b><span class="meta">待开</span></div>
+              <div class="process-row" data-process="1"><span class="dot-status"></span><b>读取我的资料</b><span class="meta">待开</span></div>
+              <div class="process-row" data-process="2"><span class="dot-status"></span><b>匹配路径节点</b><span class="meta">待开</span></div>
+              <div class="process-row" data-process="3"><span class="dot-status"></span><b>生成资源大纲</b><span class="meta">待开</span></div>
+              <div class="process-row" data-process="4"><span class="dot-status"></span><b>内容安全棢</b><span class="meta">待开</span></div>
+              <div class="process-row" data-process="5"><span class="dot-status"></span><b>生成预览与练</b><span class="meta">待开</span></div>
+            </div>
+            <div class="flow-footer"><button class="btn secondary" data-flow-prev="2">上一</button><button class="btn secondary" data-flow-next="4">查看预览</button></div>
+          </div>
+
+          <div class="flow-view" data-flow-view="4">
+            <div class="flow-page-head">
+              <div><span class="pill blue">5 </span><h2 style="margin-top:12px">结果预览</h2><p class="meta section">保存前先棢查资源标题结构关联节点和后续学习动作</p></div>
+              <span class="pill green">可保</span>
+            </div>
+            <div id="generatedPreview" class="soft-card">
+              <span class="pill blue">已生</span>
+              <h3 style="margin-top:10px">函数返回值项目讲</h3>
+              <p class="meta" style="margin-top:8px">包含 1 个成绩统计案例 个关键概念解释和 5 道检查题。已参：函数返回值错题整pdf。关联路径节点：函数返回值与作用域修正</p>
+              <div class="condition">
+                <div class="condition-row"><div><b>学习时长</b><p class="meta">12 分钟</p></div><span class="pill">短资</span></div>
+                <div class="condition-row"><div><b>保存位置</b><p class="meta">资源/ 错题补弱 / 当前路径节点</p></div><span class="pill blue">待保</span></div>
+              </div>
+            </div>
+            <div class="flow-footer"><button class="btn secondary" data-flow-prev="3">上一</button><button class="btn" data-flow-next="5">确认预览，去保存</button></div>
+          </div>
+
+          <div class="flow-view" data-flow-view="5">
+            <div class="flow-page-head">
+              <div><span class="pill blue">6 </span><h2 style="margin-top:12px">保存并进入学习闭</h2><p class="meta section">结果页要能把资源保存到资源库，也能直接开始学习或进入配套练习</p></div>
+              <span class="pill green" id="saveState">等待保存</span>
+            </div>
+            <div class="grid cols-3">
+              <div class="soft-card"><h3>保存到资源库</h3><p class="meta section">写入资源库，并带上节点错因和画像偏好来源</p><button class="btn section" id="saveResource">保存资源</button></div>
+              <div class="soft-card"><h3>进入资源库学</h3><p class="meta section">打开资源库预览页，继续学习当前讲义或查看历史资源</p><button class="btn secondary section" data-jump="resources">进入资源</button></div>
+              <div class="soft-card"><h3>进入达标练习</h3><p class="meta section">用生成资源配套的 5 道检查题完成节点达标</p><button class="btn secondary section" data-jump="practice">生成配套练习</button></div>
+            </div>
+            <div class="flow-footer"><button class="btn secondary" data-flow-prev="4">上一</button><button class="btn secondary" data-flow-next="0">重新生成丢</button></div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="resources">
+      <div class="page-head">
+        <div>
+          <div class="topline">资源/ 搜索、筛选预</div>
+          <div class="title-row"><h1>资源</h1><button class="btn secondary" data-jump="generate">返回资源中心</button></div>
+          <p class="lead">查看资源来源、关联薄弱点、学习进度和下一步动作</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>3 </b><span>已保存资</span></div>
+          <div class="summary-chip"><b>70%</b><span>当前进度</span></div>
+          <div class="summary-chip"><b>1 个</b><span>待练习资</span></div>
+        </div>
+      </div>
+
+      <div class="resource-layout section">
+        <div class="card">
+          <h2>已保存资</h2>
+          <div class="filter-row"><input class="search" id="resourceSearch" placeholder="搜索资源、知识点或来><select class="select" id="resourceFilter"><option>全部</option><option>错题补弱</option><option>路径节点</option><option>项目实践</option></select></div>
+          <div class="stack section" id="resourceList">
+            <div class="resource-item active" data-title="return 到底返回给谁" data-type="视频" data-progress="70%" data-source="错题补弱" data-weak="函数返回><div class="iconbox">视频</div><div><b>return 到底返回给谁</b><p class="meta">视频 路 进度 70% 路 错题补弱</p></div>
+            <div class="resource-item" data-title="函数作用域错题讲 data-type="文档" data-progress="0%" data-source="练习错题" data-weak="局部变><div class="iconbox">文档</div><div><b>函数作用域错题讲</b><p class="meta">文档 路 来自练习错题</p></div>
+            <div class="resource-item" data-title="成绩统计小项目代码案 data-type="代码案例" data-progress="35%" data-source="画像偏好" data-weak="项目实践"><div class="iconbox">案例</div><div><b>成绩统计小项目代码案</b><p class="meta">代码案例 路 画像偏好匹配</p></div>
+          </div>
+        </div>
+        <div class="card preview">
+          <div class="toolbar"><span class="pill blue" id="previewType">视频</span><span class="pill orange" id="previewSource">错题补弱</span></div>
+          <h2 id="previewTitle">return 到底返回给谁</h2>
+          <p class="meta" id="previewMeta">关联薄弱点：函数返回路 学习进度 70%</p>
+          <div class="question"><b>预览片段</b><p class="meta" style="margin-top:8px" id="previewText">把函数想成一个独立房间房间里的临时变量只有过 return 才能把结果出来，调用处才会收到结果</p></div>
+          <div class="bar"><i id="previewBar" style="width:70%"></i></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn" data-jump="practice">学完去练</button>
+            <button class="btn secondary" id="explainResource">AI 讲解</button>
+            <button class="btn secondary" data-jump="knowledge">管理我的资料</button>
+            <button class="btn secondary">下载</button>
+            <button class="btn secondary">删除</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page material-page" id="knowledge">
+      <div class="page-head">
+        <div>
+          <div class="topline">我的资料/ 上传、整理用于学</div>
+          <div class="title-row"><h1>我的资料</h1><button class="btn secondary" data-jump="generate">返回资源中心</button><button class="btn secondary" data-jump="resources">进入资源</button></div>
+          <p class="lead">上传的学习资料将AI 智能结构化，用于问答、生成资料与复习建议，助你高效学习</p>
+        </div>
+      </div>
+
+      <div class="material-stats section">
+        <div class="card material-stat"><div class="material-icon blue"><svg viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg></div><div><span class="meta">上传文件</span><b>12 </b><p class="meta">本月新增 3 个文</p></div>
+        <div class="card material-stat"><div class="material-icon green"><svg viewBox="0 0 24 24"><path d="M7 7h12v12H7z"/><path d="M5 5h12"/><path d="M3 3h12"/></svg></div><div><span class="meta">已整理资</span><b>9 </b><p class="meta">整理完成75%</p></div>
+        <div class="card material-stat"><div class="material-icon purple"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></svg></div><div><span class="meta">知识片段</span><b>186 </b><p class="meta">可用于学习与棢</p></div>
+        <div class="card material-stat"><div class="material-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M9 15c1.5 1 4.5 1 6 0"/></svg></div><div><span class="meta">AI 引用次数</span><b>28 </b><p class="meta">0天使18 </p></div>
+      </div>
+
+      <div class="material-middle section">
+        <div class="card material-upload">
+          <h2>上传学习资料</h2>
+          <label class="material-upload-zone" for="knowledgeUpload">
+            <input id="knowledgeUpload" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style="display:none">
+            <div>
+              <div class="material-icon blue" style="margin:0 auto"><svg viewBox="0 0 24 24"><path d="M12 16V5"/><path d="m8 9 4-4 4 4"/><path d="M20 16.5A4.5 4.5 0 0 1 15.5 21h-7A5.5 5.5 0 1 1 10 10.2"/></svg></div>
+              <b>拖拽文件到这里，或点击上</b>
+              <span class="btn">上传资料</span>
+              <p class="meta" style="margin-top:10px">支持格式：PDF、DOCX、PPT、XLSX、TXT</p>
+            </div>
+          </label>
+          <div class="material-progress">
+            <div><b>正在处理 1 个文</b><p class="meta" style="margin-top:6px">期中复习笔记.docx</p></div>
+            <div style="display:flex;gap:10px;align-items:start"><span class="meta">预计剩余 00:18</span><button class="close" type="button">×</button></div>
+            <div class="bar" style="grid-column:1 / -1"><i style="width:62%"></i></div>
+          </div>
+        </div>
+
+        <div class="card material-table-card">
+          <div class="toolbar">
+            <h2>资料库管</h2>
+            <div class="material-searchbar">
+              <input class="search" placeholder="搜索文件名标签或内容">
+              <button class="filter-chip active">全部</button><button class="filter-chip">已整</button><button class="filter-chip">待补</button>
+              <button class="btn secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>筛</button>
+            </div>
+          </div>
+          <table class="material-table">
+            <thead><tr><th>文件</th><th>类型</th><th>标签</th><th>更新时间</th><th>状</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>函数返回值错误整pdf</td><td><span class="pill">PDF</span></td><td><div class="tags"><span class="pill blue">函数</span><span class="pill blue">错误</span><span class="pill">+2</span></div></td><td>今天 10:24</td><td><span class="pill green">已整</span></td><td><div class="material-actions"><button class="material-link">查看</button><span class="material-more">路路路</span></div></td></tr>
+              <tr><td>阶段练习成绩.xlsx</td><td><span class="pill">XLSX</span></td><td><div class="tags"><span class="pill blue">成绩</span><span class="pill blue">数据</span><span class="pill blue">阶段练习</span></div></td><td>昨天 21:15</td><td><span class="pill green">已整</span></td><td><div class="material-actions"><button class="material-link">查看</button><button class="material-link">设为AI参</button><span class="material-more">路路路</span></div></td></tr>
+              <tr><td>老师课堂笔记.docx</td><td><span class="pill">DOCX</span></td><td><div class="tags"><span class="pill blue">课堂笔记</span><span class="pill blue">重点</span><span class="pill blue">知识</span></div></td><td>昨天 16:43</td><td><span class="pill blue">处理</span></td><td><div class="material-actions"><button class="material-link">继续整理</button><span class="material-more">路路路</span></div></td></tr>
+              <tr><td>自我复盘.txt</td><td><span class="pill">TXT</span></td><td><div class="tags"><span class="pill blue">复盘</span><span class="pill blue">反</span></div></td><td>5-18 22:30</td><td><span class="pill orange">待补</span></td><td><div class="material-actions"><button class="material-link">查看</button><button class="material-link">设为AI参</button><span class="material-more">路路路</span></div></td></tr>
+            </tbody>
+          </table>
+          <div class="material-view-all">查看全部资料2<span></span></div>
+        </div>
+      </div>
+
+      <div class="material-bottom section">
+        <div class="card">
+          <div class="toolbar"><h2>AI 结构化提取（基于已整理资料）</h2><button class="material-link">查看全部</button></div>
+          <div class="material-mini-grid section">
+            <div class="material-mini"><b>48 </b><p class="meta">高频错题</p><p class="meta">集中在函数与数列</p></div>
+            <div class="material-mini"><b>32 </b><p class="meta">知识</p><p class="meta">已提炼核心概</p></div>
+            <div class="material-mini"><b>18 </b><p class="meta">课堂笔记</p><p class="meta">重点内容总结</p></div>
+            <div class="material-mini"><b>9 </b><p class="meta">复盘摘要</p><p class="meta">学习反与改进</p></div>
+          </div>
+          <p class="meta section">最近更新：函数返回值错误整pdf 路 今天 10:24</p>
+        </div>
+        <div class="card">
+          <h2>资料可用</h2>
+          <div class="usage-grid section">
+            <div class="usage-tile"><b>用于问答</b><p class="meta">基于资料答疑</p></div>
+            <div class="usage-tile"><b>生成讲义</b><p class="meta">自动生成学习讲义</p></div>
+            <div class="usage-tile"><b>生成练习</b><p class="meta">智能生成练习</p></div>
+            <div class="usage-tile"><b>生成复习建议</b><p class="meta">个性化复习规划</p></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:16px"><button class="btn secondary" id="testRetrieval">试问 AI</button><button class="btn" data-jump="generate">用已生成资源</button></div>
+        </div>
+        <div class="card">
+          <h2>隐私与引用说</h2>
+          <div class="privacy-list section">
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3.5 8.5 7 10 3.5-1.5 7-5 7-10V6z"/></svg><div><b>仅你可见</b><p class="meta">资料仅对你个人可见，学不会用于模型训练</p></div>
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M9 11h6"/><path d="M9 15h6"/><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg><div><b>来源可追</b><p class="meta">AI 使用资料内容时，会明确标注引用来源</p></div>
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div><b>安全存储</b><p class="meta">采用企业级加密存储，保障你的数据安全</p></div>
+          </div>
+          <button class="btn ghost section" id="askKnowledgeAI">了解更多隐私政策 </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="practice">
+      <div class="page-head">
+        <div>
+          <div class="topline">练习评测 / 判题、解析错</div>
+          <div class="title-row"><h1>练习评测</h1><button class="btn secondary" data-jump="mistakes">错题</button><button class="btn secondary" data-jump="favorites">收藏题目</button></div>
+          <p class="lead">完成针对练习后，系统会回写画像错题本和学习路径</p>
+        </div>
+        <div class="status-summary">
+          <div class="summary-chip"><b>8 </b><span>今日练习</span></div>
+          <div class="summary-chip"><b>80%</b><span>达标</span></div>
+          <div class="summary-chip"><b>48%</b><span>当前掌握</span></div>
+        </div>
+      </div>
+
+      <div class="practice-layout section">
+        <div class="card">
+          <div class="toolbar"><div><span class="pill blue">个性化练习 路 函数返回</span><h2 style="margin-top:12px">3 题：函数默认返回</h2></div><span class="meta">当前题组 路 预计 12 分钟</span></div>
+          <div class="question section">
+            <b>运行下面代码后，print(result) 输出仢么？</b>
+            <pre>def add(a, b):
+    total = a + b
+
+result = add(2, 3)
+print(result)</pre>
+          </div>
+          <div class="stack section">
+            <button class="answer" data-answer="wrong">A. 5</button>
+            <button class="answer" data-answer="correct">B. None</button>
+            <button class="answer" data-answer="wrong">C. total</button>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn" id="submitPractice">提交判题</button><button class="btn secondary">收藏题目</button></div>
+          <div class="analysis-panel open section" id="beforeAnalysis">
+            <div class="soft-card"><b>等待作答</b><p class="meta section">提交后会显示判题结果、答案解析错因分析，并自动判断是否加入错题本</p></div>
+          </div>
+          <div class="analysis-panel section" id="afterAnalysis">
+            <div class="soft-card">
+              <span class="pill red">判题结果：错</span>
+              <h2 style="margin-top:12px">正确答案None</h2>
+              <p class="meta section">函数 `add` 内部计算total，但没有 `return total`。没return 的函数默认返None，所result None</p>
+              <div class="timeline section">
+                <div class="time-item"><b>已加入错题本</b><span>分类：函数返回值/ 默认返回 None</span></div>
+                <div class="time-item"><b>掌握度回</b><span>返回值掌握度52% 调整48%</span></div>
+                <div class="time-item"><b>补弱推荐</b><span>推荐 1 个短视频 份错题讲义 道同类题</span></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px"><button class="btn" data-jump="generate">丢键生成补弱资</button><button class="btn secondary" data-jump="resources">查看推荐资源</button></div>
+            </div>
+          </div>
+        </div>
+        <aside class="practice-sidebar">
+          <div class="card">
+            <div class="toolbar"><h2>生成练习</h2><span class="pill blue">个性化</span></div>
+            <div class="section">
+              <label class="meta">题目数量</label>
+              <div class="number-stepper" style="margin-top:8px"><button id="decreaseQuestion">-</button><input id="questionCount" value="8"><button id="increaseQuestion">+</button></div>
+            </div>
+            <div class="filter-row" style="grid-template-columns:1fr;margin-top:12px">
+              <select class="select"><option>针对薄弱</option><option>混合复习</option><option>项目应用</option></select>
+            </div>
+            <button class="btn" id="generatePracticeSet" style="width:100%;margin-top:12px">生成练习</button>
+          </div>
+          <div class="card">
+            <div class="toolbar"><h2>答题进度</h2><span class="pill blue">3 / 8</span></div>
+            <div class="question-nav section">
+              <button class="question-index done">1</button><button class="question-index done">2</button><button class="question-index active">3</button><button class="question-index">4</button>
+              <button class="question-index">5</button><button class="question-index">6</button><button class="question-index">7</button><button class="question-index">8</button>
+            </div>
+            <div class="condition section">
+              <div class="condition-row"><div><b>完成</b><p class="meta">2 </p></div><span class="pill green">2 </span></div>
+              <div class="condition-row"><div><b>正确</b><p class="meta">达标80%</p></div><span class="pill blue">100%</span></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn secondary" data-jump="mistakes">错题</button><button class="btn tertiary" data-jump="favorites">收藏题目</button></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="page" id="mistakes">
+      <div class="page-head">
+        <div>
+          <div class="topline">练习评测 / 错题</div>
+          <div class="title-row"><h1>错题</h1><button class="btn secondary" data-jump="practice">返回练习评测</button><button class="btn" data-jump="generate">生成错题讲义</button></div>
+          <p class="lead">按知识点和错因整理练习中的错误，支持查看详情、生成补弱资源和再次练习</p>
+        </div>
+      </div>
+      <div class="metric-strip section">
+        <div class="metric"><b>6 </b><span>当前错题</span></div>
+        <div class="metric"><b>3 </b><span>主要错因</span></div>
+        <div class="metric"><b>48%</b><span>返回值掌</span></div>
+        <div class="metric"><b>2 </b><span>已订</span></div>
+      </div>
+      <div class="card section">
+        <div class="toolbar"><h2>错题明细</h2><div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索错题、知识点或错><select class="select"><option>全部错因</option><option>函数返回</option><option>作用</option></select></div>
+        <table class="detail-table section">
+          <thead><tr><th>题目</th><th>知识</th><th>错因</th><th>最近错</th><th>状</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>函数没有 return 时输出什么？</td><td><span class="pill blue">函数返回</span></td><td>print 当作 return</td><td>今天 10:12</td><td><span class="pill orange">待订</span></td><td><button class="material-link">查看详情</button> <button class="material-link">再练丢</button></td></tr>
+            <tr><td>局部变total 在函数外能否访问</td><td><span class="pill blue">作用</span></td><td>局部变量范围混</td><td>昨天 21:40</td><td><span class="pill orange">待订</span></td><td><button class="material-link">查看详情</button> <button class="material-link">再练丢</button></td></tr>
+            <tr><td>return total 应写在哪丢行？</td><td><span class="pill blue">函数返回</span></td><td>返回语句位置错误</td><td>5-18 19:22</td><td><span class="pill green">已订</span></td><td><button class="material-link">查看详情</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="page" id="favorites">
+      <div class="page-head">
+        <div>
+          <div class="topline">练习评测 / 收藏题目</div>
+          <div class="title-row"><h1>收藏题目</h1><button class="btn secondary" data-jump="practice">返回练习评测</button><button class="btn" id="generateFromFavorites">用收藏生成练</button></div>
+          <p class="lead">保存你想复习或反复练习的题目，后续可用于生成个性化练习和复习计划</p>
+        </div>
+      </div>
+      <div class="card section">
+        <div class="toolbar"><h2>收藏列表</h2><div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索收藏题目"><select class="select"><option>全部标签</option><option>函数</option><option>项目</option></select></div>
+        <table class="detail-table section">
+          <thead><tr><th>题目</th><th>类型</th><th>标签</th><th>收藏时间</th><th>来源</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td>return print 的区别是仢么？</td><td><span class="pill">概念</span></td><td><span class="pill blue">函数</span> <span class="pill blue">返回</span></td><td>今天 09:58</td><td>针对练习</td><td><button class="material-link">查看详情</button> <button class="material-link">加入练习</button></td></tr>
+            <tr><td>成绩统计小项目补return</td><td><span class="pill">代码</span></td><td><span class="pill blue">项目实践</span></td><td>昨天 20:31</td><td>资源配套</td><td><button class="material-link">查看详情</button> <button class="material-link">加入练习</button></td></tr>
+            <tr><td>函数参数传入后变量在哪里生效</td><td><span class="pill">选择</span></td><td><span class="pill blue">作用</span></td><td>5-18 22:30</td><td>阶段测评</td><td><button class="material-link">查看详情</button> <button class="material-link">加入练习</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="page" id="report">
+      <div class="page-head">
+        <div>
+          <div class="topline">学习报表 / 日报、周报、月报</div>
+          <h1>学习报表</h1>
+          <p class="lead">按时间维度查看学习投入、完成热度分布，并由 AI 生成每日总结。</p>
+        </div>
+        <div class="report-switch" id="reportSwitch">
+          <button class="report-tab active" data-report-range="day">日报</button>
+          <button class="report-tab" data-report-range="week">周报</button>
+          <button class="report-tab" data-report-range="month">月报</button>
+        </div>
+      </div>
+
+      <div class="metric-strip section">
+        <div class="metric"><b id="reportStudyTime">1.6h</b><span>学习时长</span></div>
+        <div class="metric"><b id="reportTasks">4 项</b><span>完成任务</span></div>
+        <div class="metric"><b id="reportAccuracy">78%</b><span>练习正确率</span></div>
+        <div class="metric"><b id="reportFocus">返回值</b><span>今日关注点</span></div>
+      </div>
+
+      <div class="report-layout section">
+        <div class="card">
+          <div class="toolbar"><h2 id="heatmapTitle">日报热力图</h2><span class="meta" id="heatmapRangeText">最近 24 小时学习热度</span></div>
+          <div class="heatmap-wrap">
+            <div class="heatmap-head" id="heatmapHead"></div>
+            <div class="heatmap-rows" id="heatmapRows"></div>
+            <div class="heatmap-legend">
+              <span>低</span>
+              <i class="heatmap-cell"></i>
+              <i class="heatmap-cell lv1"></i>
+              <i class="heatmap-cell lv2"></i>
+              <i class="heatmap-cell lv3"></i>
+              <i class="heatmap-cell lv4"></i>
+              <span>高</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar"><h2>AI 每日总结</h2><span class="pill blue" id="reportRangePill">日报</span></div>
+          <div class="summary-ai-card section">
+            <p id="aiDailySummary">你今天学习节奏稳定，主要时间投入在“返回值”与“作用域”补强。建议先完成 5 题短练，再进入达标练习。</p>
+          </div>
+          <div class="timeline section" id="reportTimeline">
+            <div class="time-item"><b>09:20 资源学习</b><span>完成返回值短讲义第 1~3 节。</span></div>
+            <div class="time-item"><b>10:05 练习评测</b><span>8 题完成 5 题，正确率 80%。</span></div>
+            <div class="time-item"><b>10:38 错题回看</b><span>复盘 print 与 return 混淆题 2 道。</span></div>
+          </div>
+          <div style="display:grid;gap:10px;margin-top:16px">
+            <button class="btn" id="regenDailySummary">AI 重新生成每日总结</button>
+            <button class="btn secondary" data-jump="path">回到当前路径</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="loop">
+      <div class="page-head">
+        <div>
+          <div class="topline">复习计划 / 把学过的内容真正留下来</div>
+          <h1>复习计划</h1>
+          <p class="lead">这一页只做一件事：安排你接下来几天怎么复习、练什么、什么时候回看。</p>
+        </div>
+      </div>
+      <div class="grid cols-3 section">
+        <div class="card"><span class="pill blue">今天</span><h2 style="margin-top:12px">先补当前卡点</h2><p class="meta section">看完返回值短讲义，再做 8 道短练习，今天先把这一块学顺。</p><button class="btn secondary section" data-jump="resources">开始今天复习</button></div>
+        <div class="card"><span class="pill blue">明天</span><h2 style="margin-top:12px">回看错题</h2><p class="meta section">只回看今天做错的题，别重新铺开一整套内容。</p><button class="btn secondary section" data-jump="mistakes">去错题本</button></div>
+        <div class="card"><span class="pill blue">后天</span><h2 style="margin-top:12px">确认是否进下一个模块</h2><p class="meta section">如果短练习稳定，就进入模块导入；不稳就再补一轮更短资源。</p><button class="btn secondary section" data-jump="path">查看路径</button></div>
+      </div>
+      <div class="grid cols-2 section">
+        <div class="card">
+          <h2>这周复习提醒</h2>
+          <div class="timeline section">
+            <div class="time-item"><b>周一到周三</b><span>优先补函数返回值和作用域，别同时开新知识点。</span></div>
+            <div class="time-item"><b>每次练习后</b><span>只留 1 到 2 类高频错题，别把错题本堆得过大。</span></div>
+            <div class="time-item"><b>准备进入新模块前</b><span>先做一轮 5 题短测，确认不是靠记忆碰巧做对。</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>AI 能帮你的地方</h2>
+          <div class="stack section">
+            <div class="soft-card"><b>把今天内容压缩成 10 分钟版</b><p class="meta">适合时间紧的时候快速过一遍。</p></div>
+            <div class="soft-card"><b>把错题改成同类新题</b><p class="meta">避免只记住答案，测试是否真的掌握。</p></div>
+            <div class="soft-card"><b>用更简单的例子重讲</b><p class="meta">卡住时直接换一种讲法，不用硬扛。</p></div>
+          </div>
+          <button class="btn section" id="askLoopAI">让 AI 帮我安排今天的复习</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="modal-mask" id="sourceModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-label="选择参资>
+    <div class="modal-head">
+      <div><h2>选择参资</h2><p class="meta" style="margin-top:4px">选择后，AI 生成资源时会优先参这些已上传资料</p></div>
+      <button class="modal-close" id="closeSourceModal" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索资料名称、标签或内容"><button class="btn secondary" data-jump="knowledge">管理资料</button></div>
+      <div class="choice-list section" id="sourceList">
+        <label class="source-card selected"><input type="checkbox" class="source-check" checked data-title="函数返回值错题整pdf"><div><b>函数返回值错题整pdf</b><span>已整路 错题补弱 路 适合生成讲义和达标题</span></div></label>
+        <label class="source-card"><input type="checkbox" class="source-check" data-title="阶段练习成绩.xlsx"><div><b>阶段练习成绩.xlsx</b><span>已整路 练习数据 路 适合调整难度和题</span></div></label>
+        <label class="source-card"><input type="checkbox" class="source-check" data-title="老师课堂笔记.docx"><div><b>老师课堂笔记.docx</b><span>整理路 课堂笔记 路 可先作为补充参</span></div></label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="meta" id="sourceModalHint">已择 1 份资</span>
+      <div style="display:flex;gap:10px"><button class="btn secondary" id="cancelSourceModal">取消</button><button class="btn" id="confirmSourceModal">确认使用</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="ai-widget minimized" id="aiWidget">
+  <aside class="ai-panel" id="aiPanel">
+    <header id="aiDragHandle">
+      <div><h2>AI &#x5b66;&#x4e60;&#x52a9;&#x624b;</h2><p class="meta" id="aiContext">&#x5f53;&#x524d;&#x5728;&#x5b66;&#x4e60;&#x5de5;&#x4f5c;&#x53f0;&#xff0c;&#x6211;&#x53ef;&#x4ee5;&#x76f4;&#x63a5;&#x5e2e;&#x4f60;&#x5f00;&#x59cb;&#x4eca;&#x5929;&#x7684;&#x4efb;&#x52a1;&#x3002;</p></div>
+      <div class="ai-panel-actions"><button id="aiMinimize" aria-label="&#x7f29;&#x5c0f;">-</button></div>
+    </header>
+    <div class="body">
+      <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">&#x4f60;&#x53ef;&#x4ee5;&#x95ee;&#xff1a;&#x5148;&#x7ed9;&#x6211;&#x4e00;&#x4e2a; 15 &#x5206;&#x949f;&#x7248;&#x672c;&#x5f00;&#x59cb;&#x3002;</div></div>
+      <div class="quick-row">
+        <button class="quick" id="quickExplain">&#x6211;&#x770b;&#x4e0d;&#x61c2;&#x8fd9;&#x8282;</button>
+        <button class="quick" id="quickNext">&#x8c03;&#x6574;&#x56de;&#x987e;&#x987a;&#x5e8f;</button>
+        <button class="quick" id="quickProfile">&#x66f4;&#x65b0;&#x5b66;&#x4e60;&#x753b;&#x50cf;</button>
+      </div>
+    </div>
+  </aside>
+  <button class="ai-float" id="aiFloat" aria-label="&#x6253;&#x5f00; AI &#x5b66;&#x4e60;&#x52a9;&#x624b;">AI &#x5b66;&#x4e60;&#x52a9;&#x624b;</button>
+</div>
+
+<script>
+(() => {
+  const navButtons = document.querySelectorAll('.nav-btn');
+  const pages = document.querySelectorAll('.page');
+  const topbarPage = document.getElementById('topbarPage');
+  const names = {
+    dashboard: '\u5b66\u4e60\u5de5\u4f5c\u53f0',
+    profile: '\u5b66\u4e60\u753b\u50cf',
+    path: '\u4e2a\u6027\u5316\u8def\u5f84',
+    generate: '\u8d44\u6e90\u4e2d\u5fc3',
+    resources: '\u8d44\u6e90\u5e93',
+    knowledge: '\u8d44\u6599\u5e93',
+    practice: '\u7ec3\u4e60\u8bc4\u6d4b',
+    mistakes: '\u9519\u9898\u672c',
+    favorites: '\u6536\u85cf\u9898\u76ee',
+    report: '\u5b66\u4e60\u62a5\u8868',
+    loop: '\u590d\u4e60\u8ba1\u5212'
+  };
+
+  function showPage(page) {
+    if (!page) return;
+    pages.forEach(item => item.classList.toggle('active', item.id === page));
+    navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+    if (topbarPage && names[page]) topbarPage.textContent = names[page];
+    window.location.hash = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  navButtons.forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.page)));
+  document.querySelectorAll('[data-jump]').forEach(btn => btn.addEventListener('click', () => showPage(btn.dataset.jump)));
+
+  const reportData = {
+    day: ['\u65e5\u62a5', '\u65e5\u62a5\u70ed\u529b\u56fe', '\u6700\u8fd1 24 \u5c0f\u65f6\u5b66\u4e60\u70ed\u5ea6'],
+    week: ['\u5468\u62a5', '\u5468\u62a5\u70ed\u529b\u56fe', '\u6700\u8fd1 7 \u5929\u5b66\u4e60\u70ed\u5ea6'],
+    month: ['\u6708\u62a5', '\u6708\u62a5\u70ed\u529b\u56fe', '\u6700\u8fd1 30 \u5929\u5b66\u4e60\u70ed\u5ea6']
+  };
+  document.querySelectorAll('.report-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const data = reportData[tab.dataset.reportRange];
+      if (!data) return;
+      document.querySelectorAll('.report-tab').forEach(item => item.classList.toggle('active', item === tab));
+      const pill = document.getElementById('reportRangePill');
+      const title = document.getElementById('heatmapTitle');
+      const range = document.getElementById('heatmapRangeText');
+      if (pill) pill.textContent = data[0];
+      if (title) title.textContent = data[1];
+      if (range) range.textContent = data[2];
+    });
+  });
+
+  const initialPage = window.location.hash.replace('#', '');
+  if (initialPage && names[initialPage]) showPage(initialPage);
+
+  const aiWidget = document.getElementById('aiWidget');
+  const aiFloat = document.getElementById('aiFloat');
+  const aiMinimize = document.getElementById('aiMinimize');
+  if (aiFloat && aiWidget) aiFloat.addEventListener('click', () => aiWidget.classList.remove('minimized'));
+  if (aiMinimize && aiWidget) aiMinimize.addEventListener('click', () => aiWidget.classList.add('minimized'));
+})();
+</script>
+</body>
+</html>
