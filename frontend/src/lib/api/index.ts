@@ -19,6 +19,11 @@ export const api = {
   downloadResource: impl.downloadResource,
   downloadResourceSource: impl.downloadResourceSource,
   generateResource: impl.generateResource,
+  polishVideoPrompt: impl.polishVideoPrompt,
+  generateVideoResource: impl.generateVideoResource,
+  getVideoResource: impl.getVideoResource,
+  deleteVideoResource: impl.deleteVideoResource,
+  downloadVideoArtifact: impl.downloadVideoArtifact,
 
   sendMessage: impl.sendMessage,
   getChatHistory: impl.getChatHistory,
@@ -58,4 +63,5 @@ export type {
   Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload,
+  VideoPolishResult, VideoScriptSegment, VideoGenerateOptions, VideoGenerateEvent,
 } from './types'

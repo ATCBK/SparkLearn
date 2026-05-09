@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>python基础讲解</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: #eef3f8; color: #1d1d1f; }
+    .deck { width: 100vw; margin: 0; display: grid; gap: 22px; }
+    .slide { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fbfbfd; border: 1px solid rgba(0,0,0,.06); box-shadow: 0 22px 70px rgba(24,38,63,.14); }
+    .slide.single { width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; box-shadow: none; }
+    .band { position: absolute; inset: 0; background: linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%); }
+    .accent { position: absolute; right: -180px; top: -160px; width: 520px; height: 520px; border-radius: 999px; background: rgba(0,113,227,.12); }
+    .content { position: relative; z-index: 1; height: 100%; padding: 76px 88px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+    .eyebrow { color: #0071e3; font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 76px; line-height: 1.05; letter-spacing: 0; }
+    .subtitle { margin-top: 24px; color: #424245; font-size: 32px; line-height: 1.45; }
+    ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; }
+    li { padding: 22px 24px; border-radius: 18px; background: rgba(255,255,255,.74); border: 1px solid rgba(0,0,0,.06); font-size: 27px; line-height: 1.45; color: #1d1d1f; }
+    .hint { margin-top: 26px; color: #6e6e73; font-size: 22px; line-height: 1.5; }
+    .footer { position: absolute; left: 88px; right: 88px; bottom: 42px; display: flex; justify-content: space-between; color: #86868b; font-size: 18px; }
+  </style>
+</head>
+<body>
+    <section class="slide single">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content">
+        <div>
+          <div class="eyebrow">SparkLearn · 02/04</div>
+          <h1>核心概念</h1>
+          <p class="subtitle">核心概念。围绕“python基础讲解”，用一句话解释概念，再补充它和已有知识之间的关...</p>
+          <p class="hint">画面展示概念卡片、箭头关系和重点高亮。</p>
+        </div>
+        <ul><li>核心概念</li><li>围绕“python基础讲解”，用一句话解释概念，再补充它和已有知识之间的关系</li><li>讲解口吻保持清晰、生动、适合课堂讲解，难度定位为beginner</li></ul>
+      </div>
+      <div class="footer">
+        <span>python基础讲解</span>
+        <span>seg_002</span>
+      </div>
+    </section>
+    </body>
+</html>

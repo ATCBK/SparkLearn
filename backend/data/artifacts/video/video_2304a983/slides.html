@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>python变量讲解</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: #eef3f8; color: #1d1d1f; }
+    .deck { width: min(1180px, calc(100vw - 48px)); margin: 32px auto; display: grid; gap: 22px; }
+    .slide { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fbfbfd; border: 1px solid rgba(0,0,0,.06); box-shadow: 0 22px 70px rgba(24,38,63,.14); }
+    .slide.single { width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; box-shadow: none; }
+    .band { position: absolute; inset: 0; background: linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%); }
+    .accent { position: absolute; right: -180px; top: -160px; width: 520px; height: 520px; border-radius: 999px; background: rgba(0,113,227,.12); }
+    .content { position: relative; z-index: 1; height: 100%; padding: 70px 82px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 42px; align-items: center; }
+    .content.full { grid-template-columns: 1fr; align-content: center; }
+    .eyebrow { color: #0071e3; font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+    h1 { margin: 0; font-size: 70px; line-height: 1.05; letter-spacing: 0; }
+    .subtitle { margin-top: 24px; color: #424245; font-size: 32px; line-height: 1.45; }
+    ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; }
+    li { padding: 22px 24px; border-radius: 18px; background: rgba(255,255,255,.74); border: 1px solid rgba(0,0,0,.06); font-size: 27px; line-height: 1.45; color: #1d1d1f; }
+    .hint { margin-top: 26px; color: #6e6e73; font-size: 22px; line-height: 1.5; }
+    .panel { border-radius: 28px; padding: 28px; background: rgba(255,255,255,.72); border: 1px solid rgba(0,0,0,.07); box-shadow: 0 18px 48px rgba(24,38,63,.10); }
+    .label { color: #0071e3; font-size: 20px; font-weight: 800; margin-bottom: 14px; }
+    .code { margin: 0; white-space: pre-wrap; font-family: "Cascadia Code", Consolas, monospace; font-size: 28px; line-height: 1.55; color: #f5f5f7; background: #1d1d1f; border-radius: 22px; padding: 30px; }
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .box { min-height: 180px; border-radius: 22px; padding: 24px; background: rgba(255,255,255,.78); border: 1px solid rgba(0,0,0,.06); }
+    .box strong { display: block; font-size: 24px; margin-bottom: 14px; }
+    .box p { margin: 0; color: #424245; font-size: 28px; line-height: 1.45; }
+    .steps { counter-reset: step; display: grid; gap: 18px; }
+    .step { counter-increment: step; display: flex; align-items: center; gap: 18px; padding: 20px 22px; border-radius: 18px; background: rgba(255,255,255,.78); font-size: 28px; }
+    .step::before { content: counter(step); display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: #0071e3; color: white; font-weight: 800; font-size: 20px; }
+    .question { font-size: 36px; line-height: 1.35; font-weight: 700; color: #1d1d1f; }
+    .answer { margin-top: 22px; color: #6e6e73; font-size: 24px; line-height: 1.5; }
+    .note { margin-top: 20px; padding: 18px 20px; border-radius: 16px; background: rgba(0,113,227,.08); color: #245; font-size: 21px; line-height: 1.5; }
+    .footer { position: absolute; left: 88px; right: 88px; bottom: 42px; display: flex; justify-content: space-between; color: #86868b; font-size: 18px; }
+  </style>
+</head>
+<body><div class="deck">
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content full">
+        <div>
+          <div class="eyebrow">SparkLearn · 01/09</div>
+          <h1>python变量讲解</h1>
+          <p class="subtitle">一节面向 beginner 学习者的 AI 微课</p>
+          <p class="hint">封面使用大标题、课程路径和轻量图形背景。</p>
+          <div class="note">开场要告诉学生这节课能解决什么具体困惑。</div>
+        </div>
+        <ul><li>先建立直觉</li><li>再看关键规则</li><li>最后用练习巩固</li></ul>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_001</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content full">
+        <div>
+          <div class="eyebrow">SparkLearn · 02/09</div>
+          <h1>本节课你会学会什么</h1>
+          <p class="subtitle">把学习目标拆成三个可检查结果</p>
+          <p class="hint">使用 checklist 和进度条表现学习目标。</p>
+          <div class="note">目标要可验证，避免只写理解、掌握这类空泛词。</div>
+        </div>
+        <div class="panel"><div class="label">学习目标 Checklist</div><ul><li>说清 python变量讲解 的核心含义</li><li>看懂一个最小示例</li><li>避开一个常见误区</li></ul></div>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_002</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content">
+        <div>
+          <div class="eyebrow">SparkLearn · 03/09</div>
+          <h1>先看一个真实问题</h1>
+          <p class="subtitle">为什么这个知识点值得学</p>
+          <p class="hint">画面左侧展示困惑表情，右侧展示问题气泡。</p>
+          <div class="note">用问题驱动后续讲解，降低抽象感。</div>
+        </div>
+        <div class="panel"><div class="label">先思考</div><div class="question">你觉得python变量讲解主要是为了解决记忆问题、表达问题，还是复用问题？</div></div>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_003</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content">
+        <div>
+          <div class="eyebrow">SparkLearn · 04/09</div>
+          <h1>一句话讲清核心概念</h1>
+          <p class="subtitle">先抓主干，再补细节</p>
+          <p class="hint">中央概念卡片，周围三条关系箭头。</p>
+          <div class="note">概念页只放最关键的定义，细节留给后续页。</div>
+        </div>
+        <ul><li>python变量讲解 是用来组织和表达程序含义的工具</li><li>核心不是记名字，而是理解关系</li><li>先分清“是什么”和“怎么用”</li></ul>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_004</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content">
+        <div>
+          <div class="eyebrow">SparkLearn · 05/09</div>
+          <h1>用生活类比建立直觉</h1>
+          <p class="subtitle">把抽象概念变成可想象的画面</p>
+          <p class="hint">左右分栏：生活场景 vs 程序世界。</p>
+          <div class="note">提醒学生类比有边界，避免类比误导。</div>
+        </div>
+        <div class="compare"><div class="box"><strong>生活场景</strong><p>标签、盒子、流程帮助我们快速定位信息。</p></div><div class="box"><strong>程序世界</strong><p>名称、数据、执行结果帮助我们表达逻辑。</p></div></div>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_005</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content">
+        <div>
+          <div class="eyebrow">SparkLearn · 06/09</div>
+          <h1>把使用过程拆成三步</h1>
+          <p class="subtitle">遇到题目时按步骤判断</p>
+          <p class="hint">三段式流程图，每一步有图标和箭头。</p>
+          <div class="note">流程页用于建立解题路径。</div>
+        </div>
+        <div class="steps"><div class="step">第 1 步：找到对象</div><div class="step">第 2 步：确定关系</div><div class="step">第 3 步：观察结果</div></div>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_006</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content">
+        <div>
+          <div class="eyebrow">SparkLearn · 07/09</div>
+          <h1>看一个最小示例</h1>
+          <p class="subtitle">代码越短，越容易看清本质</p>
+          <p class="hint">代码编辑器样式，右侧显示运行结果。</p>
+          <div class="note">代码示例只保留必要行，避免信息过载。</div>
+        </div>
+        <pre class="code">score = 95
+name = &quot;SparkLearn&quot;
+print(name, score)</pre>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_007</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content">
+        <div>
+          <div class="eyebrow">SparkLearn · 08/09</div>
+          <h1>常见误区：只看表面写法</h1>
+          <p class="subtitle">错误通常来自把概念和语法混在一起</p>
+          <p class="hint">错误卡片与正确卡片对比。</p>
+          <div class="note">这一页用于防止机械记忆。</div>
+        </div>
+        <div class="compare"><div class="box"><strong>常见误区</strong><p>只背 python变量讲解 的固定写法，却说不清它解决的问题。</p></div><div class="box"><strong>正确理解</strong><p>先说明对象、关系和结果，再写具体语法。</p></div></div>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_008</span>
+      </div>
+    </section>
+    
+    <section class="slide">
+      <div class="band"></div>
+      <div class="accent"></div>
+      <div class="content full">
+        <div>
+          <div class="eyebrow">SparkLearn · 09/09</div>
+          <h1>三句话带走</h1>
+          <p class="subtitle">把这节课压缩成可复习的结论</p>
+          <p class="hint">总结清单和下一步学习按钮。</p>
+          <div class="note">总结页要形成可复述的闭环。</div>
+        </div>
+        <div class="panel"><div class="label">复习卡片</div><ul><li>python变量讲解 要先理解问题，再记规则</li><li>用类比建立直觉，用代码验证结果</li><li>遇到新题时按对象、关系、结果三步分析</li></ul></div>
+      </div>
+      <div class="footer">
+        <span>python变量讲解</span>
+        <span>seg_009</span>
+      </div>
+    </section>
+    </div></body>
+</html>

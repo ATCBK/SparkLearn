@@ -16,7 +16,7 @@ def read_json(user_id: str, filename: str, default: Any) -> Any:
     path = _user_dir(user_id) / filename
     if not path.exists():
         return default
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def write_json(user_id: str, filename: str, payload: Any) -> None:
@@ -29,4 +29,3 @@ def append_jsonl(user_id: str, filename: str, record: dict[str, Any]) -> None:
     line = json.dumps({"ts": now_iso(), **record}, ensure_ascii=False)
     with path.open("a", encoding="utf-8") as f:
         f.write(line + "\n")
-

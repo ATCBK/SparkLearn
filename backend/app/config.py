@@ -44,6 +44,32 @@ class Settings(BaseSettings):
     xfyun_zw_ppt_author: str = "SparkLearn"
     xfyun_zw_timeout_sec: int = 240
 
+    # iFlytek TTS (video narration)
+    xf_tts_app_id: str = "ef383158"
+    xf_tts_api_key: str = "ce2030e51519a87b0c05b2a06b34b9be"
+    xf_tts_api_secret: str = "NWIzODY5ZmI4OTQxZjAwMmE2YzFkNzlj"
+    xf_tts_base_url: str = "wss://tts-api.xfyun.cn/v2/tts"
+    xf_tts_default_voice: str = "xiaoyan"
+    xf_tts_max_concurrency: int = 2
+    xf_tts_timeout_ms: int = 15000
+    xf_tts_text_limit: int = 1000
+
+    # Video creator
+    video_creator_enabled: bool = True
+    video_default_provider: str = "html_ppt"
+    video_ai_enabled: bool = True
+    video_ai_provider: str = "openai_compatible"
+    video_ai_base_url: str = "https://api.openai.com/v1"
+    video_ai_chat_path: str = "/chat/completions"
+    video_ai_api_key: str = ""
+    video_ai_model: str = ""
+    video_ai_agent_url: str = ""
+    video_ai_agent_token: str = ""
+    video_ai_timeout_sec: int = 45
+    video_ai_max_tokens: int = 4096
+    video_ai_temperature: float = 0.7
+    video_ai_fallback_enabled: bool = True
+
     single_user_id: str = "single_user"
     cors_origin: str = "http://localhost:3000"
 

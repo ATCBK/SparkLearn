@@ -10,10 +10,10 @@ import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { RESOURCE_TYPES, QUICK_TAGS } from '@/lib/utils/constants'
 import { cn } from '@/lib/utils/cn'
-import { FileText, Presentation, GitBranch, HelpCircle, BookOpen, Code, Send, RotateCcw, Download, Save } from 'lucide-react'
+import { FileText, Presentation, GitBranch, HelpCircle, BookOpen, Code, Send, RotateCcw, Download, Save, Play, Wand2, Volume2, Subtitles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { PptDeck, PptSlide } from '@/lib/api/types'
+import type { PptDeck, PptSlide, VideoPolishResult } from '@/lib/api/types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
@@ -24,6 +24,13 @@ const typeIcons: Record<string, React.ReactNode> = {
   quiz: <HelpCircle className="w-5 h-5" />,
   reading: <BookOpen className="w-5 h-5" />,
   code: <Code className="w-5 h-5" />,
+  video: <Play className="w-5 h-5" />,
+}
+
+function mediaUrl(url?: string | null) {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  return `${API_BASE}${url}`
 }
 
 function stepMaxForSlide(slide: PptSlide): number {
@@ -199,6 +206,8 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [videoPolish, setVideoPolish] = useState<VideoPolishResult | null>(null)
+  const [polishing, setPolishing] = useState(false)
 
   async function fetchData() {
     try {
@@ -214,6 +223,20 @@ export default function GeneratePage() {
   }
 
   useEffect(() => { fetchData() }, [])
+
+  async function handlePolish() {
+    const prompt = state.prompt.trim()
+    if (!prompt || polishing) return
+    setPolishing(true)
+    try {
+      const result = await api.polishVideoPrompt(prompt)
+      setVideoPolish(result)
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : '润色失败')
+    } finally {
+      setPolishing(false)
+    }
+  }
 
   async function handleGenerate() {
     const prompt = state.prompt.trim()
@@ -241,13 +264,22 @@ export default function GeneratePage() {
     }, 450)
 
     try {
-      const resource = await api.generateResource(state.selectedType, prompt)
+      const resource = state.selectedType === 'video'
+        ? await api.generateVideoResource({ prompt, polish: videoPolish || undefined }, (evt) => {
+            if (evt.type === 'progress') {
+              const next = Number(evt.payload.progress || progress)
+              progress = Math.max(progress, Math.min(next, 98))
+              dispatch({ type: 'UPDATE', id: tempId, updates: { progress, content: String(evt.payload.message || '') } })
+            }
+          })
+        : await api.generateResource(state.selectedType, prompt)
       clearInterval(timer)
       dispatch({
         type: 'REPLACE_TEMP',
         tempId,
         resource: { ...resource, status: 'completed', progress: 100 },
       })
+      if (state.selectedType === 'video') setVideoPolish(null)
     } catch (e) {
       clearInterval(timer)
       dispatch({
@@ -293,7 +325,7 @@ export default function GeneratePage() {
       </div>
 
       {/* Type Selector - Six Grid */}
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
         {RESOURCE_TYPES.map(rt => (
           <button
             key={rt.key}
@@ -318,11 +350,28 @@ export default function GeneratePage() {
       {/* Input Area */}
       <Card className="p-5">
         <textarea
-          placeholder="请描述你需要的学习资源..."
+          placeholder={state.selectedType === 'video' ? '请描述你想生成的视频讲解，例如：用动画讲清 Python 变量...' : '请描述你需要的学习资源...'}
           value={state.prompt}
-          onChange={e => dispatch({ type: 'SET_PROMPT', prompt: e.target.value })}
+          onChange={e => {
+            dispatch({ type: 'SET_PROMPT', prompt: e.target.value })
+            if (state.selectedType === 'video') setVideoPolish(null)
+          }}
           className="w-full h-24 p-0 border-0 bg-transparent text-body text-ink placeholder:text-ink-disabled focus:outline-none resize-none"
         />
+        {state.selectedType === 'video' && videoPolish && (
+          <div className="mt-4 rounded-[12px] border border-blue/15 bg-blue-light/70 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-small font-semibold text-ink">{videoPolish.title}</p>
+                <p className="text-caption text-ink-secondary mt-1">
+                  {videoPolish.estimated_duration_sec} 秒 · {videoPolish.script_outline.length} 个分段 · 声线 {videoPolish.voice}
+                </p>
+              </div>
+              <Badge variant="info">已润色</Badge>
+            </div>
+            <p className="mt-3 text-small text-ink-secondary line-clamp-2">{videoPolish.polished_prompt}</p>
+          </div>
+        )}
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/[0.06]">
           <div className="flex gap-2 flex-wrap">
             {QUICK_TAGS.map(tag => (
@@ -335,10 +384,18 @@ export default function GeneratePage() {
               </button>
             ))}
           </div>
-          <Button onClick={handleGenerate} disabled={!state.prompt.trim() || isGenerating}>
-            <Send className="w-4 h-4" />
-            {isGenerating ? '生成中...' : '生成'}
-          </Button>
+          <div className="flex gap-2">
+            {state.selectedType === 'video' && (
+              <Button variant="secondary" onClick={handlePolish} disabled={!state.prompt.trim() || polishing || isGenerating}>
+                <Wand2 className="w-4 h-4" />
+                {polishing ? '润色中...' : '润色提示词'}
+              </Button>
+            )}
+            <Button onClick={handleGenerate} disabled={!state.prompt.trim() || isGenerating}>
+              <Send className="w-4 h-4" />
+              {isGenerating ? '生成中...' : state.selectedType === 'video' ? '生成视频' : '生成'}
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -403,6 +460,37 @@ export default function GeneratePage() {
                     </div>
                   ) : selected.status === 'failed' ? (
                     <ErrorState type="server" title="生成失败" onRetry={() => handleRetry(selected.id)} />
+                  ) : selected.type === 'video' ? (
+                    <div className="space-y-4">
+                      <div className="aspect-video overflow-hidden rounded-[12px] border border-black/[0.08] bg-white">
+                        {selected.hasMp4 && selected.videoUrl ? (
+                          <video src={mediaUrl(selected.videoUrl)} controls preload="metadata" className="h-full w-full bg-black" />
+                        ) : selected.sceneUrl ? (
+                          <iframe
+                            src={mediaUrl(selected.sceneUrl)}
+                            className="h-full w-full bg-white"
+                            title={`${selected.title} 场景预览`}
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-ink text-white/70">
+                            <Play className="mr-2 h-5 w-5" />
+                            视频场景预览
+                          </div>
+                        )}
+                      </div>
+                      {selected.audioUrl && (
+                        <div className="rounded-[12px] border border-black/[0.06] bg-bg-hover p-4">
+                          <div className="mb-2 flex items-center gap-2 text-small font-medium text-ink">
+                            <Volume2 className="h-4 w-4 text-blue" />
+                            语音播报
+                          </div>
+                          <audio src={mediaUrl(selected.audioUrl)} controls className="w-full" />
+                          <p className="mt-2 text-caption text-ink-tertiary">
+                            {selected.muxMessage || '如果本机未安装 FFmpeg，会先输出可预览场景、音轨、字幕与时间轴；安装 FFmpeg 后同一接口会生成 MP4。'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   ) : selected.type === 'ppt' && selectedLink ? (
                     <div className="space-y-4">
                       <div className="rounded-[12px] border border-black/[0.06] bg-bg-hover px-3 py-2 text-small text-ink-secondary">
@@ -455,7 +543,9 @@ export default function GeneratePage() {
                       size="sm"
                       onClick={async () => {
                         try {
-                          if (selected.type === 'mindmap' || selected.type === 'ppt') {
+                          if (selected.type === 'video') {
+                            await api.downloadVideoArtifact(selected.id, 'mp4')
+                          } else if (selected.type === 'mindmap' || selected.type === 'ppt') {
                             await api.downloadResourceSource(selected.id)
                           } else {
                             await api.downloadResource(selected.id)
@@ -467,14 +557,41 @@ export default function GeneratePage() {
                       }}
                     >
                       <Download className="w-4 h-4" />
-                      {selected.type === 'mindmap' ? '下载图片' : selected.type === 'ppt' ? '下载PPT' : '下载PDF'}
+                      {selected.type === 'video' ? (selected.hasMp4 ? '下载MP4' : '下载生成清单') : selected.type === 'mindmap' ? '下载图片' : selected.type === 'ppt' ? '下载PPT' : '下载PDF'}
                     </Button>
+                    {selected.type === 'video' && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            try { await api.downloadVideoArtifact(selected.id, 'audio') }
+                            catch (e) { window.alert(e instanceof Error ? e.message : '音频下载失败') }
+                          }}
+                        >
+                          <Volume2 className="w-4 h-4" />
+                          下载音频
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            try { await api.downloadVideoArtifact(selected.id, 'srt') }
+                            catch (e) { window.alert(e instanceof Error ? e.message : '字幕下载失败') }
+                          }}
+                        >
+                          <Subtitles className="w-4 h-4" />
+                          下载字幕
+                        </Button>
+                      </>
+                    )}
                     <Button
                       size="sm"
                       onClick={() => {
-                        if (selectedLink) window.open(selectedLink, '_blank', 'noopener,noreferrer')
+                        const link = selected.type === 'video' ? selected.sceneUrl : selectedLink
+                        if (link) window.open(mediaUrl(link), '_blank', 'noopener,noreferrer')
                       }}
-                      disabled={!selectedLink}
+                      disabled={selected.type === 'video' ? !selected.sceneUrl : !selectedLink}
                     >
                       <Save className="w-4 h-4" />
                       打开链接

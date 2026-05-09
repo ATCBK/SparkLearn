@@ -11,13 +11,24 @@ export interface Task {
 export interface Resource {
   id: string
   title: string
-  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code'
+  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video'
   status: 'generating' | 'completed' | 'failed'
   createdAt: string
   content?: string
   sourceUrl?: string
   pptSchema?: PptDeck
   videoUrl?: string
+  audioUrl?: string
+  subtitleUrl?: string
+  timelineUrl?: string
+  sceneUrl?: string
+  shareUrl?: string
+  duration?: number
+  provider?: string
+  ttsProvider?: string
+  hasMp4?: boolean
+  muxStatus?: string
+  muxMessage?: string
   docmeeId?: string
   progress?: number // 0-100
 }
@@ -219,8 +230,48 @@ export interface VideoInfo {
   id: string
   title: string
   url: string
+  audioUrl?: string
+  subtitleUrl?: string
+  timelineUrl?: string
+  sceneUrl?: string
+  shareUrl?: string
   duration: number // seconds
   createdAt: string
+  status?: 'generating' | 'completed' | 'failed'
+  provider?: string
+  ttsProvider?: string
+  hasMp4?: boolean
+  muxStatus?: string
+  muxMessage?: string
+}
+
+export interface VideoScriptSegment {
+  segment_id: string
+  title: string
+  narration: string
+  visual_hint: string
+  duration_ms?: number
+}
+
+export interface VideoPolishResult {
+  polish_id: string
+  title: string
+  polished_prompt: string
+  script_outline: VideoScriptSegment[]
+  estimated_duration_sec: number
+  voice: string
+}
+
+export interface VideoGenerateOptions {
+  prompt: string
+  polish?: VideoPolishResult
+  voice?: string
+  durationSec?: number
+}
+
+export interface VideoGenerateEvent {
+  type: string
+  payload: Record<string, unknown>
 }
 
 export interface ContributionDay {

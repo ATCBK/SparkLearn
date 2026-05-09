@@ -1,0 +1,17 @@
+{
+  "resource_id": "video_9d72ae33",
+  "provider": "html_ppt",
+  "tts_provider": "local_fallback",
+  "title": "德刚发给",
+  "duration_ms": 88000,
+  "resolution": "1920x1080",
+  "fps": 30,
+  "files": {
+    "scene": "scene.html",
+    "audio": "narration.wav",
+    "subtitle": "subtitle.srt",
+    "timeline": "timeline.json"
+  },
+  "created_at": "2026-05-07T10:20:30Z",
+  "note": "FFmpeg/商用视频 Provider 未配置时，系统输出可预览场景、WAV 配音、字幕和时间轴。"
+}

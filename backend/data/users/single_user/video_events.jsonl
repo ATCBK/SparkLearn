@@ -1,0 +1,53 @@
+{"ts": "2026-05-07T09:59:06.792835Z", "type": "video_polished", "polish_id": "polish_0006172"}
+{"ts": "2026-05-07T09:59:19.606595Z", "type": "video_polished", "polish_id": "polish_7922545"}
+{"ts": "2026-05-07T09:59:23.122423Z", "type": "video_job_created", "job_id": "job_795549a9", "resource_id": "video_18f5cf84"}
+{"ts": "2026-05-07T09:59:33.255108Z", "type": "video_job_completed", "job_id": "job_795549a9", "resource_id": "video_18f5cf84"}
+{"ts": "2026-05-07T10:20:18.943498Z", "type": "video_polished", "polish_id": "polish_8708377"}
+{"ts": "2026-05-07T10:20:19.573829Z", "type": "video_job_created", "job_id": "job_3b0fa166", "resource_id": "video_9d72ae33"}
+{"ts": "2026-05-07T10:20:30.852126Z", "type": "video_job_completed", "job_id": "job_3b0fa166", "resource_id": "video_9d72ae33"}
+{"ts": "2026-05-07T11:07:46.927731Z", "type": "video_polished", "polish_id": "polish_9676430"}
+{"ts": "2026-05-07T11:07:48.278424Z", "type": "video_job_created", "job_id": "job_b84f7246", "resource_id": "video_de065310"}
+{"ts": "2026-05-07T11:08:03.573628Z", "type": "video_job_completed", "job_id": "job_b84f7246", "resource_id": "video_de065310"}
+{"ts": "2026-05-07T12:50:08.093144Z", "type": "video_polished", "polish_id": "polish_9471987"}
+{"ts": "2026-05-07T12:50:08.106469Z", "type": "video_job_created", "job_id": "job_4032dca1", "resource_id": "video_fb646610"}
+{"ts": "2026-05-07T12:50:11.407113Z", "type": "video_job_completed", "job_id": "job_4032dca1", "resource_id": "video_fb646610"}
+{"ts": "2026-05-07T13:06:36.611284Z", "type": "video_polished", "polish_id": "polish_9593686"}
+{"ts": "2026-05-07T13:07:06.237661Z", "type": "video_polished", "polish_id": "polish_1954086"}
+{"ts": "2026-05-07T13:07:06.256711Z", "type": "video_job_created", "job_id": "job_be3d72bd", "resource_id": "video_838f2aeb"}
+{"ts": "2026-05-07T13:07:13.003379Z", "type": "video_job_completed", "job_id": "job_be3d72bd", "resource_id": "video_838f2aeb"}
+{"ts": "2026-05-07T13:08:45.707627Z", "type": "video_polished", "polish_id": "polish_6552599"}
+{"ts": "2026-05-07T13:08:45.727263Z", "type": "video_job_created", "job_id": "job_21a0a07f", "resource_id": "video_04f47ad7"}
+{"ts": "2026-05-07T13:08:53.337274Z", "type": "video_job_completed", "job_id": "job_21a0a07f", "resource_id": "video_04f47ad7"}
+{"ts": "2026-05-07T13:10:37.354353Z", "type": "video_polished", "polish_id": "polish_0071073"}
+{"ts": "2026-05-07T13:10:37.366417Z", "type": "video_job_created", "job_id": "job_19fc4749", "resource_id": "video_51a4257a"}
+{"ts": "2026-05-07T13:10:44.212279Z", "type": "video_job_completed", "job_id": "job_19fc4749", "resource_id": "video_51a4257a"}
+{"ts": "2026-05-08T05:58:31.041107Z", "type": "video_polished", "polish_id": "polish_3574899"}
+{"ts": "2026-05-08T05:58:33.481528Z", "type": "video_job_created", "job_id": "job_c943a4d1", "resource_id": "video_de0a1afc"}
+{"ts": "2026-05-08T05:59:38.946944Z", "type": "video_job_completed", "job_id": "job_c943a4d1", "resource_id": "video_de0a1afc"}
+{"ts": "2026-05-08T09:11:15.580056Z", "type": "video_polished", "polish_id": "polish_7697786"}
+{"ts": "2026-05-08T09:11:15.596349Z", "type": "video_job_created", "job_id": "job_2d4ddcc3", "resource_id": "video_70c096f1"}
+{"ts": "2026-05-08T09:11:30.678969Z", "type": "video_job_completed", "job_id": "job_2d4ddcc3", "resource_id": "video_70c096f1"}
+{"ts": "2026-05-08T09:15:36.098338Z", "type": "video_polished", "polish_id": "polish_3075990"}
+{"ts": "2026-05-08T09:15:47.712519Z", "type": "video_polished", "polish_id": "polish_3048220"}
+{"ts": "2026-05-08T09:15:53.677123Z", "type": "video_job_created", "job_id": "job_a1485b85", "resource_id": "video_f9e29ba8"}
+{"ts": "2026-05-08T09:18:56.942346Z", "type": "video_polished", "polish_id": "polish_1973766"}
+{"ts": "2026-05-08T09:18:58.852533Z", "type": "video_job_created", "job_id": "job_21410e67", "resource_id": "video_d5c21ada"}
+{"ts": "2026-05-08T09:23:14.553750Z", "type": "video_job_completed", "job_id": "job_21410e67", "resource_id": "video_d5c21ada"}
+{"ts": "2026-05-08T09:23:56.708685Z", "type": "video_job_completed", "job_id": "job_a1485b85", "resource_id": "video_f9e29ba8"}
+{"ts": "2026-05-08T11:05:20.767120Z", "type": "video_polished", "polish_id": "polish_0052527"}
+{"ts": "2026-05-08T11:05:21.715236Z", "type": "video_job_created", "job_id": "job_24a88134", "resource_id": "video_5dc6084b"}
+{"ts": "2026-05-08T11:06:12.476060Z", "type": "video_job_completed", "job_id": "job_24a88134", "resource_id": "video_5dc6084b"}
+{"ts": "2026-05-09T08:39:05.534496Z", "type": "video_polished", "polish_id": "polish_e6e48dc1"}
+{"ts": "2026-05-09T08:39:07.142961Z", "type": "video_job_created", "job_id": "job_33bd6005", "resource_id": "video_2304a983"}
+{"ts": "2026-05-09T08:40:04.802220Z", "type": "video_job_completed", "job_id": "job_33bd6005", "resource_id": "video_2304a983"}
+{"ts": "2026-05-09T08:51:57.604284Z", "type": "video_polished", "polish_id": "polish_dc3202a0"}
+{"ts": "2026-05-09T08:51:58.570672Z", "type": "video_job_created", "job_id": "job_cacfd92b", "resource_id": "video_b7c0bebe"}
+{"ts": "2026-05-09T08:54:10.495159Z", "type": "video_job_completed", "job_id": "job_cacfd92b", "resource_id": "video_b7c0bebe"}
+{"ts": "2026-05-09T09:01:34.897086Z", "type": "video_resource_deleted", "resource_id": "video_838f2aeb", "deleted": true}
+{"ts": "2026-05-09T09:01:41.016951Z", "type": "video_resource_deleted", "resource_id": "video_04f47ad7", "deleted": true}
+{"ts": "2026-05-09T09:01:43.606300Z", "type": "video_resource_deleted", "resource_id": "video_de065310", "deleted": true}
+{"ts": "2026-05-09T09:01:45.612424Z", "type": "video_resource_deleted", "resource_id": "video_51a4257a", "deleted": true}
+{"ts": "2026-05-09T09:04:32.073025Z", "type": "video_polished", "polish_id": "polish_dc3202a0"}
+{"ts": "2026-05-09T09:04:32.904316Z", "type": "video_job_created", "job_id": "job_a9901391", "resource_id": "video_85b0a8d5"}
+{"ts": "2026-05-09T09:06:34.920998Z", "type": "video_job_completed", "job_id": "job_a9901391", "resource_id": "video_85b0a8d5"}
+{"ts": "2026-05-09T09:07:05.421698Z", "type": "video_resource_deleted", "resource_id": "video_b7c0bebe", "deleted": true}

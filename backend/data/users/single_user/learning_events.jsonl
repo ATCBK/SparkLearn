@@ -299,3 +299,4 @@
 {"ts": "2026-04-29T11:30:38.612401Z", "type": "path_node_advice", "node_id": "3.4", "mastery": 0.0}
 {"ts": "2026-04-30T09:49:06.359903Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "8c5ee920"}
 {"ts": "2026-04-30T09:49:12.267873Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "e4cc5f19"}
+{"ts": "2026-05-09T08:58:28.104922Z", "type": "path_node_advice", "node_id": "2.2", "mastery": 0.7}

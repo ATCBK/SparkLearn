@@ -1,0 +1,27 @@
+{
+  "resource_id": "video_d5c21ada",
+  "provider": "html_ppt",
+  "tts_provider": "xunfei_tts",
+  "title": "好几个合格",
+  "duration_ms": 90000,
+  "resolution": "1920x1080",
+  "fps": 30,
+  "files": {
+    "scene": "slides.html",
+    "slides": "slides.json",
+    "audio": "narration.wav",
+    "subtitle": "subtitle.srt",
+    "timeline": "timeline.json"
+  },
+  "slides": 9,
+  "audio_status": "completed",
+  "audio_message": "已用讯飞 TTS 生成逐页讲解 WAV。",
+  "frame_status": "completed",
+  "frame_message": "已渲染 9 页 PPT 画面。",
+  "has_mp4": false,
+  "mux_status": "mux_failed",
+  "mux_message": "FFmpeg 调用失败：Command '['C:\\\\Users\\\\lenovo\\\\AppData\\\\Local\\\\Microsoft\\\\WinGet\\\\Packages\\\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\\\ffmpeg-8.1.1-full_build\\\\bin\\\\ffmpeg.EXE', '-y', '-loop', '1', '-i', 'D:\\\\Office_File\\\\other\\\\SparkLearn\\\\SparkLearn\\\\backend\\\\data\\\\artifacts\\\\video\\\\video_d5c21ada\\\\frames\\\\slide_002.png', '-i', 'D:\\\\Office_File\\\\other\\\\SparkLearn\\\\SparkLearn\\\\backend\\\\data\\\\artifacts\\\\video\\\\video_d5c21ada\\\\audio_segments\\\\seg_002.wav', '-t', '10.000', '-r', '30', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', 'D:\\\\Office_File\\\\other\\\\SparkLearn\\\\SparkLearn\\\\backend\\\\data\\\\artifacts\\\\video\\\\video_d5c21ada\\\\video_parts\\\\part_002.mp4']' timed out after 120 seconds",
+  "created_at": "2026-05-08T09:23:14Z",
+  "note": "V3 以教学微课结构生成 HTML-PPT，逐页生成讲解音频，安装 FFmpeg 后会自动合成 output.mp4。",
+  "content_version": "v3"
+}

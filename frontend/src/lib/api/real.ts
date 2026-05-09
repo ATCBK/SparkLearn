@@ -2,6 +2,7 @@ import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, WorkshopHubEvent, ProfileUpdatePayload,
+  VideoPolishResult, VideoGenerateOptions, VideoGenerateEvent,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -51,6 +52,40 @@ async function readSSE(
   return events
 }
 
+async function readGetSSE(
+  path: string,
+  onEvent?: (evt: SseEvent) => void,
+) {
+  const res = await fetch(`${API_BASE}${path}`)
+  if (!res.ok) throw new Error(`流式请求失败：${res.status}`)
+  if (!res.body) throw new Error('流式响应体为空')
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  const events: SseEvent[] = []
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const chunks = buffer.split('\n\n')
+    buffer = chunks.pop() || ''
+    for (const c of chunks) {
+      const line = c.split('\n').find(l => l.startsWith('data: '))
+      if (!line) continue
+      const evt = JSON.parse(line.slice(6)) as SseEvent
+      events.push(evt)
+      onEvent?.(evt)
+    }
+  }
+  return events
+}
+
+function absoluteMediaUrl(url?: string | null): string {
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  return `${API_BASE}${url}`
+}
+
 function toResource(raw: any): Resource {
   return {
     id: raw.id,
@@ -61,6 +96,17 @@ function toResource(raw: any): Resource {
     content: raw.content,
     sourceUrl: raw.sourceUrl || raw.source_url,
     videoUrl: raw.videoUrl || raw.video_url,
+    audioUrl: raw.audioUrl || raw.audio_url,
+    subtitleUrl: raw.subtitleUrl || raw.subtitle_url,
+    timelineUrl: raw.timelineUrl || raw.timeline_url,
+    sceneUrl: raw.sceneUrl || raw.scene_url,
+    shareUrl: raw.shareUrl || raw.share_url,
+    duration: raw.duration,
+    provider: raw.provider,
+    ttsProvider: raw.ttsProvider || raw.tts_provider,
+    hasMp4: Boolean(raw.hasMp4 ?? raw.has_mp4),
+    muxStatus: raw.muxStatus || raw.mux_status,
+    muxMessage: raw.muxMessage || raw.mux_message,
     docmeeId: raw.docmeeId || raw.docmee_id,
     progress: raw.progress,
   }
@@ -205,6 +251,9 @@ export async function downloadResourceSource(resourceId: string): Promise<void> 
 }
 
 export async function generateResource(type: Resource['type'], prompt: string): Promise<Resource> {
+  if (type === 'video') {
+    return generateVideoResource({ prompt })
+  }
   const events = await readSSE('/api/resources/generate', { type, prompt })
   let done: { type: string; payload: Record<string, unknown> } | undefined
   for (let i = events.length - 1; i >= 0; i--) {
@@ -219,6 +268,50 @@ export async function generateResource(type: Resource['type'], prompt: string): 
     id: `gen-${Date.now()}`,
     title: prompt.slice(0, 20) || '新生成资源',
     type,
+    status: 'generating',
+    createdAt: new Date().toISOString(),
+    progress: 0,
+  }
+}
+
+export async function polishVideoPrompt(prompt: string): Promise<VideoPolishResult> {
+  return fetchJson<VideoPolishResult>('/api/video/polish', {
+    method: 'POST',
+    body: JSON.stringify({
+      prompt,
+      duration_sec: 90,
+      target_level: 'beginner',
+      style: '清晰、生动、适合课堂讲解',
+    }),
+  })
+}
+
+export async function generateVideoResource(
+  options: VideoGenerateOptions,
+  onEvent?: (evt: VideoGenerateEvent) => void,
+): Promise<Resource> {
+  const polish = options.polish || await polishVideoPrompt(options.prompt)
+  const job = await fetchJson<{ job_id: string; resource_id: string; events_url: string }>('/api/video/jobs', {
+    method: 'POST',
+    body: JSON.stringify({
+      polish_id: polish.polish_id,
+      prompt: polish.polished_prompt || options.prompt,
+      title: polish.title,
+      script_outline: polish.script_outline,
+      video_provider: 'html_ppt',
+      voice: { vcn: options.voice || polish.voice || 'xiaoyan' },
+      output: { resolution: '1920x1080', fps: 30, format: 'mp4' },
+    }),
+  })
+
+  const events = await readGetSSE(job.events_url, onEvent)
+  const done = [...events].reverse().find(evt => evt.type === 'done')
+  const raw = done?.payload?.resource as any
+  if (raw) return { ...toResource({ ...raw, type: 'video' }), type: 'video' }
+  return {
+    id: job.resource_id,
+    title: polish.title,
+    type: 'video',
     status: 'generating',
     createdAt: new Date().toISOString(),
     progress: 0,
@@ -593,14 +686,60 @@ export async function getLearningPathNodeAdvice(nodeId: string): Promise<PathNod
 }
 
 export async function getVideos(): Promise<VideoInfo[]> {
-  const data = await fetchJson<any[]>('/api/videos')
+  let data: any[] = []
+  try {
+    data = await fetchJson<any[]>('/api/video/resources')
+  } catch {
+    data = await fetchJson<any[]>('/api/videos')
+  }
   return data.map(v => ({
     id: v.id,
     title: v.title,
-    url: v.url,
+    url: absoluteMediaUrl(v.url || v.video_url),
+    audioUrl: absoluteMediaUrl(v.audio_url),
+    subtitleUrl: absoluteMediaUrl(v.subtitle_url),
+    timelineUrl: absoluteMediaUrl(v.timeline_url),
+    sceneUrl: absoluteMediaUrl(v.scene_url),
+    shareUrl: absoluteMediaUrl(v.share_url),
     duration: v.duration,
     createdAt: v.created_at,
+    status: v.status,
+    provider: v.provider,
+    ttsProvider: v.tts_provider,
+    hasMp4: Boolean(v.has_mp4),
+    muxStatus: v.mux_status,
+    muxMessage: v.mux_message,
   }))
+}
+
+export async function getVideoResource(resourceId: string): Promise<Resource> {
+  const data = await fetchJson<any>(`/api/video/resources/${resourceId}`)
+  return { ...toResource({ ...data, type: 'video' }), type: 'video' }
+}
+
+export async function deleteVideoResource(resourceId: string): Promise<void> {
+  await fetchJson(`/api/video/resources/${resourceId}`, { method: 'DELETE' })
+}
+
+export async function downloadVideoArtifact(resourceId: string, kind: 'mp4' | 'audio' | 'srt'): Promise<void> {
+  const path = kind === 'mp4' ? 'mp4' : kind
+  const res = await fetch(`${API_BASE}/api/video/resources/${resourceId}/download/${path}?t=${Date.now()}`)
+  if (!res.ok) {
+    const raw = await res.text()
+    throw new Error(raw || `下载失败：${res.status}`)
+  }
+  const blob = await res.blob()
+  const disposition = res.headers.get('content-disposition') || ''
+  const match = disposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/)
+  const filename = match?.[1] ? decodeURIComponent(match[1]) : (match?.[2] || `${resourceId}-${kind}`)
+  const obj = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = obj
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(obj)
 }
 
 export async function getDailyQuote(): Promise<string> {
