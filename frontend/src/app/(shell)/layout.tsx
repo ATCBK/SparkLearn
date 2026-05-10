@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { Topbar } from '@/components/layout/Topbar'
+import { AIAssistant } from '@/components/layout/AIAssistant'
 
 export default function ShellLayout({
   children,
@@ -10,23 +11,22 @@ export default function ShellLayout({
   children: React.ReactNode
 }) {
   const [sidebarState, setSidebarState] = useState<'expanded' | 'icons' | 'collapsed'>('expanded')
-  const pathname = usePathname()
 
-  const marginLeft = sidebarState === 'expanded' ? 260 : sidebarState === 'icons' ? 64 : 0
-  const isTutor = pathname === '/tutor'
-  const isPath = pathname === '/path'
+  const sidebarWidth = sidebarState === 'expanded' ? 232 : sidebarState === 'icons' ? 74 : 0
 
   return (
     <div className="min-h-screen bg-bg">
       <Sidebar state={sidebarState} onStateChange={setSidebarState} />
+      <Topbar sidebarWidth={sidebarWidth} />
       <main
-        className="min-h-screen transition-[margin-left] duration-300 ease-out"
-        style={{ marginLeft }}
+        className="min-h-screen pt-14 transition-[margin-left] duration-300 ease-out"
+        style={{ marginLeft: sidebarWidth }}
       >
-        <div className={isTutor || isPath ? 'max-w-none px-0 py-0' : 'max-w-[1200px] mx-auto px-[52px] py-10'}>
+        <div className="mx-auto max-w-[1360px] px-8 py-7 max-[760px]:px-4">
           {children}
         </div>
       </main>
+      <AIAssistant />
       {/* Collapsed arrow trigger */}
       {sidebarState === 'collapsed' && (
         <button

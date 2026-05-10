@@ -11,7 +11,7 @@ export interface Task {
 export interface Resource {
   id: string
   title: string
-  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code'
+  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video'
   status: 'generating' | 'completed' | 'failed'
   createdAt: string
   content?: string
@@ -134,6 +134,27 @@ export interface TutorFile {
   filename: string
   mimeType: string
   sizeBytes: number
+}
+
+export interface KnowledgeFile {
+  id: number
+  filename: string
+  mimeType: string
+  sizeBytes: number
+  status: 'pending' | 'processing' | 'indexed' | 'failed'
+  tags: string[]
+  summary: string
+  chunkCount: number
+  referenceCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface KnowledgeStats {
+  total: number
+  indexed: number
+  chunks: number
+  references: number
 }
 
 export interface QuizQuestion {

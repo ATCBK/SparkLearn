@@ -1,195 +1,121 @@
-﻿'use client'
+'use client'
+/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Download, MessageCircle, Search, Trash2 } from 'lucide-react'
 import { api, Resource } from '@/lib/api'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { ErrorState } from '@/components/ui/ErrorState'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { RESOURCE_TYPES } from '@/lib/utils/constants'
-import { useDebounce } from '@/lib/hooks/useDebounce'
-import { Search, FileText, Presentation, GitBranch, HelpCircle, BookOpen, Code, Eye, Trash2 } from 'lucide-react'
-import { cn } from '@/lib/utils/cn'
-
-const typeIcons: Record<string, React.ReactNode> = {
-  document: <FileText className="w-4 h-4" />,
-  ppt: <Presentation className="w-4 h-4" />,
-  mindmap: <GitBranch className="w-4 h-4" />,
-  quiz: <HelpCircle className="w-4 h-4" />,
-  reading: <BookOpen className="w-4 h-4" />,
-  code: <Code className="w-4 h-4" />,
-}
-
-const typeColors: Record<string, string> = {
-  document: 'text-blue',
-  ppt: 'text-purple',
-  mindmap: 'text-teal',
-  quiz: 'text-success',
-  reading: 'text-warning',
-  code: 'text-blue',
-}
+import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
 export default function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string>('')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState('全部')
+  const [error, setError] = useState('')
 
-  const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<string>('all')
-  const debouncedSearch = useDebounce(search, 300)
-
-  async function fetchData() {
+  async function load() {
     try {
-      setLoading(true)
-      setError(null)
       const data = await api.getResources()
       setResources(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败')
-    } finally {
-      setLoading(false)
+      setSelectedId(prev => prev || data[0]?.id || '')
+    } catch (ex) {
+      setError(ex instanceof Error ? ex.message : '资源读取失败')
     }
   }
 
   useEffect(() => {
-    void fetchData()
+    void load()
   }, [])
 
-  async function handleDelete(resourceId: string) {
-    try {
-      setActionError(null)
-      setDeletingId(resourceId)
-      await api.deleteResource(resourceId)
-      setResources((prev) => prev.filter((r) => r.id !== resourceId))
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : '删除失败')
-    } finally {
-      setDeletingId(null)
-    }
+  const filtered = useMemo(() => resources.filter((r) => {
+    const matchQuery = !query || r.title.includes(query) || r.type.includes(query)
+    const matchFilter = filter === '全部' || r.type === filter
+    return matchQuery && matchFilter
+  }), [resources, query, filter])
+  const selected = resources.find(r => r.id === selectedId) || filtered[0]
+
+  async function remove(id: string) {
+    await api.deleteResource(id)
+    await load()
   }
-
-  const filtered = resources.filter((r) => {
-    const matchesSearch = !debouncedSearch || r.title.toLowerCase().includes(debouncedSearch.toLowerCase())
-    const matchesFilter = filter === 'all' || r.type === filter
-    return matchesSearch && matchesFilter
-  })
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-12 w-full rounded-[12px]" />
-        <Skeleton className="h-10 w-96 rounded-full" />
-        <Skeleton className="h-80 w-full rounded-[20px]" />
-      </div>
-    )
-  }
-
-  if (error) return <ErrorState type="server" onRetry={fetchData} />
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-h1 text-ink">资源中心</h1>
-        <p className="text-body text-ink-secondary mt-1">搜索和管理你的学习资源</p>
-        {actionError && <p className="text-xs text-danger mt-1">{actionError}</p>}
-      </div>
+    <div>
+      <PageHead
+        eyebrow="资源与练习 / 资源库"
+        title="资源库"
+        description="所有生成和推荐过的资源都会沉淀在这里，学习进度会影响后续练习与报告。"
+        chips={[
+          { value: `${resources.length}`, label: '已保存资源' },
+          { value: `${resources.filter(r => r.status === 'completed').length}`, label: '可学习' },
+          { value: `${resources.filter(r => r.type === 'ppt').length}`, label: 'PPT' },
+        ]}
+      />
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-disabled" />
-        <input
-          type="text"
-          placeholder="搜索学习资源..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-12 pl-12 pr-16 rounded-[12px] border border-black/[0.08] bg-bg-card text-body text-ink placeholder:text-ink-disabled focus:outline-none focus:ring-2 focus:ring-blue/20 focus:border-blue transition-all"
-        />
-        <kbd className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-md bg-bg-hover text-micro text-ink-tertiary border border-black/[0.06]">⌘K</kbd>
-      </div>
+      <div className="grid grid-cols-[360px_1fr] gap-4 max-[980px]:grid-cols-1">
+        <ProtoCard>
+          <div className="mb-3 grid gap-2">
+            <div className="flex h-10 items-center gap-2 rounded-[10px] border border-line bg-[#f9fafb] px-3">
+              <Search className="h-4 w-4 text-muted" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-small outline-none" placeholder="搜索资源或知识点" />
+            </div>
+            <select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-10 rounded-[10px] border border-line bg-white px-3 text-small outline-none">
+              {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video'].map(item => <option key={item}>{item}</option>)}
+            </select>
+          </div>
+          <div className="grid gap-2">
+            {filtered.map((res) => (
+              <button key={res.id} onClick={() => setSelectedId(res.id)} className={`rounded-[12px] border p-3 text-left ${selected?.id === res.id ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <b className="line-clamp-1 text-small text-ink">{res.title}</b>
+                  <Pill tone={res.status === 'completed' ? 'green' : res.status === 'failed' ? 'red' : 'blue'}>{res.status}</Pill>
+                </div>
+                <span className="mt-1 block text-micro text-muted">{typeLabel(res.type)} · 关联薄弱点：函数返回值</span>
+              </button>
+            ))}
+            {!filtered.length && <SoftCard className="text-small text-muted">没有匹配资源。</SoftCard>}
+          </div>
+        </ProtoCard>
 
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFilter('all')}
-          className={cn(
-            'px-4 py-2 rounded-pill text-small font-medium transition-colors',
-            filter === 'all' ? 'bg-blue text-white' : 'bg-bg-hover text-ink-secondary hover:text-ink',
+        <ProtoCard>
+          {error && <p className="mb-3 rounded-[10px] bg-red-light p-3 text-small text-red">{error}</p>}
+          {selected ? (
+            <div>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div>
+                  <Pill tone="blue">{typeLabel(selected.type)}</Pill>
+                  <h2 className="mt-3 text-[22px] font-bold text-ink">{selected.title}</h2>
+                  <p className="mt-2 text-small text-muted">来源：AI 生成 · 关联薄弱点：函数返回值 · 学习进度 {selected.progress ?? 42}%</p>
+                </div>
+                <Pill tone="green">可学习</Pill>
+              </div>
+              <Bar value={selected.progress ?? 42} />
+              <div className="mt-4 min-h-[300px] overflow-hidden rounded-[12px] border border-line bg-[#f9fafb]">
+                {selected.sourceUrl ? (
+                  <iframe title={selected.title} src={`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`} className="h-[420px] w-full border-0" />
+                ) : (
+                  <div className="p-5">
+                    <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <ProtoButton href="/practice">学完去练习</ProtoButton>
+                <ProtoButton variant="secondary"><MessageCircle className="h-4 w-4" />让 AI 讲解</ProtoButton>
+                <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
+                <ProtoButton variant="tertiary" onClick={() => void remove(selected.id)}><Trash2 className="h-4 w-4" />删除</ProtoButton>
+              </div>
+            </div>
+          ) : (
+            <SoftCard className="text-small text-muted">暂无资源，先到资源中心生成。</SoftCard>
           )}
-        >
-          全部
-        </button>
-        {RESOURCE_TYPES.map((rt) => (
-          <button
-            key={rt.key}
-            onClick={() => setFilter(rt.key)}
-            className={cn(
-              'px-4 py-2 rounded-pill text-small font-medium transition-colors',
-              filter === rt.key ? 'bg-blue text-white' : 'bg-bg-hover text-ink-secondary hover:text-ink',
-            )}
-          >
-            {rt.label}
-          </button>
-        ))}
+        </ProtoCard>
       </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState type="resources" action={{ label: '去生成', href: '/generate' }} />
-      ) : (
-        <Card className="overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-black/[0.06]">
-                <th className="text-left text-caption text-ink-tertiary font-medium px-5 py-3">名称</th>
-                <th className="text-left text-caption text-ink-tertiary font-medium px-5 py-3 w-32">类型</th>
-                <th className="text-left text-caption text-ink-tertiary font-medium px-5 py-3 w-36">创建时间</th>
-                <th className="text-right text-caption text-ink-tertiary font-medium px-5 py-3 w-48">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((res) => (
-                <tr key={res.id} className="border-b border-black/[0.04] last:border-0 hover:bg-bg-hover/50 transition-colors">
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className={cn('w-8 h-8 rounded-lg bg-bg-hover flex items-center justify-center', typeColors[res.type])}>
-                        {typeIcons[res.type]}
-                      </div>
-                      <span className="text-body font-medium text-ink">{res.title}</span>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3">
-                    <Badge variant={res.type === 'quiz' ? 'success' : res.type === 'ppt' ? 'purple' : 'info'}>
-                      {RESOURCE_TYPES.find((rt) => rt.key === res.type)?.label}
-                    </Badge>
-                  </td>
-                  <td className="px-5 py-3 text-caption text-ink-tertiary">{res.createdAt}</td>
-                  <td className="px-5 py-3 text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                        查看
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-danger hover:text-danger"
-                        onClick={() => {
-                          void handleDelete(res.id)
-                        }}
-                        disabled={deletingId === res.id}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        {deletingId === res.id ? '删除中' : '删除'}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
     </div>
   )
+}
+
+function typeLabel(type: string) {
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频' }
+  return map[type] || type
 }

@@ -118,6 +118,30 @@ def init_db() -> None:
               size_bytes INTEGER NOT NULL,
               created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS knowledge_files (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              filename TEXT NOT NULL,
+              stored_path TEXT NOT NULL,
+              mime_type TEXT DEFAULT 'application/octet-stream',
+              size_bytes INTEGER NOT NULL,
+              status TEXT DEFAULT 'pending',
+              tags TEXT DEFAULT '[]',
+              summary TEXT DEFAULT '',
+              chunk_count INTEGER DEFAULT 0,
+              reference_count INTEGER DEFAULT 0,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS knowledge_chunks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              file_id INTEGER NOT NULL,
+              chunk_index INTEGER NOT NULL,
+              content TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
             """
         )
 

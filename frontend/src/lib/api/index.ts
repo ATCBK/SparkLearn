@@ -52,10 +52,17 @@ export const api = {
   getDailyQuote: impl.getDailyQuote,
 
   getContributionData: impl.getContributionData,
+
+  getKnowledgeFiles: impl.getKnowledgeFiles,
+  uploadKnowledgeFiles: impl.uploadKnowledgeFiles,
+  indexKnowledgeFile: impl.indexKnowledgeFile,
+  deleteKnowledgeFile: impl.deleteKnowledgeFile,
+  getKnowledgeStats: impl.getKnowledgeStats,
+  getKnowledgeChunks: impl.getKnowledgeChunks,
 }
 
 export type {
   Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
-  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload,
+  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
 } from './types'

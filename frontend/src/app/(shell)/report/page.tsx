@@ -1,173 +1,104 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Sparkles } from 'lucide-react'
 import { api, ReportData } from '@/lib/api'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
-import { ProgressBar } from '@/components/ui/ProgressBar'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { ErrorState } from '@/components/ui/ErrorState'
-import { Clock, CheckCircle2, Target, Flame, AlertTriangle, Volume2 } from 'lucide-react'
-import { cn } from '@/lib/utils/cn'
+import { Bar, MetricStrip, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+
+type Period = 'week' | 'day' | 'month'
 
 export default function ReportPage() {
+  const [period, setPeriod] = useState<Period>('week')
   const [report, setReport] = useState<ReportData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [period, setPeriod] = useState<'week' | 'month'>('week')
+  const [summary, setSummary] = useState('')
 
-  async function fetchData() {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await api.getReport()
+  useEffect(() => {
+    api.getReport(period).then((data) => {
       setReport(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败')
-    } finally {
-      setLoading(false)
-    }
-  }
+      setSummary(data.aiSummary)
+    })
+  }, [period])
 
-  useEffect(() => { fetchData() }, [])
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-64 rounded-full" />
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-[20px]" />)}
-        </div>
-        <Skeleton className="h-80 rounded-[20px]" />
-      </div>
-    )
-  }
-  if (error || !report) return <ErrorState type="server" onRetry={fetchData} />
-
-  const maxHours = Math.max(...report.dailyHours.map(d => d.hours))
-  const totalMinutes = report.timeDistribution.reduce((sum, t) => sum + t.minutes, 0)
+  const stats = report?.stats
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-h1 text-ink">学习报告</h1>
-          <p className="text-body text-ink-secondary mt-1">了解你的学习表现和薄弱环节</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setPeriod('week')} className={cn(
-            'px-4 py-2 rounded-pill text-small font-medium transition-colors',
-            period === 'week' ? 'bg-blue text-white' : 'bg-bg-hover text-ink-secondary hover:text-ink',
-          )}>本周</button>
-          <button onClick={() => setPeriod('month')} className={cn(
-            'px-4 py-2 rounded-pill text-small font-medium transition-colors',
-            period === 'month' ? 'bg-blue text-white' : 'bg-bg-hover text-ink-secondary hover:text-ink',
-          )}>本月</button>
-        </div>
+    <div>
+      <PageHead
+        eyebrow="分析与反馈 / 学习报表"
+        title="学习报表"
+        description="报告汇总学习行为、练习结果和薄弱点，并回流到画像、路径和资源推荐。"
+        chips={[
+          { value: report?.period || '本周', label: '周期' },
+          { value: `${report?.weakPoints?.length || 3}个`, label: '薄弱点' },
+          { value: `${stats ? Math.round(stats.quizAccuracy * 100) : 74}%`, label: '正确率' },
+        ]}
+      />
+      <div className="mb-4 flex gap-2">
+        {(['week', 'day', 'month'] as Period[]).map((p) => (
+          <button key={p} onClick={() => setPeriod(p)} className={`rounded-lg px-4 py-2 text-small font-bold ${period === p ? 'bg-blue text-white' : 'bg-white text-muted'}`}>
+            {p === 'week' ? '周报' : p === 'day' ? '日报' : '月报'}
+          </button>
+        ))}
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card className="p-5 bg-blue/5">
-          <Clock className="w-5 h-5 text-blue mb-2" />
-          <p className="text-h1 text-ink">{report.stats.totalHours}h</p>
-          <p className="text-caption text-ink-tertiary">总学习时长</p>
-        </Card>
-        <Card className="p-5 bg-success/5">
-          <CheckCircle2 className="w-5 h-5 text-success mb-2" />
-          <p className="text-h1 text-ink">{Math.round(report.stats.taskCompletionRate * 100)}%</p>
-          <p className="text-caption text-ink-tertiary">任务完成率</p>
-        </Card>
-        <Card className="p-5 bg-warning/5">
-          <Target className="w-5 h-5 text-warning mb-2" />
-          <p className="text-h1 text-ink">{Math.round(report.stats.quizAccuracy * 100)}%</p>
-          <p className="text-caption text-ink-tertiary">习题正确率</p>
-        </Card>
-        <Card className="p-5 bg-purple/5">
-          <Flame className="w-5 h-5 text-purple mb-2" />
-          <p className="text-h1 text-ink">{report.stats.streakDays}天</p>
-          <p className="text-caption text-ink-tertiary">连续学习</p>
-        </Card>
+      <MetricStrip
+        items={[
+          { value: `${stats?.totalHours ?? 0}h`, label: '学习时长' },
+          { value: `${Math.round((stats?.taskCompletionRate ?? 0) * 100)}%`, label: '任务完成率' },
+          { value: `${Math.round((stats?.quizAccuracy ?? 0) * 100)}%`, label: '练习正确率' },
+          { value: `${stats?.streakDays ?? 0}天`, label: '连续学习' },
+        ]}
+      />
+
+      <ProtoCard className="mt-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-h2 font-bold text-ink">学习热力图</h2>
+          <Pill tone="blue">{period === 'week' ? '过去12周' : period === 'day' ? '本周小时分布' : '全年分布'}</Pill>
+        </div>
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${period === 'day' ? 24 : period === 'month' ? 31 : 12}, minmax(0, 1fr))` }}>
+          {Array.from({ length: period === 'day' ? 24 * 7 : period === 'month' ? 31 * 12 : 12 * 7 }).map((_, idx) => (
+            <span key={idx} className="h-3 rounded-[3px]" style={{ background: heatColor(idx) }} />
+          ))}
+        </div>
+      </ProtoCard>
+
+      <div className="mt-4 grid grid-cols-[1fr_.9fr] gap-4 max-[980px]:grid-cols-1">
+        <ProtoCard>
+          <h2 className="mb-4 text-h2 font-bold text-ink">完成情况</h2>
+          <div className="grid gap-3">
+            {(report?.timeDistribution || []).map((item, idx) => (
+              <div key={item.category}>
+                <div className="mb-1 flex justify-between text-small"><span className="font-bold text-ink">{item.category}</span><span className="text-muted">{item.minutes} 分钟</span></div>
+                <Bar value={Math.min(100, item.minutes / 2)} tone={idx % 2 ? 'green' : 'blue'} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-2">
+            {(report?.weakPoints || []).map((item) => (
+              <SoftCard key={item.name} className="flex items-center justify-between">
+                <span className="text-small font-bold text-ink">{item.name}</span>
+                <Pill tone="orange">{Math.round(item.score * 100)}%</Pill>
+              </SoftCard>
+            ))}
+          </div>
+        </ProtoCard>
+        <ProtoCard>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-h2 font-bold text-ink">AI 报告总结</h2>
+            <ProtoButton variant="secondary" onClick={() => setSummary(report?.aiSummary || '')}><Sparkles className="h-4 w-4" />生成总结</ProtoButton>
+          </div>
+          <p className="min-h-[160px] rounded-[12px] bg-[#f9fafb] p-4 text-small leading-7 text-text">{summary || '点击生成总结。'}</p>
+          <div className="mt-4 grid gap-2">
+            <ProtoButton href="/resources">去补当前卡点</ProtoButton>
+            <ProtoButton href="/path" variant="tertiary">查看路径调整</ProtoButton>
+          </div>
+        </ProtoCard>
       </div>
-
-      {/* Content Grid */}
-      <div className="grid grid-cols-[1fr_360px] gap-6">
-        {/* Charts */}
-        <div className="space-y-6">
-          {/* Bar Chart */}
-          <Card className="p-6">
-            <h3 className="text-h3 text-ink mb-4">每日学习时长</h3>
-            <div className="flex items-end gap-3 h-40">
-              {report.dailyHours.map(d => (
-                <div key={d.date} className="flex-1 flex flex-col items-center gap-2">
-                  <div className="w-full flex flex-col items-center justify-end h-32">
-                    <div
-                      className="w-full max-w-8 rounded-t-lg bg-gradient-to-t from-blue to-teal transition-all duration-800 ease-out"
-                      style={{ height: `${(d.hours / maxHours) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-micro text-ink-tertiary">{d.date}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Time Distribution */}
-          <Card className="p-6">
-            <h3 className="text-h3 text-ink mb-4">时间分配</h3>
-            <div className="space-y-3">
-              {report.timeDistribution.map(t => (
-                <div key={t.category}>
-                  <div className="flex justify-between text-caption mb-1">
-                    <span className="text-ink-secondary">{t.category}</span>
-                    <span className="text-ink-tertiary">{Math.round(t.minutes / 60 * 10) / 10}h</span>
-                  </div>
-                  <ProgressBar value={(t.minutes / totalMinutes) * 100} color="gradient" />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-
-        {/* Right Panel: Weak Points */}
-        <div className="space-y-6">
-          <Card className="p-5">
-            <h3 className="text-small font-semibold text-ink mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-warning" />
-              薄弱点
-            </h3>
-            <div className="space-y-3">
-              {report.weakPoints.map(wp => (
-                <div key={wp.name} className="p-3 rounded-lg bg-bg-hover">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-small font-medium text-ink">{wp.name}</span>
-                    <Badge variant={wp.score < 0.4 ? 'danger' : 'warning'}>
-                      掌握度 {Math.round(wp.score * 100)}%
-                    </Badge>
-                  </div>
-                  <ProgressBar
-                    value={wp.score * 100}
-                    color={wp.score < 0.4 ? 'danger' : 'warning'}
-                  />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* AI Summary */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-h3 text-ink">AI 分析总结</h3>
-          <Button variant="ghost" size="sm">
-            <Volume2 className="w-4 h-4" />
-            语音播报
-          </Button>
-        </div>
-        <p className="text-body text-ink-secondary leading-relaxed">{report.aiSummary}</p>
-      </Card>
     </div>
   )
+}
+
+function heatColor(idx: number) {
+  const levels = ['#eef2f7', '#dbeafe', '#93c5fd', '#60a5fa', '#2563eb']
+  return levels[(idx * 7 + idx) % levels.length]
 }

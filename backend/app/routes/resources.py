@@ -18,6 +18,7 @@ from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
 from ..xfyun_ppt import XfyunPptError, xfyun_ppt_client
 from .common import sse_wrap
+from .knowledge import load_knowledge_context
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/api/resources", tags=["resources"])
 class GenerateReq(BaseModel):
     type: str = "document"
     prompt: str
+    knowledge_file_ids: list[int] = []
 
 
 def _now_date() -> str:
@@ -93,7 +95,13 @@ async def generate_resource(req: GenerateReq):
             explicit_source_url = ""
             progress = 10
 
-            coze_prompt = _build_resource_prompt(req.type, req.prompt)
+            knowledge_context = load_knowledge_context(req.knowledge_file_ids or [])
+            user_prompt = req.prompt
+            if knowledge_context:
+                user_prompt = (
+                    f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考并保持事实一致：\n{knowledge_context}"
+                )
+            coze_prompt = _build_resource_prompt(req.type, user_prompt)
             async for evt_type, payload in coze_adapter.stream_resource_text(
                 resource_type=req.type,
                 prompt=coze_prompt,

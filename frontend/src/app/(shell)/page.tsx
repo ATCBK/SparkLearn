@@ -1,382 +1,172 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { api, Task, Resource, DashboardStats, StudentProfile, MasteryRecord, ContributionDay } from '@/lib/api'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { ProgressBar } from '@/components/ui/ProgressBar'
-import { DashboardSkeleton } from '@/components/ui/Skeleton'
-import { ErrorState } from '@/components/ui/ErrorState'
-import { formatDateChinese, formatDurationShort } from '@/lib/utils/format'
-import {
-  Clock, CheckCircle2, Target, Flame, Play, BookOpen,
-  PenTool, Code, ChevronRight, TrendingUp, AlertCircle,
-} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowRight, BookOpen, CheckCircle2, Clock, Sparkles, Target } from 'lucide-react'
+import { api, DashboardStats, MasteryRecord, Recommendation, Resource, Task } from '@/lib/api'
+import { MetricStrip, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentResources, setRecentResources] = useState<Resource[]>([])
-  const [profile, setProfile] = useState<StudentProfile | null>(null)
-  const [contributions, setContributions] = useState<ContributionDay[]>([])
   const [mastery, setMastery] = useState<MasteryRecord[]>([])
+  const [recent, setRecent] = useState<Resource[]>([])
+  const [recs, setRecs] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  async function fetchData() {
-    try {
-      setLoading(true)
-      setError(null)
-      const [t, s, r, p, c, m] = await Promise.all([
-        api.getTodayTasks(),
-        api.getDashboardStats(),
-        api.getRecentResources(),
-        api.getProfile(),
-        api.getContributionData(),
-        api.getMasteryData(),
-      ])
-      setTasks(t)
-      setStats(s)
-      setRecentResources(r)
-      setProfile(p)
-      setContributions(c)
-      setMastery(m)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '加载失败')
-    } finally {
+  useEffect(() => {
+    let mounted = true
+    Promise.allSettled([
+      api.getTodayTasks(),
+      api.getDashboardStats(),
+      api.getMasteryData(),
+      api.getRecentResources(),
+      api.getRecommendations(),
+    ]).then(([t, s, m, r, rec]) => {
+      if (!mounted) return
+      if (t.status === 'fulfilled') setTasks(t.value)
+      if (s.status === 'fulfilled') setStats(s.value)
+      if (m.status === 'fulfilled') setMastery(m.value)
+      if (r.status === 'fulfilled') setRecent(r.value)
+      if (rec.status === 'fulfilled') setRecs(rec.value)
       setLoading(false)
+    })
+    return () => {
+      mounted = false
     }
-  }
+  }, [])
 
-  useEffect(() => { fetchData() }, [])
-
-  if (loading) return <DashboardSkeleton />
-  if (error) return <ErrorState type="server" onRetry={fetchData} />
-
-  const taskTypeIcon = {
-    video: <Play className="w-4 h-4" />,
-    reading: <BookOpen className="w-4 h-4" />,
-    quiz: <PenTool className="w-4 h-4" />,
-    practice: <Code className="w-4 h-4" />,
-  }
-
-  const totalContributions = contributions.reduce((sum, d) => sum + d.count, 0)
+  const weakest = useMemo(() => [...mastery].sort((a, b) => a.score - b.score)[0], [mastery])
+  const focusName = weakest?.knowledgePointName || '函数返回值'
+  const focusScore = Math.round((weakest?.score ?? 0.48) * 100)
 
   return (
-    <div className="space-y-8">
-      {/* Hero Header */}
-      <div className="animate-fade-in-up">
-        <p className="text-caption text-ink-tertiary mb-2">{formatDateChinese(new Date())}</p>
-        <h1 className="text-display text-ink">
-          继续你的<span className="text-gradient">学习之旅</span>
-        </h1>
-        <div className="flex items-center gap-3 mt-3">
-          <Badge variant="success">
-            <Flame className="w-3 h-3 mr-1" />
-            连续学习 {stats?.streakDays} 天
-          </Badge>
-          <span className="text-body text-ink-secondary">
-            你已经走在成为 Python 高手的路上了
-          </span>
-        </div>
-      </div>
+    <div>
+      <PageHead
+        eyebrow="学习中心 / 资源回顾与新推荐"
+        title="今日学习工作台"
+        description="系统已结合画像、路径和错题，把今天最应该完成的学习动作排在前面。"
+        chips={[
+          { value: `${tasks.reduce((sum, t) => sum + (t.status === 'completed' ? 0 : t.duration), 0) || 24}分钟`, label: '建议投入' },
+          { value: `${tasks.filter(t => t.status !== 'completed').length || 1}项`, label: '待完成' },
+          { value: `${stats?.streakDays ?? 12}天`, label: '连续学习' },
+        ]}
+      />
 
-      {/* Featured Card */}
-      <Card className="bg-blue-100 p-8 animate-fade-in-up delay-1">
-        <div className="flex items-center gap-8">
-          <LightProgressRing value={75} size={100} strokeWidth={8} />
-          <div className="flex-1">
-            <h2 className="text-h3 text-ink mb-1">Python 程序设计</h2>
-            <p className="text-body text-ink-tertiary mb-4">当前学习路径</p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="success">基础语法</Badge>
-              <ChevronRight className="w-3 h-3 text-ink-disabled" />
-              <Badge variant="info">函数与模块</Badge>
-              <ChevronRight className="w-3 h-3 text-ink-disabled" />
-              <Badge>面向对象</Badge>
-              <ChevronRight className="w-3 h-3 text-ink-disabled" />
-              <Badge>模块</Badge>
-            </div>
+      <ProtoCard className="relative overflow-hidden p-6">
+        <div className="max-w-[720px] space-y-4">
+          <Pill tone="orange">优先薄弱点</Pill>
+          <div>
+            <h2 className="text-[24px] font-bold leading-tight text-ink">先补「{focusName}」，再推进下一段路径</h2>
+            <p className="mt-2 text-body leading-7 text-muted">
+              当前稳定度 {focusScore}%。建议先回顾一个短资源，再做 8 道达标题，预计 24 分钟。
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Pill tone="orange">来自错题回流</Pill>
+            <Pill tone="blue">关联当前路径</Pill>
+            <Pill tone="purple">适合案例驱动</Pill>
+            <Pill tone="green">完成后可进入下一节点</Pill>
+          </div>
+          <div className="flex flex-wrap gap-3 pt-1">
+            <ProtoButton href="/resources">开始回顾资源</ProtoButton>
+            <ProtoButton href="/practice" variant="secondary">先做练习</ProtoButton>
+            <ProtoButton href="/generate" variant="tertiary">根据卡点生成</ProtoButton>
           </div>
         </div>
-      </Card>
+      </ProtoCard>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-4 animate-fade-in-up delay-2">
-        <StatCard
-          icon={<Clock className="w-5 h-5 text-blue" />}
-          label="学习时长"
-          value={`${stats?.totalHours}h`}
-          color="bg-blue/5"
-        />
-        <StatCard
-          icon={<CheckCircle2 className="w-5 h-5 text-success" />}
-          label="任务完成率"
-          value={`${Math.round((stats?.taskCompletionRate ?? 0) * 100)}%`}
-          color="bg-success/5"
-        />
-        <StatCard
-          icon={<Target className="w-5 h-5 text-warning" />}
-          label="正确率"
-          value={`${Math.round((stats?.quizAccuracy ?? 0) * 100)}%`}
-          color="bg-warning/5"
-        />
-        <StatCard
-          icon={<Flame className="w-5 h-5 text-purple" />}
-          label="连续天数"
-          value={`${stats?.streakDays}天`}
-          color="bg-purple/5"
+      <div className="mt-5">
+        <MetricStrip
+          items={[
+            { value: `${focusScore}%`, label: '当前薄弱点稳定度' },
+            { value: '8题', label: '建议达标题数量' },
+            { value: `${stats?.streakDays ?? 12}天`, label: '连续学习' },
+            { value: '1步', label: '到下一路径节点' },
+          ]}
         />
       </div>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-[1fr_360px] gap-6 animate-fade-in-up delay-3">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {/* Today's Tasks */}
-          <Card className="p-6">
-            <h3 className="text-h3 text-ink mb-4">今日任务</h3>
-            <div className="space-y-2">
-              {tasks.map(task => (
-                <TaskItemRow key={task.id} task={task} icon={taskTypeIcon[task.type]} onToggle={() => {
-                  setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: t.status === 'completed' ? 'pending' : 'completed' } : t))
-                }} />
-              ))}
-            </div>
-          </Card>
+      <div className="mt-5 grid grid-cols-[1fr_1fr] gap-4 max-[960px]:grid-cols-1">
+        <ProtoCard>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-h2 font-bold text-ink">资源回顾推送</h2>
+            <ProtoButton href="/resources" variant="ghost">进入资源库 <ArrowRight className="h-4 w-4" /></ProtoButton>
+          </div>
+          <div className="space-y-1">
+            {(recent.length ? recent : []).slice(0, 3).map((res) => (
+              <ResourceRow key={res.id} title={res.title} meta={`${typeLabel(res.type)} · 学习进度 ${res.progress ?? 42}%`} href="/resources" />
+            ))}
+            {!recent.length && !loading && <EmptyLine text="暂无资源，先根据当前卡点生成一份讲义。" />}
+          </div>
+        </ProtoCard>
 
-          {/* Learning Contribution Heatmap */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-h3 text-ink">学习打卡</h3>
-              <span className="text-caption text-ink-tertiary">
-                近一年共学习 <span className="font-semibold text-ink">{totalContributions}</span> 次
-              </span>
-            </div>
-            <ContributionGraph data={contributions} />
-          </Card>
-        </div>
-
-        {/* Right Column - Info Sidebar */}
-        <div className="space-y-6">
-          {/* Profile Tags */}
-          {profile && (
-            <Card className="p-5">
-              <h4 className="text-small font-semibold text-ink mb-3">学习画像</h4>
-              <div className="flex flex-wrap gap-2">
-                {profile.learningPreference.map(pref => (
-                  <Badge key={pref} variant="info">{pref}</Badge>
-                ))}
-                <Badge variant="purple">{profile.cognitiveStyle}</Badge>
-              </div>
-            </Card>
-          )}
-
-          {/* Recent Resources */}
-          <Card className="p-5">
-            <h4 className="text-small font-semibold text-ink mb-3">最近学习</h4>
-            <div className="space-y-2">
-              {recentResources.map(res => (
-                <div key={res.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-bg-hover transition-colors cursor-pointer">
-                  <div className="w-7 h-7 rounded-lg bg-blue-light flex items-center justify-center shrink-0">
-                    <BookOpen className="w-3.5 h-3.5 text-blue" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-small font-medium text-ink truncate">{res.title}</p>
-                    <p className="text-caption text-ink-tertiary">{res.createdAt}</p>
-                  </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-ink-disabled" />
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Weak Points */}
-          {mastery.length > 0 && (
-            <Card className="p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-4 h-4 text-warning" />
-                <h4 className="text-small font-semibold text-ink">待加强知识点</h4>
-              </div>
-              <div className="space-y-3">
-                {mastery
-                  .filter(m => m.score < 0.7)
-                  .sort((a, b) => a.score - b.score)
-                  .slice(0, 4)
-                  .map(m => (
-                    <div key={m.knowledgePointId}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-small text-ink">{m.knowledgePointName}</span>
-                        <span className={`text-caption font-medium ${m.score < 0.5 ? 'text-warning' : 'text-ink-tertiary'}`}>
-                          {Math.round(m.score * 100)}%
-                        </span>
-                      </div>
-                      <ProgressBar value={m.score * 100} color={m.score < 0.5 ? 'warning' : 'blue'} className="h-1.5" />
-                    </div>
-                  ))}
-              </div>
-            </Card>
-          )}
-        </div>
+        <ProtoCard>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-h2 font-bold text-ink">今日新资源推荐</h2>
+            <ProtoButton href="/generate" variant="ghost">根据卡点生成 <ArrowRight className="h-4 w-4" /></ProtoButton>
+          </div>
+          <div className="space-y-1">
+            {recs.slice(0, 3).map((rec) => (
+              <ResourceRow key={rec.id} title={rec.resource.title} meta={rec.reason} href="/resources" accent />
+            ))}
+            {!recs.length && !loading && <EmptyLine text="推荐资源为空，完成一次练习后会刷新。" />}
+          </div>
+        </ProtoCard>
       </div>
-    </div>
-  )
-}
 
-// Stat Card Component
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
-  return (
-    <Card className={`p-5 ${color}`}>
-      <div className="flex items-center gap-2 mb-2">{icon}</div>
-      <p className="text-h1 text-ink">{value}</p>
-      <p className="text-caption text-ink-tertiary">{label}</p>
-    </Card>
-  )
-}
-
-// Light Progress Ring Component
-function LightProgressRing({ value, size = 100, strokeWidth = 8 }: { value: number; size?: number; strokeWidth?: number }) {
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference - (value / 100) * circumference
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(59,130,246,0.15)" strokeWidth={strokeWidth} />
-      <circle
-        cx={size / 2} cy={size / 2} r={radius}
-        fill="none" stroke="#3b82f6" strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
-      />
-      <text
-        x="50%" y="50%" textAnchor="middle" dominantBaseline="central"
-        fill="#3b82f6" fontSize="24" fontWeight="700" fontFamily="DM Sans, sans-serif"
-      >
-        {value}%
-      </text>
-    </svg>
-  )
-}
-
-// Contribution Graph Component
-function ContributionGraph({ data }: { data: ContributionDay[] }) {
-  const cellSize = 12
-  const cellGap = 3
-  const totalWeeks = 53
-  const levelColors = [
-    '#ebedf0', // 0 - 无学习
-    '#9be9a8', // 1 - 少量
-    '#40c463', // 2 - 中等
-    '#30a14e', // 3 - 较多
-    '#216e39', // 4 - 大量
-  ]
-
-  function getLevel(count: number): number {
-    if (count === 0) return 0
-    if (count <= 1) return 1
-    if (count <= 2) return 2
-    if (count <= 3) return 3
-    return 4
-  }
-
-  // 按列（周）组织数据: 7行 x 53列
-  const weeks: ContributionDay[][] = []
-  for (let w = 0; w < totalWeeks; w++) {
-    const week: ContributionDay[] = []
-    for (let d = 0; d < 7; d++) {
-      const idx = w * 7 + d
-      week.push(idx < data.length ? data[idx] : { date: '', count: 0 })
-    }
-    weeks.push(week)
-  }
-
-  const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-  const svgWidth = totalWeeks * (cellSize + cellGap) + 40
-  const svgHeight = 7 * (cellSize + cellGap) + 24
-
-  // 计算月份标签位置
-  const monthPositions: { label: string; x: number }[] = []
-  let lastMonth = -1
-  weeks.forEach((week, wi) => {
-    const firstDay = week[0]
-    if (firstDay.date) {
-      const month = new Date(firstDay.date).getMonth()
-      if (month !== lastMonth) {
-        monthPositions.push({ label: monthLabels[month], x: wi * (cellSize + cellGap) + 30 })
-        lastMonth = month
-      }
-    }
-  })
-
-  return (
-    <div className="overflow-x-auto">
-      <svg width={svgWidth} height={svgHeight} className="block">
-        {/* Month labels */}
-        {monthPositions.map((m, i) => (
-          <text key={i} x={m.x} y={10} fontSize={11} fill="#9ca3af" fontFamily="DM Sans, sans-serif">
-            {m.label}
-          </text>
+      <div className="mt-5 grid grid-cols-3 gap-4 max-[960px]:grid-cols-1">
+        {tasks.slice(0, 3).map((task) => (
+          <SoftCard key={task.id} className="flex items-start gap-3">
+            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-blue-light text-blue">
+              {task.status === 'completed' ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+            </span>
+            <div className="min-w-0">
+              <b className="block text-small text-ink">{task.title}</b>
+              <span className="mt-1 block text-micro text-muted">{task.duration} 分钟 · {task.status === 'completed' ? '已完成' : '等待开始'}</span>
+            </div>
+          </SoftCard>
         ))}
-        {/* Day cells */}
-        {weeks.map((week, wi) =>
-          week.map((day, di) => {
-            const level = getLevel(day.count)
-            const x = wi * (cellSize + cellGap) + 30
-            const y = di * (cellSize + cellGap) + 18
-            return (
-              <rect
-                key={`${wi}-${di}`}
-                x={x} y={y}
-                width={cellSize} height={cellSize}
-                rx={2} ry={2}
-                fill={levelColors[level]}
-              >
-                {day.date && (
-                  <title>{`${day.date}: ${day.count} 次学习`}</title>
-                )}
-              </rect>
-            )
-          })
+        {!tasks.length && (
+          <>
+            <MiniAction icon={<Target className="h-4 w-4" />} title="确认路径节点" text="先看清楚当前卡在哪里。" />
+            <MiniAction icon={<BookOpen className="h-4 w-4" />} title="回顾资源" text="用短讲义补齐返回值。" />
+            <MiniAction icon={<Sparkles className="h-4 w-4" />} title="达标练习" text="完成 8 道同类题。" />
+          </>
         )}
-      </svg>
-      {/* Legend */}
-      <div className="flex items-center justify-end gap-1 mt-2 text-caption text-ink-tertiary">
-        <span>少</span>
-        {levelColors.map((color, i) => (
-          <svg key={i} width={cellSize} height={cellSize}><rect width={cellSize} height={cellSize} rx={2} fill={color} /></svg>
-        ))}
-        <span>多</span>
       </div>
     </div>
   )
 }
 
-// Task Item Row
-function TaskItemRow({ task, icon, onToggle }: { task: Task; icon: React.ReactNode; onToggle: () => void }) {
-  const completed = task.status === 'completed'
+function ResourceRow({ title, meta, href, accent }: { title: string; meta: string; href: string; accent?: boolean }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-bg-hover transition-colors group">
-      <button
-        onClick={onToggle}
-        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-          completed ? 'bg-success border-success text-white' : 'border-ink-disabled hover:border-blue'
-        }`}
-      >
-        {completed && <CheckCircle2 className="w-3 h-3" />}
-      </button>
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${completed ? 'bg-success/10 text-success' : 'bg-blue-light text-blue'}`}>
-        {icon}
+    <a href={href} className="grid grid-cols-[1fr_auto] items-center gap-3 border-b border-[#eef2f7] py-3 last:border-b-0">
+      <div className="min-w-0">
+        <b className="block truncate text-h3 text-ink">{title}</b>
+        <span className="mt-1 block line-clamp-1 text-micro text-muted">{meta}</span>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-body font-medium truncate ${completed ? 'text-ink-disabled line-through' : 'text-ink'}`}>
-          {task.title}
-        </p>
-        <p className="text-caption text-ink-tertiary">{formatDurationShort(task.duration)}</p>
-      </div>
-    </div>
+      <Pill tone={accent ? 'blue' : 'neutral'}>{accent ? '推荐' : '回顾'}</Pill>
+    </a>
   )
+}
+
+function EmptyLine({ text }: { text: string }) {
+  return <div className="rounded-[10px] bg-[#f9fafb] p-4 text-small text-muted">{text}</div>
+}
+
+function MiniAction({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+  return (
+    <SoftCard className="flex items-start gap-3">
+      <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-blue-light text-blue">{icon}</span>
+      <div>
+        <b className="block text-small text-ink">{title}</b>
+        <span className="text-micro text-muted">{text}</span>
+      </div>
+    </SoftCard>
+  )
+}
+
+function typeLabel(type: string) {
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频' }
+  return map[type] || type
 }

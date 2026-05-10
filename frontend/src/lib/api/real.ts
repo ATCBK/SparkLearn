@@ -1,7 +1,8 @@
-﻿import type {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, WorkshopHubEvent, ProfileUpdatePayload,
+  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -210,8 +211,8 @@ export async function downloadResourceSource(resourceId: string): Promise<void> 
   window.URL.revokeObjectURL(obj)
 }
 
-export async function generateResource(type: Resource['type'], prompt: string): Promise<Resource> {
-  const events = await readSSE('/api/resources/generate', { type, prompt })
+export async function generateResource(type: Resource['type'], prompt: string, knowledgeFileIds: number[] = []): Promise<Resource> {
+  const events = await readSSE('/api/resources/generate', { type, prompt, knowledge_file_ids: knowledgeFileIds })
   let done: { type: string; payload: Record<string, unknown> } | undefined
   for (let i = events.length - 1; i >= 0; i--) {
     if (events[i].type === 'done') {
@@ -240,6 +241,7 @@ export async function sendMessage(
     mode?: string
     workshopEnabled?: boolean
     workshopRoleIds?: number[]
+    pageContext?: Record<string, unknown>
   },
   handlers?: {
     onText?: (chunk: string) => void
@@ -258,6 +260,7 @@ export async function sendMessage(
     file_ids: options?.fileIds || [],
     workshop_enabled: Boolean(options?.workshopEnabled),
     workshop_role_ids: options?.workshopRoleIds || [],
+    page_context: options?.pageContext || undefined,
   }, (evt) => {
     if (evt.type === 'text') {
       const chunk = String(evt.payload.content || '')
@@ -528,8 +531,8 @@ export async function setQuizFavorite(quizId: string, favorite: boolean): Promis
   })
 }
 
-export async function getReport(): Promise<ReportData> {
-  const r = await fetchJson<any>('/api/evaluation/report')
+export async function getReport(period: 'week' | 'day' | 'month' = 'week'): Promise<ReportData> {
+  const r = await fetchJson<any>(`/api/evaluation/report?period=${period}`)
   return {
     period: r.period,
     stats: {
@@ -543,6 +546,58 @@ export async function getReport(): Promise<ReportData> {
     weakPoints: r.weak_points,
     aiSummary: r.ai_summary,
   }
+}
+
+function toKnowledgeFile(raw: any): KnowledgeFile {
+  return {
+    id: Number(raw.id),
+    filename: String(raw.filename || ''),
+    mimeType: String(raw.mime_type || ''),
+    sizeBytes: Number(raw.size_bytes || 0),
+    status: raw.status || 'pending',
+    tags: Array.isArray(raw.tags) ? raw.tags.map((x: any) => String(x)) : [],
+    summary: String(raw.summary || ''),
+    chunkCount: Number(raw.chunk_count || 0),
+    referenceCount: Number(raw.reference_count || 0),
+    createdAt: String(raw.created_at || ''),
+    updatedAt: String(raw.updated_at || ''),
+  }
+}
+
+export async function getKnowledgeFiles(params?: { status?: string; search?: string }): Promise<KnowledgeFile[]> {
+  const query = new URLSearchParams()
+  if (params?.status) query.set('status', params.status)
+  if (params?.search) query.set('search', params.search)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  const data = await fetchJson<any[]>(`/api/knowledge/files${suffix}`)
+  return data.map(toKnowledgeFile)
+}
+
+export async function uploadKnowledgeFiles(files: File[]): Promise<KnowledgeFile[]> {
+  const form = new FormData()
+  files.forEach(file => form.append('files', file))
+  const res = await fetch(`${API_BASE}/api/knowledge/files`, { method: 'POST', body: form })
+  const json = await res.json() as ApiResp<any[]>
+  if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
+  return (json.data || []).map(toKnowledgeFile)
+}
+
+export async function indexKnowledgeFile(fileId: number): Promise<KnowledgeFile> {
+  const data = await fetchJson<any>(`/api/knowledge/files/${fileId}/index`, { method: 'PUT' })
+  return toKnowledgeFile(data)
+}
+
+export async function deleteKnowledgeFile(fileId: number): Promise<void> {
+  await fetchJson(`/api/knowledge/files/${fileId}`, { method: 'DELETE' })
+}
+
+export async function getKnowledgeStats(): Promise<KnowledgeStats> {
+  return fetchJson('/api/knowledge/stats')
+}
+
+export async function getKnowledgeChunks(fileId: number): Promise<Array<{ id: number; content: string; chunkIndex: number }>> {
+  const data = await fetchJson<any[]>(`/api/knowledge/chunks?file_id=${fileId}`)
+  return data.map(item => ({ id: Number(item.id), content: String(item.content || ''), chunkIndex: Number(item.chunk_index || 0) }))
 }
 
 export async function getRecommendations(): Promise<Recommendation[]> {

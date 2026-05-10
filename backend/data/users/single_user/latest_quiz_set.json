@@ -1,36 +1,38 @@
 [
   {
-    "id": "gq_eacb8191_2",
+    "id": "gq_56b7a2d4_2",
     "type": "multiple",
-    "content": "请列举Python中的三种基本数据类型：整数、浮点数和字符串。",
+    "content": "请列出Python中用于创建列表的三种方法。",
     "options": [
-      "{'type': 'int', 'content': '整数'}",
-      "{'type': 'float', 'content': '浮点数'}",
-      "{'type': 'str', 'content': '字符串'}"
+      "append()",
+      "insert()",
+      "extend()"
     ],
     "correct_answer": [
-      "整数",
-      "浮点数",
-      "字符串"
+      "append()",
+      "insert()",
+      "extend()"
     ],
-    "explanation": "在Python中，基本数据类型包括整数（int）、浮点数（float）和字符串（str）。这些类型是Python语言的基础，用于存储和操作不同类型的数据。",
+    "explanation": "根据题目要求，需要列出Python中用于创建列表的三种方法。",
     "knowledge_point_id": "3.1",
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "gq_eacb8191_5",
+    "id": "gq_56b7a2d4_5",
     "type": "multiple",
-    "content": "请列举Python中两种常见的循环结构。",
+    "content": "请列举Python中闭包的三个主要用途。",
     "options": [
-      "{'type': 'for', 'content': 'for循环'}",
-      "{'type': 'while', 'content': 'while循环'}"
+      "提高程序的安全性",
+      "简化代码",
+      "优化性能"
     ],
     "correct_answer": [
-      "for循环",
-      "while循环"
+      "提高程序的安全性",
+      "简化代码",
+      "优化性能"
     ],
-    "explanation": "在Python中，有两种常见的循环结构：for循环和while循环。for循环用于遍历序列（如列表、元组等），而while循环则用于基于条件执行重复操作。",
-    "knowledge_point_id": "3.2",
-    "knowledge_point_name": "参数传递"
+    "explanation": "根据题目要求，需要列举Python中闭包的三个主要用途。",
+    "knowledge_point_id": "3.3",
+    "knowledge_point_name": "闭包"
   }
 ]

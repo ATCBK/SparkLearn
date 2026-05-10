@@ -25,6 +25,7 @@ class TutorReq(BaseModel):
     conversation_id: int | None = None
     role_id: int | None = None
     file_ids: list[int] = []
+    page_context: dict[str, Any] | None = None
     workshop_enabled: bool = False
     workshop_role_ids: list[int] = []
 
@@ -397,7 +398,9 @@ async def tutor_chat(req: TutorReq):
             (settings.single_user_id, conversation_id),
         )
 
-        history_for_model = [{'role': 'system', 'content': role_prompt}] if role_prompt else []
+        page_prompt = _build_page_context_prompt(req.page_context)
+        merged_system_prompt = "\n\n".join(p for p in [role_prompt, page_prompt] if p)
+        history_for_model = [{'role': 'system', 'content': merged_system_prompt}] if merged_system_prompt else []
         for row in reversed(rows):
             model_role = 'assistant' if row['sender_role'] == 'assistant' else 'user'
             history_for_model.append({'role': model_role, 'content': row['content']})
@@ -585,12 +588,18 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
 
 
 @router.get('/evaluation/report')
-async def get_evaluation_report():
+async def get_evaluation_report(period: str = 'week'):
+    period_map = {
+        'week': ('本周', 12.5, 0.78, 0.85, 12, [('04-10', 2.0), ('04-11', 1.5), ('04-12', 2.5)]),
+        'day': ('今日', 1.2, 0.82, 0.80, 12, [('08:00', 0.2), ('12:00', 0.3), ('20:00', 0.7)]),
+        'month': ('本月', 28.0, 0.76, 0.71, 12, [('第1周', 6.5), ('第2周', 7.0), ('第3周', 6.2), ('第4周', 8.3)]),
+    }
+    label, hours, completion, accuracy, streak, daily = period_map.get(period, period_map['week'])
     return ok(
         {
-            'period': '本周',
-            'stats': {'total_hours': 12.5, 'task_completion_rate': 0.78, 'quiz_accuracy': 0.85, 'streak_days': 12},
-            'daily_hours': [{'date': '04-10', 'hours': 2.0}, {'date': '04-11', 'hours': 1.5}, {'date': '04-12', 'hours': 2.5}],
+            'period': label,
+            'stats': {'total_hours': hours, 'task_completion_rate': completion, 'quiz_accuracy': accuracy, 'streak_days': streak},
+            'daily_hours': [{'date': d, 'hours': h} for d, h in daily],
             'time_distribution': [
                 {'category': '视频学习', 'minutes': 120},
                 {'category': '练习题', 'minutes': 90},
@@ -598,7 +607,10 @@ async def get_evaluation_report():
                 {'category': '代码实践', 'minutes': 80},
             ],
             'weak_points': [{'name': '闭包', 'score': 0.45}, {'name': '装饰器', 'score': 0.38}, {'name': '类与继承', 'score': 0.30}],
-            'ai_summary': '本周你在基础语法上进步明显，建议继续强化函数与面向对象训练。',
+            'ai_summary': f'{label}你在基础语法上进步明显，函数返回值和作用域仍是主要卡点，建议先看补弱资源再做达标题。',
+            'recommended_actions': ['回看函数返回值讲义', '完成8道补弱练习', '确认下一阶段路径'],
+            'profile_update_suggestions': ['将“函数返回值”标记为当前薄弱点', '提高实践型学习偏好权重'],
+            'path_adjustment_suggestions': ['模块导入节点延后', '函数与作用域节点保持当前优先级'],
         }
     )
 
@@ -626,6 +638,19 @@ def _role_row_to_dict(row) -> dict[str, Any]:
         'created_at': row['created_at'],
         'updated_at': row['updated_at'],
     }
+
+
+def _build_page_context_prompt(page_context: dict[str, Any] | None) -> str:
+    if not page_context:
+        return ''
+    safe = {str(k): str(v)[:200] for k, v in page_context.items() if v is not None}
+    if not safe:
+        return ''
+    return (
+        "你正在作为 SparkLearn 页面级 AI 精灵助手回答。请结合当前页面上下文，"
+        "优先给出可执行学习建议，不要泛泛聊天。\n"
+        f"页面上下文: {json.dumps(safe, ensure_ascii=False)}"
+    )
 
 
 def _message_row_to_dict(row) -> dict[str, Any]:
