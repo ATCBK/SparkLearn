@@ -851,5 +851,28 @@
       "knowledge_point_name": "数据类型"
     },
     "at": "2026-05-10"
+  },
+  {
+    "quiz_id": "dq_26b4c59c_1",
+    "answer": "list",
+    "correct": true,
+    "correct_answer": "list",
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_26b4c59c_1",
+      "type": "single",
+      "content": "以下哪个是 Python 的可变数据类型？",
+      "options": [
+        "tuple",
+        "list",
+        "string",
+        "int"
+      ],
+      "explanation": "list 是可变类型。",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型"
+    },
+    "at": "2026-05-10"
   }
 ]

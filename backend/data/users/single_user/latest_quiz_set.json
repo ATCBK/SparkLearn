@@ -1,38 +1,75 @@
 [
   {
-    "id": "gq_56b7a2d4_2",
-    "type": "multiple",
-    "content": "请列出Python中用于创建列表的三种方法。",
+    "id": "dq_26b4c59c_1",
+    "type": "single",
+    "content": "以下哪个是 Python 的可变数据类型？",
     "options": [
-      "append()",
-      "insert()",
-      "extend()"
+      "tuple",
+      "list",
+      "string",
+      "int"
     ],
-    "correct_answer": [
-      "append()",
-      "insert()",
-      "extend()"
+    "correct_answer": "list",
+    "explanation": "list 是可变类型。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
+  },
+  {
+    "id": "dq_26b4c59c_2",
+    "type": "single",
+    "content": "Python 中用于定义函数的关键字是？",
+    "options": [
+      "function",
+      "def",
+      "func",
+      "define"
     ],
-    "explanation": "根据题目要求，需要列出Python中用于创建列表的三种方法。",
+    "correct_answer": "def",
+    "explanation": "Python 使用 def 定义函数。",
     "knowledge_point_id": "3.1",
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "gq_56b7a2d4_5",
+    "id": "dq_26b4c59c_3",
     "type": "multiple",
-    "content": "请列举Python中闭包的三个主要用途。",
+    "content": "以下哪些是 Python 内置数据类型？（多选）",
     "options": [
-      "提高程序的安全性",
-      "简化代码",
-      "优化性能"
+      "list",
+      "dict",
+      "array",
+      "set"
     ],
     "correct_answer": [
-      "提高程序的安全性",
-      "简化代码",
-      "优化性能"
+      "list",
+      "dict",
+      "set"
     ],
-    "explanation": "根据题目要求，需要列举Python中闭包的三个主要用途。",
-    "knowledge_point_id": "3.3",
-    "knowledge_point_name": "闭包"
+    "explanation": "list、dict、set 均为 Python 内置类型。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
+  },
+  {
+    "id": "dq_26b4c59c_4",
+    "type": "fill_blank",
+    "content": "在 Python 中，使用 ______ 关键字来导入模块。",
+    "correct_answer": "import",
+    "explanation": "import 用于导入模块。",
+    "knowledge_point_id": "1.1",
+    "knowledge_point_name": "基础语法"
+  },
+  {
+    "id": "dq_26b4c59c_5",
+    "type": "single",
+    "content": "以下哪个是 Python 的可变数据类型？",
+    "options": [
+      "tuple",
+      "list",
+      "string",
+      "int"
+    ],
+    "correct_answer": "list",
+    "explanation": "list 是可变类型。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
   }
 ]

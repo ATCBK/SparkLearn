@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bot, Maximize2, MessageCircle, Minus, Send } from 'lucide-react'
+import { Bot, Maximize2, Minus, Send } from 'lucide-react'
 import { api } from '@/lib/api'
 import { ProtoButton } from '@/components/proto'
 
@@ -63,10 +63,10 @@ export function AIAssistant() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 grid h-14 w-14 place-items-center rounded-full bg-blue text-white shadow-lg hover:bg-blue-dark"
+        className="fixed bottom-6 right-6 z-50 grid h-16 w-16 place-items-center rounded-[18px] bg-[#35aaf6] text-[13px] font-extrabold text-white shadow-lg hover:bg-blue"
         aria-label="打开 AI 助手"
       >
-        <MessageCircle className="h-6 w-6" />
+        AI
       </button>
     )
   }

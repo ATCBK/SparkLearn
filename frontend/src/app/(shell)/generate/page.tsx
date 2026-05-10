@@ -5,7 +5,7 @@ import { CheckCircle2, FileText, Loader2, Play, Save, Sparkles } from 'lucide-re
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
-const STEPS = ['确认上下文', '选择类型', '配置要求', '开始生成', '预览结果', '保存学习']
+const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
   { type: 'document', label: '讲解文档', desc: '结构化概念讲义' },
   { type: 'ppt', label: 'PPT', desc: '课堂式演示稿' },
@@ -57,23 +57,19 @@ export default function GeneratePage() {
   return (
     <div>
       <PageHead
-        eyebrow="资源与练习 / 资源中心"
-        title="资源生成"
-        description="按原型六步流程生成个性化资源，生成内容会结合学习画像、路径节点和选中的资料库内容。"
-        chips={[
-          { value: STEPS[step], label: '当前步骤' },
-          { value: typeLabel(type), label: '资源类型' },
-          { value: `${selectedKnowledge.length}份`, label: '参考资料' },
-        ]}
+        eyebrow="资源中心 / 生成与资源库"
+        title="资源中心"
+        description="在这里生成个性化学习资源，也可以进入资源库或我的资料库管理已保存内容和用户上传文件。"
+        actions={<div className="flex gap-2"><ProtoButton href="/resources" variant="secondary">进入资源库</ProtoButton><ProtoButton href="/knowledge" variant="secondary">我的资料库</ProtoButton></div>}
       />
 
-      <ProtoCard className="mb-4">
-        <div className="grid grid-cols-6 gap-2 max-[900px]:grid-cols-3 max-[560px]:grid-cols-2">
+      <ProtoCard className="mb-4 overflow-hidden p-0">
+        <div className="grid grid-cols-6 max-[900px]:grid-cols-3 max-[560px]:grid-cols-2">
           {STEPS.map((label, idx) => (
             <button
               key={label}
               onClick={() => setStep(idx)}
-              className={`rounded-[12px] border p-3 text-left ${idx === step ? 'border-blue bg-blue-light text-blue' : idx < step ? 'border-green-light bg-green-light text-green' : 'border-line bg-white text-muted'}`}
+              className={`min-h-16 border-0 border-r border-[#eef2f7] p-3 text-left last:border-r-0 ${idx === step ? 'bg-blue-light text-blue shadow-[inset_0_-3px_0_#2563eb]' : idx < step ? 'bg-green-light text-green' : 'bg-white text-muted'}`}
             >
               <span className="block text-[11px] font-extrabold">0{idx + 1}</span>
               <b className="mt-1 block text-small">{label}</b>
@@ -82,11 +78,16 @@ export default function GeneratePage() {
         </div>
       </ProtoCard>
 
-      <ProtoCard>
+      <ProtoCard className="p-0">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <div><b className="text-ink">资源生成流程</b><p className="text-micro text-muted">按步骤确认上下文、资料来源和生成要求，完成后保存到资源库。</p></div>
+          <Pill tone="blue">当前：函数返回值补弱</Pill>
+        </div>
+        <div className="p-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <Pill tone={generating ? 'blue' : resource ? 'green' : 'neutral'}>{generating ? '生成中' : resource ? '已完成' : '待配置'}</Pill>
-            <h2 className="mt-3 text-h2 font-bold text-ink">{STEPS[step]}</h2>
+            <h2 className="mt-3 text-h2 font-bold text-ink">{step === 0 ? '确认这次资源要解决什么问题' : step === 1 ? '选择最适合这个节点的资源类型' : step === 2 ? '配置生成要求' : step === 3 ? '生成过程' : step === 4 ? '结果预览' : '保存并进入学习'}</h2>
           </div>
           <div className="flex gap-2">
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
@@ -96,10 +97,11 @@ export default function GeneratePage() {
         </div>
 
         {step === 0 && (
-          <div className="grid grid-cols-3 gap-3 max-[900px]:grid-cols-1">
-            <SoftCard><b className="text-ink">学习画像</b><p className="mt-2 text-small text-muted">{profile?.learningPreference?.join('、') || '实践型、案例驱动'}，每日 {profile?.dailyTime || 60} 分钟。</p></SoftCard>
-            <SoftCard><b className="text-ink">当前路径</b><p className="mt-2 text-small text-muted">{profile?.currentStage || '函数与模块'}，优先补函数返回值。</p></SoftCard>
-            <SoftCard><b className="text-ink">生成目标</b><p className="mt-2 text-small text-muted">生成后保存到资源库，并可直接进入练习。</p></SoftCard>
+          <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1">
+            <SoftCard><b className="text-ink">当前节点</b><p className="mt-2 text-small text-muted">{profile?.currentStage || '函数返回值与作用域修正'}。模块导入已暂缓，需要先修正 return 返回给调用处的理解。</p></SoftCard>
+            <SoftCard><b className="text-ink">学生偏好</b><p className="mt-2 text-small text-muted">{profile?.learningPreference?.join('、') || '代码案例优先，短讲义加检查题效果最好'}。</p></SoftCard>
+            <SoftCard><b className="text-ink">错题证据</b><p className="mt-2 text-small text-muted">3 道题把局部变量、返回值和 print 输出混在一起。</p></SoftCard>
+            <SoftCard><b className="text-ink">本次目标</b><p className="mt-2 text-small text-muted">12 分钟内能解释“函数内部算出的结果如何交给主流程”。</p></SoftCard>
           </div>
         )}
 
@@ -116,7 +118,16 @@ export default function GeneratePage() {
         )}
 
         {step === 2 && (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
+            <div>
+              <h3 className="text-h3 font-bold text-ink">生成侧重点</h3>
+              <div className="mt-3 grid gap-3">
+                <SoftCard className="bg-blue-light"><b className="text-ink">项目案例优先</b><span className="mt-1 block text-small text-muted">用“成绩统计小程序”承载函数参数、返回值和局部变量。</span></SoftCard>
+                <SoftCard><b className="text-ink">错题拆解优先</b><span className="mt-1 block text-small text-muted">逐题解释为什么 print 输出不等于 return。</span></SoftCard>
+                <SoftCard><b className="text-ink">达标练习优先</b><span className="mt-1 block text-small text-muted">先给题，再按错误类型补讲解。</span></SoftCard>
+              </div>
+            </div>
+            <div className="grid gap-4">
             <label className="grid gap-2">
               <span className="text-small font-bold text-ink">生成要求</span>
               <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
@@ -142,6 +153,7 @@ export default function GeneratePage() {
                 ))}
                 {!knowledge.length && <SoftCard className="text-small text-muted">暂无已整理资料，可先到资料库上传并整理。</SoftCard>}
               </div>
+            </div>
             </div>
           </div>
         )}
@@ -190,11 +202,8 @@ export default function GeneratePage() {
             <ProtoButton href="/resources"><Sparkles className="h-4 w-4" />查看资源</ProtoButton>
           </SoftCard>
         )}
+        </div>
       </ProtoCard>
     </div>
   )
-}
-
-function typeLabel(type: string) {
-  return TYPES.find(t => t.type === type)?.label || type
 }

@@ -24,6 +24,12 @@ class TaskCompleteReq(BaseModel):
     status: str = 'completed'
 
 
+class TaskCreateReq(BaseModel):
+    title: str
+    type: str = 'practice'
+    duration: int = 15
+
+
 class NodeAdviceReq(BaseModel):
     node_id: str
 
@@ -230,27 +236,35 @@ async def adjust_learning_path(req: PathAdjustReq):
 
 @router.get('/tasks/today')
 async def get_today_tasks():
-    tasks = read_json(
-        settings.single_user_id,
-        'task_progress.json',
-        [
-            {'id': '1', 'title': '变量与数据类型复盘', 'type': 'video', 'status': 'pending', 'duration': 25},
-            {'id': '2', 'title': '函数定义与调用练习', 'type': 'quiz', 'status': 'in_progress', 'duration': 15},
-            {'id': '3', 'title': '条件循环专题阅读', 'type': 'reading', 'status': 'pending', 'duration': 20},
-            {'id': '4', 'title': '列表推导式代码实战', 'type': 'practice', 'status': 'completed', 'duration': 30},
-        ],
-    )
-    return ok(tasks)
+    return ok(_read_tasks())
+
+
+@router.post('/tasks')
+async def create_task(req: TaskCreateReq):
+    tasks = _read_tasks()
+    task = {
+        'id': f'task-{date.today().strftime("%Y%m%d")}-{len(tasks) + 1}',
+        'title': req.title.strip() or '新的学习任务',
+        'type': req.type if req.type in {'video', 'reading', 'quiz', 'practice'} else 'practice',
+        'status': 'pending',
+        'duration': max(1, min(int(req.duration or 15), 240)),
+    }
+    tasks.append(task)
+    write_json(settings.single_user_id, 'task_progress.json', tasks)
+    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_created', 'task': task})
+    return ok(task)
 
 
 @router.put('/tasks/{task_id}/complete')
 async def complete_task(task_id: str, req: TaskCompleteReq):
-    tasks = read_json(settings.single_user_id, 'task_progress.json', [])
+    tasks = _read_tasks()
+    updated: dict[str, Any] | None = None
     for task in tasks:
         if task['id'] == task_id:
-            task['status'] = req.status
+            task['status'] = req.status if req.status in {'pending', 'in_progress', 'completed'} else 'completed'
+            updated = task
     write_json(settings.single_user_id, 'task_progress.json', tasks)
-    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_completed', 'task_id': task_id})
+    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_status_updated', 'task_id': task_id, 'status': req.status})
 
     today = date.today().isoformat()
     row = fetch_one('SELECT count FROM contribution_days WHERE user_id = ? AND date = ?', (settings.single_user_id, today))
@@ -264,7 +278,16 @@ async def complete_task(task_id: str, req: TaskCompleteReq):
             'INSERT INTO contribution_days(user_id, date, count) VALUES (?, ?, ?)',
             (settings.single_user_id, today, 1),
         )
-    return ok({'task_id': task_id, 'status': req.status})
+    return ok(updated or {'task_id': task_id, 'status': req.status})
+
+
+@router.delete('/tasks/{task_id}')
+async def delete_task(task_id: str):
+    tasks = _read_tasks()
+    next_tasks = [task for task in tasks if str(task.get('id')) != task_id]
+    write_json(settings.single_user_id, 'task_progress.json', next_tasks)
+    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_deleted', 'task_id': task_id})
+    return ok({'task_id': task_id, 'removed': len(tasks) - len(next_tasks)})
 
 
 @router.get('/contribution')
@@ -406,6 +429,19 @@ def _build_learning_graph() -> dict[str, Any]:
         'knowledge_tree': knowledge_tree,
         'knowledge_graph': {'nodes': nodes, 'edges': edges},
     }
+
+
+def _read_tasks() -> list[dict[str, Any]]:
+    tasks = read_json(
+        settings.single_user_id,
+        'task_progress.json',
+        [
+            {'id': '1', 'title': '回顾函数返回值讲义', 'type': 'reading', 'status': 'pending', 'duration': 12},
+            {'id': '2', 'title': '完成 8 道返回值短练', 'type': 'quiz', 'status': 'pending', 'duration': 8},
+            {'id': '3', 'title': '确认下一路径节点', 'type': 'practice', 'status': 'pending', 'duration': 4},
+        ],
+    )
+    return tasks if isinstance(tasks, list) else []
 
 
 def _build_tree(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:

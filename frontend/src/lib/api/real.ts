@@ -2,7 +2,7 @@
 import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
+  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -71,8 +71,27 @@ export async function getTodayTasks(): Promise<Task[]> {
   return fetchJson('/api/tasks/today')
 }
 
+export async function createTask(payload: TaskCreatePayload): Promise<Task> {
+  return fetchJson('/api/tasks', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: payload.title,
+      type: payload.type || 'practice',
+      duration: payload.duration ?? 15,
+    }),
+  })
+}
+
 export async function completeTask(taskId: string): Promise<void> {
   await fetchJson(`/api/tasks/${taskId}/complete`, { method: 'PUT', body: JSON.stringify({ status: 'completed' }) })
+}
+
+export async function updateTaskStatus(taskId: string, status: Task['status']): Promise<Task> {
+  return fetchJson(`/api/tasks/${taskId}/complete`, { method: 'PUT', body: JSON.stringify({ status }) })
+}
+
+export async function deleteTask(taskId: string): Promise<void> {
+  await fetchJson(`/api/tasks/${taskId}`, { method: 'DELETE' })
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -631,6 +650,17 @@ export async function getLearningPath(): Promise<LearningPath> {
           })),
         }
       : undefined,
+  }
+}
+
+export async function adjustLearningPath(reason: string): Promise<PathAdjustResult> {
+  const data = await fetchJson<any>('/api/learning-path/adjust', {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  })
+  return {
+    previousStage: String(data.previous_stage || ''),
+    currentStage: String(data.current_stage || ''),
   }
 }
 

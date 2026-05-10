@@ -1,27 +1,19 @@
 'use client'
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   BarChart3,
-  Brain,
-  ChevronLeft,
-  Database,
   Home,
-  Library,
-  MessageCircle,
-  PanelLeftClose,
   PenTool,
-  Play,
-  RefreshCw,
   Route,
   User,
   Wand2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { BrandLogo } from '@/components/brand/BrandLogo'
-import { api, MasteryRecord, StudentProfile } from '@/lib/api'
+import { api, MasteryRecord } from '@/lib/api'
 
 type SidebarState = 'expanded' | 'icons' | 'collapsed'
 
@@ -35,7 +27,7 @@ const GROUPS = [
     title: '学习中心',
     items: [
       { label: '学习工作台', href: '/', icon: Home },
-      { label: '学习画像', href: '/profile', icon: Brain },
+      { label: '学习画像', href: '/profile', icon: User },
       { label: '个性化路径', href: '/path', icon: Route },
     ],
   },
@@ -43,41 +35,24 @@ const GROUPS = [
     title: '资源与练习',
     items: [
       { label: '资源中心', href: '/generate', icon: Wand2 },
-      { label: '资源库', href: '/resources', icon: Library },
       { label: '练习评测', href: '/practice', icon: PenTool },
     ],
   },
   {
-    title: '个人知识库',
-    items: [{ label: '我的资料库', href: '/knowledge', icon: Database }],
-  },
-  {
     title: '分析与反馈',
-    items: [
-      { label: '学习报表', href: '/report', icon: BarChart3 },
-      { label: '复习计划', href: '/loop', icon: RefreshCw },
-    ],
-  },
-  {
-    title: '工具',
-    items: [
-      { label: '智能辅导', href: '/tutor', icon: MessageCircle },
-      { label: '视频中心', href: '/video', icon: Play },
-    ],
+    items: [{ label: '学习结果', href: '/report', icon: BarChart3 }],
   },
 ]
 
 export function Sidebar({ state, onStateChange }: SidebarProps) {
   const pathname = usePathname()
-  const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [mastery, setMastery] = useState<MasteryRecord[]>([])
   const isExpanded = state === 'expanded'
 
   useEffect(() => {
     let mounted = true
-    Promise.allSettled([api.getProfile(), api.getMasteryData()]).then(([p, m]) => {
+    Promise.allSettled([api.getMasteryData()]).then(([m]) => {
       if (!mounted) return
-      if (p.status === 'fulfilled') setProfile(p.value)
       if (m.status === 'fulfilled') setMastery(m.value)
     })
     return () => {
@@ -97,11 +72,11 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
       )}
     >
       <div className={cn('flex items-center gap-2.5 border-b border-line px-2 pb-5', !isExpanded && 'justify-center px-0')}>
-        <BrandLogo size={38} />
+        <img src="/sparklearn-logo.png" alt="SparkLearn" className="h-9 w-[42px] object-contain drop-shadow-sm" />
         {isExpanded && (
           <div>
-            <strong className="block text-[17px] leading-tight text-ink">学而思</strong>
-            <span className="mt-0.5 block text-[11px] font-extrabold text-muted">SparkLearn</span>
+            <strong className="block text-[17px] leading-tight text-ink">SparkLearn</strong>
+            <span className="mt-0.5 block text-[11px] font-extrabold text-muted">第二阶段闭环原型</span>
           </div>
         )}
       </div>
@@ -128,33 +103,16 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
             <b className="block text-small text-ink">今日状态</b>
             <p className="mt-1 text-micro leading-5 text-muted">优先补齐当前卡点，再推进下一阶段。</p>
             <div className="mt-2.5 grid gap-2 text-micro text-muted">
-              <Status label="薄弱点" value={weakest?.knowledgePointName || profile?.weakPoints?.[0] || '函数返回值'} />
-              <Status label="今日建议" value={`${profile?.dailyTime || 60} 分钟`} />
-              <Status label="当前路径" value={profile?.currentStage || '函数与模块'} />
+              <Status label="薄弱点" value={weakest?.knowledgePointName || '函数返回值'} />
+              <Status label="建议耗时" value="24 分钟" />
+              <Status label="路径状态" value="待确认" />
             </div>
           </div>
         )}
 
-        <Link
-          href="/profile/settings"
-          className={cn(
-            'mb-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-ink-secondary hover:bg-bg-hover hover:text-ink',
-            !isExpanded && 'justify-center px-0',
-          )}
-          title={!isExpanded ? '个人信息' : undefined}
-        >
-          <User className="h-5 w-5" />
-          {isExpanded && <span className="text-small font-bold">个人信息</span>}
-        </Link>
-
-        <button
-          onClick={() => onStateChange(isExpanded ? 'icons' : 'collapsed')}
-          className={cn('flex w-full items-center gap-2 rounded-lg px-3 py-2 text-ink-secondary hover:bg-bg-hover', !isExpanded && 'justify-center px-0')}
-          aria-label={isExpanded ? '收起侧栏' : '隐藏侧栏'}
-        >
-          {isExpanded ? <PanelLeftClose className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          {isExpanded && <span className="text-small">收起</span>}
-        </button>
+        {!isExpanded && (
+          <button onClick={() => onStateChange('expanded')} className="sr-only">展开</button>
+        )}
       </div>
     </aside>
   )

@@ -4,7 +4,10 @@ const impl = real
 
 export const api = {
   getTodayTasks: impl.getTodayTasks,
+  createTask: impl.createTask,
   completeTask: impl.completeTask,
+  updateTaskStatus: impl.updateTaskStatus,
+  deleteTask: impl.deleteTask,
 
   getDashboardStats: impl.getDashboardStats,
   getRecentResources: impl.getRecentResources,
@@ -45,6 +48,7 @@ export const api = {
   getRecommendations: impl.getRecommendations,
 
   getLearningPath: impl.getLearningPath,
+  adjustLearningPath: impl.adjustLearningPath,
   getLearningPathNodeAdvice: impl.getLearningPathNodeAdvice,
 
   getVideos: impl.getVideos,
@@ -62,7 +66,7 @@ export const api = {
 }
 
 export type {
-  Task, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
+  Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
-  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
+  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
 } from './types'

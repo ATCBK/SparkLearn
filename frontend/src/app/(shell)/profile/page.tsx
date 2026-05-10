@@ -1,160 +1,136 @@
 'use client'
+/* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useState } from 'react'
-import { Edit3, Flag, Layers, Target, UserRound } from 'lucide-react'
-import { api, DashboardStats, MasteryRecord, Resource, StudentProfile } from '@/lib/api'
-import { Bar, PageHead, Pill, ProgressRing, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { useState } from 'react'
+import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<StudentProfile | null>(null)
-  const [mastery, setMastery] = useState<MasteryRecord[]>([])
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [resources, setResources] = useState<Resource[]>([])
-
-  useEffect(() => {
-    let mounted = true
-    Promise.allSettled([api.getProfile(), api.getMasteryData(), api.getDashboardStats(), api.getRecentResources()]).then(([p, m, s, r]) => {
-      if (!mounted) return
-      if (p.status === 'fulfilled') setProfile(p.value)
-      if (m.status === 'fulfilled') setMastery(m.value)
-      if (s.status === 'fulfilled') setStats(s.value)
-      if (r.status === 'fulfilled') setResources(r.value)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  const weakest = useMemo(() => [...mastery].sort((a, b) => a.score - b.score)[0], [mastery])
-  const stability = Math.round((weakest?.score ?? 0.48) * 100)
-  const radar = [
-    { label: '知识基础', value: 72 },
-    { label: '实践迁移', value: 66 },
-    { label: '稳定复习', value: stats ? Math.round(stats.taskCompletionRate * 100) : 78 },
-    { label: '练习准确', value: stats ? Math.round(stats.quizAccuracy * 100) : 74 },
-    { label: '自主规划', value: 68 },
-  ]
+  const [chatOpen, setChatOpen] = useState(false)
 
   return (
     <div>
       <PageHead
-        eyebrow="学习中心 / 学习画像"
+        eyebrow="学习画像 / 你现在更适合怎么学"
         title="学习画像"
-        description="这里展示系统对当前学习状态的判断，画像会影响路径、资源推荐和练习难度。"
-        actions={<ProtoButton href="/profile/settings" variant="secondary"><Edit3 className="h-4 w-4" />编辑画像</ProtoButton>}
+        description="这一页只保留会直接影响你学习体验的内容：当前卡点、适合的学法和本阶段目标。"
         chips={[
-          { value: `${stability}%`, label: '当前稳定度' },
-          { value: profile?.learningPreference?.[0] || '案例驱动', label: '学习偏好' },
-          { value: `${profile?.dailyTime || 60}分钟`, label: '日投入' },
+          { value: '48%', label: '返回值掌握' },
+          { value: '案例驱动', label: '学习偏好' },
+          { value: '08:12', label: '最近更新' },
         ]}
       />
 
-      <div className="grid grid-cols-[360px_1fr] gap-4 max-[980px]:grid-cols-1">
-        <ProtoCard className="relative min-h-[360px] overflow-hidden p-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(104,168,248,.22),_transparent_45%),linear-gradient(180deg,#ffffff,#eef6ff)]" />
-          <div className="relative z-10 flex h-full flex-col justify-end p-5">
-            <div className="absolute left-5 top-5 rounded-[14px] border border-[#e8eff8] bg-white/90 p-3 shadow-sm">
-              <b className="block text-[18px]">{profile?.name || '张同学'}</b>
-              <span className="text-micro text-muted">{profile?.major || '计算机科学'} · {profile?.grade || '大二'}</span>
-            </div>
-            <div className="absolute right-5 top-[110px] max-w-[160px] rounded-[14px] border border-[#e8eff8] bg-white/90 p-3 shadow-sm">
-              <b className="block text-[18px]">{stability}%</b>
-              <span className="text-micro text-muted">当前薄弱点稳定度</span>
-            </div>
-            <div className="mx-auto mb-8 grid h-36 w-36 place-items-center rounded-full bg-white shadow-md">
-              <UserRound className="h-20 w-20 text-blue" />
-            </div>
-            <div className="rounded-[14px] border border-[#e8eff8] bg-white/90 p-4">
-              <h2 className="text-h2 font-bold text-ink">偏实践型学习者</h2>
-              <p className="mt-2 text-small leading-6 text-muted">更适合先看案例，再用短练习验证概念。当前建议围绕「{weakest?.knowledgePointName || '函数返回值'}」补弱。</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(profile?.learningPreference?.length ? profile.learningPreference : ['视觉型', '实践型']).map((tag) => <Pill key={tag} tone="blue">{tag}</Pill>)}
-              </div>
-            </div>
+      <div className="grid grid-cols-[360px_1fr] gap-4 max-[1100px]:grid-cols-1">
+        <ProtoCard className="relative min-h-[580px] overflow-hidden p-0">
+          <img src="/profile-anatomy-bg.png" alt="学生人物画像" className="absolute inset-0 h-full w-full object-cover" />
+          <Float className="top-7 left-8" title="12 天" text="学习连续性稳定" />
+          <Float className="right-8 top-[210px]" title="案例驱动" text="更适合先看可运行例子，再开始短练习。" />
+          <Float className="bottom-[160px] left-8 right-8" title="当前卡点" text="return、print 和局部变量这三个点还容易混在一起。" />
+          <div className="absolute bottom-6 left-6 right-6 rounded-[14px] border border-line bg-white/92 p-4 shadow-md backdrop-blur">
+            <Pill tone="blue">人物画像</Pill>
+            <h2 className="mt-2 text-h2 font-bold text-ink">李明 · 项目实践准备期</h2>
+            <p className="mt-2 text-small leading-6 text-muted">基础语法已经够用，当前重点是把函数和模块这块学顺，尽快回到小项目实践。</p>
           </div>
         </ProtoCard>
 
-        <div className="grid grid-cols-2 gap-3 max-[760px]:grid-cols-1">
-          <ProtoCard>
-            <div className="flex items-start gap-4">
-              <ProgressRing value={stability} label="稳定度" />
-              <div className="min-w-0">
-                <Pill tone="orange">当前焦点</Pill>
-                <h2 className="mt-3 text-h2 font-bold text-ink">{weakest?.knowledgePointName || '函数返回值'}</h2>
-                <p className="mt-2 text-small leading-6 text-muted">错题和路径均指向这个卡点，建议先补概念再练题。</p>
+        <div className="grid grid-cols-2 gap-4 max-[760px]:grid-cols-1">
+          <ProtoCard className="flex items-center gap-5">
+            <div className="grid h-[116px] w-[116px] shrink-0 place-items-center rounded-full border border-[#eef3f9]" style={{ background: 'radial-gradient(circle at center, #fff 0 40px, transparent 41px), conic-gradient(#2563eb 0 48%, #e8eff8 48% 100%)' }}>
+              <div className="text-center"><b className="block text-[28px] leading-none">48%</b><span className="text-[11px] text-muted">当前稳定度</span></div>
+            </div>
+            <div>
+              <Pill tone="orange">需要关注</Pill>
+              <h2 className="mt-3 text-h2 font-bold text-ink">函数返回值</h2>
+              <p className="mt-3 text-small leading-6 text-muted">这块不是完全不会，而是关键概念容易串线，导致一做题就乱。</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Pill>return 和 print 容易混</Pill>
+                <Pill>局部变量作用范围不够稳</Pill>
               </div>
             </div>
           </ProtoCard>
+
           <ProtoCard>
-            <CardTitle icon={<Layers className="h-4 w-4" />} title="学习偏好" />
-            <div className="mt-4 space-y-3">
-              {(profile?.learningPreference?.length ? profile.learningPreference : ['视觉型', '实践型', '案例驱动']).slice(0, 3).map((item, idx) => (
-                <div key={item}>
-                  <div className="mb-1 flex justify-between text-micro text-muted"><span>{item}</span><span>{82 - idx * 12}%</span></div>
-                  <Bar value={82 - idx * 12} tone={idx === 0 ? 'blue' : idx === 1 ? 'green' : 'purple'} />
-                </div>
-              ))}
+            <Pill tone="purple">更适合的学法</Pill>
+            <h2 className="mt-3 text-h2 font-bold text-ink">先看例子，再做短练</h2>
+            <p className="mt-3 text-small leading-6 text-muted">和纯文字解释相比，你更吃“短讲解 + 可运行代码 + 立刻验证”这一套。</p>
+            <div className="mt-4 grid grid-cols-[1.2fr_.8fr] gap-3">
+              <SoftCard className="bg-blue-light"><b className="text-small text-ink">代码案例最容易进入状态</b><div className="mt-4 space-y-2"><i className="block h-2 w-4/5 rounded-full bg-blue" /><i className="block h-2 w-3/5 rounded-full bg-blue/60" /><i className="block h-2 w-2/3 rounded-full bg-blue/40" /></div></SoftCard>
+              <div className="grid gap-3"><SoftCard><b>短讲解</b></SoftCard><SoftCard><b>即时反馈</b></SoftCard></div>
             </div>
           </ProtoCard>
+
           <ProtoCard>
-            <CardTitle icon={<Target className="h-4 w-4" />} title="学习目标" />
-            <div className="mt-4 grid gap-2">
-              {(profile?.goals?.length ? profile.goals : ['期末提分', '竞赛准备']).map((goal) => (
-                <SoftCard key={goal} className="text-small font-bold text-ink">{goal}</SoftCard>
-              ))}
+            <Pill tone="green">阶段目标</Pill>
+            <h2 className="mt-3 text-h2 font-bold text-ink">完成 Python 小项目</h2>
+            <p className="mt-3 text-small leading-6 text-muted">当前不是重学整章，而是把进入项目实践前的最后一段补顺。</p>
+            <div className="mt-4 space-y-3">
+              <Goal title="基础语法" text="变量、分支和循环已经够用。" done />
+              <Goal title="函数补强" text="先把返回值和作用域彻底理顺。" current />
+              <Goal title="模块导入" text="通过后回到小项目拆分与调用。" />
             </div>
           </ProtoCard>
+
           <ProtoCard>
-            <CardTitle icon={<Flag className="h-4 w-4" />} title="今日计划" />
+            <Pill tone="blue">今天先做</Pill>
+            <h2 className="mt-3 text-h2 font-bold text-ink">补弱后再确认路径</h2>
             <div className="mt-4 space-y-3">
-              {['回顾函数返回值讲义', '完成8道达标题', '确认下一路径节点'].map((item, idx) => (
-                <div key={item} className="grid grid-cols-[36px_1fr_auto] items-center gap-3 rounded-[12px] border border-[#e4eef8] bg-[#f8fbff] p-3">
-                  <b className="grid h-9 w-9 place-items-center rounded-[10px] bg-white text-blue">{idx + 1}</b>
-                  <span className="text-small font-bold text-ink">{item}</span>
-                  <Pill>{idx === 0 ? '12分' : idx === 1 ? '10分' : '2分'}</Pill>
-                </div>
-              ))}
+              <Plan idx="01" title="看 12 分钟案例讲义" text="把结果怎么传出来这件事先看顺。" time="12 分钟" />
+              <Plan idx="02" title="做 8 道返回值短练" text="只测这一类题，不再分散到其他知识点。" time="8 题" />
             </div>
+            <ProtoButton href="/path" variant="secondary" className="mt-4">查看路径</ProtoButton>
           </ProtoCard>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-[1.1fr_.9fr] gap-4 max-[980px]:grid-cols-1">
+      <div className="mt-5 grid grid-cols-[1.1fr_.9fr] gap-4 max-[960px]:grid-cols-1">
         <ProtoCard>
-          <h2 className="mb-4 text-h2 font-bold text-ink">能力雷达</h2>
-          <div className="grid gap-3">
-            {radar.map((item, idx) => (
-              <div key={item.label}>
-                <div className="mb-1 flex justify-between text-small"><span className="font-bold text-ink">{item.label}</span><span className="text-muted">{item.value}%</span></div>
-                <Bar value={item.value} tone={idx % 2 === 0 ? 'blue' : 'green'} />
-              </div>
-            ))}
+          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">能力雷达</h2><ProtoButton variant="secondary" onClick={() => setChatOpen(!chatOpen)}>告诉 AI 你想怎么学</ProtoButton></div>
+          <div className="mt-5 grid grid-cols-[260px_1fr] gap-5 max-[760px]:grid-cols-1">
+            <div className="grid aspect-square place-items-center rounded-full border border-[#dbeafe] bg-blue-light text-center">
+              <div><b className="text-[34px]">53</b><span className="block text-micro text-muted">结果传递最低</span></div>
+            </div>
+            <div className="space-y-3">
+              {[
+                ['语法基础', 84], ['案例理解', 68], ['练习稳定', 57], ['项目迁移', 42], ['结果传递', 53],
+              ].map(([name, value]) => <Radar key={name as string} name={name as string} value={value as number} />)}
+            </div>
           </div>
         </ProtoCard>
+
         <ProtoCard>
-          <h2 className="mb-4 text-h2 font-bold text-ink">最近学习过的资源</h2>
-          <div className="space-y-2">
-            {resources.slice(0, 4).map((res) => (
-              <SoftCard key={res.id} className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <b className="block truncate text-small text-ink">{res.title}</b>
-                  <span className="text-micro text-muted">关联画像：{weakest?.knowledgePointName || '函数返回值'}</span>
-                </div>
-                <Pill tone="green">已记录</Pill>
-              </SoftCard>
-            ))}
+          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">最近学习过的资源</h2><ProtoButton href="/resources" variant="ghost">查看全部 →</ProtoButton></div>
+          <p className="mt-5 text-small leading-6 text-muted">从这里继续上次没学完的内容，不用重新找入口。</p>
+          <div className="mt-4 space-y-3">
+            <Resource title="return 到底返回给谁" meta="视频 · 已学习 70% · 来源：错题补弱" tag="继续学习" />
+            <Resource title="函数作用域错题讲义" meta="文档 · 已打开 2 次 · 来源：练习错题" tag="已纳入画像" />
+            <Resource title="成绩统计小项目代码案例" meta="代码案例 · 已学习 35% · 来源：画像偏好" tag="待完成" />
           </div>
+          <div className="mt-4 flex flex-wrap gap-2.5"><ProtoButton href="/resources" variant="secondary">继续最近资源</ProtoButton><ProtoButton href="/generate" variant="tertiary">生成补弱资源</ProtoButton></div>
         </ProtoCard>
       </div>
+
+      {chatOpen && (
+        <div className="mt-5 grid grid-cols-[1fr_320px] gap-4 max-[960px]:grid-cols-1">
+          <ProtoCard><h2 className="text-h2 font-bold text-ink">告诉 AI 你想怎么学</h2><SoftCard className="mt-4 bg-white">AI：我看到你最近在返回值上连续出错。你更想先看动画讲解，还是直接做代码案例？</SoftCard><div className="mt-4 flex gap-2"><input className="h-10 min-w-0 flex-1 rounded-[10px] border border-line px-3 outline-none" placeholder="例如：我想先看代码案例，再做短练习" /><ProtoButton>发送</ProtoButton></div></ProtoCard>
+          <ProtoCard><h2 className="text-h2 font-bold text-ink">立即开始</h2><p className="mt-4 text-small text-muted">选定你更想要的学法后，直接去生成对应资源或开始当前练习。</p><div className="mt-4 grid gap-2"><ProtoButton href="/generate">按我的学法生成资源</ProtoButton><ProtoButton href="/practice" variant="secondary">直接开始短练习</ProtoButton></div></ProtoCard>
+        </div>
+      )}
     </div>
   )
 }
 
-function CardTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <h2 className="flex items-center gap-2 text-h2 font-bold text-ink">
-      <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-blue-light text-blue">{icon}</span>
-      {title}
-    </h2>
-  )
+function Float({ title, text, className }: { title: string; text: string; className?: string }) {
+  return <div className={`absolute rounded-[12px] border border-line bg-white/92 p-3 shadow-md backdrop-blur ${className}`}><b className="block text-small text-ink">{title}</b><span className="mt-1 block text-micro leading-5 text-muted">{text}</span></div>
+}
+function Goal({ title, text, done, current }: { title: string; text: string; done?: boolean; current?: boolean }) {
+  return <SoftCard className={done ? 'bg-green-light' : current ? 'bg-blue-light' : 'bg-white'}><b className="text-small text-ink">{title}</b><span className="mt-1 block text-micro text-muted">{text}</span></SoftCard>
+}
+function Plan({ idx, title, text, time }: { idx: string; title: string; text: string; time: string }) {
+  return <SoftCard className="grid grid-cols-[42px_1fr_auto] items-center gap-3 bg-white"><b className="text-blue">{idx}</b><span><b className="block text-small text-ink">{title}</b><span className="text-micro text-muted">{text}</span></span><Pill>{time}</Pill></SoftCard>
+}
+function Radar({ name, value }: { name: string; value: number }) {
+  return <div><div className="mb-1 flex justify-between text-micro"><b>{name}</b><span className="text-muted">{value}</span></div><Bar value={value} /></div>
+}
+function Resource({ title, meta, tag }: { title: string; meta: string; tag: string }) {
+  return <SoftCard className="flex items-center justify-between gap-3 bg-white"><span><b className="block text-small text-ink">{title}</b><span className="text-micro text-muted">{meta}</span></span><Pill tone="blue">{tag}</Pill></SoftCard>
 }

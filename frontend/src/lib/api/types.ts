@@ -136,6 +136,12 @@ export interface TutorFile {
   sizeBytes: number
 }
 
+export interface TaskCreatePayload {
+  title: string
+  type?: Task['type']
+  duration?: number
+}
+
 export interface KnowledgeFile {
   id: number
   filename: string
@@ -208,6 +214,11 @@ export interface LearningPath {
   stages: { name: string; status: 'completed' | 'current' | 'pending' }[]
   knowledgeTree: PathNode[]
   knowledgeGraph?: KnowledgeGraph
+}
+
+export interface PathAdjustResult {
+  previousStage: string
+  currentStage: string
 }
 
 export interface KnowledgeGraphNode {
