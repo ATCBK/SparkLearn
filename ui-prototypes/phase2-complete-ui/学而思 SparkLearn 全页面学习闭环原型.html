@@ -1222,6 +1222,80 @@
   .kb-stat { padding: 14px; border-radius: 14px; background: #f8fbff; border: 1px solid #e8eff8; }
   .kb-stat b { display: block; font-size: 20px; }
   .material-page { max-width: 1560px; }
+  /* ── 个人知识库专用样式 ── */
+  .kb-page { max-width: 1560px; }
+  .kb-header-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .kb-search-bar { display: flex; align-items: center; gap: 10px; flex: 1; max-width: 480px; }
+  .kb-search-bar input { flex: 1; height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 0 14px; font-size: 14px; background: #fff; }
+  .kb-search-bar input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.08); }
+  .kb-stat-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 20px; }
+  .kb-stat-item { padding: 18px 20px; border-right: 1px solid #eef2f7; display: flex; align-items: center; gap: 14px; }
+  .kb-stat-item:last-child { border-right: 0; }
+  .kb-stat-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+  .kb-stat-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .kb-stat-icon.blue { background: var(--blue-soft); color: var(--blue); }
+  .kb-stat-icon.green { background: var(--green-soft); color: var(--green); }
+  .kb-stat-icon.purple { background: var(--purple-soft); color: var(--purple); }
+  .kb-stat-icon.orange { background: var(--orange-soft); color: var(--orange); }
+  .kb-stat-info span { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .kb-stat-info b { display: block; font-size: 22px; font-weight: 800; line-height: 1.2; margin-top: 2px; }
+  .kb-stat-info p { margin: 2px 0 0; font-size: 11px; color: var(--soft); }
+  .kb-main-layout { display: grid; grid-template-columns: 280px 1fr 300px; gap: 16px; align-items: start; }
+  .kb-file-panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm); }
+  .kb-file-panel-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+  .kb-file-panel-head h3 { margin: 0; font-size: 14px; font-weight: 800; }
+  .kb-filter-tabs { display: flex; gap: 4px; padding: 10px 12px; border-bottom: 1px solid var(--line); background: #fafbfc; }
+  .kb-tab { border: 0; background: transparent; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; transition: .15s; }
+  .kb-tab.active { background: var(--blue-soft); color: var(--blue); }
+  .kb-tab:hover:not(.active) { background: #f3f4f6; color: var(--ink); }
+  .kb-file-list { max-height: 520px; overflow-y: auto; }
+  .kb-file-item { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: .15s; }
+  .kb-file-item:last-child { border-bottom: 0; }
+  .kb-file-item:hover { background: #f8fbff; }
+  .kb-file-item.active { background: var(--blue-soft); }
+  .kb-file-icon { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-size: 10px; font-weight: 900; flex-shrink: 0; }
+  .kb-file-icon.pdf { background: #fff0f0; color: var(--red); }
+  .kb-file-icon.docx { background: #eff6ff; color: var(--blue); }
+  .kb-file-icon.xlsx { background: var(--green-soft); color: var(--green); }
+  .kb-file-icon.txt { background: #f3f4f6; color: var(--muted); }
+  .kb-file-icon.ppt { background: var(--orange-soft); color: var(--orange); }
+  .kb-file-info { flex: 1; min-width: 0; }
+  .kb-file-info b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kb-file-info span { display: block; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .kb-upload-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; margin: 12px; border: 1.5px dashed #bfdbfe; border-radius: 10px; background: #f8fbff; color: var(--blue); font-size: 13px; font-weight: 700; cursor: pointer; transition: .15s; }
+  .kb-upload-btn:hover { background: var(--blue-soft); border-color: var(--blue); }
+  .kb-content-panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm); min-height: 600px; }
+  .kb-content-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .kb-content-head h3 { margin: 0; font-size: 15px; font-weight: 800; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kb-content-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .kb-content-body { padding: 20px; }
+  .kb-meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .kb-section-title { font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; margin: 18px 0 10px; }
+  .kb-chunk-list { display: grid; gap: 8px; }
+  .kb-chunk { padding: 12px 14px; border-radius: 10px; background: #f8fbff; border: 1px solid #e8eff8; font-size: 13px; line-height: 1.6; color: var(--text); }
+  .kb-chunk-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .kb-chunk-head b { font-size: 12px; color: var(--blue); font-weight: 800; }
+  .kb-chunk-head span { font-size: 11px; color: var(--soft); }
+  .kb-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; color: var(--muted); gap: 12px; text-align: center; }
+  .kb-empty-state svg { width: 48px; height: 48px; stroke: #d1d5db; }
+  .kb-ai-panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-sm); }
+  .kb-ai-panel-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+  .kb-ai-panel-head h3 { margin: 0; font-size: 14px; font-weight: 800; }
+  .kb-ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .kb-ai-actions { padding: 14px; display: grid; gap: 8px; }
+  .kb-ai-action-btn { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; text-align: left; cursor: pointer; transition: .15s; font-size: 13px; font-weight: 700; color: var(--text); }
+  .kb-ai-action-btn:hover { background: var(--blue-soft); border-color: rgba(37,99,235,.2); color: var(--blue); }
+  .kb-ai-action-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; color: var(--blue); }
+  .kb-ai-action-btn p { margin: 2px 0 0; font-size: 11px; color: var(--muted); font-weight: 400; }
+  .kb-privacy-card { margin: 0 14px 14px; padding: 12px 14px; border-radius: 10px; background: #f9fafb; border: 1px solid var(--line); }
+  .kb-privacy-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+  .kb-privacy-row:last-child { margin-bottom: 0; }
+  .kb-privacy-row svg { width: 14px; height: 14px; fill: none; stroke: var(--green); stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
+  .kb-progress-bar { height: 4px; background: #e5e7eb; border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .kb-progress-bar i { display: block; height: 100%; background: var(--blue); border-radius: 2px; }
+  .kb-upload-progress { padding: 12px 14px; background: var(--blue-soft); border-top: 1px solid rgba(37,99,235,.1); display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .kb-upload-progress svg { width: 16px; height: 16px; fill: none; stroke: var(--blue); stroke-width: 2; flex-shrink: 0; animation: spin 1.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .material-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .material-stat { min-height: 88px; display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; border: 0; border-right: 1px solid #eef2f7; border-radius: 0; box-shadow: none; }
   .material-stat:last-child { border-right: 0; }
@@ -1499,6 +1573,8 @@
     <div class="nav-title">资源与练习</div>
     <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6 6 4.5 4.5m15 15L18 18M18 6l1.5-1.5M4.5 19.5 6 18"></path><circle cx="12" cy="12" r="3"></circle></svg><span>资源中心</span></button>
     <button class="nav-btn" data-page="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg><span>练习评测</span></button>
+    <div class="nav-title">个人知识库</div>
+    <button class="nav-btn" data-page="knowledge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-1.5z"></path><path d="M8 7h6"></path><path d="M8 11h8"></path><path d="M8 15h5"></path></svg><span>我的资料库</span></button>
     <div class="nav-title">分析与反馈</div>
     <button class="nav-btn" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 16v-5m4 5V8m4 8v-3"></path></svg><span>学习报表</span></button>
     <div class="side-note">
@@ -1975,8 +2051,8 @@
       <div class="page-head">
         <div>
           <div class="topline">资源中心 / 生成与资源库</div>
-          <div class="title-row"><h1>资源中心</h1><button class="btn secondary" data-jump="resources">进入资源库</button><button class="btn secondary" data-jump="knowledge">我的资料库</button></div>
-          <p class="lead">在这里生成个性化学习资源，也可以进入资源库或我的资料库管理已保存内容和用户上传文件。</p>
+          <div class="title-row"><h1>资源中心</h1><button class="btn secondary" data-jump="resources">进入资源库</button></div>
+          <p class="lead">在这里生成个性化学习资源，也可以进入资源库查看已保存内容。</p>
         </div>
         <div class="flow-stepper" aria-label="资源生成步骤">
           <button class="flow-step active" data-flow-step="0"><span>01</span>确认上下文</button>
@@ -2139,7 +2215,6 @@
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn" data-jump="practice">学完去练习</button>
             <button class="btn secondary" id="explainResource">让 AI 讲解</button>
-            <button class="btn secondary" data-jump="knowledge">管理我的资料</button>
             <button class="btn secondary">下载</button>
             <button class="btn secondary">删除</button>
           </div>
@@ -2150,9 +2225,9 @@
     <section class="page material-page" id="knowledge">
       <div class="page-head">
         <div>
-          <div class="topline">我的资料库 / 上传、整理、用于学习</div>
-          <div class="title-row"><h1>我的资料库</h1><button class="btn secondary" data-jump="generate">返回资源中心</button><button class="btn secondary" data-jump="resources">进入资源库</button></div>
-          <p class="lead">上传的学习资料将由 AI 智能结构化，用于问答、生成资料与复习建议，助你高效学习。</p>
+          <div class="topline">个人知识库 / 上传与管理你的学习资料</div>
+          <div class="title-row"><h1>我的资料库</h1></div>
+          <p class="lead">上传你的学习资料，系统会自动整理结构化内容，方便随时检索与复习。</p>
         </div>
       </div>
 
@@ -2223,7 +2298,7 @@
             <div class="usage-tile"><b>生成练习</b><p class="meta">智能生成练习题</p></div>
             <div class="usage-tile"><b>生成复习建议</b><p class="meta">个性化复习规划</p></div>
           </div>
-          <div style="display:flex;gap:10px;margin-top:16px"><button class="btn secondary" id="testRetrieval">试问 AI</button><button class="btn" data-jump="generate">用已生成资源</button></div>
+          <div style="display:flex;gap:10px;margin-top:16px"></div>
         </div>
         <div class="card">
           <h2>隐私与引用说明</h2>
@@ -2232,7 +2307,7 @@
             <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M9 11h6"></path><path d="M9 15h6"></path><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path></svg><div><b>来源可追溯</b><p class="meta">AI 使用资料内容时，会明确标注引用来源。</p></div></div>
             <div class="privacy-row"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><div><b>安全存储</b><p class="meta">采用企业级加密存储，保障你的数据安全。</p></div></div>
           </div>
-          <button class="btn ghost section" id="askKnowledgeAI">了解更多隐私政策 →</button>
+          <button class="btn ghost section" style="display:none" id="askKnowledgeAI">了解更多隐私政策 →</button>
         </div>
       </div>
     </section>
@@ -2529,7 +2604,7 @@ print(result)</pre>
       <button class="modal-close" id="closeSourceModal" aria-label="关闭">×</button>
     </div>
     <div class="modal-body">
-      <div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索资料名称、标签或内容"><button class="btn secondary" data-jump="knowledge">管理资料</button></div>
+      <div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索资料名称、标签或内容"></div>
       <div class="choice-list section" id="sourceList">
         <label class="source-card selected"><input type="checkbox" class="source-check" checked="" data-title="函数返回值错题整理.pdf"><div><b>函数返回值错题整理.pdf</b><span>已整理 · 错题补弱 · 适合生成讲义和达标题</span></div></label>
         <label class="source-card"><input type="checkbox" class="source-check" data-title="阶段练习成绩.xlsx"><div><b>阶段练习成绩.xlsx</b><span>已整理 · 练习数据 · 适合调整难度和题量</span></div></label>
@@ -2583,7 +2658,7 @@ print(result)</pre>
     path: '个性化路径',
     generate: '资源中心',
     resources: '资源库',
-    knowledge: '我的资料库',
+    knowledge: '个人知识库',
     practice: '练习评测',
     mistakes: '错题本',
     favorites: '收藏题目',
@@ -2593,7 +2668,7 @@ print(result)</pre>
   function showPage(id, options = {}) {
     pages.forEach(page => page.classList.toggle('active', page.id === id));
     navButtons.forEach(btn => {
-      const pageId = ['resources', 'knowledge'].includes(id) ? 'generate' : ['mistakes', 'favorites'].includes(id) ? 'practice' : id;
+      const pageId = ['resources'].includes(id) ? 'generate' : ['mistakes', 'favorites'].includes(id) ? 'practice' : id;
       btn.classList.toggle('active', btn.dataset.page === pageId);
     });
     document.getElementById('topbarPage').textContent = pageNames[id] || pageNames.dashboard;
@@ -2913,11 +2988,6 @@ print(result)</pre>
   document.getElementById('knowledgeUpload').addEventListener('change', event => {
     const list = document.getElementById('knowledgeList');
     if (!list) {
-      const names = [...event.target.files].map(file => file.name).join('、');
-      if (names) {
-        openAI();
-        document.getElementById('aiBubble').textContent = `${names} 已加入上传队列。我会先整理重点内容，之后可用于答疑、生成资料和复习建议。`;
-      }
       event.target.value = '';
       return;
     }
@@ -2945,19 +3015,11 @@ print(result)</pre>
     active.dataset.status = '已整理';
     active.dataset.summary = `${active.dataset.name} 已整理完成。AI 学习助手可在回答问题和生成资源时参考这份资料。`;
     active.querySelector('.file-meta').innerHTML = '<span class="pill green">已整理</span><span class="pill">12 条内容</span><span class="pill blue">AI 可参考</span>';
-    document.getElementById('knowledgeSummary').textContent = active.dataset.summary;
-    openAI();
-    document.getElementById('aiBubble').textContent = `${active.dataset.name} 已整理完成。之后你提问或生成资源时，我会优先参考这份资料，并告诉你参考来源。`;
+    const summary = document.getElementById('knowledgeSummary');
+    if (summary) summary.textContent = active.dataset.summary;
   });
-  document.getElementById('testRetrieval').addEventListener('click', () => {
-    const active = document.querySelector('.file-item.active');
-    openAI();
-    document.getElementById('aiBubble').textContent = `我会参考 ${active ? active.dataset.name : '当前文件'} 来回答：return 会把函数内部结果交给调用处，这部分可以用来生成函数返回值讲义。`;
-  });
-  document.getElementById('askKnowledgeAI').addEventListener('click', () => {
-    openAI();
-    document.getElementById('aiBubble').textContent = '你上传资料后，我会先帮你整理重点。之后你问问题、生成讲义或做复习计划时，我会优先参考这些资料，并说明参考了哪份文件。';
-  });
+  const askKnowledgeAI = document.getElementById('askKnowledgeAI');
+  if (askKnowledgeAI) askKnowledgeAI.addEventListener('click', () => {});
   const questionCount = document.getElementById('questionCount');
   document.getElementById('decreaseQuestion').addEventListener('click', () => {
     questionCount.value = Math.max(3, Number(questionCount.value || 8) - 1);
