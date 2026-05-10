@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0092)file:///D:/Project_building/SparkLearn/ui-prototypes/phase2-complete-ui/index.html#dashboard -->
+<html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>学而思 SparkLearn 全页面学习闭环原型</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="./学而思 SparkLearn 全页面学习闭环原型_files/css2" rel="stylesheet">
 <style>
   :root {
     --bg: #f6f8fb;
@@ -306,8 +306,257 @@
   .portrait-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
   .portrait-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.92)); }
   .portrait-caption { position: relative; z-index: 1; padding: 18px; border-radius: 14px; background: rgba(255,255,255,.9); border: 1px solid #e8eff8; }
+  .portrait-floating {
+    position: absolute;
+    z-index: 1;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(232,239,248,.95);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+  }
+  .portrait-floating b { display: block; font-size: 18px; }
+  .portrait-floating span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .portrait-floating.top { top: 18px; left: 18px; }
+  .portrait-floating.mid { top: 106px; right: 18px; max-width: 164px; }
+  .portrait-floating.bottom { left: 18px; bottom: 126px; max-width: 190px; }
   .profile-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .profile-summary-grid .card { min-height: 174px; }
+  .profile-focus-card {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 16px;
+    align-items: center;
+    background:
+      radial-gradient(circle at top left, rgba(248,194,70,.16), transparent 42%),
+      linear-gradient(135deg, #fffdf7, #ffffff);
+  }
+  .focus-dial {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at center, #fff 0 40px, transparent 41px),
+      conic-gradient(var(--orange) 0 48%, #e8eff8 48% 100%);
+    border: 1px solid #eef3f9;
+    box-shadow: inset 0 0 0 10px rgba(255,255,255,.7);
+  }
+  .focus-dial b { font-size: 28px; line-height: 1; }
+  .focus-dial span { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .focus-points { display: grid; gap: 8px; }
+  .focus-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #edf2f8;
+    color: #55657d;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .focus-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); flex: 0 0 auto; }
+  .profile-preference-card {
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, rgba(88, 109, 255, .06), rgba(95, 199, 142, .05)),
+      #fff;
+  }
+  .preference-mosaic {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 10px;
+    margin-top: 14px;
+    align-items: stretch;
+  }
+  .mosaic-main, .mosaic-mini {
+    border-radius: 16px;
+    border: 1px solid #e8eff8;
+    background: #fff;
+    padding: 12px;
+  }
+  .mosaic-main {
+    min-height: 118px;
+    display: grid;
+    align-content: space-between;
+    background:
+      radial-gradient(circle at top right, rgba(47,128,237,.12), transparent 45%),
+      #fff;
+  }
+  .mosaic-main .code-lines { display: grid; gap: 7px; }
+  .mosaic-main .code-lines i,
+  .mosaic-mini .mini-bars i {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #cfe1f8, #8bb7ef);
+  }
+  .mosaic-main .code-lines i:nth-child(1) { width: 82%; }
+  .mosaic-main .code-lines i:nth-child(2) { width: 68%; }
+  .mosaic-main .code-lines i:nth-child(3) { width: 56%; }
+  .mosaic-mini-wrap { display: grid; gap: 10px; }
+  .mosaic-mini {
+    min-height: 54px;
+    display: grid;
+    gap: 7px;
+    align-content: center;
+  }
+  .mosaic-mini b { font-size: 12px; }
+  .mosaic-mini .mini-bars { display: grid; gap: 6px; }
+  .mosaic-mini .mini-bars i:nth-child(1) { width: 74%; }
+  .mosaic-mini .mini-bars i:nth-child(2) { width: 52%; }
+  .profile-goal-card {
+    display: grid;
+    gap: 14px;
+    background:
+      linear-gradient(180deg, rgba(95,199,142,.08), rgba(255,255,255,1) 46%);
+  }
+  .goal-track {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    align-items: start;
+  }
+  .goal-step {
+    position: relative;
+    padding-top: 28px;
+    color: #5f6f84;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .goal-step::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: -10px;
+    height: 2px;
+    background: #d9e7f5;
+  }
+  .goal-step:last-child::before { right: 0; }
+  .goal-step::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #c7d8eb;
+    box-sizing: border-box;
+  }
+  .goal-step.done::before,
+  .goal-step.current::before { background: #93d0aa; }
+  .goal-step.done::after { background: var(--green); border-color: var(--green); }
+  .goal-step.current::after { border-color: var(--green); background: #effaf3; }
+  .goal-step b { display: block; margin-bottom: 6px; color: var(--text); font-size: 13px; }
+  .profile-plan-card {
+    display: grid;
+    gap: 12px;
+    background:
+      radial-gradient(circle at bottom right, rgba(47,128,237,.12), transparent 40%),
+      #fff;
+  }
+  .plan-stack { display: grid; gap: 10px; margin-top: 6px; }
+  .plan-step {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border-radius: 16px;
+    background: #f8fbff;
+    border: 1px solid #e4eef8;
+  }
+  .plan-index {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    border: 1px solid #dce8f5;
+    font-weight: 900;
+    color: var(--blue);
+  }
+  .plan-step b { display: block; font-size: 14px; }
+  .plan-step span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .plan-time {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #dce8f5;
+    color: #5b6c85;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .profile-radar-card {
+    display: grid;
+    gap: 14px;
+    background:
+      radial-gradient(circle at top left, rgba(47,128,237,.08), transparent 38%),
+      linear-gradient(180deg, rgba(255,255,255,1), rgba(248,251,255,1));
+  }
+  .radar-wrap {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+  .radar-chart {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+  }
+  .radar-chart svg { width: 100%; height: 100%; display: block; }
+  .radar-ring { fill: none; stroke: #dbe7f3; stroke-width: 1; }
+  .radar-axis { stroke: #d5e2f0; stroke-width: 1; }
+  .radar-area { fill: rgba(47,128,237,.18); stroke: var(--blue); stroke-width: 2; }
+  .radar-point { fill: var(--blue); }
+  .radar-label {
+    position: absolute;
+    color: #51627b;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .radar-label.top { top: -4px; left: 50%; transform: translateX(-50%); }
+  .radar-label.right { top: 28%; right: -10px; }
+  .radar-label.bottom-right { right: 8px; bottom: 14px; }
+  .radar-label.bottom-left { left: 8px; bottom: 14px; }
+  .radar-label.left { top: 28%; left: -10px; }
+  .radar-legend { display: grid; gap: 10px; }
+  .radar-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.88);
+    border: 1px solid #e4edf7;
+  }
+  .radar-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+  .radar-item b { font-size: 13px; }
+  .radar-item span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .radar-score {
+    color: #49607f;
+    font-size: 12px;
+    font-weight: 900;
+  }
   .note-a { left: 32px; top: 34px; }
   .note-b { right: 36px; top: 34px; }
   .note-c { left: 32px; top: 224px; }
@@ -431,11 +680,350 @@
   .path-onepage .card { padding: 18px; }
   .path-main-grid { display: grid; grid-template-columns: minmax(0, 1.38fr) minmax(300px, .62fr); gap: 12px; align-items: stretch; }
   .path-side { display: grid; gap: 12px; }
+  .path-goal-entry {
+    min-width: 360px;
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+  }
+  .path-goal-entry .meta { font-size: 12px; color: var(--muted); }
+  .path-goal-entry-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .path-goal-entry-row input {
+    width: 100%;
+    border: 1px solid #d8e6f4;
+    border-radius: 14px;
+    background: rgba(255,255,255,.9);
+    outline: none;
+    padding: 10px 12px;
+    color: var(--ink);
+  }
   .path-onepage .path-overview { grid-template-columns: 1.25fr .85fr .75fr .75fr auto; gap: 12px; }
   .path-onepage .overview-item { min-height: 54px; padding-right: 12px; }
   .path-onepage .overview-item b { margin-top: 5px; font-size: 17px; }
   .path-onepage .progress-ring { width: 54px; height: 54px; }
   .path-onepage .progress-ring::after { width: 40px; height: 40px; }
+  .path-graph-card {
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(47,128,237,.08), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(95,199,142,.08), transparent 30%),
+      #fff;
+  }
+  .path-graph-stage {
+    position: relative;
+    min-height: 560px;
+    margin-top: 16px;
+    border-radius: 18px;
+    background:
+      linear-gradient(rgba(235,242,250,.75) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(235,242,250,.75) 1px, transparent 1px),
+      linear-gradient(180deg, #fbfdff, #f6faff);
+    background-size: 36px 36px, 36px 36px, auto;
+    border: 1px solid #e6eef8;
+  }
+  .path-map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+  .path-map path {
+    fill: none;
+    stroke: rgba(160, 180, 205, .9);
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .path-map path.active {
+    stroke: rgba(69, 149, 233, .95);
+  }
+  .path-map path.branch {
+    stroke-dasharray: 5 6;
+    stroke: rgba(180, 193, 211, .95);
+  }
+  .kg-cluster-label {
+    position: absolute;
+    z-index: 2;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.94);
+    border: 1px solid #e3ebf6;
+    color: #5a6b84;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .path-node {
+    position: absolute;
+    z-index: 2;
+    width: 116px;
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 7px;
+  }
+  .path-node .node-core {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    border: 3px solid #dce8f5;
+    box-shadow: 0 4px 12px rgba(15,23,42,.08);
+  }
+  .path-node.done .node-core {
+    border-color: rgba(95,199,142,.45);
+    background: linear-gradient(180deg, #ffffff, #f3fcf7);
+  }
+  .path-node.current .node-core {
+    border-color: rgba(47,128,237,.48);
+    background: linear-gradient(180deg, #ffffff, #eef6ff);
+    box-shadow: 0 0 0 10px rgba(47,128,237,.10), 0 8px 20px rgba(47,128,237,.14);
+  }
+  .path-node.locked .node-core {
+    border-color: #e1e9f3;
+    background: #f8fbff;
+    box-shadow: none;
+  }
+  .path-node h3 {
+    font-size: 13px;
+    margin: 0;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid #e3ebf6;
+    box-shadow: 0 4px 14px rgba(15,23,42,.05);
+    white-space: nowrap;
+  }
+  .path-node p { color: var(--muted); font-size: 11px; line-height: 1.4; margin: 0; }
+  .node-chip {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f1f6fc;
+    color: #5d6e86;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .node-chip.blue { background: var(--blue-soft); color: var(--blue); }
+  .node-chip.green { background: var(--green-soft); color: var(--green); }
+  .node-chip.gray { background: #eef3f8; color: #8495aa; }
+  .path-node.current::after {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    width: 42px;
+    height: 42px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    border: 1px dashed rgba(47,128,237,.28);
+    pointer-events: none;
+  }
+  .path-method-list, .path-resource-list { display: grid; gap: 10px; margin-top: 14px; }
+  .path-method-item, .path-resource-item {
+    padding: 13px;
+    border-radius: 15px;
+    background: #f8fbff;
+    border: 1px solid #e4edf7;
+  }
+  .path-method-item b, .path-resource-item b { display: block; font-size: 14px; }
+  .path-method-item p, .path-resource-item p { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .path-resource-item .resource-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .nav-graph-stage {
+    position: relative;
+    min-height: 580px;
+    margin-top: 16px;
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at top left, rgba(47,128,237,.08), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(95,199,142,.08), transparent 30%),
+      linear-gradient(rgba(235,242,250,.72) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(235,242,250,.72) 1px, transparent 1px),
+      linear-gradient(180deg, #fbfdff, #f5f9fe);
+    background-size: auto, auto, 36px 36px, 36px 36px, auto;
+    border: 1px solid #e6eef8;
+  }
+  .nav-graph-lines {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+  .nav-graph-lines path {
+    fill: none;
+    stroke: rgba(185, 198, 216, .95);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .nav-graph-lines path.active { stroke: rgba(78, 149, 233, .96); }
+  .nav-hub {
+    position: absolute;
+    left: 50%;
+    top: 54px;
+    transform: translateX(-50%);
+    z-index: 3;
+    width: 320px;
+    padding: 18px 18px 16px;
+    border-radius: 24px;
+    background: rgba(255,255,255,.98);
+    border: 1px solid #dfebf7;
+    box-shadow: 0 20px 40px rgba(15,23,42,.08);
+    text-align: center;
+  }
+  .nav-hub-dot {
+    width: 18px;
+    height: 18px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 0 10px rgba(47,128,237,.10);
+  }
+  .nav-hub h3 { font-size: 18px; }
+  .nav-hub p { margin-top: 6px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+  .target-chip-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .target-chip {
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #f1f6fc;
+    border: 1px solid #dce8f4;
+    color: #5b6d85;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .target-chip.active {
+    background: var(--blue-soft);
+    border-color: rgba(47,128,237,.28);
+    color: var(--blue);
+  }
+  .target-input-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .target-input-row input {
+    width: 100%;
+    border: 1px solid #d8e6f4;
+    border-radius: 14px;
+    background: rgba(255,255,255,.9);
+    outline: none;
+    padding: 10px 12px;
+    color: var(--ink);
+  }
+  .branch-badge {
+    position: absolute;
+    z-index: 2;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid #dfebf7;
+    color: #607187;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .nav-branch {
+    position: absolute;
+    z-index: 2;
+    width: 180px;
+    cursor: pointer;
+  }
+  .nav-branch.center { width: 196px; }
+  .nav-branch.active .branch-title {
+    background: var(--blue-soft);
+    border-color: rgba(47,128,237,.28);
+    color: var(--blue);
+    box-shadow: 0 12px 24px rgba(47,128,237,.12);
+  }
+  .branch-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.97);
+    border: 1px solid #dfebf7;
+    color: #5b6d85;
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: 0 8px 18px rgba(15,23,42,.05);
+  }
+  .branch-title i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .88;
+  }
+  .branch-node-list {
+    display: grid;
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .branch-node {
+    display: grid;
+    justify-items: start;
+    gap: 7px;
+    cursor: pointer;
+  }
+  .branch-node-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #d7e4f2;
+    box-shadow: 0 4px 12px rgba(15,23,42,.08);
+  }
+  .branch-node.done .branch-node-dot { border-color: rgba(95,199,142,.46); }
+  .branch-node.current .branch-node-dot {
+    border-color: rgba(47,128,237,.48);
+    box-shadow: 0 0 0 8px rgba(47,128,237,.10), 0 6px 14px rgba(47,128,237,.14);
+  }
+  .branch-node.locked .branch-node-dot { border-color: #e1e9f3; background: #f8fbff; box-shadow: none; }
+  .branch-node-label {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid #e0e9f4;
+    color: #4d6079;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .branch-node.current .branch-node-label { color: var(--blue); border-color: rgba(47,128,237,.28); background: var(--blue-soft); }
+  .branch-node.done .branch-node-label { color: var(--green); border-color: rgba(95,199,142,.28); background: #f3fcf7; }
+  .branch-node.locked .branch-node-label { color: #8f9eb1; }
+  .path-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .legend-chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid #e1e9f3;
+    color: #607187;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .branch-panel { display: none; }
+  .branch-panel.active { display: block; }
   .path-onepage .path-steps { padding: 18px 6px 10px; }
   .path-onepage .step-dot { width: 38px; height: 38px; }
   .path-onepage .path-step b { font-size: 13px; }
@@ -696,6 +1284,7 @@
     .page { padding: 28px 18px 80px; }
     h1 { font-size: 30px; }
     .page-head { display: grid; }
+    .path-goal-entry { min-width: 0; justify-items: stretch; }
     .status-summary { grid-template-columns: 1fr; }
     .cols-2, .cols-3, .cols-4, .steps, .metric-strip, .chat-box, .resource-layout, .knowledge-layout, .material-stats, .material-middle, .material-bottom, .material-mini-grid, .usage-grid, .evidence-grid, .path-hero, .flow-shell, .strategy-grid, .path-main-grid, .current-node-panel, .path-actions, .practice-layout, .kb-grid { grid-template-columns: 1fr; }
     .path-onepage .path-overview { grid-template-columns: 1fr; }
@@ -703,6 +1292,25 @@
     .anatomy-stage { height: auto; padding: 14px; display: grid; gap: 12px; }
     .anatomy-bg, .anatomy-stage::after, .center-caption { display: none; }
     .profile-note { position: static; width: auto; }
+    .portrait-floating { position: static; max-width: none; margin: 0 18px; }
+    .profile-focus-card { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .focus-points { width: 100%; }
+    .preference-mosaic, .goal-track, .radar-wrap { grid-template-columns: 1fr; }
+    .path-graph-stage, .nav-graph-stage { min-height: 0; padding: 14px; display: grid; gap: 12px; }
+    .path-map { display: none; }
+    .path-node { position: static; width: auto; }
+    .nav-graph-lines { display: none; }
+    .nav-hub, .nav-branch, .branch-badge { position: static; transform: none; width: auto; }
+    .nav-hub { margin-bottom: 8px; }
+    .nav-branch, .nav-branch.center { width: auto; }
+    .branch-node { justify-items: start; }
+    .goal-step::before { left: 9px; right: auto; top: -8px; bottom: -10px; width: 2px; height: auto; }
+    .goal-step:last-child::before { display: none; }
+    .goal-step { padding-top: 0; padding-left: 32px; }
+    .goal-step::after { top: 0; left: 0; }
+    .plan-step { grid-template-columns: 44px 1fr; }
+    .plan-time { grid-column: 2; justify-self: start; }
+    .radar-chart { width: 100%; max-width: 220px; }
     .type-grid { grid-template-columns: repeat(2, 1fr); }
     .flow-rail { position: static; grid-template-columns: repeat(2, 1fr); }
     .flow-view { min-height: 0; }
@@ -716,18 +1324,18 @@
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <img src="assets/sparklearn-logo.png" alt="学而思 SparkLearn">
+      <img src="./学而思 SparkLearn 全页面学习闭环原型_files/sparklearn-logo.png" alt="学而思 SparkLearn">
       <div><strong>学而思 SparkLearn</strong><span>个性化学习闭环</span></div>
     </div>
     <div class="nav-title">学习中心</div>
-    <button class="nav-btn active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5V21H3z"/><path d="M9 21v-7h6v7"/></svg><span>学习工作台</span></button>
-    <button class="nav-btn" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg><span>学习画像</span></button>
-    <button class="nav-btn" data-page="path"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h4a5 5 0 0 1 5 5v4"/></svg><span>个性化路径</span></button>
+    <button class="nav-btn active" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5V21H3z"></path><path d="M9 21v-7h6v7"></path></svg><span>学习工作台</span></button>
+    <button class="nav-btn" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg><span>学习画像</span></button>
+    <button class="nav-btn" data-page="path"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 6h4a5 5 0 0 1 5 5v4"></path></svg><span>个性化路径</span></button>
     <div class="nav-title">资源与练习</div>
-    <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6 6 4.5 4.5m15 15L18 18M18 6l1.5-1.5M4.5 19.5 6 18"/><circle cx="12" cy="12" r="3"/></svg><span>资源中心</span></button>
-    <button class="nav-btn" data-page="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>练习评测</span></button>
+    <button class="nav-btn" data-page="generate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6 6 4.5 4.5m15 15L18 18M18 6l1.5-1.5M4.5 19.5 6 18"></path><circle cx="12" cy="12" r="3"></circle></svg><span>资源中心</span></button>
+    <button class="nav-btn" data-page="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg><span>练习评测</span></button>
     <div class="nav-title">分析与反馈</div>
-    <button class="nav-btn" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5m4 5V8m4 8v-3"/></svg><span>学习报告</span></button>
+    <button class="nav-btn" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 16v-5m4 5V8m4 8v-3"></path></svg><span>学习结果</span></button>
     <div class="side-note">
       <b>今日学习状态</b>
       <div class="status-list">
@@ -748,9 +1356,9 @@
     <section class="page active" id="dashboard">
       <div class="page-head">
         <div>
-          <div class="topline">学习中心 / 今日任务</div>
+          <div class="topline">学习中心 / 资源回顾与新推荐</div>
           <h1>今日学习工作台</h1>
-          <p class="lead">根据你的学习画像与最近练习结果，系统已生成今日学习建议。</p>
+          <p class="lead">今天先把当前卡点补上，再完成一轮短练习，最后确认是否进入下一模块。</p>
         </div>
         <div class="status-summary">
           <div class="summary-chip"><b>24 分钟</b><span>今日预计</span></div>
@@ -763,45 +1371,49 @@
         <div class="decision">
           <span class="pill blue">优先薄弱点</span>
           <h2>函数返回值</h2>
-          <p class="meta">系统判断依据：昨晚 8 道练习中，返回值相关题目错误 4 道，掌握度由 62% 降至 48%。建议先补齐概念，再做 8 道针对练习，最后确认是否进入下一模块。</p>
+          <p class="meta">先补“return 到底把结果交给谁”，再做 8 道短练习。做完这一轮，今天的路径就能继续往前走。</p>
           <div class="why-row">
-            <span class="pill orange">错题证据：4 道</span>
-            <span class="pill blue">当前节点：函数与作用域</span>
-            <span class="pill purple">画像偏好：案例驱动</span>
+            <span class="pill orange">先补当前卡点</span>
+            <span class="pill blue">再做 8 道练习</span>
+            <span class="pill purple">做完确认下一步</span>
             <span class="pill green">预计 24 分钟</span>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
-            <button class="btn" data-jump="resources">开始今日任务</button>
-            <button class="btn secondary" data-jump="profile">查看画像依据</button>
+            <button class="btn" data-jump="resources">开始回顾资源</button>
+            <button class="btn secondary" data-jump="practice">先做练习</button>
           </div>
         </div>
       </div>
 
       <div class="metric-strip section">
-        <div class="metric"><b>72%</b><span>阶段进度<br>已完成当前模块大部分内容</span></div>
-        <div class="metric"><b>48%</b><span>薄弱掌握度<br>低于进入下一节标准</span></div>
-        <div class="metric"><b>12 天</b><span>连续学习<br>学习节奏稳定</span></div>
-        <div class="metric"><b>1 项</b><span>路径待确认<br>完成今日任务后可确认</span></div>
+        <div class="metric"><b>72%</b><span>当前模块<br>已完成大部分内容</span></div>
+        <div class="metric"><b>8 题</b><span>今日短练<br>做完就能判断下一步</span></div>
+        <div class="metric"><b>12 天</b><span>连续学习<br>保持得不错</span></div>
+        <div class="metric"><b>1 步</b><span>待确认<br>今天学完即可解锁</span></div>
       </div>
 
       <div class="grid cols-2 section">
         <div class="card">
-          <div class="toolbar"><h2>今日任务</h2><span class="pill blue" id="taskCount">3 项</span></div>
-          <div id="todayTaskList">
-            <div class="task-row"><input class="task-check" type="checkbox"><div><b>资源学习</b><span>看 5 分钟动画讲解，状态：未开始。</span></div><button class="btn tertiary" data-jump="resources">继续</button><button class="task-delete" aria-label="删除">×</button></div>
-            <div class="task-row"><input class="task-check" type="checkbox"><div><b>针对练习</b><span>完成 8 道函数返回值练习，状态：待完成。</span></div><button class="btn tertiary" data-jump="practice">开始</button><button class="task-delete" aria-label="删除">×</button></div>
-            <div class="task-row"><input class="task-check" type="checkbox"><div><b>路径确认</b><span>确认是否进入模块导入，状态：待确认。</span></div><button class="btn tertiary" data-jump="path">查看</button><button class="task-delete" aria-label="删除">×</button></div>
+          <div class="toolbar"><h2>资源回顾推送</h2><span class="pill blue">3 条待回顾</span></div>
+          <p class="meta section">把你学过但还没完全吃透的内容重新推回来，优先复习最近中断或容易遗忘的资源。</p>
+          <div class="resource-reco section">
+            <div class="resource-reco-item"><div><b>return 到底返回给谁</b><p class="meta">上次学习到 70% · 适合先快速回看 5 分钟核心片段</p></div><button class="btn tertiary" data-jump="resources">继续回顾</button></div>
+            <div class="resource-reco-item"><div><b>函数作用域错题讲义</b><p class="meta">已打开 2 次 · 建议先看易错点总结，再做同类题</p></div><button class="btn tertiary" data-jump="resources">查看重点</button></div>
+            <div class="resource-reco-item"><div><b>成绩统计小项目代码案例</b><p class="meta">已学习 35% · 适合在补完返回值后接着复习</p></div><button class="btn tertiary" data-jump="resources">接着学习</button></div>
           </div>
-          <div class="task-input-row"><input class="search" id="newTaskInput" placeholder="添加自定义任务，例如：复习错题本 10 分钟"><button class="btn" id="addTask">添加任务</button></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+            <button class="btn secondary" data-jump="resources">进入资源库</button>
+            <button class="btn tertiary" data-jump="mistakes">结合错题回顾</button>
+          </div>
         </div>
         <div class="card">
-          <div class="toolbar"><h2>每日资源推荐</h2><button class="btn ghost" data-jump="resources">查看全部 →</button></div>
+          <div class="toolbar"><h2>今日新资源推荐</h2><button class="btn ghost" data-jump="resources">查看全部 →</button></div>
           <div class="resource-reco section">
             <div class="resource-reco-item"><div><b>return 到底返回给谁</b><p class="meta">5 分钟动画 · 对应薄弱点：函数返回值</p></div><button class="btn tertiary" data-jump="resources">学习</button></div>
             <div class="resource-reco-item"><div><b>函数作用域错题讲义</b><p class="meta">文档 · 来自错题本与练习记录</p></div><button class="btn tertiary" data-jump="resources">查看</button></div>
             <div class="resource-reco-item"><div><b>成绩统计小项目代码案例</b><p class="meta">代码案例 · 符合你的案例驱动偏好</p></div><button class="btn tertiary" data-jump="resources">继续</button></div>
           </div>
-          <button class="btn secondary section" data-jump="generate">根据今日任务生成新资源</button>
+          <button class="btn secondary section" data-jump="generate">根据当前卡点生成新资源</button>
         </div>
       </div>
     </section>
@@ -809,9 +1421,9 @@
     <section class="page" id="profile">
       <div class="page-head">
         <div>
-          <div class="topline">学习画像 / 状态、证据与更新</div>
+          <div class="topline">学习画像 / 你现在更适合怎么学</div>
           <h1>学习画像</h1>
-          <p class="lead">每个画像标签都展示来源，并影响路径、资源和练习难度。</p>
+          <p class="lead">这一页只保留会直接影响你学习体验的内容：当前卡点、适合的学法和本阶段目标。</p>
         </div>
         <div class="status-summary">
           <div class="summary-chip"><b>48%</b><span>返回值掌握</span></div>
@@ -822,53 +1434,120 @@
 
       <div class="profile-board section">
         <div class="card portrait-card">
-          <img src="assets/profile-anatomy-bg.png" alt="学生人物画像">
+          <img src="./学而思 SparkLearn 全页面学习闭环原型_files/profile-anatomy-bg.png" alt="学生人物画像">
+          <div class="portrait-floating top"><b>12 天</b><span>学习连续性稳定</span></div>
+          <div class="portrait-floating mid"><b>案例驱动</b><span>更适合先看可运行例子，再开始短练习。</span></div>
+          <div class="portrait-floating bottom"><b>当前卡点</b><span>`return`、`print` 和局部变量这三个点还容易混在一起。</span></div>
           <div class="portrait-caption">
             <span class="pill blue">人物画像</span>
             <h2 style="margin-top:10px">李明 · 项目实践准备期</h2>
-            <p class="meta section">基础语法较稳，正在补齐函数与模块能力。画像由练习、资源学习和对话共同更新。</p>
+            <p class="meta section">基础语法已经够用，当前重点是把函数和模块这块学顺，尽快回到小项目实践。</p>
           </div>
         </div>
         <div class="profile-summary-grid">
-          <div class="card">
-            <span class="pill orange">需要关注</span>
-            <h2 style="margin-top:12px">函数返回值</h2>
-            <p class="meta section">来源：昨晚练习错题和路径评估。掌握度由 62% 回落到 48%。</p>
-            <div class="bar section"><i style="width:48%"></i></div>
+          <div class="card profile-focus-card">
+            <div class="focus-dial"><div><b>48%</b><span>当前稳定度</span></div></div>
+            <div>
+              <span class="pill orange">需要关注</span>
+              <h2 style="margin-top:12px">函数返回值</h2>
+              <p class="meta section">这块不是完全不会，而是关键概念容易串线，导致一做题就乱。</p>
+              <div class="focus-points">
+                <div class="focus-pill"><span class="focus-dot"></span> `return` 和 `print` 容易混</div>
+                <div class="focus-pill"><span class="focus-dot"></span> 局部变量作用范围不够稳</div>
+              </div>
+            </div>
           </div>
-          <div class="card">
-            <span class="pill purple">学习偏好</span>
-            <h2 style="margin-top:12px">案例驱动</h2>
-            <p class="meta section">短讲解、代码案例和小练习的完成率更高。</p>
-            <div class="why-row section"><span class="pill blue">短讲解</span><span class="pill green">即时反馈</span></div>
+          <div class="card profile-preference-card">
+            <span class="pill purple">更适合的学法</span>
+            <h2 style="margin-top:12px">先看例子，再做短练</h2>
+            <p class="meta section">和纯文字解释相比，你更吃“短讲解 + 可运行代码 + 立刻验证”这一套。</p>
+            <div class="preference-mosaic">
+              <div class="mosaic-main">
+                <b>代码案例最容易进入状态</b>
+                <div class="code-lines"><i></i><i></i><i></i></div>
+              </div>
+              <div class="mosaic-mini-wrap">
+                <div class="mosaic-mini">
+                  <b>短讲解</b>
+                  <div class="mini-bars"><i></i><i></i></div>
+                </div>
+                <div class="mosaic-mini">
+                  <b>即时反馈</b>
+                  <div class="mini-bars"><i></i><i></i></div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="card">
+          <div class="card profile-goal-card">
             <span class="pill green">阶段目标</span>
             <h2 style="margin-top:12px">完成 Python 小项目</h2>
-            <p class="meta section">当前重点是把函数和模块能力补齐。</p>
-            <div class="why-row section"><span class="pill green">变量 91%</span><span class="pill orange">作用域 52%</span></div>
+            <p class="meta section">当前不是重学整章，而是把进入项目实践前的最后一段补顺。</p>
+            <div class="goal-track">
+              <div class="goal-step done"><b>基础语法</b><span>变量、分支和循环已经够用。</span></div>
+              <div class="goal-step current"><b>函数补强</b><span>先把返回值和作用域彻底理顺。</span></div>
+              <div class="goal-step"><b>模块导入</b><span>通过后回到小项目拆分与调用。</span></div>
+            </div>
           </div>
-          <div class="card">
-            <span class="pill blue">今日建议</span>
+          <div class="card profile-plan-card">
+            <span class="pill blue">今天先做</span>
             <h2 style="margin-top:12px">补弱后再确认路径</h2>
-            <p class="meta section">先完成返回值资源和 8 道短练，再判断是否进入模块导入。</p>
-            <button class="btn secondary section" data-jump="path">查看路径</button>
+            <div class="plan-stack">
+              <div class="plan-step">
+                <div class="plan-index">01</div>
+                <div><b>看 12 分钟案例讲义</b><span>把结果怎么传出来这件事先看顺。</span></div>
+                <div class="plan-time">12 分钟</div>
+              </div>
+              <div class="plan-step">
+                <div class="plan-index">02</div>
+                <div><b>做 8 道返回值短练</b><span>只测这一类题，不再分散到其他知识点。</span></div>
+                <div class="plan-time">8 题</div>
+              </div>
+            </div>
+            <button class="btn secondary" data-jump="path">查看路径</button>
           </div>
         </div>
       </div>
 
       <div class="grid cols-2 section">
-        <div class="card">
-          <div class="toolbar"><h2>画像证据</h2><button class="btn secondary" id="toggleProfileChat">和 AI 更新画像</button></div>
-          <div class="timeline section">
-            <div class="time-item"><b>今天 08:12 · 练习回写</b><span>函数返回值掌握度从 62% 调整为 48%。</span></div>
-            <div class="time-item"><b>昨天 21:04 · 资源学习</b><span>完成函数作用域错题讲义 70%，偏好保持“短讲解”。</span></div>
-            <div class="time-item"><b>本周一 · 目标确认</b><span>学习目标更新为“完成成绩统计小项目”。</span></div>
+        <div class="card profile-radar-card">
+          <div class="toolbar"><h2>能力雷达</h2><button class="btn secondary" id="toggleProfileChat">告诉 AI 你想怎么学</button></div>
+          <div class="radar-wrap section">
+            <div class="radar-chart">
+              <svg viewBox="0 0 220 220" aria-label="学习能力雷达图">
+                <polygon class="radar-ring" points="110,28 187.97,84.65 158.19,176.35 61.81,176.35 32.03,84.65"></polygon>
+                <polygon class="radar-ring" points="110,48 168.95,90.82 146.42,160.18 73.58,160.18 51.05,90.82"></polygon>
+                <polygon class="radar-ring" points="110,68 149.92,96.98 134.65,144.02 85.35,144.02 70.08,96.98"></polygon>
+                <polygon class="radar-ring" points="110,88 130.89,103.15 122.89,127.85 97.11,127.85 89.11,103.15"></polygon>
+                <line class="radar-axis" x1="110" y1="110" x2="110" y2="28"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="187.97" y2="84.65"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="158.19" y2="176.35"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="61.81" y2="176.35"></line>
+                <line class="radar-axis" x1="110" y1="110" x2="32.03" y2="84.65"></line>
+                <polygon class="radar-area" points="110,60.8 141.83,99.66 141.33,153.13 89.14,138.53 51.52,91"></polygon>
+                <circle class="radar-point" cx="110" cy="60.8" r="3.5"></circle>
+                <circle class="radar-point" cx="141.83" cy="99.66" r="3.5"></circle>
+                <circle class="radar-point" cx="141.33" cy="153.13" r="3.5"></circle>
+                <circle class="radar-point" cx="89.14" cy="138.53" r="3.5"></circle>
+                <circle class="radar-point" cx="51.52" cy="91" r="3.5"></circle>
+              </svg>
+              <div class="radar-label top">语法基础</div>
+              <div class="radar-label right">案例理解</div>
+              <div class="radar-label bottom-right">练习稳定</div>
+              <div class="radar-label bottom-left">项目迁移</div>
+              <div class="radar-label left">结果传递</div>
+            </div>
+            <div class="radar-legend">
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>语法基础</b><span>变量、分支和循环已经够用。</span></div><span class="radar-score">84</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>案例理解</b><span>看着例子学，理解速度更快。</span></div><span class="radar-score">68</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>练习稳定</b><span>短练习里已经开始回稳，但还不够扎实。</span></div><span class="radar-score">57</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>项目迁移</b><span>离项目实践只差函数和模块这一步。</span></div><span class="radar-score">42</span></div>
+              <div class="radar-item"><span class="radar-swatch"></span><div><b>结果传递</b><span>`return` 相关理解还是当前最低点。</span></div><span class="radar-score">53</span></div>
+            </div>
           </div>
         </div>
         <div class="card">
           <div class="toolbar"><h2>最近学习过的资源</h2><button class="btn ghost" data-jump="resources">查看全部 →</button></div>
-          <p class="meta section">这些资源会帮助系统判断你的薄弱点、学习偏好和下一步推荐。</p>
+          <p class="meta section">从这里继续上次没学完的内容，不用重新找入口。</p>
           <div class="stack section">
             <div class="soft-card">
               <div class="toolbar"><div><b>return 到底返回给谁</b><p class="meta">视频 · 已学习 70% · 来源：错题补弱</p></div><span class="pill blue">继续学习</span></div>
@@ -886,16 +1565,19 @@
 
       <div class="chat-box" id="profileChatBox">
         <div class="card">
-          <h2>对话式画像更新</h2>
+          <h2>告诉 AI 你想怎么学</h2>
           <div class="chat-log" id="profileChat">
             <div class="msg"><div class="avatar">AI</div><div class="bubble">我看到你最近在返回值上连续出错。你更想先看动画讲解，还是直接做代码案例？</div></div>
           </div>
           <div class="input-line"><input id="profileInput" placeholder="例如：我想先看代码案例，再做短练习"><button class="btn" id="sendProfile">发送</button></div>
         </div>
         <div class="card">
-          <h2>待确认更新</h2>
-          <p class="meta section">如果确认，本次回答会把学习偏好更新为“代码案例优先”，并影响资源中心默认生成要求。</p>
-          <button class="btn" data-jump="generate">确认并生成资源</button>
+          <h2>立即开始</h2>
+          <p class="meta section">选定你更想要的学法后，直接去生成对应资源或开始当前练习。</p>
+          <div style="display:grid;gap:10px">
+            <button class="btn" data-jump="generate">按我的学法生成资源</button>
+            <button class="btn secondary" data-jump="practice">直接开始短练习</button>
+          </div>
         </div>
       </div>
     </section>
@@ -903,14 +1585,16 @@
     <section class="page" id="path">
       <div class="page-head">
         <div>
-          <div class="topline">学习路径 / 个性化路线</div>
+          <div class="topline">学习路径 / 你现在要走的下一步</div>
           <h1>个性化学习路径</h1>
-          <p class="lead">展示当前节点、推荐原因、达标条件和路径变化依据。</p>
+          <p class="lead">这一页只保留当前阶段、完成标准和下一步入口，不再堆系统解释。</p>
         </div>
-        <div class="status-summary">
-          <div class="summary-chip"><b>函数与作用域</b><span>当前节点</span></div>
-          <div class="summary-chip"><b>80%</b><span>解锁标准</span></div>
-          <div class="summary-chip"><b>暂缓</b><span>模块导入</span></div>
+        <div class="path-goal-entry">
+          <span class="meta">输入你的目标，AI 会重排右侧目标路径</span>
+          <div class="path-goal-entry-row">
+            <input id="pathTargetInput" placeholder="例如：我想自己写一个成绩统计程序">
+            <button class="btn" id="applyPathTarget">生成路径</button>
+          </div>
         </div>
       </div>
 
@@ -920,54 +1604,129 @@
             <div class="overview-item"><span>当前目标</span><b>Python 函数与模块</b></div>
             <div class="overview-item"><span>路径进度</span><div style="display:flex;align-items:center;gap:10px;margin-top:6px"><div class="progress-ring"><span>62%</span></div><div class="bar" style="width:72px"><i style="width:62%"></i></div></div></div>
             <div class="overview-item"><span>当前阶段</span><b>薄弱点补强</b><p class="meta">第 2 / 7 步</p></div>
-            <div class="overview-item"><span>路径变化</span><b>模块导入暂缓</b><p class="meta">返回值掌握度下降</p></div>
+            <div class="overview-item"><span>当前重点</span><b>先补返回值</b><p class="meta">通过后再进模块导入</p></div>
             <div style="display:grid;gap:8px;min-width:150px"><button class="btn" data-jump="resources">开始今日路径</button><button class="btn secondary" data-jump="profile">调整目标</button></div>
           </div>
         </div>
 
         <div class="path-main-grid">
-          <div class="card">
-            <div class="toolbar"><h2>个性化路线图</h2><span class="meta">当前停留在第 2 步</span></div>
-            <div class="path-steps">
-              <div class="path-step done"><div class="step-dot">✓</div><b>学习诊断</b><span class="pill green">已完成</span><small>15 分钟</small></div>
-              <div class="path-step active"><div class="step-dot">02</div><b>薄弱点补强</b><span class="pill blue">进行中</span><small>45 分钟</small></div>
-              <div class="path-step"><div class="step-dot">03</div><b>概念理解</b><span class="pill">待开始</span><small>60 分钟</small></div>
-              <div class="path-step"><div class="step-dot">04</div><b>针对练习</b><span class="pill">待开始</span><small>50 分钟</small></div>
-              <div class="path-step"><div class="step-dot">05</div><b>综合应用</b><span class="pill">待开始</span><small>45 分钟</small></div>
-              <div class="path-step"><div class="step-dot">06</div><b>阶段测评</b><span class="pill">待开始</span><small>30 分钟</small></div>
-              <div class="path-step locked"><div class="step-dot">锁</div><b>下一单元</b><span class="pill">待解锁</span><small>--</small></div>
+          <div class="card path-graph-card">
+            <div class="toolbar"><h2>当前导航图</h2><span class="meta">从你现在的状态出发，选择下一条学习路径</span></div>
+            <div class="nav-graph-stage">
+              <svg class="nav-graph-lines" viewBox="0 0 760 580" preserveAspectRatio="none" aria-hidden="true">
+                <path class="active" d="M 380 144 C 300 170, 250 212, 180 260"></path>
+                <path class="active" d="M 380 144 C 380 196, 380 228, 380 274"></path>
+                <path d="M 380 144 C 458 170, 520 212, 592 260"></path>
+
+                <path class="active" d="M 180 260 C 164 306, 152 342, 146 390"></path>
+                <path class="active" d="M 180 260 C 176 308, 170 356, 170 430"></path>
+
+                <path class="active" d="M 380 274 C 380 322, 380 356, 380 404"></path>
+                <path class="active" d="M 380 404 C 380 438, 380 462, 380 498"></path>
+
+                <path d="M 592 260 C 610 308, 626 344, 634 390"></path>
+                <path d="M 592 260 C 580 310, 566 356, 546 430"></path>
+              </svg>
+
+              <div class="branch-badge" style="left:56px;top:30px;">左：补弱路径</div>
+              <div class="branch-badge" style="left:328px;top:30px;">中：达标路径</div>
+              <div class="branch-badge" style="right:58px;top:30px;">右：目标路径</div>
+
+              <div class="nav-hub">
+                <div class="nav-hub-dot"></div>
+                <h3>当前学习状态</h3>
+                <p>从当前状态分出补弱、达标、目标三条路径，点击路径查看对应建议和资源。</p>
+              </div>
+
+              <div class="nav-branch active" data-branch="weak" style="left:82px;top:206px;">
+                <div class="branch-title"><i></i>补弱路径</div>
+                <div class="branch-node-list">
+                  <div class="branch-node current" data-branch="weak"><div class="branch-node-dot"></div><div class="branch-node-label">回看返回值短讲义</div></div>
+                  <div class="branch-node" data-branch="weak"><div class="branch-node-dot"></div><div class="branch-node-label">补清作用域混淆</div></div>
+                  <div class="branch-node" data-branch="weak"><div class="branch-node-dot"></div><div class="branch-node-label">做 5 题补弱短练</div></div>
+                </div>
+              </div>
+
+              <div class="nav-branch center" data-branch="standard" style="left:282px;top:220px;">
+                <div class="branch-title"><i></i>达标路径</div>
+                <div class="branch-node-list">
+                  <div class="branch-node done" data-branch="standard"><div class="branch-node-dot"></div><div class="branch-node-label">回顾函数定义</div></div>
+                  <div class="branch-node current" data-branch="standard"><div class="branch-node-dot"></div><div class="branch-node-label">完成返回值理解</div></div>
+                  <div class="branch-node" data-branch="standard"><div class="branch-node-dot"></div><div class="branch-node-label">完成 8 题达标练习</div></div>
+                  <div class="branch-node" data-branch="standard"><div class="branch-node-dot"></div><div class="branch-node-label">进入模块导入</div></div>
+                </div>
+              </div>
+
+              <div class="nav-branch" data-branch="goal" style="right:72px;top:206px;">
+                <div class="branch-title"><i></i>目标路径</div>
+                <div class="branch-node-list">
+                  <div class="branch-node" data-branch="goal"><div class="branch-node-dot"></div><div class="branch-node-label" id="goalPathNode1">进入模块导入</div></div>
+                  <div class="branch-node locked" data-branch="goal"><div class="branch-node-dot"></div><div class="branch-node-label" id="goalPathNode2">学习文件读写</div></div>
+                  <div class="branch-node locked" data-branch="goal"><div class="branch-node-dot"></div><div class="branch-node-label" id="goalPathNode3">完成成绩统计项目</div></div>
+                </div>
+              </div>
             </div>
-            <div class="current-node-panel">
-              <div class="node-answer"><b>我现在在哪？</b><span>正在补强“函数返回值与作用域修正”，先解决 return、print 和局部变量混淆。</span></div>
-              <div class="node-answer"><b>为什么这样安排？</b><span>最近 3 道错题都和返回值有关，直接学模块导入会增加理解负担。</span></div>
-              <div class="node-answer"><b>什么时候进入下一步？</b><span>完成 5 道达标题且正确率达到 80%，即可进入核心概念理解。</span></div>
-              <div class="node-answer"><b>这个节点怎么学？</b><span>先看 12 分钟代码案例讲义，再做返回值短练，最后让 AI 解释错因。</span></div>
+            <div class="path-legend">
+              <span class="legend-chip">绿色：已完成</span>
+              <span class="legend-chip">蓝色：当前推荐</span>
+              <span class="legend-chip">灰色：未开始</span>
             </div>
             <div class="path-actions">
-              <button class="btn" data-jump="resources">学习推荐资源</button>
-              <button class="btn secondary" data-jump="practice">进入达标练习</button>
+              <button class="btn" data-jump="resources">学习当前节点资源</button>
+              <button class="btn secondary" data-jump="practice">进入当前节点练习</button>
               <button class="btn tertiary" data-jump="generate">生成补弱资源</button>
             </div>
           </div>
 
           <div class="path-side">
-            <div class="card">
-              <h2>推荐依据</h2>
-              <div class="path-evidence-compact">
-                <div class="evidence-item"><div class="evidence-icon">错</div><div><b>最近错误点</b><p class="meta">返回值相关错误率偏高</p></div></div>
-                <div class="evidence-item"><div class="evidence-icon">度</div><div><b>掌握度</b><p class="meta">模块导入掌握度 48%</p></div></div>
-                <div class="evidence-item"><div class="evidence-icon">偏</div><div><b>学习偏好</b><p class="meta">偏好案例驱动讲解</p></div></div>
-                <div class="evidence-item"><div class="evidence-icon">节</div><div><b>学习节奏</b><p class="meta">已连续学习 12 天</p></div></div>
+            <div class="card branch-panel active" data-branch-panel="weak">
+              <h2>补弱路径建议</h2>
+              <div class="path-method-list">
+                <div class="path-method-item"><b>先补返回值，再补作用域</b><p>这条路径优先解决当前最卡的两个点，尽快把理解上的阻塞打通。</p></div>
+                <div class="path-method-item"><b>建议节奏：资源 10 分钟 + 练习 5 题</b><p>不用铺开整章，先把最小补救做完，再决定要不要回主线。</p></div>
+                <div class="path-method-item"><b>卡住就换一种讲法</b><p>先看更短的例子，再回来看讲义，比死磕长解释更有效。</p></div>
+              </div>
+              <h2 style="margin-top:18px">对应资源</h2>
+              <div class="path-resource-list">
+                <div class="path-resource-item"><b>函数返回值项目讲义</b><p>12 分钟短讲义，直击当前卡点。</p><div class="resource-meta"><span class="tag blue">讲义</span><span class="tag green">优先学习</span></div></div>
+                <div class="path-resource-item"><b>函数作用域错题讲义</b><p>先拆开易错点，再回头做补弱题。</p><div class="resource-meta"><span class="tag">错题讲义</span><span class="tag orange">待复习</span></div></div>
+                <div class="path-resource-item"><b>返回值补弱短练</b><p>5 题短练，只测返回值和作用域。</p><div class="resource-meta"><span class="tag blue">练习</span><span class="tag">5 题</span></div></div>
               </div>
             </div>
-            <div class="card">
-              <h2>路径调整规则</h2>
-              <div class="reason-list section">
-                <div class="reason-item"><b>连续两次达标后进入下一模块</b></div>
-                <div class="reason-item"><b>正确率低于 60% 插入补强内容</b></div>
-                <div class="reason-item"><b>停留过久时调整资源类型</b></div>
+
+            <div class="card branch-panel" data-branch-panel="standard">
+              <h2>达标路径建议</h2>
+              <div class="path-method-list">
+                <div class="path-method-item"><b>按标准路线推进</b><p>先完成当前知识点理解，再做 8 题练习，达到 80% 就进入下一节点。</p></div>
+                <div class="path-method-item"><b>保持当前节奏</b><p>这条路径最稳，不追求最短，但适合稳定推进，不容易反复回退。</p></div>
+                <div class="path-method-item"><b>达标再解锁后续</b><p>做完这轮后，模块导入会成为真正的下一步，而不是提前插入。</p></div>
               </div>
-              <button class="btn ghost section" id="askPathAI">让 AI 解释这次调整 →</button>
+              <h2 style="margin-top:18px">对应资源</h2>
+              <div class="path-resource-list">
+                <div class="path-resource-item"><b>return 到底返回给谁</b><p>5 分钟短动画，适合达标前快速过一遍核心概念。</p><div class="resource-meta"><span class="tag blue">视频</span><span class="tag">已学 70%</span></div></div>
+                <div class="path-resource-item"><b>达标题库：返回值</b><p>8 题达标练习，做完即可判断是否进入下一步。</p><div class="resource-meta"><span class="tag blue">练习</span><span class="tag">80% 通过</span></div></div>
+                <div class="path-resource-item"><b>函数定义与调用回顾卡</b><p>用于进入练习前快速复习前置知识。</p><div class="resource-meta"><span class="tag">复习卡</span><span class="tag green">前置回顾</span></div></div>
+              </div>
+            </div>
+
+            <div class="card branch-panel" data-branch-panel="goal">
+              <h2>目标路径建议</h2>
+              <div class="path-method-list">
+                <div class="path-method-item"><b>先补阻塞点，再朝目标走</b><p>不会直接硬跳到目标，而是先补会阻塞目标达成的关键节点。</p></div>
+                <div class="path-method-item"><b>目标会重排后续路线</b><p>你选的目标不同，后面的知识顺序和资源也会一起变化。</p></div>
+                <div class="path-method-item"><b>优先靠近结果</b><p>这条路径更偏结果导向，适合目标明确、想尽快进入项目或新模块时使用。</p></div>
+              </div>
+              <h2 style="margin-top:18px">对应资源</h2>
+              <div class="path-resource-list">
+                <div class="path-resource-item"><b id="goalResourceTitle1">模块导入过渡讲义</b><p id="goalResourceDesc1">先把返回值和调用关系打通，再衔接到模块导入。</p><div class="resource-meta"><span class="tag blue">讲义</span><span class="tag">目标相关</span></div></div>
+                <div class="path-resource-item"><b id="goalResourceTitle2">文件读写入门卡</b><p id="goalResourceDesc2">当目标涉及项目时，后续会自动补上文件读写这类知识点。</p><div class="resource-meta"><span class="tag">补充资源</span><span class="tag gray">后续解锁</span></div></div>
+                <div class="path-resource-item"><b id="goalResourceTitle3">项目准备清单</b><p id="goalResourceDesc3">围绕最终目标整理接下来要学的节点和资源。</p><div class="resource-meta"><span class="tag green">目标包</span><span class="tag">自动规划</span></div></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <button class="btn secondary" data-jump="resources">查看全部资源</button>
+              <button class="btn ghost" id="askPathAI">让 AI 推荐先走哪条</button>
             </div>
           </div>
         </div>
@@ -1046,7 +1805,7 @@
                 <div class="section">
                   <h3>参考我的资料</h3>
                   <div class="source-summary section">
-                    <div><b id="sourceSummaryTitle">已选择 1 份资料</b><p class="meta" id="sourceHint">函数返回值错题整理.pdf。生成内容会优先参考这份资料。</p></div>
+                    <div><b id="sourceSummaryTitle">已选择 1 份资料</b><p class="meta" id="sourceHint">函数返回值错题整理.pdf。生成内容会优先参考这些资料。</p></div>
                     <button class="btn secondary" id="openSourceModal">选择资料</button>
                   </div>
                 </div>
@@ -1160,19 +1919,19 @@
       </div>
 
       <div class="material-stats section">
-        <div class="card material-stat"><div class="material-icon blue"><svg viewBox="0 0 24 24"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg></div><div><span class="meta">上传文件</span><b>12 个</b><p class="meta">本月新增 3 个文件</p></div></div>
-        <div class="card material-stat"><div class="material-icon green"><svg viewBox="0 0 24 24"><path d="M7 7h12v12H7z"/><path d="M5 5h12"/><path d="M3 3h12"/></svg></div><div><span class="meta">已整理资料</span><b>9 个</b><p class="meta">整理完成率 75%</p></div></div>
-        <div class="card material-stat"><div class="material-icon purple"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></svg></div><div><span class="meta">知识片段</span><b>186 条</b><p class="meta">可用于学习与检索</p></div></div>
-        <div class="card material-stat"><div class="material-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M9 15c1.5 1 4.5 1 6 0"/></svg></div><div><span class="meta">AI 引用次数</span><b>28 次</b><p class="meta">近30天使用 18 次</p></div></div>
+        <div class="card material-stat"><div class="material-icon blue"><svg viewBox="0 0 24 24"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M5 20h14"></path></svg></div><div><span class="meta">上传文件</span><b>12 个</b><p class="meta">本月新增 3 个文件</p></div></div>
+        <div class="card material-stat"><div class="material-icon green"><svg viewBox="0 0 24 24"><path d="M7 7h12v12H7z"></path><path d="M5 5h12"></path><path d="M3 3h12"></path></svg></div><div><span class="meta">已整理资料</span><b>9 个</b><p class="meta">整理完成率 75%</p></div></div>
+        <div class="card material-stat"><div class="material-icon purple"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path><path d="M10 13h6"></path><path d="M10 17h6"></path></svg></div><div><span class="meta">知识片段</span><b>186 条</b><p class="meta">可用于学习与检索</p></div></div>
+        <div class="card material-stat"><div class="material-icon orange"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M9 10h.01"></path><path d="M15 10h.01"></path><path d="M9 15c1.5 1 4.5 1 6 0"></path></svg></div><div><span class="meta">AI 引用次数</span><b>28 次</b><p class="meta">近30天使用 18 次</p></div></div>
       </div>
 
       <div class="material-middle section">
         <div class="card material-upload">
           <h2>上传学习资料</h2>
           <label class="material-upload-zone" for="knowledgeUpload">
-            <input id="knowledgeUpload" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style="display:none">
+            <input id="knowledgeUpload" type="file" multiple="" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style="display:none">
             <div>
-              <div class="material-icon blue" style="margin:0 auto"><svg viewBox="0 0 24 24"><path d="M12 16V5"/><path d="m8 9 4-4 4 4"/><path d="M20 16.5A4.5 4.5 0 0 1 15.5 21h-7A5.5 5.5 0 1 1 10 10.2"/></svg></div>
+              <div class="material-icon blue" style="margin:0 auto"><svg viewBox="0 0 24 24"><path d="M12 16V5"></path><path d="m8 9 4-4 4 4"></path><path d="M20 16.5A4.5 4.5 0 0 1 15.5 21h-7A5.5 5.5 0 1 1 10 10.2"></path></svg></div>
               <b>拖拽文件到这里，或点击上传</b>
               <span class="btn">上传资料</span>
               <p class="meta" style="margin-top:10px">支持格式：PDF、DOCX、PPT、XLSX、TXT</p>
@@ -1191,7 +1950,7 @@
             <div class="material-searchbar">
               <input class="search" placeholder="搜索文件名、标签或内容">
               <button class="filter-chip active">全部</button><button class="filter-chip">已整理</button><button class="filter-chip">待补充</button>
-              <button class="btn secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg>筛选</button>
+              <button class="btn secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18l-7 8v5l-4 2v-7z"></path></svg>筛选</button>
             </div>
           </div>
           <table class="material-table">
@@ -1231,9 +1990,9 @@
         <div class="card">
           <h2>隐私与引用说明</h2>
           <div class="privacy-list section">
-            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3.5 8.5 7 10 3.5-1.5 7-5 7-10V6z"/></svg><div><b>仅你可见</b><p class="meta">资料仅对你个人可见，学而思不会用于模型训练。</p></div></div>
-            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M9 11h6"/><path d="M9 15h6"/><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg><div><b>来源可追溯</b><p class="meta">AI 使用资料内容时，会明确标注引用来源。</p></div></div>
-            <div class="privacy-row"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div><b>安全存储</b><p class="meta">采用企业级加密存储，保障你的数据安全。</p></div></div>
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 5 3.5 8.5 7 10 3.5-1.5 7-5 7-10V6z"></path></svg><div><b>仅你可见</b><p class="meta">资料仅对你个人可见，学而思不会用于模型训练。</p></div></div>
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><path d="M9 11h6"></path><path d="M9 15h6"></path><path d="M7 3h7l5 5v13H7z"></path><path d="M14 3v5h5"></path></svg><div><b>来源可追溯</b><p class="meta">AI 使用资料内容时，会明确标注引用来源。</p></div></div>
+            <div class="privacy-row"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><div><b>安全存储</b><p class="meta">采用企业级加密存储，保障你的数据安全。</p></div></div>
           </div>
           <button class="btn ghost section" id="askKnowledgeAI">了解更多隐私政策 →</button>
         </div>
@@ -1367,9 +2126,9 @@ print(result)</pre>
     <section class="page" id="report">
       <div class="page-head">
         <div>
-          <div class="topline">学习报告 / 证据、总结与回流</div>
-          <h1>学习报告</h1>
-          <p class="lead">总结本轮学习证据，并说明画像、路径和推荐如何更新。</p>
+          <div class="topline">学习结果 / 学完之后你现在到哪了</div>
+          <h1>学习结果</h1>
+          <p class="lead">这一页只看结果、卡点和下一步，不再展示系统内部回流说明。</p>
         </div>
         <div class="status-summary">
           <div class="summary-chip"><b>81%</b><span>任务完成</span></div>
@@ -1386,27 +2145,27 @@ print(result)</pre>
       </div>
       <div class="grid cols-2 section">
         <div class="card">
-          <h2>学习行为与资源使用</h2>
+          <h2>这轮你完成了什么</h2>
           <div class="chart"><div style="height:60%"></div><div style="height:88%"></div><div style="height:42%"></div><div style="height:74%"></div><div style="height:96%"></div><div style="height:51%"></div><div style="height:68%"></div></div>
           <div class="evidence-grid section">
-            <div class="soft-card"><b>资源</b><p class="meta">完成 3 个，平均进度 68%</p></div>
-            <div class="soft-card"><b>练习</b><p class="meta">完成 22 题，错题 6 题</p></div>
-            <div class="soft-card"><b>路径</b><p class="meta">当前节点暂缓推进</p></div>
+            <div class="soft-card"><b>资源学习</b><p class="meta">完成 3 个资源，核心讲义已经过完一遍。</p></div>
+            <div class="soft-card"><b>练习完成</b><p class="meta">做了 22 题，已经知道主要卡在哪几类题。</p></div>
+            <div class="soft-card"><b>当前进度</b><p class="meta">这一阶段已经推进到模块前的最后补强。</p></div>
           </div>
         </div>
         <div class="card">
-          <span class="pill purple">AI 总结</span>
-          <h2 style="margin-top:12px">本阶段建议</h2>
-          <p class="meta section">基础语法稳定，但函数返回值和局部变量仍影响项目实践。建议完成返回值补弱包，再做 8 道同类题；达标后进入模块导入。</p>
+          <span class="pill purple">下一步</span>
+          <h2 style="margin-top:12px">先把返回值这块补过去</h2>
+          <p class="meta section">你已经把大部分基础内容走完了。现在只要把 `return` 和作用域这块补顺，就可以继续进入模块导入。</p>
           <div class="timeline section">
-            <div class="time-item"><b>画像已更新</b><span>薄弱点加入函数返回值，偏好保留案例驱动。</span></div>
-            <div class="time-item"><b>路径待确认</b><span>模块导入节点需练习达标后解锁。</span></div>
-            <div class="time-item"><b>工作台已生成下一轮任务</b><span>明日优先展示短资源和达标练习。</span></div>
+            <div class="time-item"><b>先看一个更短的例子</b><span>把结果传递的过程看懂，再做题会更稳。</span></div>
+            <div class="time-item"><b>补 8 道同类短练习</b><span>只针对返回值和作用域，不要再分散注意力。</span></div>
+            <div class="time-item"><b>做完就确认下一步</b><span>达标后直接进入模块导入，不需要再重复这一轮。</span></div>
           </div>
           <div style="display:grid;gap:10px;margin-top:16px">
-            <button class="btn" data-jump="dashboard">生成下一轮工作台任务</button>
-            <button class="btn secondary" data-jump="path">确认路径调整</button>
-            <button class="btn secondary" data-jump="profile">查看画像变化</button>
+            <button class="btn" data-jump="resources">先去补当前卡点</button>
+            <button class="btn secondary" data-jump="practice">直接开始短练习</button>
+            <button class="btn secondary" data-jump="path">回到当前路径</button>
           </div>
         </div>
       </div>
@@ -1415,23 +2174,34 @@ print(result)</pre>
     <section class="page" id="loop">
       <div class="page-head">
         <div>
-          <div class="topline">闭环关系图 / 开发对齐</div>
-          <h1>学习闭环关系图</h1>
-          <p class="lead">说明画像、路径、资源、练习和报告之间的数据回流关系。</p>
+          <div class="topline">复习计划 / 把学过的东西真正留下来</div>
+          <h1>复习计划</h1>
+          <p class="lead">这一页只做一件事：安排你接下来几天怎么复习、练什么、什么时候回看。</p>
         </div>
       </div>
       <div class="grid cols-3 section">
-        <div class="card"><span class="pill blue">01</span><h2 style="margin-top:12px">画像建档</h2><p class="meta section">对话、练习和资源学习共同更新画像，形成薄弱点和偏好判断。</p></div>
-        <div class="card"><span class="pill blue">02</span><h2 style="margin-top:12px">路径规划</h2><p class="meta section">根据画像和掌握度调整节点，明确当前目标和解锁条件。</p></div>
-        <div class="card"><span class="pill blue">03</span><h2 style="margin-top:12px">资源学习</h2><p class="meta section">推荐或生成与当前薄弱点相关的资源，并保存到资源库。</p></div>
-        <div class="card"><span class="pill blue">04</span><h2 style="margin-top:12px">练习评测</h2><p class="meta section">完成判题、解析、错题沉淀和掌握度回写。</p></div>
-        <div class="card"><span class="pill blue">05</span><h2 style="margin-top:12px">报告评估</h2><p class="meta section">总结证据，给出下一轮工作台任务和路径调整建议。</p></div>
-        <div class="card"><span class="pill blue">06</span><h2 style="margin-top:12px">回流更新</h2><p class="meta section">画像、路径、资源推荐和今日任务同步更新，形成下一轮学习闭环。</p></div>
+        <div class="card"><span class="pill blue">今天</span><h2 style="margin-top:12px">先补当前卡点</h2><p class="meta section">看完返回值短讲义，再做 8 道短练习，今天先把这一块学顺。</p><button class="btn secondary section" data-jump="resources">开始今天复习</button></div>
+        <div class="card"><span class="pill blue">明天</span><h2 style="margin-top:12px">回看错题</h2><p class="meta section">只回看今天做错的题，别重新铺开一整套内容。</p><button class="btn secondary section" data-jump="mistakes">去错题本</button></div>
+        <div class="card"><span class="pill blue">后天</span><h2 style="margin-top:12px">确认是否进下一模块</h2><p class="meta section">如果短练习稳定，就进入模块导入；不稳就再补一轮更短资源。</p><button class="btn secondary section" data-jump="path">查看路径</button></div>
       </div>
-      <div class="grid cols-3 section">
-        <div class="card"><h2>资源推送下沉</h2><p class="meta section">出现在工作台、路径节点、错题补弱、报告建议和资源库，不作为一级页面。</p></div>
-        <div class="card"><h2>视频播放下沉</h2><p class="meta section">作为资源类型进入资源中心和资源预览体系。</p></div>
-        <div class="card"><h2>AI 学习助手全局化</h2><p class="meta section">悬浮出现，按当前页面提供画像解释、路径建议、题目讲解、资源解释和报告解读。</p></div>
+      <div class="grid cols-2 section">
+        <div class="card">
+          <h2>这周复习提醒</h2>
+          <div class="timeline section">
+            <div class="time-item"><b>周一到周三</b><span>优先补函数返回值和作用域，别同时开新知识点。</span></div>
+            <div class="time-item"><b>每次练习后</b><span>只留下 1 到 2 类高频错题，别把错题本堆得过大。</span></div>
+            <div class="time-item"><b>准备进入新模块前</b><span>先做一轮 5 题短测，确认不是靠记忆碰巧做对。</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>AI 能帮你的地方</h2>
+          <div class="stack section">
+            <div class="soft-card"><b>把今天内容压缩成 10 分钟版</b><p class="meta">适合时间紧的时候快速过一遍。</p></div>
+            <div class="soft-card"><b>把错题改成同类新题</b><p class="meta">避免只记住答案，测真正掌握没有。</p></div>
+            <div class="soft-card"><b>用更简单的例子重讲</b><p class="meta">卡住时直接换一种讲法，不用硬撑。</p></div>
+          </div>
+          <button class="btn section" id="askLoopAI">让 AI 帮我排今天的复习</button>
+        </div>
       </div>
     </section>
 
@@ -1447,7 +2217,7 @@ print(result)</pre>
     <div class="modal-body">
       <div class="filter-row" style="margin-top:0"><input class="search" placeholder="搜索资料名称、标签或内容"><button class="btn secondary" data-jump="knowledge">管理资料</button></div>
       <div class="choice-list section" id="sourceList">
-        <label class="source-card selected"><input type="checkbox" class="source-check" checked data-title="函数返回值错题整理.pdf"><div><b>函数返回值错题整理.pdf</b><span>已整理 · 错题补弱 · 适合生成讲义和达标题</span></div></label>
+        <label class="source-card selected"><input type="checkbox" class="source-check" checked="" data-title="函数返回值错题整理.pdf"><div><b>函数返回值错题整理.pdf</b><span>已整理 · 错题补弱 · 适合生成讲义和达标题</span></div></label>
         <label class="source-card"><input type="checkbox" class="source-check" data-title="阶段练习成绩.xlsx"><div><b>阶段练习成绩.xlsx</b><span>已整理 · 练习数据 · 适合调整难度和题量</span></div></label>
         <label class="source-card"><input type="checkbox" class="source-check" data-title="老师课堂笔记.docx"><div><b>老师课堂笔记.docx</b><span>整理中 · 课堂笔记 · 可先作为补充参考</span></div></label>
       </div>
@@ -1462,14 +2232,14 @@ print(result)</pre>
 <div class="ai-widget minimized" id="aiWidget">
   <aside class="ai-panel" id="aiPanel">
     <header id="aiDragHandle">
-      <div><h2>AI 学习助手</h2><p class="meta" id="aiContext">当前在学习工作台，我可以解释今日任务为什么这样安排。</p></div>
+      <div><h2>AI 学习助手</h2><p class="meta" id="aiContext">当前在学习工作台，我可以直接带你开始今天的任务。</p></div>
       <div class="ai-panel-actions"><button id="aiMinimize" aria-label="缩小">−</button></div>
     </header>
     <div class="body">
-      <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">你可以问：为什么今天先补函数返回值？</div></div>
+      <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">你可以问：先给我一个 5 分钟版本开始。</div></div>
       <div class="quick-row">
         <button class="quick" id="quickExplain">我看不懂这节</button>
-        <button class="quick" id="quickNext">调整今日任务</button>
+        <button class="quick" id="quickNext">调整回顾顺序</button>
         <button class="quick" id="quickProfile">更新学习画像</button>
       </div>
     </div>
@@ -1481,17 +2251,17 @@ print(result)</pre>
   const navButtons = document.querySelectorAll('.nav-btn');
   const pages = document.querySelectorAll('.page');
   const contexts = {
-    dashboard: ['当前在学习工作台，我可以解释今日任务为什么这样安排。', '你可以问：为什么今天先补函数返回值？'],
-    profile: ['当前在学习画像页，我可以解释画像标签的来源，并帮助更新画像。', '你可以问：为什么我的返回值掌握度只有 48%？'],
-    path: ['当前在学习路径页，我可以解释节点顺序、达标条件和路径调整原因。', '你可以问：为什么模块导入暂缓？'],
-    generate: ['当前在资源中心，我可以帮你优化生成要求、解释生成过程，或带你进入资源库和我的资料库。', '你可以问：怎样生成更适合项目实践的资源？'],
-    resources: ['当前在资源库，我可以讲解资源内容并建议下一步学习动作。', '你可以问：这个资源解决哪个薄弱点？'],
-    knowledge: ['当前在我的资料库，我可以帮你整理上传资料，并说明 AI 会怎样参考这些资料回答和生成资源。', '你可以问：这份资料能帮我复习什么？'],
+    dashboard: ['当前在学习工作台，我可以直接带你开始今天的任务。', '你可以问：先给我一个 5 分钟版本开始。'],
+    profile: ['当前在学习画像页，我可以按你想要的方式调整今天的学法。', '你可以问：我想先看例子再做题。'],
+    path: ['当前在学习路径页，我可以把这一步拆成更容易完成的小任务。', '你可以问：把这一页变成 15 分钟内能完成。'],
+    generate: ['当前在资源中心，我可以帮你直接产出更适合现在卡点的学习材料。', '你可以问：给我一份只讲 return 的短讲义。'],
+    resources: ['当前在资源库，我可以帮你从上次中断的地方继续学。', '你可以问：从最短的资源开始。'],
+    knowledge: ['当前在我的资料库，我可以帮你整理资料，并直接拿来生成学习内容。', '你可以问：用这份资料做一轮复习。'],
     practice: ['当前在练习评测页，我可以讲题、分析错因并推荐补弱资源。', '你可以问：为什么这题答案是 None？'],
     mistakes: ['当前在错题本，我可以按知识点解释错因，并生成同类练习。', '你可以问：为什么这些题都错在 return？'],
     favorites: ['当前在收藏题目页，我可以把收藏题整理成复习练习。', '你可以问：用收藏题生成 10 道复习题。'],
-    report: ['当前在学习报告页，我可以解读证据并生成下一轮行动建议。', '你可以问：下一步先练习还是先看资源？'],
-    loop: ['当前在闭环关系图，我可以解释页面职责和能力下沉边界。', '你可以问：资源推送为什么不做一级入口？']
+    report: ['当前在学习结果页，我可以直接告诉你下一步做什么。', '你可以问：我现在先看资源还是先做题？'],
+    loop: ['当前在复习计划页，我可以帮你排今天和接下来两天的复习。', '你可以问：给我一个 3 天复习安排。']
   };
   const pageNames = {
     dashboard: '学习工作台',
@@ -1503,8 +2273,8 @@ print(result)</pre>
     practice: '练习评测',
     mistakes: '错题本',
     favorites: '收藏题目',
-    report: '学习报告',
-    loop: '闭环关系图'
+    report: '学习结果',
+    loop: '复习计划'
   };
   function showPage(id, options = {}) {
     pages.forEach(page => page.classList.toggle('active', page.id === id));
@@ -1595,46 +2365,68 @@ print(result)</pre>
     document.getElementById('aiBubble').textContent = '我会先用一个更短的例子解释当前薄弱点，再给你 2 道检查题确认是否听懂。';
   });
   document.getElementById('quickNext').addEventListener('click', () => {
-    document.getElementById('aiBubble').textContent = '可以调整今日任务顺序，但建议保留“资源学习、针对练习、路径确认”这三个动作。';
+    document.getElementById('aiBubble').textContent = '可以把回顾资源的顺序换一下。我建议先看没学完的内容，再回看错题讲义，最后决定要不要开始新资源。';
   });
   document.getElementById('quickProfile').addEventListener('click', () => {
-    document.getElementById('aiBubble').textContent = '我会根据你的回答更新学习画像，并说明更新后会影响哪些资源、练习和路径节点。';
+    document.getElementById('aiBubble').textContent = '告诉我你更想先看例子、先做题，还是想把任务压缩到 10 分钟，我会按这个方式调整。';
   });
-  const todayTaskList = document.getElementById('todayTaskList');
-  function updateTaskCount() {
-    const total = todayTaskList.querySelectorAll('.task-row').length;
-    const done = todayTaskList.querySelectorAll('.task-row.done').length;
-    document.getElementById('taskCount').textContent = `${done}/${total} 完成`;
+  const pathBranches = document.querySelectorAll('.nav-branch');
+  const branchPanels = document.querySelectorAll('.branch-panel');
+  const pathBranchAdvice = {
+    weak: '先走补弱路径更稳。我会先用短讲义帮你补“返回值”和“作用域”，再给你 5 题短练习确认是否补上了。',
+    standard: '达标路径最标准。先完成当前节点理解，再做 8 题练习，过线后直接进入模块导入。',
+    goal: '目标路径更偏结果导向。我会先保留必要补强，再把后面的节点按你的目标重排。'
+  };
+  function setActiveBranch(branch) {
+    pathBranches.forEach(item => item.classList.toggle('active', item.dataset.branch === branch));
+    branchPanels.forEach(panel => panel.classList.toggle('active', panel.dataset.branchPanel === branch));
   }
-  function bindTaskRow(row) {
-    row.querySelector('.task-check').addEventListener('change', event => {
-      row.classList.toggle('done', event.target.checked);
-      updateTaskCount();
-    });
-    row.querySelector('.task-delete').addEventListener('click', () => {
-      row.remove();
-      updateTaskCount();
-    });
+  pathBranches.forEach(branch => {
+    branch.addEventListener('click', () => setActiveBranch(branch.dataset.branch));
+  });
+  document.querySelectorAll('.branch-node').forEach(node => {
+    node.addEventListener('click', () => setActiveBranch(node.dataset.branch));
+  });
+  function applyGoalTarget(label) {
+    document.getElementById('goalPathNode1').textContent = label.includes('模块') ? '进入模块导入' : label.includes('函数') ? '完成函数掌握' : '进入项目准备';
+    document.getElementById('goalPathNode2').textContent = label.includes('模块') ? '学习文件读写' : label.includes('函数') ? '完成达标练习' : '补函数与模块衔接';
+    document.getElementById('goalPathNode3').textContent = label.includes('模块') ? '完成模块小练习' : label.includes('函数') ? '进入模块导入' : label;
+    document.getElementById('goalResourceTitle1').textContent = label.includes('模块') ? '模块导入过渡讲义' : label.includes('函数') ? '函数达标冲刺包' : '项目目标过渡讲义';
+    document.getElementById('goalResourceDesc1').textContent = label.includes('模块')
+      ? '先把返回值和调用关系打通，再衔接到模块导入。'
+      : label.includes('函数')
+        ? '围绕“完成函数掌握”重排资源顺序，先达标再进入下一模块。'
+        : `围绕“${label}”自动重排路径，先补阻塞点再推进目标。`;
+    document.getElementById('goalResourceTitle2').textContent = label.includes('项目') ? '项目前置节点清单' : '文件读写入门卡';
+    document.getElementById('goalResourceDesc2').textContent = label.includes('项目')
+      ? '把项目目标拆成模块、文件和实践三个前置节点。'
+      : '当目标涉及项目时，后续会自动补上文件读写这类知识点。';
+    document.getElementById('goalResourceTitle3').textContent = label.includes('项目') ? '成绩统计项目准备包' : '项目准备清单';
+    document.getElementById('goalResourceDesc3').textContent = label.includes('项目')
+      ? '包含项目步骤、所需函数节点和对应练习。'
+      : '围绕最终目标整理接下来要学的节点和资源。';
   }
-  todayTaskList.querySelectorAll('.task-row').forEach(bindTaskRow);
-  document.getElementById('addTask').addEventListener('click', () => {
-    const input = document.getElementById('newTaskInput');
+  document.getElementById('applyPathTarget').addEventListener('click', () => {
+    const input = document.getElementById('pathTargetInput');
     const value = input.value.trim();
     if (!value) return;
-    const row = document.createElement('div');
-    row.className = 'task-row';
-    row.innerHTML = '<input class="task-check" type="checkbox"><div><b></b><span>用户自定义任务</span></div><button class="btn tertiary" type="button">查看</button><button class="task-delete" aria-label="删除">×</button>';
-    row.querySelector('b').textContent = value;
-    bindTaskRow(row);
-    todayTaskList.appendChild(row);
-    input.value = '';
-    updateTaskCount();
+    applyGoalTarget(value);
+    setActiveBranch('goal');
+    openAI();
+    document.getElementById('aiBubble').textContent = `我已经按“${value}”重排目标路径。会先补掉阻塞点，再把后面的节点和资源朝这个目标推进。`;
   });
-  updateTaskCount();
   document.getElementById('askPathAI').addEventListener('click', () => {
     openAI();
-    document.getElementById('aiBubble').textContent = '模块导入依赖你能理解函数如何传出结果。当前返回值掌握度只有 48%，直接进入模块导入会让后续 import、调用和拆分代码更难理解。';
+    const activeBranch = document.querySelector('.nav-branch.active');
+    document.getElementById('aiBubble').textContent = pathBranchAdvice[activeBranch ? activeBranch.dataset.branch : 'weak'];
   });
+  const askLoopAI = document.getElementById('askLoopAI');
+  if (askLoopAI) {
+    askLoopAI.addEventListener('click', () => {
+      openAI();
+      document.getElementById('aiBubble').textContent = '今天先看 10 分钟短讲义，再做 5 到 8 道短练习。明天只回看错题，后天再决定要不要进下一模块。';
+    });
+  }
 
   const toggleProfileChat = document.getElementById('toggleProfileChat');
   const profileChatBox = document.getElementById('profileChatBox');
@@ -1891,5 +2683,6 @@ print(result)</pre>
     document.querySelector('.question-index.active').textContent = '错';
   });
 </script>
-</body>
-</html>
+
+
+</body></html>
