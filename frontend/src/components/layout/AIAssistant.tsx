@@ -210,41 +210,54 @@ export function AIAssistant() {
         onPointerMove={!open ? handlePointerMove : undefined}
         onPointerUp={!open ? handlePointerUp : undefined}
       >
-        {/* Closed state: small icon with 3D tilt */}
+        {/* Closed state: original 3D sprite scaled down */}
         {!open && (
-          <div
-            className="closed-icon"
-            style={{
-              transform: `scale(0.42) perspective(800px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) translateZ(20px)`,
-            }}
-          >
-            <div className="icon-bg">
-              <div className="balls">
-                <span className="ball rosa" />
-                <span className="ball violet" />
-                <span className="ball green" />
-                <span className="ball cyan" />
-              </div>
-            </div>
-            <div className="icon-face">
-              <div className="eyes">
-                <span className="eye" />
-                <span className="eye" />
-              </div>
-              <div className="eyes happy">
-                <svg fill="none" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M8.28386 16.2843C8.9917 15.7665 9.8765 14.731 12 14.731C14.1235 14.731 15.0083 15.7665 15.7161 16.2843C17.8397 17.8376 18.7542 16.4845 18.9014 15.7665C19.4323 13.1777 17.6627 11.1066 17.3088 10.5888C16.3844 9.23666 14.1235 8 12 8C9.87648 8 7.61556 9.23666 6.69122 10.5888C6.33728 11.1066 4.56771 13.1777 5.09858 15.7665C5.24582 16.4845 6.16034 17.8376 8.28386 16.2843Z"
-                  />
-                </svg>
-                <svg fill="none" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M8.28386 16.2843C8.9917 15.7665 9.8765 14.731 12 14.731C14.1235 14.731 15.0083 15.7665 15.7161 16.2843C17.8397 17.8376 18.7542 16.4845 18.9014 15.7665C19.4323 13.1777 17.6627 11.1066 17.3088 10.5888C16.3844 9.23666 14.1235 8 12 8C9.87648 8 7.61556 9.23666 6.69122 10.5888C6.33728 11.1066 4.56771 13.1777 5.09858 15.7665C5.24582 16.4845 6.16034 17.8376 8.28386 16.2843Z"
-                  />
-                </svg>
-              </div>
+          <div className="closed-sprite-wrapper">
+            <div className="container-ai-input">
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <div className="area" />
+              <label className="container-wrap">
+                <input type="checkbox" readOnly checked={false} />
+                <div className="card">
+                  <div className="background-blur-balls">
+                    <div className="balls">
+                      <span className="ball rosa" />
+                      <span className="ball violet" />
+                      <span className="ball green" />
+                      <span className="ball cyan" />
+                    </div>
+                  </div>
+                  <div className="content-card">
+                    <div className="background-blur-card">
+                      <div className="eyes">
+                        <span className="eye" />
+                        <span className="eye" />
+                      </div>
+                      <div className="eyes happy">
+                        <svg fill="none" viewBox="0 0 24 24">
+                          <path fill="currentColor" d="M8.28386 16.2843C8.9917 15.7665 9.8765 14.731 12 14.731C14.1235 14.731 15.0083 15.7665 15.7161 16.2843C17.8397 17.8376 18.7542 16.4845 18.9014 15.7665C19.4323 13.1777 17.6627 11.1066 17.3088 10.5888C16.3844 9.23666 14.1235 8 12 8C9.87648 8 7.61556 9.23666 6.69122 10.5888C6.33728 11.1066 4.56771 13.1777 5.09858 15.7665C5.24582 16.4845 6.16034 17.8376 8.28386 16.2843Z" />
+                        </svg>
+                        <svg fill="none" viewBox="0 0 24 24">
+                          <path fill="currentColor" d="M8.28386 16.2843C8.9917 15.7665 9.8765 14.731 12 14.731C14.1235 14.731 15.0083 15.7665 15.7161 16.2843C17.8397 17.8376 18.7542 16.4845 18.9014 15.7665C19.4323 13.1777 17.6627 11.1066 17.3088 10.5888C16.3844 9.23666 14.1235 8 12 8C9.87648 8 7.61556 9.23666 6.69122 10.5888C6.33728 11.1066 4.56771 13.1777 5.09858 15.7665C5.24582 16.4845 6.16034 17.8376 8.28386 16.2843Z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </label>
             </div>
           </div>
         )}
@@ -425,37 +438,113 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     cursor: ${({ $open }) => ($open ? 'default' : 'grabbing')};
   }
 
-  /* ===== Closed icon ===== */
-  .closed-icon {
-    width: 12rem;
-    height: 12rem;
-    border-radius: 3rem;
+  /* ===== Closed sprite (original structure, scaled down) ===== */
+  .closed-sprite-wrapper {
+    width: 80px;
+    height: 80px;
     position: relative;
-    transition: transform 0.15s ease-out;
-    will-change: transform;
-    transform-origin: center center;
+    overflow: visible;
   }
 
-  .closed-icon:hover .eyes .eye {
-    display: none;
-  }
-
-  .closed-icon:hover .eyes.happy {
-    display: flex;
-  }
-
-  .icon-bg {
+  .container-ai-input {
+    --perspective: 1000px;
+    --translateY: 45px;
     position: absolute;
-    inset: 0;
+    left: 50%;
+    top: 50%;
+    width: 12rem;
+    height: 17rem;
+    margin-left: -6rem;
+    margin-top: -8.5rem;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    transform-style: preserve-3d;
+    transform: scale(0.42);
+  }
+
+  .container-wrap {
+    display: flex;
+    align-items: center;
+    justify-items: center;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    z-index: 9;
+    transform-style: preserve-3d;
+    cursor: pointer;
+    padding: 4px;
+    transition: all 0.3s ease;
+  }
+
+  .container-wrap:hover {
+    padding: 0;
+  }
+
+  .container-wrap:active {
+    transform: translateX(-50%) translateY(-50%) scale(0.95);
+  }
+
+  .container-wrap:after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-55%);
+    width: 12rem;
+    height: 11rem;
+    background-color: #dedfe0;
+    border-radius: 3.2rem;
+    transition: all 0.3s ease;
+  }
+
+  .container-wrap:hover:after {
+    transform: translateX(-50%) translateY(-50%);
+    height: 12rem;
+  }
+
+  .container-wrap input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+
+  .card {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: all 0.6s ease;
     border-radius: 3rem;
-    background-color: rgba(255, 255, 255, 0.8);
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    transform: translateZ(50px);
+    justify-content: center;
+  }
+
+  .card:hover {
     box-shadow:
       0 10px 40px rgba(0, 0, 60, 0.25),
       inset 0 0 10px rgba(255, 255, 255, 0.5);
   }
 
-  .icon-bg .balls {
+  .background-blur-balls {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    width: 100%;
+    height: 100%;
+    z-index: -10;
+    border-radius: 3rem;
+    transition: all 0.3s ease;
+    background-color: rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+  }
+
+  .balls {
     position: absolute;
     left: 50%;
     top: 50%;
@@ -463,11 +552,11 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     animation: rotate-background-balls 10s linear infinite;
   }
 
-  .closed-icon:hover .balls {
+  .container-wrap:hover .balls {
     animation-play-state: paused;
   }
 
-  .icon-bg .ball {
+  .background-blur-balls .ball {
     width: 6rem;
     height: 6rem;
     position: absolute;
@@ -475,45 +564,54 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     filter: blur(30px);
   }
 
-  .icon-bg .ball.violet {
+  .background-blur-balls .ball.violet {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
     background-color: #9147ff;
   }
 
-  .icon-bg .ball.green {
+  .background-blur-balls .ball.green {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     background-color: #34d399;
   }
 
-  .icon-bg .ball.rosa {
+  .background-blur-balls .ball.rosa {
     top: 50%;
     left: 0;
     transform: translateY(-50%);
     background-color: #ec4899;
   }
 
-  .icon-bg .ball.cyan {
+  .background-blur-balls .ball.cyan {
     top: 50%;
     right: 0;
     transform: translateY(-50%);
     background-color: #05e0f5;
   }
 
-  .icon-face {
-    position: absolute;
-    inset: 0;
+  .content-card {
+    width: 12rem;
+    height: 12rem;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(50px);
     border-radius: 3rem;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .background-blur-card {
+    width: 100%;
+    height: 100%;
+    backdrop-filter: blur(50px);
   }
 
   .eyes {
+    position: absolute;
+    left: 50%;
+    bottom: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -539,6 +637,105 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     & svg {
       width: 60px;
     }
+  }
+
+  .container-wrap:hover .eyes .eye {
+    display: none;
+  }
+
+  .container-wrap:hover .eyes.happy {
+    display: flex;
+  }
+
+  /* 3D tilt areas */
+  .area:nth-child(15):hover ~ .container-wrap .card,
+  .area:nth-child(15):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(-15deg) rotateY(15deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(14):hover ~ .container-wrap .card,
+  .area:nth-child(14):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(-15deg) rotateY(7deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(13):hover ~ .container-wrap .card,
+  .area:nth-child(13):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(-15deg) rotateY(0)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(12):hover ~ .container-wrap .card,
+  .area:nth-child(12):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(-15deg) rotateY(-7deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(11):hover ~ .container-wrap .card,
+  .area:nth-child(11):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(-15deg) rotateY(-15deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(10):hover ~ .container-wrap .card,
+  .area:nth-child(10):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(0) rotateY(15deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(9):hover ~ .container-wrap .card,
+  .area:nth-child(9):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(0) rotateY(7deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(8):hover ~ .container-wrap .card,
+  .area:nth-child(8):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(0) rotateY(0)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(7):hover ~ .container-wrap .card,
+  .area:nth-child(7):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(0) rotateY(-7deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(6):hover ~ .container-wrap .card,
+  .area:nth-child(6):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(0) rotateY(-15deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(5):hover ~ .container-wrap .card,
+  .area:nth-child(5):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(15deg) rotateY(15deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(4):hover ~ .container-wrap .card,
+  .area:nth-child(4):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(15deg) rotateY(7deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(3):hover ~ .container-wrap .card,
+  .area:nth-child(3):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(15deg) rotateY(0)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(2):hover ~ .container-wrap .card,
+  .area:nth-child(2):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(15deg) rotateY(-7deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
+  }
+
+  .area:nth-child(1):hover ~ .container-wrap .card,
+  .area:nth-child(1):hover ~ .container-wrap .eyes .eye {
+    transform: perspective(var(--perspective)) rotateX(15deg) rotateY(-15deg)
+      translateZ(var(--translateY)) scale3d(1, 1, 1);
   }
 
   /* ===== Chat panel (open) ===== */
