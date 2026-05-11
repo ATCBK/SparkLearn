@@ -412,8 +412,8 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
 
   .widget-root {
     pointer-events: auto;
-    width: ${({ $open }) => ($open ? '380px' : '56px')};
-    height: ${({ $open }) => ($open ? '560px' : '56px')};
+    width: ${({ $open }) => ($open ? '380px' : '80px')};
+    height: ${({ $open }) => ($open ? '560px' : '80px')};
     transition: width 0.4s ease, height 0.4s ease;
     position: relative;
     cursor: ${({ $open }) => ($open ? 'default' : 'grab')};
@@ -425,11 +425,11 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     cursor: ${({ $open }) => ($open ? 'default' : 'grabbing')};
   }
 
-  /* ===== Closed icon (small) ===== */
+  /* ===== Closed icon ===== */
   .closed-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    border-radius: 1.5rem;
     position: relative;
     transition: transform 0.15s ease-out;
     will-change: transform;
@@ -446,11 +446,11 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   .icon-bg {
     position: absolute;
     inset: 0;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.8);
     overflow: hidden;
     box-shadow:
-      0 4px 20px rgba(0, 0, 60, 0.15),
+      0 8px 30px rgba(0, 0, 60, 0.2),
       inset 0 0 8px rgba(255, 255, 255, 0.5);
   }
 
@@ -458,6 +458,8 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     position: absolute;
     left: 50%;
     top: 50%;
+    width: 80px;
+    height: 80px;
     transform: translateX(-50%) translateY(-50%);
     animation: rotate-background-balls 10s linear infinite;
   }
@@ -467,22 +469,22 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   }
 
   .icon-bg .ball {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 3rem;
     position: absolute;
     border-radius: 50%;
-    filter: blur(12px);
+    filter: blur(15px);
   }
 
   .icon-bg .ball.violet {
-    top: -10px;
+    top: -5px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #9147ff;
   }
 
   .icon-bg .ball.green {
-    bottom: -10px;
+    bottom: -5px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #34d399;
@@ -490,14 +492,14 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
 
   .icon-bg .ball.rosa {
     top: 50%;
-    left: -10px;
+    left: -5px;
     transform: translateY(-50%);
     background-color: #ec4899;
   }
 
   .icon-bg .ball.cyan {
     top: 50%;
-    right: -10px;
+    right: -5px;
     transform: translateY(-50%);
     background-color: #05e0f5;
   }
@@ -508,23 +510,23 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(30px);
-    border-radius: 50%;
+    backdrop-filter: blur(50px);
+    border-radius: 1.5rem;
   }
 
   .eyes {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 20px;
-    gap: 0.5rem;
+    height: 28px;
+    gap: 0.7rem;
     transition: all 0.3s ease;
 
     & .eye {
-      width: 8px;
-      height: 20px;
+      width: 12px;
+      height: 28px;
       background-color: #fff;
-      border-radius: 5px;
+      border-radius: 7px;
       animation: animate-eyes 10s infinite linear;
       transition: all 0.3s ease;
     }
@@ -536,7 +538,7 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     gap: 0;
 
     & svg {
-      width: 28px;
+      width: 36px;
     }
   }
 
@@ -937,12 +939,12 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   }
 
   @keyframes animate-eyes {
-    46% { height: 20px; }
-    48% { height: 6px; }
-    50% { height: 20px; }
-    96% { height: 20px; }
-    98% { height: 6px; }
-    100% { height: 20px; }
+    46% { height: 28px; }
+    48% { height: 10px; }
+    50% { height: 28px; }
+    96% { height: 28px; }
+    98% { height: 10px; }
+    100% { height: 28px; }
   }
 
   @keyframes typing-bounce {
