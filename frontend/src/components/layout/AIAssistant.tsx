@@ -447,11 +447,19 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     position: absolute;
     inset: 0;
     border-radius: 1.5rem;
-    background-color: rgba(255, 255, 255, 0.8);
+    background: linear-gradient(135deg, #34d399 0%, #05e0f5 30%, #9147ff 70%, #ec4899 100%);
     overflow: hidden;
     box-shadow:
       0 8px 30px rgba(0, 0, 60, 0.2),
       inset 0 0 8px rgba(255, 255, 255, 0.5);
+  }
+
+  .icon-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 1.5rem;
   }
 
   .icon-bg .balls {
@@ -469,11 +477,12 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   }
 
   .icon-bg .ball {
-    width: 3rem;
-    height: 3rem;
+    width: 2.5rem;
+    height: 2.5rem;
     position: absolute;
     border-radius: 50%;
-    filter: blur(15px);
+    filter: blur(8px);
+    opacity: 0.6;
   }
 
   .icon-bg .ball.violet {
