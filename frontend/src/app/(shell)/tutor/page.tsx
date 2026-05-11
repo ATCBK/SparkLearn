@@ -209,7 +209,10 @@ export default function TutorPage() {
   }, [])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // 使用 requestAnimationFrame 确保 DOM 已更新后再滚动
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    })
   }, [messages])
 
   useEffect(() => {

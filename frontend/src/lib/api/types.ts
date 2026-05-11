@@ -221,6 +221,44 @@ export interface PathAdjustResult {
   currentStage: string
 }
 
+export interface PathPlanningSuggestion {
+  id: number
+  text: string
+  desc: string
+}
+
+export interface PathPlanningResource {
+  id: number
+  title: string
+  tag: string
+  link?: string
+}
+
+export interface PathPlanningData {
+  pathId: string
+  target: string
+  suggestions: PathPlanningSuggestion[]
+  resources: PathPlanningResource[]
+  createdAt: string
+}
+
+export interface PathNodeSuggestionsReq {
+  nodeTitle: string
+  nodeGoal: string
+  nodeStatus: string
+  phaseTitle: string
+  target: string
+}
+
+export interface PathNodeSuggestionsResp {
+  nodeTitle: string
+  nodeGoal: string
+  phaseTitle: string
+  status: string
+  suggestions: PathPlanningSuggestion[]
+  resources: PathPlanningResource[]
+}
+
 export interface KnowledgeGraphNode {
   id: string
   name: string

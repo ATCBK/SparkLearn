@@ -62,3 +62,9 @@
 {"ts": "2026-05-10T06:13:20.673661Z", "type": "resource_generated", "resource_id": "gen-a56876ca"}
 {"ts": "2026-05-10T06:17:35.655394Z", "type": "resource_generated", "resource_id": "gen-82d57fcb"}
 {"ts": "2026-05-11T04:02:37.995494Z", "type": "resource_generated", "resource_id": "gen-9022d424"}
+{"ts": "2026-05-11T10:09:48.845917Z", "type": "resource_deleted", "resource_id": "gen-badb9212", "removed_count": 1}
+{"ts": "2026-05-11T10:09:53.321986Z", "type": "resource_deleted", "resource_id": "gen-8c73849c", "removed_count": 1}
+{"ts": "2026-05-11T10:09:54.772830Z", "type": "resource_deleted", "resource_id": "gen-e7253367", "removed_count": 1}
+{"ts": "2026-05-11T10:09:57.013183Z", "type": "resource_deleted", "resource_id": "gen-d2de4527", "removed_count": 1}
+{"ts": "2026-05-11T10:10:12.290791Z", "type": "resource_deleted", "resource_id": "gen-9022d424", "removed_count": 1}
+{"ts": "2026-05-11T10:10:12.296797Z", "type": "resource_deleted", "resource_id": "gen-9022d424", "removed_count": 0}

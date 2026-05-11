@@ -2449,7 +2449,10 @@ print(result)</pre>
       ai.innerHTML = '<div class="avatar">AI</div><div class="bubble">收到。我会把“代码案例优先”作为偏好候选，并在资源中心默认生成项目案例型资源。</div>';
       chat.appendChild(ai);
       input.value = '';
-      chat.scrollTop = chat.scrollHeight;
+      // 使用 requestAnimationFrame 确保DOM更新后再滚动
+      requestAnimationFrame(() => {
+        chat.scrollTop = chat.scrollHeight;
+      });
     });
   }
 

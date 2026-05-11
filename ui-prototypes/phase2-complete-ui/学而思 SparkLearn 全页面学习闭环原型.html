@@ -1473,50 +1473,321 @@
     0%, 80%, 100% { transform: translateY(0); opacity: .5; }
     40% { transform: translateY(-5px); opacity: 1; }
   }
+  /* ===== AI 精灵助手 - 3D悬浮精灵 + 聊天面板 ===== */
   .ai-widget {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
+    right: 28px;
+    bottom: 28px;
     z-index: 50;
-    width: 390px;
-    display: grid;
-    justify-items: end;
-    gap: 10px;
   }
-  .ai-widget.minimized { width: auto; }
-  .ai-float {
-    width: 126px;
-    height: 44px;
-    border: 0;
-    border-radius: 999px;
-    color: white;
-    background: var(--blue);
-    box-shadow: 0 10px 26px rgba(47,128,237,.18);
-    font-weight: 900;
-    font-size: 13px;
-    display: inline-flex;
+  /* 3D 精灵按钮容器 */
+  .ai-sprite-3d {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    cursor: pointer;
+  }
+  .ai-sprite-3d .container-ai-input {
+    --perspective: 1000px;
+    --translateY: 12px;
+    position: absolute;
+    left: 0; right: 0; top: -1rem; bottom: -1rem;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    transform-style: preserve-3d;
+  }
+  .ai-sprite-3d .container-wrap {
+    display: flex;
     align-items: center;
+    justify-items: center;
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    z-index: 9;
+    transform-style: preserve-3d;
+    cursor: pointer;
+    padding: 2px;
+    transition: all 0.3s ease;
+  }
+  .ai-sprite-3d .container-wrap:hover { padding: 0; }
+  .ai-sprite-3d .container-wrap:active {
+    transform: translateX(-50%) translateY(-50%) scale(0.95);
+  }
+  .ai-sprite-3d .container-wrap:after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translateX(-50%) translateY(-55%);
+    width: 5rem; height: 4.6rem;
+    background-color: #dedfe0;
+    border-radius: 1.6rem;
+    transition: all 0.3s ease;
+  }
+  .ai-sprite-3d .container-wrap:hover:after {
+    transform: translateX(-50%) translateY(-50%);
+    height: 5rem;
+  }
+  .ai-sprite-3d .container-wrap input {
+    opacity: 0; width: 0; height: 0; position: absolute;
+  }
+  .ai-sprite-3d .card {
+    width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: all 0.6s ease;
+    border-radius: 1.5rem;
+    display: flex;
+    align-items: center;
+    transform: translateZ(20px);
     justify-content: center;
   }
-  .ai-widget.minimized .ai-float { width: 54px; border-radius: 50%; font-size: 0; }
-  .ai-widget.minimized .ai-float::before { content: "AI"; font-size: 13px; }
-  .ai-float.dragging { cursor: grabbing; }
-  .ai-panel {
-    display: none;
-    width: 390px;
+  .ai-sprite-3d .card:hover {
+    box-shadow: 0 10px 40px rgba(0,0,60,.25), inset 0 0 10px rgba(255,255,255,.5);
+  }
+  .ai-sprite-3d .background-blur-balls {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    width: 100%; height: 100%;
+    z-index: -10;
+    border-radius: 1.5rem;
+    transition: all 0.3s ease;
+    background-color: rgba(255,255,255,0.8);
     overflow: hidden;
-    border-radius: 12px;
+  }
+  .ai-sprite-3d .balls {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    animation: rotate-background-balls 10s linear infinite;
+  }
+  .ai-sprite-3d .container-wrap:hover .balls {
+    animation-play-state: paused;
+  }
+  .ai-sprite-3d .background-blur-balls .ball {
+    width: 3rem; height: 3rem;
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(15px);
+  }
+  .ai-sprite-3d .ball.violet {
+    top: 0; left: 50%; transform: translateX(-50%);
+    background-color: #9147ff;
+  }
+  .ai-sprite-3d .ball.green {
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    background-color: #34d399;
+  }
+  .ai-sprite-3d .ball.rosa {
+    top: 50%; left: 0; transform: translateY(-50%);
+    background-color: #ec4899;
+  }
+  .ai-sprite-3d .ball.cyan {
+    top: 50%; right: 0; transform: translateY(-50%);
+    background-color: #05e0f5;
+  }
+  .ai-sprite-3d .content-card {
+    width: 5rem; height: 5rem;
+    display: flex;
+    border-radius: 1.5rem;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+  .ai-sprite-3d .background-blur-card {
+    width: 100%; height: 100%;
+    backdrop-filter: blur(50px);
+  }
+  .ai-sprite-3d .eyes {
+    position: absolute;
+    left: 50%; bottom: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    gap: 1rem;
+    transition: all 0.3s ease;
+  }
+  .ai-sprite-3d .eyes .eye {
+    width: 13px; height: 26px;
+    background-color: #fff;
+    border-radius: 8px;
+    animation: animate-eyes 10s infinite linear;
+    transition: all 0.3s ease;
+  }
+  .ai-sprite-3d .eyes.happy {
+    display: none;
+    color: #fff;
+    gap: 0;
+  }
+  .ai-sprite-3d .eyes.happy svg { width: 30px; }
+  .ai-sprite-3d .container-wrap:hover .eyes .eye { display: none; }
+  .ai-sprite-3d .container-wrap:hover .eyes.happy { display: flex; }
+  /* 隐藏精灵内部的 chat（我们用外部聊天面板） */
+  .ai-sprite-3d .container-ai-chat { display: none; }
+  @keyframes rotate-background-balls {
+    from { transform: translateX(-50%) translateY(-50%) rotate(360deg); }
+    to { transform: translateX(-50%) translateY(-50%) rotate(0); }
+  }
+  @keyframes animate-eyes {
+    46% { height: 26px; } 48% { height: 10px; } 50% { height: 26px; }
+    96% { height: 26px; } 98% { height: 10px; } 100% { height: 26px; }
+  }
+  /* 3D 区域 hover 效果 */
+  .ai-sprite-3d .area:nth-child(15):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(-12deg) rotateY(12deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(14):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(-12deg) rotateY(6deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(13):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(-12deg) rotateY(0) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(12):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(-12deg) rotateY(-6deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(11):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(-12deg) rotateY(-12deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(10):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(0) rotateY(12deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(9):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(0) rotateY(6deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(8):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(0) rotateY(0) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(7):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(0) rotateY(-6deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(6):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(0) rotateY(-12deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(5):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(12deg) rotateY(12deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(4):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(12deg) rotateY(6deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(3):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(12deg) rotateY(0) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(2):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(12deg) rotateY(-6deg) translateZ(var(--translateY)); }
+  .ai-sprite-3d .area:nth-child(1):hover ~ .container-wrap .card { transform: perspective(var(--perspective)) rotateX(12deg) rotateY(-12deg) translateZ(var(--translateY)); }
+  /* 呼吸光环 - 保留在精灵外围 */
+  .ai-sprite-3d::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: rgba(37,99,235,.15);
+    animation: ai-breathe 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes ai-breathe {
+    0%, 100% { transform: scale(1); opacity: .6; }
+    50% { transform: scale(1.25); opacity: 0; }
+  }
+  /* 聊天面板 - 展开态 */
+  .ai-chat-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    height: 580px;
+    border-radius: 16px;
     background: #fff;
     border: 1px solid var(--line);
-    box-shadow: 0 18px 45px rgba(15,23,42,.12);
+    box-shadow: 0 20px 60px rgba(15,23,42,.14), 0 4px 16px rgba(15,23,42,.06);
+    flex-direction: column;
+    overflow: hidden;
+    animation: ai-panel-in .28s cubic-bezier(.16,1,.3,1);
   }
-  .ai-panel.open { display: block; }
-  .ai-panel header { padding: 14px 16px; border-bottom: 1px solid var(--line); cursor: move; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .ai-panel-actions { display: flex; gap: 6px; }
-  .ai-panel-actions button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); }
-  .ai-panel .body { padding: 16px; }
-  .quick-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .quick { border: 1px solid rgba(47,128,237,.18); border-radius: 999px; background: var(--blue-soft); color: var(--blue); padding: 7px 10px; font-size: 12px; font-weight: 800; }
+  .ai-chat-panel.open { display: flex; }
+  @keyframes ai-panel-in {
+    from { opacity: 0; transform: translateY(16px) scale(.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  /* 面板顶部标题栏 */
+  .ai-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #2563eb, #4f8cf7);
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .ai-chat-header-left { display: flex; align-items: center; gap: 10px; }
+  .ai-chat-header-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    display: grid; place-items: center;
+  }
+  .ai-chat-header-avatar svg { width: 18px; height: 18px; fill: #fff; }
+  .ai-chat-header-left h3 { margin: 0; font-size: 15px; font-weight: 700; }
+  .ai-chat-header-left span { font-size: 11px; opacity: .8; }
+  .ai-chat-header-actions { display: flex; gap: 6px; }
+  .ai-chat-header-actions button {
+    width: 28px; height: 28px; border: none; border-radius: 6px;
+    background: rgba(255,255,255,.15); color: #fff; cursor: pointer;
+    display: grid; place-items: center; transition: background .2s;
+  }
+  .ai-chat-header-actions button:hover { background: rgba(255,255,255,.3); }
+  /* 对话区域 */
+  .ai-chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: #f8fafb;
+  }
+  .ai-chat-body::-webkit-scrollbar { width: 5px; }
+  .ai-chat-body::-webkit-scrollbar-track { background: transparent; }
+  .ai-chat-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  /* 消息气泡 */
+  .ai-msg { display: flex; gap: 10px; align-items: flex-start; max-width: 92%; }
+  .ai-msg.user { margin-left: auto; flex-direction: row-reverse; }
+  .ai-msg-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center; font-size: 12px; font-weight: 800;
+  }
+  .ai-msg.bot .ai-msg-avatar { background: linear-gradient(135deg, #2563eb, #4f8cf7); color: #fff; }
+  .ai-msg.user .ai-msg-avatar { background: #e8eff8; color: var(--blue); }
+  .ai-msg-content { display: flex; flex-direction: column; gap: 4px; }
+  .ai-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+  .ai-msg.bot .ai-msg-bubble { background: #fff; color: var(--text); border: 1px solid #eef2f7; border-top-left-radius: 4px; }
+  .ai-msg.user .ai-msg-bubble { background: var(--blue); color: #fff; border-top-right-radius: 4px; }
+  /* AI 回复底部提示 + 反馈 */
+  .ai-msg-footer {
+    display: flex; align-items: center; gap: 10px;
+    padding: 2px 4px; font-size: 11px; color: var(--soft);
+  }
+  .ai-msg-footer span { opacity: .8; }
+  .ai-feedback-btn {
+    border: none; background: transparent; cursor: pointer;
+    font-size: 14px; color: var(--soft); padding: 2px 4px;
+    border-radius: 4px; transition: color .2s, background .2s;
+  }
+  .ai-feedback-btn:hover { color: var(--blue); background: var(--blue-soft); }
+  .ai-feedback-btn.active { color: var(--blue); }
+  /* 快捷问题 */
+  .ai-quick-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; background: #f8fafb; }
+  .ai-quick-btn {
+    border: 1px solid rgba(37,99,235,.16); border-radius: 999px;
+    background: #fff; color: var(--blue); padding: 6px 12px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    transition: background .2s, border-color .2s;
+  }
+  .ai-quick-btn:hover { background: var(--blue-soft); border-color: rgba(37,99,235,.3); }
+  /* 底部输入区 */
+  .ai-chat-footer {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--line);
+    background: #fff;
+    flex-shrink: 0;
+  }
+  .ai-chat-input {
+    flex: 1; border: 1px solid #dce6f2; border-radius: 20px;
+    padding: 9px 14px; font-size: 13px; outline: none;
+    background: #f9fafb; color: var(--ink); transition: border-color .2s;
+  }
+  .ai-chat-input:focus { border-color: var(--blue); background: #fff; }
+  .ai-chat-input::placeholder { color: #b0bec5; }
+  .ai-chat-send {
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    background: var(--blue); color: #fff; cursor: pointer;
+    display: grid; place-items: center; flex-shrink: 0;
+    transition: background .2s, transform .15s;
+  }
+  .ai-chat-send:hover { background: #1d4ed8; }
+  .ai-chat-send:active { transform: scale(.92); }
+  .ai-chat-send svg { width: 16px; height: 16px; fill: currentColor; }
   @media (max-width: 980px) {
     .sidebar { width: 74px; }
     .brand div, .nav-title, .nav-btn span, .side-note { display: none; }
@@ -2618,22 +2889,83 @@ print(result)</pre>
   </div>
 </div>
 
-<div class="ai-widget minimized" id="aiWidget">
-  <aside class="ai-panel" id="aiPanel">
-    <header id="aiDragHandle">
-      <div><h2>AI 学习助手</h2><p class="meta" id="aiContext">当前在学习工作台，我可以直接带你开始今天的任务。</p></div>
-      <div class="ai-panel-actions"><button id="aiMinimize" aria-label="缩小">−</button></div>
-    </header>
-    <div class="body">
-      <div class="msg"><div class="avatar">AI</div><div class="bubble" id="aiBubble">你可以问：先给我一个 5 分钟版本开始。</div></div>
-      <div class="quick-row">
-        <button class="quick" id="quickExplain">我看不懂这节</button>
-        <button class="quick" id="quickNext">调整回顾顺序</button>
-        <button class="quick" id="quickProfile">更新学习画像</button>
+<!-- AI 精灵助手 -->
+<div class="ai-widget" id="aiWidget">
+  <!-- 收起态：3D精灵按钮 -->
+  <div class="ai-sprite-3d" id="aiSpriteBtn" aria-label="打开 AI 学习助手">
+    <div class="container-ai-input">
+      <div class="area"></div><div class="area"></div><div class="area"></div><div class="area"></div><div class="area"></div>
+      <div class="area"></div><div class="area"></div><div class="area"></div><div class="area"></div><div class="area"></div>
+      <div class="area"></div><div class="area"></div><div class="area"></div><div class="area"></div><div class="area"></div>
+      <label class="container-wrap">
+        <input type="checkbox" id="spriteCheckbox" />
+        <div class="card">
+          <div class="background-blur-balls">
+            <div class="balls">
+              <span class="ball rosa"></span>
+              <span class="ball violet"></span>
+              <span class="ball green"></span>
+              <span class="ball cyan"></span>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="background-blur-card">
+              <div class="eyes">
+                <span class="eye"></span>
+                <span class="eye"></span>
+              </div>
+              <div class="eyes happy">
+                <svg fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M8.28386 16.2843C8.9917 15.7665 9.8765 14.731 12 14.731C14.1235 14.731 15.0083 15.7665 15.7161 16.2843C17.8397 17.8376 18.7542 16.4845 18.9014 15.7665C19.4323 13.1777 17.6627 11.1066 17.3088 10.5888C16.3844 9.23666 14.1235 8 12 8C9.87648 8 7.61556 9.23666 6.69122 10.5888C6.33728 11.1066 4.56771 13.1777 5.09858 15.7665C5.24582 16.4845 6.16034 17.8376 8.28386 16.2843Z"></path></svg>
+                <svg fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M8.28386 16.2843C8.9917 15.7665 9.8765 14.731 12 14.731C14.1235 14.731 15.0083 15.7665 15.7161 16.2843C17.8397 17.8376 18.7542 16.4845 18.9014 15.7665C19.4323 13.1777 17.6627 11.1066 17.3088 10.5888C16.3844 9.23666 14.1235 8 12 8C9.87648 8 7.61556 9.23666 6.69122 10.5888C6.33728 11.1066 4.56771 13.1777 5.09858 15.7665C5.24582 16.4845 6.16034 17.8376 8.28386 16.2843Z"></path></svg>
+              </div>
+            </div>
+          </div>
+          <div class="container-ai-chat"></div>
+        </div>
+      </label>
+    </div>
+  </div>
+  <!-- 展开态：聊天面板 -->
+  <div class="ai-chat-panel" id="aiChatPanel">
+    <div class="ai-chat-header">
+      <div class="ai-chat-header-left">
+        <div class="ai-chat-header-avatar"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.74.5 3.37 1.22 4.78L2 22l5.22-1.22C8.63 21.5 10.26 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-1 14h-1.5v-1.5H11V16zm2.5 0H12v-1.5h1.5V16zM15 16h-1.5v-1.5H15V16zm-6-4.5c0-1.66 1.34-3 3-3s3 1.34 3 3c0 .88-.39 1.67-1 2.22V14h-4v-.28c-.61-.55-1-1.34-1-2.22z"/></svg></div>
+        <div>
+          <h3>SparkLearn AI 助手</h3>
+          <span>在线 · 随时为你解答</span>
+        </div>
+      </div>
+      <div class="ai-chat-header-actions">
+        <button id="aiMinimize" aria-label="最小化" title="最小化">─</button>
+        <button id="aiClose" aria-label="关闭" title="关闭">✕</button>
       </div>
     </div>
-  </aside>
-  <button class="ai-float" id="aiFloat" aria-label="打开 AI 学习助手">AI 学习助手</button>
+    <div class="ai-chat-body" id="aiChatBody">
+      <!-- 初始欢迎消息 -->
+      <div class="ai-msg bot">
+        <div class="ai-msg-avatar"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.74.5 3.37 1.22 4.78L2 22l5.22-1.22C8.63 21.5 10.26 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/></svg></div>
+        <div class="ai-msg-content">
+          <div class="ai-msg-bubble" id="aiBubble">你好！我是你的 AI 学习助手。有什么可以帮你的吗？你可以问我学习相关的任何问题。</div>
+          <div class="ai-msg-footer">
+            <span>AI 生成，仅供参考</span>
+            <button class="ai-feedback-btn" data-type="up" title="有帮助">👍</button>
+            <button class="ai-feedback-btn" data-type="down" title="没帮助">👎</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ai-quick-row" id="aiQuickRow">
+      <button class="ai-quick-btn" id="quickExplain">我看不懂这节</button>
+      <button class="ai-quick-btn" id="quickNext">调整回顾顺序</button>
+      <button class="ai-quick-btn" id="quickProfile">更新学习画像</button>
+    </div>
+    <div class="ai-chat-footer">
+      <input type="text" class="ai-chat-input" id="aiChatInput" placeholder="输入你的问题…" autocomplete="off">
+      <button class="ai-chat-send" id="aiChatSend" aria-label="发送">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -2673,8 +3005,7 @@ print(result)</pre>
     });
     document.getElementById('topbarPage').textContent = pageNames[id] || pageNames.dashboard;
     const ctx = contexts[id] || contexts.dashboard;
-    document.getElementById('aiContext').textContent = ctx[0];
-    document.getElementById('aiBubble').textContent = ctx[1];
+    // aiContext 已移除，不再设置标题栏上下文
     if (!options.keepHash && contexts[id]) history.replaceState(null, '', `#${id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -2684,80 +3015,88 @@ print(result)</pre>
   if (contexts[initialPage]) showPage(initialPage, { keepHash: true });
 
   const aiWidget = document.getElementById('aiWidget');
-  const aiPanel = document.getElementById('aiPanel');
+  const aiChatPanel = document.getElementById('aiChatPanel');
+  const aiSpriteBtn = document.getElementById('aiSpriteBtn');
+  const spriteCheckbox = document.getElementById('spriteCheckbox');
+  const aiChatBody = document.getElementById('aiChatBody');
+  const aiChatInput = document.getElementById('aiChatInput');
+  const aiChatSend = document.getElementById('aiChatSend');
+
+  // 阻止 checkbox 默认行为，改用 JS 控制面板
+  if (spriteCheckbox) {
+    spriteCheckbox.addEventListener('click', function(e) { e.preventDefault(); });
+  }
+
   function openAI() {
-    aiWidget.classList.remove('minimized');
-    aiPanel.classList.add('open');
+    aiChatPanel.classList.add('open');
+    aiSpriteBtn.style.display = 'none';
+    aiChatBody.scrollTop = aiChatBody.scrollHeight;
   }
   function minimizeAI() {
-    aiPanel.classList.remove('open');
-    aiWidget.classList.add('minimized');
+    aiChatPanel.classList.remove('open');
+    aiSpriteBtn.style.display = 'block';
   }
-  const aiFloat = document.getElementById('aiFloat');
-  let floatDragging = false;
-  let floatMoved = false;
-  let floatOffsetX = 0;
-  let floatOffsetY = 0;
-  aiFloat.addEventListener('pointerdown', event => {
-    if (!aiWidget.classList.contains('minimized')) return;
-    floatDragging = true;
-    floatMoved = false;
-    const rect = aiWidget.getBoundingClientRect();
-    floatOffsetX = event.clientX - rect.left;
-    floatOffsetY = event.clientY - rect.top;
-    aiFloat.classList.add('dragging');
-    aiFloat.setPointerCapture(event.pointerId);
-  });
-  aiFloat.addEventListener('pointermove', event => {
-    if (!floatDragging) return;
-    floatMoved = true;
-    const left = Math.min(window.innerWidth - 56, Math.max(12, event.clientX - floatOffsetX));
-    const top = Math.min(window.innerHeight - 56, Math.max(12, event.clientY - floatOffsetY));
-    aiWidget.style.left = `${left}px`;
-    aiWidget.style.top = `${top}px`;
-    aiWidget.style.right = 'auto';
-    aiWidget.style.bottom = 'auto';
-  });
-  aiFloat.addEventListener('pointerup', () => {
-    if (floatDragging) {
-      floatDragging = false;
-      aiFloat.classList.remove('dragging');
-      if (!floatMoved) openAI();
-      return;
-    }
-    if (aiPanel.classList.contains('open')) minimizeAI();
-    else openAI();
-  });
+
+  aiSpriteBtn.addEventListener('click', openAI);
   document.getElementById('aiMinimize').addEventListener('click', minimizeAI);
-  const dragHandle = document.getElementById('aiDragHandle');
-  let aiDragging = false;
-  let aiOffsetX = 0;
-  let aiOffsetY = 0;
-  dragHandle.addEventListener('pointerdown', event => {
-    aiDragging = true;
-    const rect = aiWidget.getBoundingClientRect();
-    aiOffsetX = event.clientX - rect.left;
-    aiOffsetY = event.clientY - rect.top;
-    dragHandle.setPointerCapture(event.pointerId);
+  document.getElementById('aiClose').addEventListener('click', minimizeAI);
+
+  // 添加 AI 回复消息
+  function addBotMsg(text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'ai-msg bot';
+    msgDiv.innerHTML = '<div class="ai-msg-avatar"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.74.5 3.37 1.22 4.78L2 22l5.22-1.22C8.63 21.5 10.26 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/></svg></div><div class="ai-msg-content"><div class="ai-msg-bubble">' + text + '</div><div class="ai-msg-footer"><span>AI 生成，仅供参考</span><button class="ai-feedback-btn" data-type="up" title="有帮助">👍</button><button class="ai-feedback-btn" data-type="down" title="没帮助">👎</button></div></div>';
+    aiChatBody.appendChild(msgDiv);
+    aiChatBody.scrollTop = aiChatBody.scrollHeight;
+    document.getElementById('aiBubble').textContent = text;
+  }
+
+  // 添加用户消息
+  function addUserMsg(text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'ai-msg user';
+    msgDiv.innerHTML = '<div class="ai-msg-avatar">我</div><div class="ai-msg-content"><div class="ai-msg-bubble">' + text + '</div></div>';
+    aiChatBody.appendChild(msgDiv);
+    aiChatBody.scrollTop = aiChatBody.scrollHeight;
+  }
+
+  // 发送消息
+  function sendMessage() {
+    const text = aiChatInput.value.trim();
+    if (!text) return;
+    addUserMsg(text);
+    aiChatInput.value = '';
+    setTimeout(function() {
+      addBotMsg('收到你的问题，我来帮你分析一下。根据你当前的学习进度，建议先巩固基础概念，再做针对性练习。');
+    }, 800);
+  }
+
+  aiChatSend.addEventListener('click', sendMessage);
+  aiChatInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
-  dragHandle.addEventListener('pointermove', event => {
-    if (!aiDragging) return;
-    const left = Math.min(window.innerWidth - 72, Math.max(12, event.clientX - aiOffsetX));
-    const top = Math.min(window.innerHeight - 56, Math.max(12, event.clientY - aiOffsetY));
-    aiWidget.style.left = `${left}px`;
-    aiWidget.style.top = `${top}px`;
-    aiWidget.style.right = 'auto';
-    aiWidget.style.bottom = 'auto';
+
+  // 反馈按钮
+  aiChatBody.addEventListener('click', function(e) {
+    var btn = e.target.closest('.ai-feedback-btn');
+    if (!btn) return;
+    var footer = btn.closest('.ai-msg-footer');
+    footer.querySelectorAll('.ai-feedback-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
   });
-  dragHandle.addEventListener('pointerup', () => { aiDragging = false; });
-  document.getElementById('quickExplain').addEventListener('click', () => {
-    document.getElementById('aiBubble').textContent = '我会先用一个更短的例子解释当前薄弱点，再给你 2 道检查题确认是否听懂。';
+
+  // 快捷问题
+  document.getElementById('quickExplain').addEventListener('click', function() {
+    addUserMsg('我看不懂这节');
+    setTimeout(function() { addBotMsg('我会先用一个更短的例子解释当前薄弱点，再给你 2 道检查题确认是否听懂。'); }, 600);
   });
-  document.getElementById('quickNext').addEventListener('click', () => {
-    document.getElementById('aiBubble').textContent = '可以把回顾资源的顺序换一下。我建议先看没学完的内容，再回看错题讲义，最后决定要不要开始新资源。';
+  document.getElementById('quickNext').addEventListener('click', function() {
+    addUserMsg('调整回顾顺序');
+    setTimeout(function() { addBotMsg('可以把回顾资源的顺序换一下。我建议先看没学完的内容，再回看错题讲义，最后决定要不要开始新资源。'); }, 600);
   });
-  document.getElementById('quickProfile').addEventListener('click', () => {
-    document.getElementById('aiBubble').textContent = '告诉我你更想先看例子、先做题，还是想把任务压缩到 10 分钟，我会按这个方式调整。';
+  document.getElementById('quickProfile').addEventListener('click', function() {
+    addUserMsg('更新学习画像');
+    setTimeout(function() { addBotMsg('告诉我你更想先看例子、先做题，还是想把任务压缩到 10 分钟，我会按这个方式调整。'); }, 600);
   });
   const pathBranches = document.querySelectorAll('.nav-branch');
   const branchPanels = document.querySelectorAll('.branch-panel');
@@ -2802,18 +3141,18 @@ print(result)</pre>
     applyGoalTarget(value);
     setActiveBranch('goal');
     openAI();
-    document.getElementById('aiBubble').textContent = `我已经按“${value}”重排目标路径。会先补掉阻塞点，再把后面的节点和资源朝这个目标推进。`;
+    addBotMsg(`我已经按“${value}”重排目标路径。会先补掉阻塞点，再把后面的节点和资源朝这个目标推进。`);
   });
   document.getElementById('askPathAI').addEventListener('click', () => {
     openAI();
     const activeBranch = document.querySelector('.nav-branch.active');
-    document.getElementById('aiBubble').textContent = pathBranchAdvice[activeBranch ? activeBranch.dataset.branch : 'weak'];
+    addBotMsg(pathBranchAdvice[activeBranch ? activeBranch.dataset.branch : 'weak']);
   });
   const askLoopAI = document.getElementById('askLoopAI');
   if (askLoopAI) {
     askLoopAI.addEventListener('click', () => {
       openAI();
-      document.getElementById('aiBubble').textContent = '今天先看 10 分钟短讲义，再做 5 到 8 道短练习。明天只回看错题，后天再决定要不要进下一模块。';
+      addBotMsg('今天先看 10 分钟短讲义，再做 5 到 8 道短练习。明天只回看错题，后天再决定要不要进下一模块。');
     });
   }
 
@@ -2838,7 +3177,10 @@ print(result)</pre>
       ai.innerHTML = '<div class="avatar">AI</div><div class="bubble">收到。我会把“代码案例优先”作为偏好候选，并在资源中心默认生成项目案例型资源。</div>';
       chat.appendChild(ai);
       input.value = '';
-      chat.scrollTop = chat.scrollHeight;
+      // 使用 requestAnimationFrame 确保DOM更新后再滚动
+      requestAnimationFrame(() => {
+        chat.scrollTop = chat.scrollHeight;
+      });
     });
   }
 
@@ -2940,7 +3282,7 @@ print(result)</pre>
     document.getElementById('saveState').textContent = '已保存到资源库';
     document.getElementById('saveState').className = 'pill green';
     openAI();
-    document.getElementById('aiBubble').textContent = '资源已保存到资源库，并关联到“函数返回值与作用域修正”节点。下一步建议直接开始学习，再做 5 道达标题。';
+    addBotMsg('资源已保存到资源库，并关联到“函数返回值与作用域修正”节点。下一步建议直接开始学习，再做 5 道达标题。');
   });
 
   document.querySelectorAll('.resource-item').forEach(item => {
@@ -2971,7 +3313,7 @@ print(result)</pre>
   });
   document.getElementById('explainResource').addEventListener('click', () => {
     openAI();
-    document.getElementById('aiBubble').textContent = '这个资源主要解决函数返回值：函数内部算出的 total 不会自动传到外面，必须通过 return 交给调用处。';
+    addBotMsg('这个资源主要解决函数返回值：函数内部算出的 total 不会自动传到外面，必须通过 return 交给调用处。');
   });
 
   function bindKnowledgeItem(item) {
@@ -3029,14 +3371,14 @@ print(result)</pre>
   });
   document.getElementById('generatePracticeSet').addEventListener('click', () => {
     openAI();
-    document.getElementById('aiBubble').textContent = `已按你的薄弱点生成 ${questionCount.value} 道个性化练习，重点覆盖函数返回值、print 和 return 混淆。`;
+    addBotMsg(`已按你的薄弱点生成 ${questionCount.value} 道个性化练习，重点覆盖函数返回值、print 和 return 混淆。`);
   });
   const generateFromFavorites = document.getElementById('generateFromFavorites');
   if (generateFromFavorites) {
     generateFromFavorites.addEventListener('click', () => {
       showPage('practice');
       openAI();
-      document.getElementById('aiBubble').textContent = '已基于收藏题生成复习练习，建议先做概念题，再做项目代码题。';
+      addBotMsg('已基于收藏题生成复习练习，建议先做概念题，再做项目代码题。');
     });
   }
 
@@ -3242,7 +3584,7 @@ print(result)</pre>
         }
         typeChar();
         openAI();
-        document.getElementById('aiBubble').textContent = `${reportMetrics[currentReport].period}报告已生成。你可以问我：下一步先练习还是先看资源？`;
+        addBotMsg(`${reportMetrics[currentReport].period}报告已生成。你可以问我：下一步先练习还是先看资源？`);
       }, 1400);
     });
   })();

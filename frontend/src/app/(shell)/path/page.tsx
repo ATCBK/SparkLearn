@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Zap } from 'lucide-react'
+import { api } from '@/lib/api'
 
 // ============ 类型定义 ============
 interface PathNode {
@@ -21,7 +22,7 @@ interface Phase {
 }
 
 // ============ 数据定义 ============
-const PHASES: Phase[] = [
+const DEFAULT_PHASES: Phase[] = [
   {
     id: 1,
     title: '补弱阶段',
@@ -80,45 +81,131 @@ export default function PathPage() {
   const [targetInput, setTargetInput] = useState('我想自己写一个成绩统计程序')
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(5)
   const [generatedSuggestions, setGeneratedSuggestions] = useState(SUGGESTIONS)
-  const [generatedResources, setGeneratedResources] = useState(RESOURCES)
+  const [generatedResources, setGeneratedResources] = useState<Array<{ id: number; title: string; tag: string; link?: string }>>(RESOURCES)
+  const [loading, setLoading] = useState(false)
+  const [nodeLoading, setNodeLoading] = useState(false)
+  const [phases, setPhases] = useState<Phase[]>(DEFAULT_PHASES)
+  const requestSeqRef = useRef(0)
 
-  const handleNodeClick = (nodeId: number) => {
+  const handleNodeClick = async (nodeId: number | null) => {
+    if (nodeId === null) return
     setSelectedNodeId(nodeId)
-    
-    // 根据选中的节点生成对应的建议和资源
-    const nodeGoalMap: { [key: number]: string } = {
-      1: '理解返回值',
-      2: '掌握作用域',
-      3: '补弱练习',
-      4: '阶段完成',
-      5: '回顾函数',
-      6: '理解返回值',
-      7: '达标练习',
-      8: '学习模块',
-      9: '学习模块',
-      10: '文件读写',
-      11: '项目实战',
-      12: '项目完成',
+
+    const allNodes = phases.flatMap(p => p.nodes)
+    const node = allNodes.find(n => n.id === nodeId)
+    if (!node) return
+
+    const phase = phases.find(p => p.nodes.some(n => n.id === nodeId))
+    const goal = node.title
+
+    // 防竞态：只处理最新一次请求
+    const seq = ++requestSeqRef.current
+    setNodeLoading(true)
+
+    try {
+      const resp = await api.getPathNodeSuggestions({
+        nodeTitle: node.title,
+        nodeGoal: goal,
+        nodeStatus: node.status,
+        phaseTitle: phase?.title || '当前阶段',
+        target: targetInput,
+      })
+
+      // 如果已经有更新的请求，丢弃本次结果
+      if (seq !== requestSeqRef.current) return
+
+      if (resp.suggestions.length > 0) {
+        setGeneratedSuggestions(resp.suggestions)
+      }
+      if (resp.resources.length > 0) {
+        setGeneratedResources(resp.resources)
+      }
+    } catch (error) {
+      console.error('Failed to get node suggestions:', error)
+      if (seq !== requestSeqRef.current) return
+
+      // 回退到静态建议
+      setGeneratedSuggestions([
+        { id: 1, text: `先学习 ${goal}`, desc: '根据当前节点自动推荐的学习路径。' },
+        { id: 2, text: `完成 ${goal} 相关练习`, desc: '根据当前节点自动推荐的练习任务。' },
+        { id: 3, text: `掌握 ${goal} 的核心概念`, desc: '根据当前节点自动推荐的学习重点。' },
+      ])
+      setGeneratedResources([
+        { id: 1, title: `${goal}精讲讲义`, tag: '优先学习', link: `/resources?type=lecture&goal=${encodeURIComponent(goal)}` },
+        { id: 2, title: `${goal}补弱题练`, tag: '5题', link: `/practice?topic=${encodeURIComponent(goal)}` },
+        { id: 3, title: `${goal}项目案例`, tag: '待复习', link: `/resources?type=project&goal=${encodeURIComponent(goal)}` },
+      ])
+    } finally {
+      if (seq === requestSeqRef.current) {
+        setNodeLoading(false)
+      }
     }
-    
-    const goal = nodeGoalMap[nodeId] || '学习任务'
-    
-    // 生成对应的建议
-    const newSuggestions = [
-      { id: 1, text: `先学习 ${goal}`, desc: '根据当前节点自动推荐的学习路径。' },
-      { id: 2, text: `完成 ${goal} 相关练习`, desc: '根据当前节点自动推荐的练习任务。' },
-      { id: 3, text: `掌握 ${goal} 的核心概念`, desc: '根据当前节点自动推荐的学习重点。' },
-    ]
-    
-    // 生成对应的资源（带链接）
-    const newResources = [
-      { id: 1, title: `${goal}精讲讲义`, tag: '优先学习', link: `/resources?type=lecture&goal=${encodeURIComponent(goal)}` },
-      { id: 2, title: `${goal}补弱题练`, tag: '5题', link: `/practice?topic=${encodeURIComponent(goal)}` },
-      { id: 3, title: `${goal}项目案例`, tag: '待复习', link: `/resources?type=project&goal=${encodeURIComponent(goal)}` },
-    ]
-    
-    setGeneratedSuggestions(newSuggestions)
-    setGeneratedResources(newResources)
+  }
+
+  const handleRegeneratePath = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/path-planning/generate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target: targetInput }),
+        }
+      )
+      
+      if (response.ok) {
+        const json = await response.json()
+        const data = json.data || json
+        if (data) {
+          // 更新建议和资源
+          if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+            setGeneratedSuggestions(data.suggestions)
+          }
+          if (Array.isArray(data.resources) && data.resources.length > 0) {
+            setGeneratedResources(data.resources)
+          }
+
+          // 更新路径回路节点
+          if (Array.isArray(data.phases) && data.phases.length === 3) {
+            const PHASE_COLORS = ['#16A34A', '#2563EB', '#94A3B8']
+            const PHASE_DESCS = ['夯实基础', '能力达标', '应用提升']
+            const newPhases: Phase[] = data.phases.map((p: any, pIdx: number) => {
+              const phaseId = (pIdx + 1) as 1 | 2 | 3
+              const nodes: PathNode[] = (p.nodes || []).map((n: any, nIdx: number) => {
+                // 新生成的路径：第一阶段全部 current，后面 locked
+                let status: PathNode['status'] = 'locked'
+                if (pIdx === 0 && nIdx === 0) status = 'current'
+                else if (pIdx === 0) status = 'next'
+                return {
+                  id: Number(n.id || (pIdx * 4 + nIdx + 1)),
+                  title: String(n.title || `步骤 ${nIdx + 1}`),
+                  status,
+                  phase: phaseId,
+                }
+              })
+              return {
+                id: phaseId,
+                title: String(p.title || `阶段 ${phaseId}`),
+                subtitle: `${phaseId} / 3`,
+                color: PHASE_COLORS[pIdx],
+                description: String(p.description || PHASE_DESCS[pIdx]),
+                nodes,
+              }
+            })
+            setPhases(newPhases)
+            // 选中新路径的第一个节点
+            if (newPhases[0]?.nodes[0]) {
+              setSelectedNodeId(newPhases[0].nodes[0].id)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate path planning:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -139,6 +226,9 @@ export default function PathPage() {
             setTargetInput={setTargetInput}
             selectedNodeId={selectedNodeId}
             setSelectedNodeId={handleNodeClick}
+            onRegeneratePath={handleRegeneratePath}
+            loading={loading}
+            phases={phases}
           />
 
           {/* 右侧：建议栏 */}
@@ -146,6 +236,8 @@ export default function PathPage() {
             selectedNodeId={selectedNodeId} 
             suggestions={generatedSuggestions}
             resources={generatedResources}
+            loading={nodeLoading}
+            phases={phases}
           />
         </div>
       </div>
@@ -254,6 +346,9 @@ interface PathCircuitCardProps {
   setTargetInput: (value: string) => void
   selectedNodeId: number | null
   setSelectedNodeId: (id: number | null) => void
+  onRegeneratePath: () => void
+  loading: boolean
+  phases: Phase[]
 }
 
 function PathCircuitCard({
@@ -261,6 +356,9 @@ function PathCircuitCard({
   setTargetInput,
   selectedNodeId,
   setSelectedNodeId,
+  onRegeneratePath,
+  loading,
+  phases,
 }: PathCircuitCardProps) {
   return (
     <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm">
@@ -275,14 +373,18 @@ function PathCircuitCard({
             placeholder="输入目标，AI 会重排路径…"
             className="h-9 w-64 rounded-[10px] border border-[#E5EAF2] bg-[#F9FAFB] px-3 text-sm outline-none focus:border-[#2563EB] focus:bg-white transition-colors"
           />
-          <button className="rounded-[10px] bg-[#2563EB] px-4 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors whitespace-nowrap">
-            重新生成
+          <button 
+            onClick={onRegeneratePath}
+            disabled={loading}
+            className="rounded-[10px] bg-[#2563EB] px-4 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors whitespace-nowrap disabled:opacity-50"
+          >
+            {loading ? '生成中...' : '重新生成'}
           </button>
         </div>
       </div>
 
       {/* 路径图画布 */}
-      <PathCanvas selectedNodeId={selectedNodeId} setSelectedNodeId={setSelectedNodeId} />
+      <PathCanvas selectedNodeId={selectedNodeId} setSelectedNodeId={setSelectedNodeId} phases={phases} />
 
       {/* 图例 */}
       <div className="mt-4 flex gap-6 text-xs font-bold">
@@ -320,9 +422,10 @@ function PathCircuitCard({
 interface PathCanvasProps {
   selectedNodeId: number | null
   setSelectedNodeId: (id: number | null) => void
+  phases: Phase[]
 }
 
-function PathCanvas({ selectedNodeId, setSelectedNodeId }: PathCanvasProps) {
+function PathCanvas({ selectedNodeId, setSelectedNodeId, phases }: PathCanvasProps) {
   const nodeWidth = 168
   const nodeHeight = 72
   const nodeGap = 16
@@ -331,38 +434,18 @@ function PathCanvas({ selectedNodeId, setSelectedNodeId }: PathCanvasProps) {
 
   return (
     <div className="space-y-6">
-      {/* 第一阶段 - 补弱 */}
-      <PhaseStrip
-        phase={PHASES[0]}
-        stageLeftWidth={stageLeftWidth}
-        nodeWidth={nodeWidth}
-        nodeHeight={nodeHeight}
-        nodeGap={nodeGap}
-        selectedNodeId={selectedNodeId}
-        setSelectedNodeId={setSelectedNodeId}
-      />
-
-      {/* 第二阶段 - 达标 */}
-      <PhaseStrip
-        phase={PHASES[1]}
-        stageLeftWidth={stageLeftWidth}
-        nodeWidth={nodeWidth}
-        nodeHeight={nodeHeight}
-        nodeGap={nodeGap}
-        selectedNodeId={selectedNodeId}
-        setSelectedNodeId={setSelectedNodeId}
-      />
-
-      {/* 第三阶段 - 目标 */}
-      <PhaseStrip
-        phase={PHASES[2]}
-        stageLeftWidth={stageLeftWidth}
-        nodeWidth={nodeWidth}
-        nodeHeight={nodeHeight}
-        nodeGap={nodeGap}
-        selectedNodeId={selectedNodeId}
-        setSelectedNodeId={setSelectedNodeId}
-      />
+      {phases.map((phase) => (
+        <PhaseStrip
+          key={phase.id}
+          phase={phase}
+          stageLeftWidth={stageLeftWidth}
+          nodeWidth={nodeWidth}
+          nodeHeight={nodeHeight}
+          nodeGap={nodeGap}
+          selectedNodeId={selectedNodeId}
+          setSelectedNodeId={setSelectedNodeId}
+        />
+      ))}
     </div>
   )
 }
@@ -472,23 +555,9 @@ function PathNode({ node, isSelected, onClick, width = 150, height = 72 }: PathN
 
   const style = getNodeStyle()
 
-  // 简化的目标描述
+  // 简化的目标描述 - 直接使用节点标题（支持动态生成的节点）
   const getSimplifiedGoal = () => {
-    const goalMap: { [key: number]: string } = {
-      1: '理解返回值',
-      2: '掌握作用域',
-      3: '补弱练习',
-      4: '阶段完成',
-      5: '回顾函数',
-      6: '理解返回值',
-      7: '达标练习',
-      8: '学习模块',
-      9: '学习模块',
-      10: '文件读写',
-      11: '项目实战',
-      12: '项目完成',
-    }
-    return goalMap[node.id] || node.title
+    return node.title
   }
 
   return (
@@ -555,17 +624,19 @@ interface SuggestionPanelProps {
   selectedNodeId: number | null
   suggestions?: Array<{ id: number; text: string; desc: string }>
   resources?: Array<{ id: number; title: string; tag: string; link?: string }>
+  loading?: boolean
+  phases: Phase[]
 }
 
-function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources = RESOURCES }: SuggestionPanelProps) {
+function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources = RESOURCES, loading = false, phases }: SuggestionPanelProps) {
   // 根据选中的节点获取对应的阶段信息
   const getPhaseInfo = () => {
-    if (!selectedNodeId) return PHASES[1] // 默认显示第二阶段
+    if (!selectedNodeId) return phases[1] || DEFAULT_PHASES[1]
     
-    const node = PHASES.flatMap(p => p.nodes).find(n => n.id === selectedNodeId)
-    if (!node) return PHASES[1]
+    const node = phases.flatMap(p => p.nodes).find(n => n.id === selectedNodeId)
+    if (!node) return phases[1] || DEFAULT_PHASES[1]
     
-    return PHASES.find(p => p.id === node.phase) || PHASES[1]
+    return phases.find(p => p.id === node.phase) || phases[1] || DEFAULT_PHASES[1]
   }
   
   const phase = getPhaseInfo()
@@ -590,6 +661,13 @@ function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources 
 
       {/* 路径建议面板 */}
       <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-4 shadow-sm">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
+            <p className="mt-3 text-xs text-[#6B7280]">AI 正在生成建议…</p>
+          </div>
+        ) : (
+        <>
         {/* 补弱路径建议 */}
         <div className="mb-6">
           <h3 className="text-xs font-bold text-[#111827]">路径建议</h3>
@@ -633,6 +711,8 @@ function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources 
             查看全部资源
           </a>
         </div>
+        </>
+        )}
       </div>
     </div>
   )

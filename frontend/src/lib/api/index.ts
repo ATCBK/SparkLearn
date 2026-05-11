@@ -53,6 +53,9 @@ export const api = {
   getLearningPath: impl.getLearningPath,
   adjustLearningPath: impl.adjustLearningPath,
   getLearningPathNodeAdvice: impl.getLearningPathNodeAdvice,
+  generatePathPlanning: impl.generatePathPlanning,
+  getPathPlanningHistory: impl.getPathPlanningHistory,
+  getPathNodeSuggestions: impl.getPathNodeSuggestions,
 
   getVideos: impl.getVideos,
 
@@ -72,4 +75,5 @@ export type {
   Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
 } from './types'

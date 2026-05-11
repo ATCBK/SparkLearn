@@ -2096,5 +2096,28 @@
       "knowledge_point_name": "函数定义"
     },
     "at": "2026-05-11"
+  },
+  {
+    "quiz_id": "dq_cf4e6ada_1",
+    "answer": "索引超出范围",
+    "correct": false,
+    "correct_answer": "除以零",
+    "knowledge_point_id": "4.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_cf4e6ada_1",
+      "type": "single",
+      "content": "ZeroDivisionError 异常表示什么？",
+      "options": [
+        "值错误",
+        "除以零",
+        "索引超出范围",
+        "类型错误"
+      ],
+      "explanation": "ZeroDivisionError 表示除数为零。",
+      "knowledge_point_id": "4.1",
+      "knowledge_point_name": "异常处理"
+    },
+    "at": "2026-05-11"
   }
 ]

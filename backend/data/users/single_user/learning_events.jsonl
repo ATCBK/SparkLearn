@@ -549,3 +549,21 @@
 {"ts": "2026-05-11T09:00:37.062172Z", "type": "submit_quiz", "quiz_id": "dq_3b9944b7_3", "correct": false, "judge_mode": "rule"}
 {"ts": "2026-05-11T09:23:06.716971Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2126ff37", "use_llm": false}
 {"ts": "2026-05-11T09:23:06.940148Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "638226b1", "use_llm": false}
+{"ts": "2026-05-11T09:58:28.122586Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c16596c0", "use_llm": false}
+{"ts": "2026-05-11T09:58:28.238653Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "cf4e6ada", "use_llm": false}
+{"ts": "2026-05-11T09:58:34.700356Z", "type": "submit_quiz", "quiz_id": "dq_cf4e6ada_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T10:09:26.913005Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "ffe448da", "use_llm": false}
+{"ts": "2026-05-11T10:09:27.431533Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1fed88fe", "use_llm": false}
+{"ts": "2026-05-11T10:12:58.283541Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "94c17617", "use_llm": false}
+{"ts": "2026-05-11T10:12:58.741418Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a176714b", "use_llm": false}
+{"ts": "2026-05-11T10:35:46.636871Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "你好"}
+{"ts": "2026-05-11T10:35:50.359006Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "我今天先做什么"}
+{"ts": "2026-05-11T13:58:56.268035Z", "type": "path_node_suggestions", "node_title": "完成返回值理解", "node_goal": "理解返回值", "phase": "达标阶段", "timestamp": "2026-05-11T13:58:56.268035Z"}
+{"ts": "2026-05-11T13:59:05.645024Z", "type": "path_node_suggestions", "node_title": "阶段完成", "node_goal": "阶段完成", "phase": "补弱阶段", "timestamp": "2026-05-11T13:59:05.645024Z"}
+{"ts": "2026-05-11T14:11:37.886094Z", "type": "path_node_suggestions", "node_title": "完成返回值理解", "node_goal": "完成返回值理解", "phase": "达标阶段", "timestamp": "2026-05-11T14:11:37.886094Z"}
+{"ts": "2026-05-11T14:11:53.391013Z", "type": "path_planning_generated", "path_id": "path-20260511T141153.388016", "target": "我想自己写贪吃蛇小游戏", "timestamp": "2026-05-11T14:11:53.390012Z"}
+{"ts": "2026-05-11T14:19:41.893217Z", "type": "path_planning_generated", "path_id": "path-20260511T141941.889205", "target": "我想自己写一个贪吃蛇", "timestamp": "2026-05-11T14:19:41.893217Z"}
+{"ts": "2026-05-11T14:19:47.997288Z", "type": "path_node_suggestions", "node_title": "理解面向对象编程概念", "node_goal": "理解面向对象编程概念", "phase": "补弱阶段", "timestamp": "2026-05-11T14:19:47.997288Z"}
+{"ts": "2026-05-11T14:19:48.470368Z", "type": "path_node_suggestions", "node_title": "练习编写简单的函数", "node_goal": "练习编写简单的函数", "phase": "补弱阶段", "timestamp": "2026-05-11T14:19:48.470368Z"}
+{"ts": "2026-05-11T14:19:53.636320Z", "type": "path_node_suggestions", "node_title": "解决实际问题，如贪吃蛇游戏逻辑", "node_goal": "解决实际问题，如贪吃蛇游戏逻辑", "phase": "补弱阶段", "timestamp": "2026-05-11T14:19:53.636320Z"}
+{"ts": "2026-05-11T14:48:32.965663Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "你好"}

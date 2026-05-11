@@ -3,6 +3,7 @@ import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -703,6 +704,84 @@ export async function getLearningPathNodeAdvice(nodeId: string): Promise<PathNod
     learningContents: Array.isArray(data.learning_contents) ? data.learning_contents.map((x: any) => String(x)) : [],
     recommendedResources: Array.isArray(data.recommended_resources)
       ? data.recommended_resources.map((x: any) => String(x))
+      : [],
+  }
+}
+
+function toPathPlanning(raw: any): PathPlanningData {
+  const suggestions: PathPlanningSuggestion[] = Array.isArray(raw?.suggestions)
+    ? raw.suggestions.map((s: any, idx: number) => ({
+        id: Number(s?.id ?? idx + 1),
+        text: String(s?.text ?? ''),
+        desc: String(s?.desc ?? ''),
+      }))
+    : []
+  const resources: PathPlanningResource[] = Array.isArray(raw?.resources)
+    ? raw.resources.map((r: any, idx: number) => ({
+        id: Number(r?.id ?? idx + 1),
+        title: String(r?.title ?? ''),
+        tag: String(r?.tag ?? ''),
+        link: r?.link ? String(r.link) : undefined,
+      }))
+    : []
+  return {
+    pathId: String(raw?.path_id ?? ''),
+    target: String(raw?.target ?? ''),
+    suggestions,
+    resources,
+    createdAt: String(raw?.created_at ?? ''),
+  }
+}
+
+export async function generatePathPlanning(target: string): Promise<PathPlanningData> {
+  const data = await fetchJson<any>('/api/path-planning/generate', {
+    method: 'POST',
+    body: JSON.stringify({ target }),
+  })
+  return toPathPlanning(data)
+}
+
+export async function getPathPlanningHistory(): Promise<PathPlanningData[]> {
+  const data = await fetchJson<any[]>('/api/path-planning/history')
+  return (Array.isArray(data) ? data : []).map(toPathPlanning)
+}
+
+export async function getPathNodeSuggestions(req: {
+  nodeTitle: string
+  nodeGoal: string
+  nodeStatus: string
+  phaseTitle: string
+  target: string
+}): Promise<PathNodeSuggestionsResp> {
+  const data = await fetchJson<any>('/api/path-planning/node-suggestions', {
+    method: 'POST',
+    body: JSON.stringify({
+      node_title: req.nodeTitle,
+      node_goal: req.nodeGoal,
+      node_status: req.nodeStatus,
+      phase_title: req.phaseTitle,
+      target: req.target,
+    }),
+  })
+  return {
+    nodeTitle: String(data.node_title || ''),
+    nodeGoal: String(data.node_goal || ''),
+    phaseTitle: String(data.phase_title || ''),
+    status: String(data.status || ''),
+    suggestions: Array.isArray(data.suggestions)
+      ? data.suggestions.map((s: any, idx: number) => ({
+          id: Number(s?.id ?? idx + 1),
+          text: String(s?.text ?? ''),
+          desc: String(s?.desc ?? ''),
+        }))
+      : [],
+    resources: Array.isArray(data.resources)
+      ? data.resources.map((r: any, idx: number) => ({
+          id: Number(r?.id ?? idx + 1),
+          title: String(r?.title ?? ''),
+          tag: String(r?.tag ?? ''),
+          link: r?.link ? String(r.link) : undefined,
+        }))
       : [],
   }
 }
