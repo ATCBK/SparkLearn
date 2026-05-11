@@ -628,13 +628,10 @@ function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources 
         </div>
 
         {/* 底部操作 */}
-        <div className="mt-4 space-y-1 border-t border-[#E5EAF2] pt-3">
+        <div className="mt-4 border-t border-[#E5EAF2] pt-3">
           <a href="/resources" className="block w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors text-center">
             查看全部资源
           </a>
-          <button className="w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors">
-            让 AI 推荐先走哪条
-          </button>
         </div>
       </div>
     </div>
