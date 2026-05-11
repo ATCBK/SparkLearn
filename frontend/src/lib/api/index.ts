@@ -42,6 +42,9 @@ export const api = {
   deleteWrongQuizItem: impl.deleteWrongQuizItem,
   getQuizFavorites: impl.getQuizFavorites,
   setQuizFavorite: impl.setQuizFavorite,
+  getQuizRecords: impl.getQuizRecords,
+  getQuizRecordsStats: impl.getQuizRecordsStats,
+  deleteQuizRecord: impl.deleteQuizRecord,
 
   getReport: impl.getReport,
 

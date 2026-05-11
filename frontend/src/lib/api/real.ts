@@ -483,8 +483,8 @@ export async function uploadTutorFiles(files: File[]): Promise<TutorFile[]> {
   }))
 }
 
-export async function getQuizQuestions(_chapter: string): Promise<QuizQuestion[]> {
-  const data = await fetchJson<any[]>(`/api/quiz?count=8`)
+export async function getQuizQuestions(chapter: string, count: number = 8): Promise<QuizQuestion[]> {
+  const data = await fetchJson<any[]>(`/api/quiz?chapter=${encodeURIComponent(chapter)}&count=${Math.min(50, Math.max(1, count))}`)
   return data.map(q => ({
     id: q.id,
     type: q.type,
@@ -555,6 +555,23 @@ export async function setQuizFavorite(quizId: string, favorite: boolean): Promis
     method: 'POST',
     body: JSON.stringify({ quiz_id: quizId, favorite }),
   })
+}
+
+export async function getQuizRecords(): Promise<any[]> {
+  return fetchJson('/api/quiz/records')
+}
+
+export async function getQuizRecordsStats(): Promise<{
+  total: number
+  correct: number
+  wrong: number
+  accuracy: number
+}> {
+  return fetchJson('/api/quiz/records/stats')
+}
+
+export async function deleteQuizRecord(quizId: string): Promise<void> {
+  await fetchJson(`/api/quiz/records/${quizId}`, { method: 'DELETE' })
 }
 
 export async function getReport(period: 'week' | 'day' | 'month' = 'week'): Promise<ReportData> {

@@ -63,13 +63,11 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
     <div className="fixed left-0 top-0 z-20 h-screen w-[220px] border-r border-[#E5EAF2] bg-white overflow-y-auto">
       {/* Logo 区域 */}
       <div className="border-b border-[#E5EAF2] p-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#2563EB] text-sm font-bold text-white">
-            S
-          </div>
-          <div>
-            <div className="text-sm font-bold text-[#111827]">SparkLearn</div>
-            <div className="text-xs text-[#6B7280]">第二阶段评测模型</div>
+        <div className="flex items-center gap-3">
+          <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 object-contain" />
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-[#111827]">学而思 SparkLearn</div>
+            <div className="text-xs text-[#6B7280] truncate">个性化学习闭环</div>
           </div>
         </div>
       </div>

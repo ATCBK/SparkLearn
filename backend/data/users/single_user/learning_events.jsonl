@@ -390,3 +390,160 @@
 {"ts": "2026-05-11T05:14:36.400821Z", "type": "task_created", "task": {"id": "task-20260511-4", "title": "你好", "type": "practice", "status": "pending", "duration": 15}}
 {"ts": "2026-05-11T05:14:41.852396Z", "type": "task_status_updated", "task_id": "task-20260511-4", "status": "completed"}
 {"ts": "2026-05-11T05:14:43.466412Z", "type": "task_deleted", "task_id": "task-20260511-4"}
+{"ts": "2026-05-11T07:20:25.302945Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "e0908ae6"}
+{"ts": "2026-05-11T07:20:34.814540Z", "type": "submit_quiz", "quiz_id": "gq_e0908ae6_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:20:36.250624Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "0d81ff5e"}
+{"ts": "2026-05-11T07:22:59.929868Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "fa995aa6"}
+{"ts": "2026-05-11T07:23:58.138162Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "8f079604"}
+{"ts": "2026-05-11T07:24:07.082074Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "690932e2"}
+{"ts": "2026-05-11T07:24:24.761239Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "5f2e1c73"}
+{"ts": "2026-05-11T07:28:03.948503Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "12a1ea35"}
+{"ts": "2026-05-11T07:29:57.018975Z", "type": "quiz_generated", "count": 3, "chapter": "函数返回值", "batch_id": "f641832f"}
+{"ts": "2026-05-11T07:30:09.750579Z", "type": "quiz_generated", "count": 3, "chapter": "函数返回值", "batch_id": "36c8b0ae"}
+{"ts": "2026-05-11T07:30:15.236376Z", "type": "submit_quiz", "quiz_id": "gq_36c8b0ae_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:30:33.503869Z", "type": "quiz_generated", "count": 3, "chapter": "函数返回值", "batch_id": "e218c050"}
+{"ts": "2026-05-11T07:30:45.958786Z", "type": "quiz_generated", "count": 8, "chapter": "函数返回值", "batch_id": "32d5d930"}
+{"ts": "2026-05-11T07:30:59.968283Z", "type": "quiz_generated", "count": 8, "chapter": "函数返回值", "batch_id": "e8097840"}
+{"ts": "2026-05-11T07:31:04.940924Z", "type": "submit_quiz", "quiz_id": "dq_e8097840_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:31:17.813040Z", "type": "submit_quiz", "quiz_id": "dq_e8097840_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:31:28.832249Z", "type": "submit_quiz", "quiz_id": "dq_e8097840_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:31:58.990527Z", "type": "quiz_generated", "count": 1, "chapter": "函数返回值", "batch_id": "26a58bbc"}
+{"ts": "2026-05-11T07:32:07.941946Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "93230708"}
+{"ts": "2026-05-11T07:32:48.671816Z", "type": "quiz_generated", "count": 8, "chapter": "函数返回值", "batch_id": "7c5b7189"}
+{"ts": "2026-05-11T07:33:02.485093Z", "type": "quiz_generated", "count": 1, "chapter": "函数返回值", "batch_id": "d3e9bdae"}
+{"ts": "2026-05-11T07:33:53.195300Z", "type": "quiz_generated", "count": 1, "chapter": "函数返回值", "batch_id": "9e13156e"}
+{"ts": "2026-05-11T07:34:00.835856Z", "type": "quiz_generated", "count": 3, "chapter": "函数返回值", "batch_id": "22f84208"}
+{"ts": "2026-05-11T07:34:47.768173Z", "type": "quiz_generated", "count": 8, "chapter": "函数返回值", "batch_id": "866328a9"}
+{"ts": "2026-05-11T07:35:31.421079Z", "type": "quiz_generated", "count": 8, "chapter": "函数返回值", "batch_id": "ea8a3d29"}
+{"ts": "2026-05-11T07:35:38.553333Z", "type": "submit_quiz", "quiz_id": "dq_ea8a3d29_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:35:51.303093Z", "type": "quiz_generated", "count": 8, "chapter": "函数返回值", "batch_id": "3cb5fc0c"}
+{"ts": "2026-05-11T07:36:06.927009Z", "type": "submit_quiz", "quiz_id": "dq_ea8a3d29_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:36:16.997250Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "edba6860"}
+{"ts": "2026-05-11T07:36:37.511509Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "c9c43d8d"}
+{"ts": "2026-05-11T07:37:25.602615Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "4b350cd1"}
+{"ts": "2026-05-11T07:38:21.590526Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "376199ef"}
+{"ts": "2026-05-11T07:39:54.695970Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e3679e22"}
+{"ts": "2026-05-11T07:40:48.688161Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "44bae3e9"}
+{"ts": "2026-05-11T07:41:16.062402Z", "type": "submit_quiz", "quiz_id": "dq_e3679e22_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:41:25.501395Z", "type": "quiz_generated", "count": 2, "chapter": "函数返回值", "batch_id": "1320c37d"}
+{"ts": "2026-05-11T07:41:41.612665Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "afe411fc"}
+{"ts": "2026-05-11T07:41:52.120603Z", "type": "submit_quiz", "quiz_id": "dq_afe411fc_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:41:59.166440Z", "type": "submit_quiz", "quiz_id": "dq_afe411fc_2", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:42:07.321871Z", "type": "submit_quiz", "quiz_id": "dq_afe411fc_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:42:22.309550Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "412fd490"}
+{"ts": "2026-05-11T07:42:48.637749Z", "type": "quiz_generated", "count": 1, "chapter": "Python类", "batch_id": "6bc4b033"}
+{"ts": "2026-05-11T07:43:25.581457Z", "type": "quiz_generated", "count": 3, "chapter": "函数返回值", "batch_id": "39981fe7"}
+{"ts": "2026-05-11T07:43:28.880425Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "547cb25a"}
+{"ts": "2026-05-11T07:43:50.210216Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f6fce656"}
+{"ts": "2026-05-11T07:47:33.130510Z", "type": "quiz_generated", "count": 4, "chapter": "Python类", "batch_id": "021747fb"}
+{"ts": "2026-05-11T07:54:49.311569Z", "type": "quiz_generated", "count": 4, "chapter": "Python类", "batch_id": "bfd21ff0"}
+{"ts": "2026-05-11T07:55:12.959311Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "0fbabac8"}
+{"ts": "2026-05-11T07:56:20.426319Z", "type": "quiz_generated", "count": 4, "chapter": "Python类", "batch_id": "daa18cf5"}
+{"ts": "2026-05-11T07:56:32.603575Z", "type": "quiz_generated", "count": 1, "chapter": "函数返回值", "batch_id": "f26798f6"}
+{"ts": "2026-05-11T07:56:41.542619Z", "type": "submit_quiz", "quiz_id": "gq_f26798f6_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:56:59.673069Z", "type": "quiz_generated", "count": 1, "chapter": "函数返回值", "batch_id": "2ea617b5"}
+{"ts": "2026-05-11T07:57:07.365514Z", "type": "submit_quiz", "quiz_id": "gq_2ea617b5_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:57:31.547937Z", "type": "quiz_generated", "count": 1, "chapter": "函数返回值", "batch_id": "1fbdad98"}
+{"ts": "2026-05-11T07:57:35.539970Z", "type": "submit_quiz", "quiz_id": "gq_1fbdad98_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:58:52.722410Z", "type": "quiz_generated", "count": 3, "chapter": "函数返回值", "batch_id": "c1ec7570"}
+{"ts": "2026-05-11T07:58:57.450313Z", "type": "submit_quiz", "quiz_id": "gq_c1ec7570_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:59:07.595484Z", "type": "submit_quiz", "quiz_id": "gq_c1ec7570_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:59:21.969640Z", "type": "submit_quiz", "quiz_id": "gq_c1ec7570_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:59:30.520068Z", "type": "quiz_generated", "count": 3, "chapter": "函数返回值", "batch_id": "623e9c74"}
+{"ts": "2026-05-11T07:59:40.436126Z", "type": "quiz_generated", "count": 2, "chapter": "函数返回值", "batch_id": "c73dde4a"}
+{"ts": "2026-05-11T07:59:52.786194Z", "type": "submit_quiz", "quiz_id": "gq_c73dde4a_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T07:59:56.372072Z", "type": "submit_quiz", "quiz_id": "gq_c73dde4a_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:00:48.593117Z", "type": "quiz_generated", "count": 1, "chapter": "函数返回值", "batch_id": "5439a7c1"}
+{"ts": "2026-05-11T08:01:02.594821Z", "type": "quiz_generated", "count": 1, "chapter": "列表操作", "batch_id": "6ba20ee9"}
+{"ts": "2026-05-11T08:01:06.374721Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d9a50f77"}
+{"ts": "2026-05-11T08:01:24.714882Z", "type": "quiz_generated", "count": 2, "chapter": "列表操作", "batch_id": "c7aed4f2"}
+{"ts": "2026-05-11T08:02:03.932596Z", "type": "submit_quiz", "quiz_id": "gq_c7aed4f2_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:02:09.464636Z", "type": "submit_quiz", "quiz_id": "gq_c7aed4f2_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:03:35.196489Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "a6ee44ea"}
+{"ts": "2026-05-11T08:03:47.935750Z", "type": "quiz_generated", "count": 5, "chapter": "", "batch_id": "82cc6328"}
+{"ts": "2026-05-11T08:03:57.580879Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "f4cf9ed5"}
+{"ts": "2026-05-11T08:04:05.923222Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "9eaa857a"}
+{"ts": "2026-05-11T08:04:14.138776Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "85567aad"}
+{"ts": "2026-05-11T08:04:14.148786Z", "type": "submit_quiz", "quiz_id": "dq_85567aad_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:04:20.142435Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "f7c7e0ba"}
+{"ts": "2026-05-11T08:04:24.499516Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "f16ec36d"}
+{"ts": "2026-05-11T08:04:30.546288Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "c45637a2"}
+{"ts": "2026-05-11T08:04:34.348572Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "e5cbf9ae"}
+{"ts": "2026-05-11T08:04:40.182163Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "3fb7dd27"}
+{"ts": "2026-05-11T08:04:44.662681Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "fa59161f"}
+{"ts": "2026-05-11T08:04:49.327339Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "1e2b40e9"}
+{"ts": "2026-05-11T08:04:53.777750Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "5aeeb25b"}
+{"ts": "2026-05-11T08:05:03.248027Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "bbe2c8d0"}
+{"ts": "2026-05-11T08:05:09.835267Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "138c2f64"}
+{"ts": "2026-05-11T08:05:17.658905Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "89f82d59"}
+{"ts": "2026-05-11T08:05:19.631955Z", "type": "submit_quiz", "quiz_id": "INVALID_ID_0.4686526057041025", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:05:35.175502Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a3056e78"}
+{"ts": "2026-05-11T08:05:42.103484Z", "type": "submit_quiz", "quiz_id": "dq_a3056e78_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:05:42.992457Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7a62673d"}
+{"ts": "2026-05-11T08:05:44.673584Z", "type": "quiz_generated", "count": 50, "chapter": "", "batch_id": "29d80cc7"}
+{"ts": "2026-05-11T08:05:52.129383Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "1d864cb2"}
+{"ts": "2026-05-11T08:05:59.081174Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "a1c6561e"}
+{"ts": "2026-05-11T08:09:00.451686Z", "type": "quiz_generated", "count": 2, "chapter": "", "batch_id": "6d7f69d4"}
+{"ts": "2026-05-11T08:09:43.654685Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "5c9baf45"}
+{"ts": "2026-05-11T08:09:43.688751Z", "type": "submit_quiz", "quiz_id": "dq_5c9baf45_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:10:28.747008Z", "type": "quiz_generated", "count": 10, "chapter": "", "batch_id": "500af0f4"}
+{"ts": "2026-05-11T08:10:30.957409Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "4a525960", "use_llm": false}
+{"ts": "2026-05-11T08:10:30.997423Z", "type": "submit_quiz", "quiz_id": "dq_4a525960_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:10:31.007463Z", "type": "quiz_generated", "count": 10, "chapter": "", "batch_id": "7aa701f9", "use_llm": false}
+{"ts": "2026-05-11T08:10:37.754410Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "1ab31dd5", "use_llm": false}
+{"ts": "2026-05-11T08:13:24.698818Z", "type": "quiz_generated", "count": 10, "chapter": "", "batch_id": "aee6a247", "use_llm": false}
+{"ts": "2026-05-11T08:13:31.309567Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "b29e5c8b", "use_llm": false}
+{"ts": "2026-05-11T08:13:31.623243Z", "type": "submit_quiz", "quiz_id": "dq_b29e5c8b_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:13:42.563997Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "b909cc26", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.583006Z", "type": "quiz_generated", "count": 10, "chapter": "", "batch_id": "93c581d0", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.590005Z", "type": "quiz_generated", "count": 8, "chapter": "", "batch_id": "ae7bab9e", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.599017Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "f9602d55", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.614023Z", "type": "submit_quiz", "quiz_id": "dq_f9602d55_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:13:42.635147Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "4004e340", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.646670Z", "type": "submit_quiz", "quiz_id": "dq_4004e340_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:13:42.655680Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "43f47b0b", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.667690Z", "type": "submit_quiz", "quiz_id": "dq_43f47b0b_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:13:42.689692Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "59fc3cde", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.695214Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "0e2d1814", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.701737Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "128ef8ae", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.706736Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "f6c442c5", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.712733Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "18df8683", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.718741Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "2ce4be7f", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.728848Z", "type": "submit_quiz", "quiz_id": "INVALID_ID_0.7228792798143545", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:13:42.752087Z", "type": "quiz_generated", "count": 50, "chapter": "", "batch_id": "c1fcdf80", "use_llm": false}
+{"ts": "2026-05-11T08:13:42.761094Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "167cfb09", "use_llm": false}
+{"ts": "2026-05-11T08:13:43.281123Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "0be664d8", "use_llm": false}
+{"ts": "2026-05-11T08:14:35.390807Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "eb152c82", "use_llm": false}
+{"ts": "2026-05-11T08:14:35.398806Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6992d234", "use_llm": false}
+{"ts": "2026-05-11T08:14:39.241952Z", "type": "submit_quiz", "quiz_id": "dq_6992d234_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:15:25.449800Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "73b9f740", "use_llm": false}
+{"ts": "2026-05-11T08:16:37.737070Z", "type": "quiz_generated", "count": 1, "chapter": "", "batch_id": "3f8d425b", "use_llm": false}
+{"ts": "2026-05-11T08:16:39.701158Z", "type": "submit_quiz", "quiz_id": "dq_3f8d425b_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:16:41.457468Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "5754917f", "use_llm": false}
+{"ts": "2026-05-11T08:16:44.458924Z", "type": "submit_quiz", "quiz_id": "dq_5754917f_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:18:45.616471Z", "type": "submit_quiz", "quiz_id": "dq_5754917f_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:18:52.990225Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "773b7b63", "use_llm": false}
+{"ts": "2026-05-11T08:18:56.190115Z", "type": "submit_quiz", "quiz_id": "dq_773b7b63_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:19:00.014632Z", "type": "submit_quiz", "quiz_id": "dq_773b7b63_2", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:21:24.093507Z", "type": "submit_quiz", "quiz_id": "dq_773b7b63_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:21:28.781124Z", "type": "submit_quiz", "quiz_id": "dq_773b7b63_4", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:21:35.316270Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d7583081", "use_llm": false}
+{"ts": "2026-05-11T08:21:39.174933Z", "type": "submit_quiz", "quiz_id": "dq_d7583081_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:21:42.136647Z", "type": "submit_quiz", "quiz_id": "dq_d7583081_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:21:56.189006Z", "type": "submit_quiz", "quiz_id": "dq_d7583081_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:22:00.742523Z", "type": "submit_quiz", "quiz_id": "dq_d7583081_4", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:23:20.422170Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "904a3f4c", "use_llm": false}
+{"ts": "2026-05-11T08:23:36.242384Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "018b3a4e", "use_llm": false}
+{"ts": "2026-05-11T08:23:37.098804Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "cc91c6a8", "use_llm": false}
+{"ts": "2026-05-11T08:28:39.049927Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "b2913ad1", "use_llm": false}
+{"ts": "2026-05-11T08:30:30.103184Z", "type": "submit_quiz", "quiz_id": "dq_b2913ad1_1", "correct": true, "judge_mode": "llm_assist"}
+{"ts": "2026-05-11T08:30:37.562406Z", "type": "submit_quiz", "quiz_id": "dq_b2913ad1_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:33:30.121953Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "713d507e", "use_llm": false}
+{"ts": "2026-05-11T08:33:37.820954Z", "type": "submit_quiz", "quiz_id": "dq_713d507e_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:37:51.005410Z", "type": "submit_quiz", "quiz_id": "dq_713d507e_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:37:55.007348Z", "type": "submit_quiz", "quiz_id": "dq_713d507e_3", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:38:00.588595Z", "type": "submit_quiz", "quiz_id": "dq_713d507e_4", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:38:04.267547Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3b9944b7", "use_llm": false}
+{"ts": "2026-05-11T08:39:38.785887Z", "type": "submit_quiz", "quiz_id": "dq_3b9944b7_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T08:39:45.431647Z", "type": "submit_quiz", "quiz_id": "dq_3b9944b7_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T09:00:37.062172Z", "type": "submit_quiz", "quiz_id": "dq_3b9944b7_3", "correct": false, "judge_mode": "rule"}
