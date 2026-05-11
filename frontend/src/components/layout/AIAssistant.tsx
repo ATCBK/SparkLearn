@@ -215,7 +215,7 @@ export function AIAssistant() {
           <div
             className="closed-icon"
             style={{
-              transform: `perspective(800px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) translateZ(20px)`,
+              transform: `scale(0.42) perspective(800px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) translateZ(20px)`,
             }}
           >
             <div className="icon-bg">
@@ -427,12 +427,13 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
 
   /* ===== Closed icon ===== */
   .closed-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 1.5rem;
+    width: 12rem;
+    height: 12rem;
+    border-radius: 3rem;
     position: relative;
     transition: transform 0.15s ease-out;
     will-change: transform;
+    transform-origin: center center;
   }
 
   .closed-icon:hover .eyes .eye {
@@ -446,28 +447,18 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   .icon-bg {
     position: absolute;
     inset: 0;
-    border-radius: 1.5rem;
-    background: linear-gradient(135deg, #34d399 0%, #05e0f5 30%, #9147ff 70%, #ec4899 100%);
+    border-radius: 3rem;
+    background-color: rgba(255, 255, 255, 0.8);
     overflow: hidden;
     box-shadow:
-      0 8px 30px rgba(0, 0, 60, 0.2),
-      inset 0 0 8px rgba(255, 255, 255, 0.5);
-  }
-
-  .icon-bg::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 1.5rem;
+      0 10px 40px rgba(0, 0, 60, 0.25),
+      inset 0 0 10px rgba(255, 255, 255, 0.5);
   }
 
   .icon-bg .balls {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 80px;
-    height: 80px;
     transform: translateX(-50%) translateY(-50%);
     animation: rotate-background-balls 10s linear infinite;
   }
@@ -477,23 +468,22 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   }
 
   .icon-bg .ball {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 6rem;
+    height: 6rem;
     position: absolute;
     border-radius: 50%;
-    filter: blur(8px);
-    opacity: 0.6;
+    filter: blur(30px);
   }
 
   .icon-bg .ball.violet {
-    top: -5px;
+    top: 0;
     left: 50%;
     transform: translateX(-50%);
     background-color: #9147ff;
   }
 
   .icon-bg .ball.green {
-    bottom: -5px;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     background-color: #34d399;
@@ -501,14 +491,14 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
 
   .icon-bg .ball.rosa {
     top: 50%;
-    left: -5px;
+    left: 0;
     transform: translateY(-50%);
     background-color: #ec4899;
   }
 
   .icon-bg .ball.cyan {
     top: 50%;
-    right: -5px;
+    right: 0;
     transform: translateY(-50%);
     background-color: #05e0f5;
   }
@@ -520,22 +510,22 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     align-items: center;
     justify-content: center;
     backdrop-filter: blur(50px);
-    border-radius: 1.5rem;
+    border-radius: 3rem;
   }
 
   .eyes {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 28px;
-    gap: 0.7rem;
+    height: 52px;
+    gap: 2rem;
     transition: all 0.3s ease;
 
     & .eye {
-      width: 12px;
-      height: 28px;
+      width: 26px;
+      height: 52px;
       background-color: #fff;
-      border-radius: 7px;
+      border-radius: 16px;
       animation: animate-eyes 10s infinite linear;
       transition: all 0.3s ease;
     }
@@ -547,7 +537,7 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     gap: 0;
 
     & svg {
-      width: 36px;
+      width: 60px;
     }
   }
 
@@ -948,12 +938,12 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   }
 
   @keyframes animate-eyes {
-    46% { height: 28px; }
-    48% { height: 10px; }
-    50% { height: 28px; }
-    96% { height: 28px; }
-    98% { height: 10px; }
-    100% { height: 28px; }
+    46% { height: 52px; }
+    48% { height: 20px; }
+    50% { height: 52px; }
+    96% { height: 52px; }
+    98% { height: 20px; }
+    100% { height: 52px; }
   }
 
   @keyframes typing-bounce {
