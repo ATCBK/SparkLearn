@@ -9,7 +9,7 @@ const PAGE_NAMES: Record<string, { group: string; title: string }> = {
   '/path': { group: 'SparkLearn', title: '个性化路径' },
   '/generate': { group: 'SparkLearn', title: '资源中心' },
   '/resources': { group: 'SparkLearn', title: '资源库' },
-  '/knowledge': { group: 'SparkLearn', title: '我的资料库' },
+  '/knowledge': { group: 'SparkLearn', title: '知识库' },
   '/practice': { group: 'SparkLearn', title: '练习评测' },
   '/practice/mistakes': { group: 'SparkLearn', title: '错题本' },
   '/practice/favorites': { group: 'SparkLearn', title: '收藏题目' },

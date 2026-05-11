@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Zap } from 'lucide-react'
+import { ChevronRight, Zap } from 'lucide-react'
 
 // ============ 类型定义 ============
 interface PathNode {
@@ -32,7 +32,6 @@ const PHASES: Phase[] = [
       { id: 1, title: '回看返回值短讲义', status: 'completed', phase: 1 },
       { id: 2, title: '补清作用域混淆', status: 'completed', phase: 1 },
       { id: 3, title: '做 5 题补弱练习', status: 'completed', phase: 1 },
-      { id: 4, title: '阶段完成', status: 'completed', phase: 1 },
     ],
   },
   {
@@ -42,10 +41,10 @@ const PHASES: Phase[] = [
     color: '#2563EB',
     description: '能力达标，4 个任务',
     nodes: [
-      { id: 5, title: '回顾函数定义', status: 'current', phase: 2 },
-      { id: 6, title: '完成返回值理解', status: 'next', phase: 2 },
-      { id: 7, title: '完成 8 题达标练习', status: 'next', phase: 2 },
-      { id: 8, title: '进入模块导入', status: 'next', phase: 2 },
+      { id: 4, title: '回顾函数定义', status: 'current', phase: 2 },
+      { id: 5, title: '完成返回值理解', status: 'next', phase: 2 },
+      { id: 6, title: '完成 8 题达标练习', status: 'next', phase: 2 },
+      { id: 7, title: '进入模块导入', status: 'next', phase: 2 },
     ],
   },
   {
@@ -55,10 +54,9 @@ const PHASES: Phase[] = [
     color: '#94A3B8',
     description: '应用提升，3 个任务',
     nodes: [
-      { id: 9, title: '进入模块导入', status: 'locked', phase: 3 },
-      { id: 10, title: '学习文件读写', status: 'locked', phase: 3 },
-      { id: 11, title: '完成成绩统计项目', status: 'locked', phase: 3 },
-      { id: 12, title: '项目完成', status: 'locked', phase: 3 },
+      { id: 8, title: '进入模块导入', status: 'locked', phase: 3 },
+      { id: 9, title: '学习文件读写', status: 'locked', phase: 3 },
+      { id: 10, title: '完成成绩统计项目', status: 'locked', phase: 3 },
     ],
   },
 ]
@@ -78,30 +76,41 @@ const RESOURCES = [
 // ============ 主组件 ============
 export default function PathPage() {
   const [targetInput, setTargetInput] = useState('我想自己写一个成绩统计程序')
-  const [selectedNodeId, setSelectedNodeId] = useState<number | null>(5)
+  const [selectedNodeId, setSelectedNodeId] = useState<number | null>(4)
 
   return (
-    <>
-      {/* 页面标题区 */}
-      <PageHeader />
+    <div className="min-h-screen bg-[#F5F7FB]">
+      {/* 顶部栏 */}
+      <TopBar />
 
-      {/* 摘要条 */}
-      <SummaryBar />
+      {/* 主内容区 */}
+      <div className="ml-[220px] pt-[56px]">
+        <div className="mx-auto max-w-[1360px] px-8 py-8">
+          {/* 页面标题区 */}
+          <PageHeader />
 
-      {/* 主体区域：左右两栏 */}
-      <div className="mt-6 grid grid-cols-[1fr_320px] gap-5">
-        {/* 左侧：阶段路径回路 */}
-        <PathCircuitCard
-          targetInput={targetInput}
-          setTargetInput={setTargetInput}
-          selectedNodeId={selectedNodeId}
-          setSelectedNodeId={setSelectedNodeId}
-        />
+          {/* 摘要条 */}
+          <SummaryBar />
 
-        {/* 右侧：建议栏 */}
-        <SuggestionPanel selectedNodeId={selectedNodeId} />
+          {/* 主体区域：左右两栏 */}
+          <div className="mt-6 grid grid-cols-[1fr_320px] gap-5">
+            {/* 左侧：阶段路径回路 */}
+            <PathCircuitCard
+              targetInput={targetInput}
+              setTargetInput={setTargetInput}
+              selectedNodeId={selectedNodeId}
+              setSelectedNodeId={setSelectedNodeId}
+            />
+
+            {/* 右侧：建议栏 */}
+            <SuggestionPanel selectedNodeId={selectedNodeId} />
+          </div>
+        </div>
       </div>
-    </>
+
+      {/* AI 悬浮按钮 */}
+      <AIFloatingButton />
+    </div>
   )
 }
 
@@ -123,6 +132,8 @@ function TopBar() {
     </div>
   )
 }
+
+// ============ 页面标题区 ============
 function PageHeader() {
   return (
     <div className="mb-6">
@@ -228,7 +239,7 @@ function PathCircuitCard({
             className="h-9 w-64 rounded-[10px] border border-[#E5EAF2] bg-[#F9FAFB] px-3 text-sm outline-none focus:border-[#2563EB] focus:bg-white transition-colors"
           />
           <button className="rounded-[10px] bg-[#2563EB] px-4 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors whitespace-nowrap">
-            重新生成
+            生成路径
           </button>
         </div>
       </div>
@@ -275,109 +286,110 @@ interface PathCanvasProps {
 }
 
 function PathCanvas({ selectedNodeId, setSelectedNodeId }: PathCanvasProps) {
-  const nodeWidth = 168
-  const nodeHeight = 72
-  const nodeGap = 16
-  const stageLeftWidth = 120
-  const stageGap = 24
-
   return (
-    <div className="space-y-6">
+    <div
+      className="relative rounded-[12px] border border-[#E5EAF2] bg-[#FAFCFF] p-6"
+      style={{
+        backgroundImage:
+          'linear-gradient(#EEF2F7 1px, transparent 1px), linear-gradient(90deg, #EEF2F7 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
+        minHeight: '430px',
+      }}
+    >
       {/* 第一阶段 - 补弱 */}
-      <PhaseStrip
+      <PhaseRow
         phase={PHASES[0]}
-        stageLeftWidth={stageLeftWidth}
-        nodeWidth={nodeWidth}
-        nodeHeight={nodeHeight}
-        nodeGap={nodeGap}
+        top={48}
         selectedNodeId={selectedNodeId}
         setSelectedNodeId={setSelectedNodeId}
       />
+
+      {/* 第一阶段到第二阶段的转弯线 */}
+      <TurnLine top={48 + 72 + 24} left={130 + 150 * 3 + 20} color="#16A34A" />
 
       {/* 第二阶段 - 达标 */}
-      <PhaseStrip
+      <PhaseRow
         phase={PHASES[1]}
-        stageLeftWidth={stageLeftWidth}
-        nodeWidth={nodeWidth}
-        nodeHeight={nodeHeight}
-        nodeGap={nodeGap}
+        top={180}
         selectedNodeId={selectedNodeId}
         setSelectedNodeId={setSelectedNodeId}
       />
 
+      {/* 第二阶段到第三阶段的转弯线 */}
+      <TurnLine top={180 + 72 + 24} left={130 + 150 * 4 + 20} color="#2563EB" />
+
       {/* 第三阶段 - 目标 */}
-      <PhaseStrip
+      <PhaseRow
         phase={PHASES[2]}
-        stageLeftWidth={stageLeftWidth}
-        nodeWidth={nodeWidth}
-        nodeHeight={nodeHeight}
-        nodeGap={nodeGap}
+        top={310}
         selectedNodeId={selectedNodeId}
         setSelectedNodeId={setSelectedNodeId}
       />
+
+      {/* 结束标记 */}
+      <div
+        className="absolute flex items-center justify-center"
+        style={{
+          left: 130 + 150 * 3 + 20,
+          top: 310 + 72 + 24,
+          width: 32,
+          height: 32,
+        }}
+      >
+        <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#94A3B8] bg-white text-[#94A3B8]">
+          🚩
+        </div>
+      </div>
     </div>
   )
 }
 
-// ============ 阶段条 ============
-interface PhaseStripProps {
+// ============ 阶段行 ============
+interface PhaseRowProps {
   phase: Phase
-  stageLeftWidth: number
-  nodeWidth: number
-  nodeHeight: number
-  nodeGap: number
+  top: number
   selectedNodeId: number | null
   setSelectedNodeId: (id: number | null) => void
 }
 
-function PhaseStrip({
-  phase,
-  stageLeftWidth,
-  nodeWidth,
-  nodeHeight,
-  nodeGap,
-  selectedNodeId,
-  setSelectedNodeId,
-}: PhaseStripProps) {
+function PhaseRow({ phase, top, selectedNodeId, setSelectedNodeId }: PhaseRowProps) {
   return (
-    <div className="flex gap-4 items-start">
-      {/* 左侧阶段标识 */}
-      <div style={{ width: stageLeftWidth, flexShrink: 0 }}>
+    <div className="absolute" style={{ top, left: 0, right: 0 }}>
+      {/* 阶段标识 */}
+      <div className="absolute left-0 top-0 w-[130px]">
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white mb-2"
+          className="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white"
           style={{ backgroundColor: phase.color }}
         >
           {phase.id}
         </div>
-        <div className="text-sm font-bold text-[#111827]">{phase.title}</div>
+        <div className="mt-2 text-sm font-bold text-[#111827]">{phase.title}</div>
         <div className="text-xs text-[#6B7280]">{phase.description}</div>
       </div>
 
-      {/* 右侧节点行 */}
-      <div className="flex-1 flex gap-4 items-center overflow-x-auto pb-2">
+      {/* 节点容器 */}
+      <div className="relative ml-[130px] flex gap-5">
         {phase.nodes.map((node, idx) => (
-          <div key={node.id} className="flex items-center gap-4 flex-shrink-0">
+          <div key={node.id} className="relative">
             {/* 节点 */}
             <PathNode
               node={node}
               isSelected={selectedNodeId === node.id}
               onClick={() => setSelectedNodeId(node.id)}
-              width={nodeWidth}
-              height={nodeHeight}
             />
 
-            {/* 节点之间的连接箭头 */}
+            {/* 节点之间的连接线 */}
             {idx < phase.nodes.length - 1 && (
-              <div className="flex-shrink-0 text-[#111827] text-lg font-bold">
-                →
-              </div>
-            )}
-
-            {/* 最后一个节点显示旗子 */}
-            {idx === phase.nodes.length - 1 && (
-              <div className="flex-shrink-0 text-2xl">
-                🚩
-              </div>
+              <div
+                className="absolute top-1/2 -translate-y-1/2"
+                style={{
+                  left: '100%',
+                  width: 20,
+                  height: 3,
+                  backgroundColor: phase.color,
+                  borderRadius: '999px',
+                }}
+              />
             )}
           </div>
         ))}
@@ -391,11 +403,9 @@ interface PathNodeProps {
   node: PathNode
   isSelected: boolean
   onClick: () => void
-  width?: number
-  height?: number
 }
 
-function PathNode({ node, isSelected, onClick, width = 150, height = 72 }: PathNodeProps) {
+function PathNode({ node, isSelected, onClick }: PathNodeProps) {
   const getNodeStyle = () => {
     switch (node.status) {
       case 'completed':
@@ -408,7 +418,7 @@ function PathNode({ node, isSelected, onClick, width = 150, height = 72 }: PathN
         }
       case 'current':
         return {
-          border: '2px solid #2563EB',
+          border: '1px solid #2563EB',
           background: '#F8FAFF',
           statusBg: '#DBEAFE',
           statusColor: '#2563EB',
@@ -439,30 +449,25 @@ function PathNode({ node, isSelected, onClick, width = 150, height = 72 }: PathN
   return (
     <button
       onClick={onClick}
-      className="relative rounded-[12px] p-3 text-left transition-all hover:shadow-md flex flex-col"
+      className="relative w-[150px] rounded-[12px] p-3 text-left transition-all hover:shadow-md"
       style={{
         border: style.border,
         background: style.background,
-        boxShadow: isSelected && node.status === 'current' ? style.shadow || 'none' : 'none',
-        width: `${width}px`,
-        height: `${height}px`,
-        minWidth: `${width}px`,
-        minHeight: `${height}px`,
+        boxShadow: isSelected ? style.shadow || 'none' : 'none',
+        minHeight: '72px',
       }}
     >
       {/* 节点编号 */}
-      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white flex-shrink-0">
+      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">
         {node.id}
       </div>
 
       {/* 节点标题 */}
-      <div className="mt-2 text-xs font-bold text-[#111827] line-clamp-2 flex-1 leading-tight overflow-hidden">
-        {node.title}
-      </div>
+      <div className="mt-2 text-xs font-bold text-[#111827] line-clamp-2">{node.title}</div>
 
       {/* 状态标签 */}
       <div
-        className="rounded-full px-2 py-1 text-xs font-bold mt-auto flex-shrink-0"
+        className="absolute bottom-2 right-2 rounded-full px-2 py-1 text-xs font-bold"
         style={{
           backgroundColor: style.statusBg,
           color: style.statusColor,
@@ -503,7 +508,9 @@ function TurnLine({ top, left, color }: TurnLineProps) {
       }}
     />
   )
-}// ============ 右侧建议栏 ============
+}
+
+// ============ 右侧建议栏 ============
 interface SuggestionPanelProps {
   selectedNodeId: number | null
 }

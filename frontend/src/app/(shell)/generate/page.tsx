@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle2, FileText, Loader2, Play, Save, Sparkles } from 'lucide-react'
+import { CheckCircle2, FileText, Loader2, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
-import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
@@ -15,16 +15,29 @@ const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
   { type: 'code', label: '代码案例', desc: '可运行实践案例' },
 ]
 
+function typeLabel(type: string) {
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频' }
+  return map[type] || type
+}
+
 export default function GeneratePage() {
+  const [view, setView] = useState<'generate' | 'library'>('generate')
   const [step, setStep] = useState(0)
   const [type, setType] = useState<Resource['type']>('document')
-  const [prompt, setPrompt] = useState('请基于当前薄弱点“函数返回值”生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。')
+  const [prompt, setPrompt] = useState('请基于当前薄弱点"函数返回值"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。')
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [knowledge, setKnowledge] = useState<KnowledgeFile[]>([])
   const [selectedKnowledge, setSelectedKnowledge] = useState<number[]>([])
   const [resource, setResource] = useState<Resource | null>(null)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
+  
+  // 资源库相关状态
+  const [resources, setResources] = useState<Resource[]>([])
+  const [selectedId, setSelectedId] = useState<string>('')
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState('全部')
+  const [libraryError, setLibraryError] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -37,6 +50,22 @@ export default function GeneratePage() {
       mounted = false
     }
   }, [])
+
+  async function loadResources() {
+    try {
+      const data = await api.getResources()
+      setResources(data)
+      setSelectedId(prev => prev || data[0]?.id || '')
+    } catch (ex) {
+      setLibraryError(ex instanceof Error ? ex.message : '资源读取失败')
+    }
+  }
+
+  useEffect(() => {
+    if (view === 'library') {
+      void loadResources()
+    }
+  }, [view])
 
   async function startGenerate() {
     setStep(3)
@@ -54,13 +83,109 @@ export default function GeneratePage() {
     }
   }
 
+  async function removeResource(id: string) {
+    await api.deleteResource(id)
+    await loadResources()
+  }
+
+  const filtered = resources.filter((r) => {
+    const matchQuery = !query || r.title.includes(query) || r.type.includes(query)
+    const matchFilter = filter === '全部' || r.type === filter
+    return matchQuery && matchFilter
+  })
+  const selected = resources.find(r => r.id === selectedId) || filtered[0]
+
+  if (view === 'library') {
+    return (
+      <div>
+        <div className="mb-6 flex items-center gap-3">
+          <button onClick={() => setView('generate')} className="flex items-center gap-2 text-blue hover:text-blue-dark transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+            <span className="font-bold">返回生成</span>
+          </button>
+        </div>
+
+        <PageHead
+          eyebrow="资源中心 / 资源库"
+          title="资源库"
+          description="所有生成和推荐过的资源都会沉淀在这里，学习进度会影响后续练习与报告。"
+          chips={[
+            { value: `${resources.length}`, label: '已保存资源' },
+            { value: `${resources.filter(r => r.status === 'completed').length}`, label: '可学习' },
+            { value: `${resources.filter(r => r.type === 'ppt').length}`, label: 'PPT' },
+          ]}
+        />
+
+        <div className="grid grid-cols-[360px_1fr] gap-4 max-[980px]:grid-cols-1">
+          <ProtoCard>
+            <div className="mb-3 grid gap-2">
+              <div className="flex h-10 items-center gap-2 rounded-[10px] border border-line bg-[#f9fafb] px-3">
+                <Search className="h-4 w-4 text-muted" />
+                <input value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-small outline-none" placeholder="搜索资源或知识点" />
+              </div>
+              <select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-10 rounded-[10px] border border-line bg-white px-3 text-small outline-none">
+                {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video'].map(item => <option key={item}>{item}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              {filtered.map((res) => (
+                <button key={res.id} onClick={() => setSelectedId(res.id)} className={`rounded-[12px] border p-3 text-left ${selected?.id === res.id ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <b className="line-clamp-1 text-small text-ink">{res.title}</b>
+                    <Pill tone={res.status === 'completed' ? 'green' : res.status === 'failed' ? 'red' : 'blue'}>{res.status}</Pill>
+                  </div>
+                  <span className="mt-1 block text-micro text-muted">{typeLabel(res.type)} · 关联薄弱点：函数返回值</span>
+                </button>
+              ))}
+              {!filtered.length && <SoftCard className="text-small text-muted">没有匹配资源。</SoftCard>}
+            </div>
+          </ProtoCard>
+
+          <ProtoCard>
+            {libraryError && <p className="mb-3 rounded-[10px] bg-red-light p-3 text-small text-red">{libraryError}</p>}
+            {selected ? (
+              <div>
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <Pill tone="blue">{typeLabel(selected.type)}</Pill>
+                    <h2 className="mt-3 text-[22px] font-bold text-ink">{selected.title}</h2>
+                    <p className="mt-2 text-small text-muted">来源：AI 生成 · 关联薄弱点：函数返回值 · 学习进度 {selected.progress ?? 42}%</p>
+                  </div>
+                  <Pill tone="green">可学习</Pill>
+                </div>
+                <Bar value={selected.progress ?? 42} />
+                <div className="mt-4 min-h-[300px] overflow-hidden rounded-[12px] border border-line bg-[#f9fafb]">
+                  {selected.sourceUrl ? (
+                    <iframe title={selected.title} src={`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`} className="h-[420px] w-full border-0" />
+                  ) : (
+                    <div className="p-5">
+                      <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <ProtoButton href="/practice">学完去练习</ProtoButton>
+                  <ProtoButton variant="secondary"><MessageCircle className="h-4 w-4" />让 AI 讲解</ProtoButton>
+                  <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
+                  <ProtoButton variant="tertiary" onClick={() => void removeResource(selected.id)}><Trash2 className="h-4 w-4" />删除</ProtoButton>
+                </div>
+              </div>
+            ) : (
+              <SoftCard className="text-small text-muted">暂无资源，先到资源中心生成。</SoftCard>
+            )}
+          </ProtoCard>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <PageHead
         eyebrow="资源中心 / 生成与资源库"
         title="资源中心"
-        description="在这里生成个性化学习资源，也可以进入资源库或我的资料库管理已保存内容和用户上传文件。"
-        actions={<div className="flex gap-2"><ProtoButton href="/resources" variant="secondary">进入资源库</ProtoButton><ProtoButton href="/knowledge" variant="secondary">我的资料库</ProtoButton></div>}
+        description="在这里生成个性化学习资源，也可以进入资源库管理已保存内容。"
+        actions={<div className="flex gap-2"><button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] border border-line bg-white text-small font-bold text-ink hover:border-blue transition-colors">进入资源库</button></div>}
       />
 
       <ProtoCard className="mb-4 overflow-hidden p-0">
@@ -101,7 +226,7 @@ export default function GeneratePage() {
             <SoftCard><b className="text-ink">当前节点</b><p className="mt-2 text-small text-muted">{profile?.currentStage || '函数返回值与作用域修正'}。模块导入已暂缓，需要先修正 return 返回给调用处的理解。</p></SoftCard>
             <SoftCard><b className="text-ink">学生偏好</b><p className="mt-2 text-small text-muted">{profile?.learningPreference?.join('、') || '代码案例优先，短讲义加检查题效果最好'}。</p></SoftCard>
             <SoftCard><b className="text-ink">错题证据</b><p className="mt-2 text-small text-muted">3 道题把局部变量、返回值和 print 输出混在一起。</p></SoftCard>
-            <SoftCard><b className="text-ink">本次目标</b><p className="mt-2 text-small text-muted">12 分钟内能解释“函数内部算出的结果如何交给主流程”。</p></SoftCard>
+            <SoftCard><b className="text-ink">本次目标</b><p className="mt-2 text-small text-muted">12 分钟内能解释"函数内部算出的结果如何交给主流程"。</p></SoftCard>
           </div>
         )}
 
@@ -122,7 +247,7 @@ export default function GeneratePage() {
             <div>
               <h3 className="text-h3 font-bold text-ink">生成侧重点</h3>
               <div className="mt-3 grid gap-3">
-                <SoftCard className="bg-blue-light"><b className="text-ink">项目案例优先</b><span className="mt-1 block text-small text-muted">用“成绩统计小程序”承载函数参数、返回值和局部变量。</span></SoftCard>
+                <SoftCard className="bg-blue-light"><b className="text-ink">项目案例优先</b><span className="mt-1 block text-small text-muted">用"成绩统计小程序"承载函数参数、返回值和局部变量。</span></SoftCard>
                 <SoftCard><b className="text-ink">错题拆解优先</b><span className="mt-1 block text-small text-muted">逐题解释为什么 print 输出不等于 return。</span></SoftCard>
                 <SoftCard><b className="text-ink">达标练习优先</b><span className="mt-1 block text-small text-muted">先给题，再按错误类型补讲解。</span></SoftCard>
               </div>
@@ -135,7 +260,7 @@ export default function GeneratePage() {
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-small font-bold text-ink">选择已整理资料</span>
-                <ProtoButton href="/knowledge" variant="ghost">去资料库</ProtoButton>
+                <ProtoButton href="/knowledge" variant="ghost">去知识库</ProtoButton>
               </div>
               <div className="grid grid-cols-3 gap-3 max-[900px]:grid-cols-1">
                 {knowledge.map((file) => (
@@ -151,7 +276,7 @@ export default function GeneratePage() {
                     </span>
                   </label>
                 ))}
-                {!knowledge.length && <SoftCard className="text-small text-muted">暂无已整理资料，可先到资料库上传并整理。</SoftCard>}
+                {!knowledge.length && <SoftCard className="text-small text-muted">暂无已整理资料，可先到知识库上传并整理。</SoftCard>}
               </div>
             </div>
             </div>
@@ -182,7 +307,7 @@ export default function GeneratePage() {
                   <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可进入资源库查看完整预览。'}</p>
                 </SoftCard>
                 <div className="flex gap-2">
-                  <ProtoButton href="/resources">进入资源库</ProtoButton>
+                  <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">进入资源库</button>
                   <ProtoButton href="/practice" variant="secondary">生成配套练习</ProtoButton>
                   <ProtoButton onClick={() => setStep(5)} variant="tertiary"><Save className="h-4 w-4" />确认保存</ProtoButton>
                 </div>
@@ -199,7 +324,7 @@ export default function GeneratePage() {
               <b className="text-ink">已保存到资源库</b>
               <p className="mt-1 text-small text-muted">资源已关联当前路径节点，下一步建议开始学习并完成达标题。</p>
             </div>
-            <ProtoButton href="/resources"><Sparkles className="h-4 w-4" />查看资源</ProtoButton>
+            <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors flex items-center gap-2"><Sparkles className="h-4 w-4" />查看资源</button>
           </SoftCard>
         )}
         </div>

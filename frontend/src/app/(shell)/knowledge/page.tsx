@@ -63,8 +63,8 @@ export default function KnowledgePage() {
   return (
     <div>
       <PageHead
-        eyebrow="个人知识库 / 我的资料库"
-        title="我的资料库"
+        eyebrow="知识库"
+        title="知识库"
         description="上传课程资料后执行整理，系统会提取文本、切片、生成摘要和标签，供资源生成与 AI 辅导引用。"
       />
       <MetricStrip

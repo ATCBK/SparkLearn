@@ -11,13 +11,20 @@ type ApiResp<T> = { success: boolean; data: T; error?: string }
 type SseEvent = { type: string; payload: Record<string, unknown> }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-  })
-  const json = await res.json() as ApiResp<T>
-  if (!res.ok || !json.success) throw new Error(json.error || `请求失败：${res.status}`)
-  return json.data
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+    })
+    const json = await res.json() as ApiResp<T>
+    if (!res.ok || !json.success) throw new Error(json.error || `请求失败：${res.status}`)
+    return json.data
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`无法连接到服务器 (${API_BASE})。请确保后端服务已启动。`)
+    }
+    throw error
+  }
 }
 
 async function readSSE(

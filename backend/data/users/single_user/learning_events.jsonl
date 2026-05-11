@@ -387,3 +387,6 @@
 {"ts": "2026-05-10T06:13:20.811842Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "请解释闭包"}
 {"ts": "2026-05-10T06:13:20.900491Z", "type": "profile_dialog_completed", "session_id": "sess_6904f1f8", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-10T06:13:20.884483Z"}}
 {"ts": "2026-05-10T06:19:23.975132Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "你好"}
+{"ts": "2026-05-11T05:14:36.400821Z", "type": "task_created", "task": {"id": "task-20260511-4", "title": "你好", "type": "practice", "status": "pending", "duration": 15}}
+{"ts": "2026-05-11T05:14:41.852396Z", "type": "task_status_updated", "task_id": "task-20260511-4", "status": "completed"}
+{"ts": "2026-05-11T05:14:43.466412Z", "type": "task_deleted", "task_id": "task-20260511-4"}

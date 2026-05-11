@@ -23,9 +23,6 @@ export default function ProfilePage() {
       <div className="grid grid-cols-[360px_1fr] gap-4 max-[1100px]:grid-cols-1">
         <ProtoCard className="relative min-h-[580px] overflow-hidden p-0">
           <img src="/profile-anatomy-bg.png" alt="学生人物画像" className="absolute inset-0 h-full w-full object-cover" />
-          <Float className="top-7 left-8" title="12 天" text="学习连续性稳定" />
-          <Float className="right-8 top-[210px]" title="案例驱动" text="更适合先看可运行例子，再开始短练习。" />
-          <Float className="bottom-[160px] left-8 right-8" title="当前卡点" text="return、print 和局部变量这三个点还容易混在一起。" />
           <div className="absolute bottom-6 left-6 right-6 rounded-[14px] border border-line bg-white/92 p-4 shadow-md backdrop-blur">
             <Pill tone="blue">人物画像</Pill>
             <h2 className="mt-2 text-h2 font-bold text-ink">李明 · 项目实践准备期</h2>
@@ -86,9 +83,13 @@ export default function ProfilePage() {
         <ProtoCard>
           <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">能力雷达</h2><ProtoButton variant="secondary" onClick={() => setChatOpen(!chatOpen)}>告诉 AI 你想怎么学</ProtoButton></div>
           <div className="mt-5 grid grid-cols-[260px_1fr] gap-5 max-[760px]:grid-cols-1">
-            <div className="grid aspect-square place-items-center rounded-full border border-[#dbeafe] bg-blue-light text-center">
-              <div><b className="text-[34px]">53</b><span className="block text-micro text-muted">结果传递最低</span></div>
-            </div>
+            <RadarChart data={[
+              { name: '语法基础', value: 84 },
+              { name: '案例理解', value: 68 },
+              { name: '练习稳定', value: 57 },
+              { name: '项目迁移', value: 42 },
+              { name: '结果传递', value: 53 },
+            ]} />
             <div className="space-y-3">
               {[
                 ['语法基础', 84], ['案例理解', 68], ['练习稳定', 57], ['项目迁移', 42], ['结果传递', 53],
@@ -119,9 +120,6 @@ export default function ProfilePage() {
   )
 }
 
-function Float({ title, text, className }: { title: string; text: string; className?: string }) {
-  return <div className={`absolute rounded-[12px] border border-line bg-white/92 p-3 shadow-md backdrop-blur ${className}`}><b className="block text-small text-ink">{title}</b><span className="mt-1 block text-micro leading-5 text-muted">{text}</span></div>
-}
 function Goal({ title, text, done, current }: { title: string; text: string; done?: boolean; current?: boolean }) {
   return <SoftCard className={done ? 'bg-green-light' : current ? 'bg-blue-light' : 'bg-white'}><b className="text-small text-ink">{title}</b><span className="mt-1 block text-micro text-muted">{text}</span></SoftCard>
 }
@@ -130,6 +128,116 @@ function Plan({ idx, title, text, time }: { idx: string; title: string; text: st
 }
 function Radar({ name, value }: { name: string; value: number }) {
   return <div><div className="mb-1 flex justify-between text-micro"><b>{name}</b><span className="text-muted">{value}</span></div><Bar value={value} /></div>
+}
+
+function RadarChart({ data }: { data: Array<{ name: string; value: number }> }) {
+  const size = 260
+  const center = size / 2
+  const radius = 80
+  const levels = 5
+  const maxValue = 100
+
+  // 计算五边形的顶点坐标
+  const points = data.map((item, index) => {
+    const angle = (index * 2 * Math.PI) / data.length - Math.PI / 2
+    const x = center + radius * Math.cos(angle)
+    const y = center + radius * Math.sin(angle)
+    return { x, y, ...item }
+  })
+
+  // 生成网格线
+  const gridLines = Array.from({ length: levels }, (_, i) => {
+    const r = (radius / levels) * (i + 1)
+    const gridPoints = data.map((_, index) => {
+      const angle = (index * 2 * Math.PI) / data.length - Math.PI / 2
+      const x = center + r * Math.cos(angle)
+      const y = center + r * Math.sin(angle)
+      return `${x},${y}`
+    })
+    return gridPoints.join(' ')
+  })
+
+  // 计算数据点坐标
+  const dataPoints = data.map((item, index) => {
+    const angle = (index * 2 * Math.PI) / data.length - Math.PI / 2
+    const r = (radius / maxValue) * item.value
+    const x = center + r * Math.cos(angle)
+    const y = center + r * Math.sin(angle)
+    return `${x},${y}`
+  })
+
+  // 计算标签位置
+  const labelPoints = data.map((item, index) => {
+    const angle = (index * 2 * Math.PI) / data.length - Math.PI / 2
+    const labelRadius = radius + 35
+    const x = center + labelRadius * Math.cos(angle)
+    const y = center + labelRadius * Math.sin(angle)
+    return { x, y, name: item.name }
+  })
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="w-full">
+      {/* 网格线 */}
+      {gridLines.map((points, i) => (
+        <polygon
+          key={`grid-${i}`}
+          points={points}
+          fill="none"
+          stroke="#e0e7ff"
+          strokeWidth="1"
+        />
+      ))}
+
+      {/* 坐标轴 */}
+      {points.map((point, i) => (
+        <line
+          key={`axis-${i}`}
+          x1={center}
+          y1={center}
+          x2={point.x}
+          y2={point.y}
+          stroke="#e0e7ff"
+          strokeWidth="1"
+        />
+      ))}
+
+      {/* 数据区域 */}
+      <polygon
+        points={dataPoints.join(' ')}
+        fill="#3b82f6"
+        fillOpacity="0.2"
+        stroke="#2563eb"
+        strokeWidth="2"
+      />
+
+      {/* 数据点 */}
+      {points.map((point, i) => (
+        <circle
+          key={`point-${i}`}
+          cx={point.x}
+          cy={point.y}
+          r="4"
+          fill="#2563eb"
+          stroke="white"
+          strokeWidth="2"
+        />
+      ))}
+
+      {/* 标签 */}
+      {labelPoints.map((point, i) => (
+        <text
+          key={`label-${i}`}
+          x={point.x}
+          y={point.y}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-[11px] font-bold fill-[#374151]"
+        >
+          {point.name}
+        </text>
+      ))}
+    </svg>
+  )
 }
 function Resource({ title, meta, tag }: { title: string; meta: string; tag: string }) {
   return <SoftCard className="flex items-center justify-between gap-3 bg-white"><span><b className="block text-small text-ink">{title}</b><span className="text-micro text-muted">{meta}</span></span><Pill tone="blue">{tag}</Pill></SoftCard>
