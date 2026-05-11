@@ -547,3 +547,5 @@
 {"ts": "2026-05-11T08:39:38.785887Z", "type": "submit_quiz", "quiz_id": "dq_3b9944b7_2", "correct": false, "judge_mode": "rule"}
 {"ts": "2026-05-11T08:39:45.431647Z", "type": "submit_quiz", "quiz_id": "dq_3b9944b7_1", "correct": false, "judge_mode": "rule"}
 {"ts": "2026-05-11T09:00:37.062172Z", "type": "submit_quiz", "quiz_id": "dq_3b9944b7_3", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-11T09:23:06.716971Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2126ff37", "use_llm": false}
+{"ts": "2026-05-11T09:23:06.940148Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "638226b1", "use_llm": false}

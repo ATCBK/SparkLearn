@@ -1,66 +1,66 @@
 [
   {
-    "id": "dq_3b9944b7_1",
+    "id": "dq_638226b1_1",
     "type": "multiple",
-    "content": "以下哪些是集合的方法？",
+    "content": "以下哪些是函数的特点？",
     "options": [
-      "add()",
-      "remove()",
-      "union()",
-      "append()"
+      "可重用",
+      "可接收参数",
+      "必须有返回值",
+      "可以嵌套"
     ],
     "correct_answer": [
-      "add()",
-      "remove()",
-      "union()"
+      "可重用",
+      "可接收参数",
+      "可以嵌套"
     ],
-    "explanation": "add()、remove()、union() 是集合方法，append() 是列表方法。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_3b9944b7_2",
-    "type": "single",
-    "content": "ZeroDivisionError 异常表示什么？",
-    "options": [
-      "值错误",
-      "除以零",
-      "索引超出范围",
-      "类型错误"
-    ],
-    "correct_answer": "除以零",
-    "explanation": "ZeroDivisionError 表示除数为零。",
-    "knowledge_point_id": "4.1",
-    "knowledge_point_name": "异常处理"
-  },
-  {
-    "id": "dq_3b9944b7_3",
-    "type": "single",
-    "content": "函数中 *args 的作用是什么？",
-    "options": [
-      "接收关键字参数",
-      "接收可变数量的位置参数",
-      "接收单个参数",
-      "接收列表参数"
-    ],
-    "correct_answer": "接收可变数量的位置参数",
-    "explanation": "*args 用于接收任意数量的位置参数，作为元组存储。",
+    "explanation": "函数可重用、可接收参数、可嵌套，但不一定有返回值。",
     "knowledge_point_id": "3.1",
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_3b9944b7_4",
+    "id": "dq_638226b1_2",
     "type": "single",
-    "content": "字符串的 title() 方法的作用是什么？",
+    "content": "字符串的 isdigit() 方法的作用是什么？",
     "options": [
-      "转换为大写",
-      "转换为小写",
-      "每个单词首字母大写",
-      "删除空格"
+      "检查是否为字母",
+      "检查是否全为数字",
+      "检查是否为空",
+      "检查长度"
     ],
-    "correct_answer": "每个单词首字母大写",
-    "explanation": "title() 将每个单词的首字母转为大写。",
+    "correct_answer": "检查是否全为数字",
+    "explanation": "isdigit() 检查字符串是否全由数字组成。",
     "knowledge_point_id": "1.4",
     "knowledge_point_name": "字符串处理"
+  },
+  {
+    "id": "dq_638226b1_3",
+    "type": "single",
+    "content": "Python 中用于捕获异常的关键字是？",
+    "options": [
+      "catch",
+      "try",
+      "except",
+      "handle"
+    ],
+    "correct_answer": "except",
+    "explanation": "Python 使用 try-except 语句捕获异常。",
+    "knowledge_point_id": "4.1",
+    "knowledge_point_name": "异常处理"
+  },
+  {
+    "id": "dq_638226b1_4",
+    "type": "single",
+    "content": "AttributeError 异常表示什么？",
+    "options": [
+      "值错误",
+      "属性不存在",
+      "索引超出范围",
+      "类型错误"
+    ],
+    "correct_answer": "属性不存在",
+    "explanation": "AttributeError 表示对象没有指定的属性。",
+    "knowledge_point_id": "4.1",
+    "knowledge_point_name": "异常处理"
   }
 ]

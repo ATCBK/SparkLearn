@@ -27,7 +27,7 @@ const PHASES: Phase[] = [
     title: '补弱阶段',
     subtitle: '1 / 3',
     color: '#16A34A',
-    description: '夯实基础，3 个任务',
+    description: '夯实基础',
     nodes: [
       { id: 1, title: '回看返回值短讲义', status: 'completed', phase: 1 },
       { id: 2, title: '补清作用域混淆', status: 'completed', phase: 1 },
@@ -40,7 +40,7 @@ const PHASES: Phase[] = [
     title: '达标阶段',
     subtitle: '2 / 3',
     color: '#2563EB',
-    description: '能力达标，4 个任务',
+    description: '能力达标',
     nodes: [
       { id: 5, title: '回顾函数定义', status: 'current', phase: 2 },
       { id: 6, title: '完成返回值理解', status: 'next', phase: 2 },
@@ -53,7 +53,7 @@ const PHASES: Phase[] = [
     title: '目标阶段',
     subtitle: '3 / 3',
     color: '#94A3B8',
-    description: '应用提升，3 个任务',
+    description: '应用提升',
     nodes: [
       { id: 9, title: '进入模块导入', status: 'locked', phase: 3 },
       { id: 10, title: '学习文件读写', status: 'locked', phase: 3 },
@@ -70,36 +70,84 @@ const SUGGESTIONS = [
 ]
 
 const RESOURCES = [
-  { id: 1, title: '函数返回值项目讲义', tag: '优先学习' },
-  { id: 2, title: '函数作用域精讲讲义', tag: '待复习' },
-  { id: 3, title: '返回值补弱题练', tag: '5 题' },
+  { id: 1, title: '函数返回值项目讲义', tag: '优先学习', link: '/resources?type=lecture&id=1' },
+  { id: 2, title: '函数作用域精讲讲义', tag: '待复习', link: '/resources?type=lecture&id=2' },
+  { id: 3, title: '返回值补弱题练', tag: '5 题', link: '/practice?topic=返回值' },
 ]
 
 // ============ 主组件 ============
 export default function PathPage() {
   const [targetInput, setTargetInput] = useState('我想自己写一个成绩统计程序')
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(5)
+  const [generatedSuggestions, setGeneratedSuggestions] = useState(SUGGESTIONS)
+  const [generatedResources, setGeneratedResources] = useState(RESOURCES)
+
+  const handleNodeClick = (nodeId: number) => {
+    setSelectedNodeId(nodeId)
+    
+    // 根据选中的节点生成对应的建议和资源
+    const nodeGoalMap: { [key: number]: string } = {
+      1: '理解返回值',
+      2: '掌握作用域',
+      3: '补弱练习',
+      4: '阶段完成',
+      5: '回顾函数',
+      6: '理解返回值',
+      7: '达标练习',
+      8: '学习模块',
+      9: '学习模块',
+      10: '文件读写',
+      11: '项目实战',
+      12: '项目完成',
+    }
+    
+    const goal = nodeGoalMap[nodeId] || '学习任务'
+    
+    // 生成对应的建议
+    const newSuggestions = [
+      { id: 1, text: `先学习 ${goal}`, desc: '根据当前节点自动推荐的学习路径。' },
+      { id: 2, text: `完成 ${goal} 相关练习`, desc: '根据当前节点自动推荐的练习任务。' },
+      { id: 3, text: `掌握 ${goal} 的核心概念`, desc: '根据当前节点自动推荐的学习重点。' },
+    ]
+    
+    // 生成对应的资源（带链接）
+    const newResources = [
+      { id: 1, title: `${goal}精讲讲义`, tag: '优先学习', link: `/resources?type=lecture&goal=${encodeURIComponent(goal)}` },
+      { id: 2, title: `${goal}补弱题练`, tag: '5题', link: `/practice?topic=${encodeURIComponent(goal)}` },
+      { id: 3, title: `${goal}项目案例`, tag: '待复习', link: `/resources?type=project&goal=${encodeURIComponent(goal)}` },
+    ]
+    
+    setGeneratedSuggestions(newSuggestions)
+    setGeneratedResources(newResources)
+  }
 
   return (
     <>
       {/* 页面标题区 */}
       <PageHeader />
 
-      {/* 摘要条 */}
-      <SummaryBar />
+      {/* 统一容器 - 确保摘要条和下面的模块宽度一致 */}
+      <div>
+        {/* 摘要条 */}
+        <SummaryBar />
 
-      {/* 主体区域：左右两栏 */}
-      <div className="mt-6 grid grid-cols-[1fr_320px] gap-5">
-        {/* 左侧：阶段路径回路 */}
-        <PathCircuitCard
-          targetInput={targetInput}
-          setTargetInput={setTargetInput}
-          selectedNodeId={selectedNodeId}
-          setSelectedNodeId={setSelectedNodeId}
-        />
+        {/* 主体区域：左右两栏 */}
+        <div className="mt-6 grid grid-cols-[1fr_320px] gap-2">
+          {/* 左侧：阶段路径回路 */}
+          <PathCircuitCard
+            targetInput={targetInput}
+            setTargetInput={setTargetInput}
+            selectedNodeId={selectedNodeId}
+            setSelectedNodeId={handleNodeClick}
+          />
 
-        {/* 右侧：建议栏 */}
-        <SuggestionPanel selectedNodeId={selectedNodeId} />
+          {/* 右侧：建议栏 */}
+          <SuggestionPanel 
+            selectedNodeId={selectedNodeId} 
+            suggestions={generatedSuggestions}
+            resources={generatedResources}
+          />
+        </div>
       </div>
     </>
   )
@@ -217,7 +265,7 @@ function PathCircuitCard({
   return (
     <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm">
       {/* 标题 + 目标设定 */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-[#111827]">阶段路径回路</h2>
         <div className="flex items-center gap-2">
           <input
@@ -237,7 +285,7 @@ function PathCircuitCard({
       <PathCanvas selectedNodeId={selectedNodeId} setSelectedNodeId={setSelectedNodeId} />
 
       {/* 图例 */}
-      <div className="mt-6 flex gap-6 text-xs font-bold">
+      <div className="mt-4 flex gap-6 text-xs font-bold">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-[#16A34A]" />
           <span className="text-[#6B7280]">已完成</span>
@@ -253,14 +301,14 @@ function PathCircuitCard({
       </div>
 
       {/* 底部按钮 */}
-      <div className="mt-6 flex gap-3">
-        <button className="rounded-[10px] bg-[#2563EB] px-6 py-3 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors">
+      <div className="mt-4 flex gap-3">
+        <button className="rounded-[10px] bg-[#2563EB] px-6 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors">
           学习当前节点资源
         </button>
-        <button className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-3 text-sm font-bold text-[#2563EB] hover:border-[#2563EB] transition-colors">
+        <button className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-2 text-sm font-bold text-[#2563EB] hover:border-[#2563EB] transition-colors">
           进入当前节点练习
         </button>
-        <button className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-3 text-sm font-bold text-[#111827] hover:border-[#E5EAF2] transition-colors">
+        <button className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-2 text-sm font-bold text-[#111827] hover:border-[#E5EAF2] transition-colors">
           生成补弱资源
         </button>
       </div>
@@ -341,18 +389,6 @@ function PhaseStrip({
 }: PhaseStripProps) {
   return (
     <div className="flex gap-4 items-start">
-      {/* 左侧阶段标识 */}
-      <div style={{ width: stageLeftWidth, flexShrink: 0 }}>
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white mb-2"
-          style={{ backgroundColor: phase.color }}
-        >
-          {phase.id}
-        </div>
-        <div className="text-sm font-bold text-[#111827]">{phase.title}</div>
-        <div className="text-xs text-[#6B7280]">{phase.description}</div>
-      </div>
-
       {/* 右侧节点行 */}
       <div className="flex-1 flex gap-4 items-center overflow-x-auto pb-2">
         {phase.nodes.map((node, idx) => (
@@ -436,10 +472,29 @@ function PathNode({ node, isSelected, onClick, width = 150, height = 72 }: PathN
 
   const style = getNodeStyle()
 
+  // 简化的目标描述
+  const getSimplifiedGoal = () => {
+    const goalMap: { [key: number]: string } = {
+      1: '理解返回值',
+      2: '掌握作用域',
+      3: '补弱练习',
+      4: '阶段完成',
+      5: '回顾函数',
+      6: '理解返回值',
+      7: '达标练习',
+      8: '学习模块',
+      9: '学习模块',
+      10: '文件读写',
+      11: '项目实战',
+      12: '项目完成',
+    }
+    return goalMap[node.id] || node.title
+  }
+
   return (
     <button
       onClick={onClick}
-      className="relative rounded-[12px] p-3 text-left transition-all hover:shadow-md flex flex-col"
+      className="relative rounded-[12px] p-3 text-left transition-all hover:shadow-md flex flex-col justify-between"
       style={{
         border: style.border,
         background: style.background,
@@ -450,25 +505,17 @@ function PathNode({ node, isSelected, onClick, width = 150, height = 72 }: PathN
         minHeight: `${height}px`,
       }}
     >
-      {/* 节点编号 */}
-      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white flex-shrink-0">
-        {node.id}
+      {/* 简化的目标描述 - 主要展示 */}
+      <div className="text-xs font-bold text-[#111827] line-clamp-2 leading-tight">
+        {getSimplifiedGoal()}
       </div>
 
-      {/* 节点标题 */}
-      <div className="mt-2 text-xs font-bold text-[#111827] line-clamp-2 flex-1 leading-tight overflow-hidden">
-        {node.title}
-      </div>
-
-      {/* 状态标签 */}
-      <div
-        className="rounded-full px-2 py-1 text-xs font-bold mt-auto flex-shrink-0"
-        style={{
-          backgroundColor: style.statusBg,
-          color: style.statusColor,
-        }}
-      >
-        {style.statusText}
+      {/* 节点编号 - 次要展示 */}
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-xs text-[#6B7280]">第 {node.id} 步</span>
+        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white flex-shrink-0">
+          →
+        </div>
       </div>
 
       {/* 完成标记 */}
@@ -506,55 +553,89 @@ function TurnLine({ top, left, color }: TurnLineProps) {
 }// ============ 右侧建议栏 ============
 interface SuggestionPanelProps {
   selectedNodeId: number | null
+  suggestions?: Array<{ id: number; text: string; desc: string }>
+  resources?: Array<{ id: number; title: string; tag: string; link?: string }>
 }
 
-function SuggestionPanel({ selectedNodeId }: SuggestionPanelProps) {
+function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources = RESOURCES }: SuggestionPanelProps) {
+  // 根据选中的节点获取对应的阶段信息
+  const getPhaseInfo = () => {
+    if (!selectedNodeId) return PHASES[1] // 默认显示第二阶段
+    
+    const node = PHASES.flatMap(p => p.nodes).find(n => n.id === selectedNodeId)
+    if (!node) return PHASES[1]
+    
+    return PHASES.find(p => p.id === node.phase) || PHASES[1]
+  }
+  
+  const phase = getPhaseInfo()
+
   return (
-    <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm">
-      {/* 补弱路径建议 */}
-      <div className="mb-8">
-        <h3 className="text-sm font-bold text-[#111827]">补弱路径建议</h3>
-        <div className="mt-4 space-y-3">
-          {SUGGESTIONS.map((suggestion) => (
-            <div
-              key={suggestion.id}
-              className="rounded-[10px] border border-[#E5EAF2] bg-[#F9FAFB] p-3 hover:border-[#2563EB] transition-colors cursor-pointer"
-            >
-              <div className="text-xs font-bold text-[#111827]">{suggestion.text}</div>
-              <div className="mt-1 text-xs text-[#6B7280]">{suggestion.desc}</div>
-            </div>
-          ))}
+    <div className="space-y-3">
+      {/* 阶段说明卡片 */}
+      <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white flex-shrink-0"
+            style={{ backgroundColor: phase.color }}
+          >
+            {phase.id}
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#111827]">{phase.title}</div>
+            <div className="text-xs text-[#6B7280]">{phase.description}</div>
+          </div>
         </div>
       </div>
 
-      {/* 对应资源 */}
-      <div>
-        <h3 className="text-sm font-bold text-[#111827]">对应资源</h3>
-        <div className="mt-4 space-y-3">
-          {RESOURCES.map((resource) => (
-            <div
-              key={resource.id}
-              className="rounded-[10px] border border-[#E5EAF2] bg-[#F9FAFB] p-3 hover:border-[#2563EB] transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="text-xs font-bold text-[#111827]">{resource.title}</div>
-                <span className="whitespace-nowrap rounded-full bg-[#EFF6FF] px-2 py-1 text-xs font-bold text-[#2563EB]">
-                  {resource.tag}
-                </span>
+      {/* 路径建议面板 */}
+      <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-4 shadow-sm">
+        {/* 补弱路径建议 */}
+        <div className="mb-6">
+          <h3 className="text-xs font-bold text-[#111827]">路径建议</h3>
+          <div className="mt-3 space-y-2">
+            {suggestions.map((suggestion) => (
+              <div
+                key={suggestion.id}
+                className="rounded-[8px] border border-[#E5EAF2] bg-[#F9FAFB] p-2 hover:border-[#2563EB] transition-colors cursor-pointer"
+              >
+                <div className="text-xs font-bold text-[#111827] line-clamp-2">{suggestion.text}</div>
+                <div className="mt-0.5 text-xs text-[#6B7280] line-clamp-1">{suggestion.desc}</div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* 底部操作 */}
-      <div className="mt-6 space-y-2 border-t border-[#E5EAF2] pt-4">
-        <button className="w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors">
-          查看全部资源
-        </button>
-        <button className="w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors">
-          让 AI 推荐先走哪条
-        </button>
+        {/* 对应资源 */}
+        <div>
+          <h3 className="text-xs font-bold text-[#111827]">资源推送</h3>
+          <div className="mt-3 space-y-2">
+            {resources.map((resource) => (
+              <a
+                key={resource.id}
+                href={resource.link || '#'}
+                className="block rounded-[8px] border border-[#E5EAF2] bg-[#F9FAFB] p-2 hover:border-[#2563EB] hover:bg-[#F0F7FF] transition-colors cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-1">
+                  <div className="text-xs font-bold text-[#111827] line-clamp-2 flex-1">{resource.title}</div>
+                  <span className="whitespace-nowrap rounded-full bg-[#EFF6FF] px-1.5 py-0.5 text-xs font-bold text-[#2563EB] flex-shrink-0">
+                    {resource.tag}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* 底部操作 */}
+        <div className="mt-4 space-y-1 border-t border-[#E5EAF2] pt-3">
+          <a href="/resources" className="block w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors text-center">
+            查看全部资源
+          </a>
+          <button className="w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors">
+            让 AI 推荐先走哪条
+          </button>
+        </div>
       </div>
     </div>
   )
