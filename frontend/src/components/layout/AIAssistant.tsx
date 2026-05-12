@@ -98,13 +98,12 @@ export function AIAssistant() {
 
   // Drag handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if (open) return
     setIsDragging(true)
     hasMoved.current = false
     dragStart.current = { x: e.clientX, y: e.clientY }
     posStart.current = { ...position }
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }, [open, position])
+  }, [position])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return
@@ -264,7 +263,12 @@ export function AIAssistant() {
           <div className="chat-panel">
             <div className="chat">
               {/* Header */}
-              <div className="chat-header">
+              <div
+                className="chat-header"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+              >
                 <span className="chat-title">{ctx.title}</span>
                 <div className="chat-header-actions">
                   <button
@@ -760,6 +764,13 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     justify-content: space-between;
     padding: 12px 16px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .chat-header:active {
+    cursor: grabbing;
   }
 
   .chat-title {

@@ -150,7 +150,7 @@ async def knowledge_stats():
           COUNT(1) AS total,
           SUM(CASE WHEN status = 'indexed' THEN 1 ELSE 0 END) AS indexed,
           SUM(chunk_count) AS chunks,
-          SUM(reference_count) AS references
+          SUM(reference_count) AS "references"
         FROM knowledge_files
         WHERE user_id = ?
         """,
@@ -235,6 +235,8 @@ def _file_row_to_dict(row) -> dict[str, Any]:
 
 def _extract_text(path: Path, mime_type: str, filename: str) -> str:
     suffix = path.suffix.lower() or Path(filename).suffix.lower()
+
+    # PDF
     if suffix == ".pdf" or "pdf" in mime_type:
         try:
             import fitz
@@ -245,16 +247,82 @@ def _extract_text(path: Path, mime_type: str, filename: str) -> str:
             return "\n".join(page.get_text("text") for page in doc).strip()
         finally:
             doc.close()
-    if suffix == ".docx" or "word" in mime_type:
+
+    # DOCX (new Word format)
+    if suffix == ".docx" or "officedocument.wordprocessingml" in mime_type:
         try:
             from docx import Document
         except Exception as ex:
             raise RuntimeError("缺少 python-docx，无法提取 DOCX") from ex
         document = Document(str(path))
         return "\n".join(p.text for p in document.paragraphs).strip()
+
+    # DOC (old Word format) - try PyMuPDF first, then fallback to raw text extraction
+    if suffix == ".doc" or "msword" in mime_type:
+        # PyMuPDF can sometimes handle .doc files
+        try:
+            import fitz
+            doc = fitz.open(path)
+            text = "\n".join(page.get_text("text") for page in doc).strip()
+            doc.close()
+            if text and len(text) > 50:
+                return text
+        except Exception:
+            pass
+        # Fallback: try to extract readable text from binary .doc
+        try:
+            raw_bytes = path.read_bytes()
+            # Extract ASCII/UTF-8 text segments from the binary
+            text = _extract_text_from_binary(raw_bytes)
+            if text and len(text) > 50:
+                return text
+        except Exception:
+            pass
+        raise RuntimeError(
+            f"无法提取 .doc 格式文件内容。建议将文件另存为 .docx 格式后重新上传。"
+        )
+
+    # Plain text formats
     if suffix in {".txt", ".md", ".csv", ".json"} or mime_type.startswith("text/"):
         return path.read_text(encoding="utf-8", errors="ignore").strip()
-    return path.read_text(encoding="utf-8", errors="ignore").strip()
+
+    # Unknown format - try as text, fail gracefully
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore").strip()
+        # Check if it looks like actual text (not binary garbage)
+        if text and len(text) > 20:
+            printable_ratio = sum(1 for c in text[:500] if c.isprintable() or c in '\n\r\t') / min(len(text), 500)
+            if printable_ratio > 0.8:
+                return text
+    except Exception:
+        pass
+    raise RuntimeError(f"不支持的文件格式：{suffix or mime_type}。支持 PDF、DOCX、TXT、MD。")
+
+
+def _extract_text_from_binary(raw_bytes: bytes) -> str:
+    """Extract readable text segments from binary file (e.g., .doc)."""
+    # Try to decode as UTF-16 LE (common in .doc files)
+    segments: list[str] = []
+    # Look for Unicode text in the binary
+    try:
+        # .doc files often contain UTF-16LE encoded text
+        text_utf16 = raw_bytes.decode("utf-16-le", errors="ignore")
+        # Filter to only printable Chinese/ASCII characters
+        cleaned = []
+        for ch in text_utf16:
+            if ch.isprintable() or ch in '\n\r\t':
+                cleaned.append(ch)
+            else:
+                if cleaned and cleaned[-1] != '\n':
+                    cleaned.append('\n')
+        result = ''.join(cleaned).strip()
+        # Remove very short lines (likely garbage)
+        lines = [line.strip() for line in result.split('\n') if len(line.strip()) > 2]
+        if lines:
+            return '\n'.join(lines)
+    except Exception:
+        pass
+    return ""
 
 
 def _chunk_text(text: str, size: int) -> list[str]:
