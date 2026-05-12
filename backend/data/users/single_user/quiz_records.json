@@ -2119,5 +2119,28 @@
       "knowledge_point_name": "异常处理"
     },
     "at": "2026-05-11"
+  },
+  {
+    "quiz_id": "dq_0626395f_1",
+    "answer": "类型错误",
+    "correct": false,
+    "correct_answer": "属性不存在",
+    "knowledge_point_id": "4.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_0626395f_1",
+      "type": "single",
+      "content": "AttributeError 异常表示什么？",
+      "options": [
+        "值错误",
+        "属性不存在",
+        "索引超出范围",
+        "类型错误"
+      ],
+      "explanation": "AttributeError 表示对象没有指定的属性。",
+      "knowledge_point_id": "4.1",
+      "knowledge_point_name": "异常处理"
+    },
+    "at": "2026-05-11"
   }
 ]

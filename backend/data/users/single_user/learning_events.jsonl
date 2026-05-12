@@ -569,3 +569,6 @@
 {"ts": "2026-05-11T14:48:32.965663Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "你好"}
 {"ts": "2026-05-11T15:47:25.905706Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "你好"}
 {"ts": "2026-05-11T15:47:31.591888Z", "type": "tutor_chat", "conversation_id": 38, "role_id": 25, "question": "为什么推荐这些资源"}
+{"ts": "2026-05-11T15:54:38.864563Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8a19d29e", "use_llm": false}
+{"ts": "2026-05-11T15:54:39.198223Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0626395f", "use_llm": false}
+{"ts": "2026-05-11T15:54:42.343986Z", "type": "submit_quiz", "quiz_id": "dq_0626395f_1", "correct": false, "judge_mode": "rule"}

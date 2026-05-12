@@ -80,19 +80,14 @@ export function AIAssistant() {
 
       const deltaX = e.clientX - centerX
       const deltaY = e.clientY - centerY
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
 
-      // Only apply tilt when mouse is within 300px of the card
-      const maxDistance = 300
-      if (distance > maxDistance) {
-        setTilt({ rotateX: 0, rotateY: 0 })
-        return
-      }
-
-      const intensity = 1 - distance / maxDistance
+      // Global tracking - no distance limit, eyes follow mouse everywhere
       const maxTilt = 15
-      const rotateY = (deltaX / maxDistance) * maxTilt * intensity
-      const rotateX = -(deltaY / maxDistance) * maxTilt * intensity
+      const maxDelta = 400
+      const clampedX = Math.max(-maxDelta, Math.min(maxDelta, deltaX))
+      const clampedY = Math.max(-maxDelta, Math.min(maxDelta, deltaY))
+      const rotateY = (clampedX / maxDelta) * maxTilt
+      const rotateX = -(clampedY / maxDelta) * maxTilt
 
       setTilt({ rotateX, rotateY })
     }
@@ -231,7 +226,9 @@ export function AIAssistant() {
               <div className="area" />
               <label className="container-wrap">
                 <input type="checkbox" readOnly checked={false} />
-                <div className="card">
+                <div className="card" style={{
+                  transform: `perspective(1000px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) translateZ(50px)`,
+                }}>
                   <div className="background-blur-balls">
                     <div className="balls">
                       <span className="ball rosa" />
@@ -516,11 +513,10 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     height: 100%;
     transform-style: preserve-3d;
     will-change: transform;
-    transition: all 0.6s ease;
+    transition: transform 0.15s ease-out;
     border-radius: 3rem;
     display: flex;
     align-items: center;
-    transform: translateZ(50px);
     justify-content: center;
   }
 
