@@ -677,9 +677,11 @@ function WeekTimePie({ report }: { report: ReportData }) {
 /** Weekly daily bar chart */
 function WeekDailyBar({ report }: { report: ReportData }) {
   const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-  const data = days.map((_, i) => ({
-    day: days[i],
-    hours: +(Math.random() * 3 + 0.5).toFixed(1),
+  // Fixed data - no random values to avoid re-render flicker
+  const baseData = [2.0, 1.5, 2.5, 1.8, 2.2, 1.2, 1.3]
+  const data = days.map((day, i) => ({
+    day,
+    hours: baseData[i],
   }))
   // Use report daily hours if available
   if (report.dailyHours.length >= 3) {

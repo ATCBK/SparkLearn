@@ -592,3 +592,7 @@
 {"ts": "2026-05-12T01:31:33.489959Z", "type": "submit_quiz", "quiz_id": "dq_254a4541_1", "correct": false, "judge_mode": "rule"}
 {"ts": "2026-05-12T01:31:39.569338Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "67ad31c2", "use_llm": false}
 {"ts": "2026-05-12T01:31:44.754108Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "55d1146f", "use_llm": false}
+{"ts": "2026-05-12T02:43:26.839072Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a789b1d6", "use_llm": false}
+{"ts": "2026-05-12T02:43:26.979930Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "da88a23e", "use_llm": false}
+{"ts": "2026-05-12T02:43:47.326863Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f43fe290", "use_llm": false}
+{"ts": "2026-05-12T02:43:47.798539Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8d3f9ff4", "use_llm": false}
