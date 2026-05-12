@@ -33,7 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: '练习评测', href: '/practice', icon: <CheckSquare className="h-5 w-5" />, group: '资源与练习' },
 
   // 分析与反馈
-  { label: '学习结果', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
+  { label: '学习报告', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
 ]
 
 interface SidebarProps {

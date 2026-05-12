@@ -13,7 +13,7 @@ const PAGE_NAMES: Record<string, { group: string; title: string }> = {
   '/practice': { group: 'SparkLearn', title: '练习评测' },
   '/practice/mistakes': { group: 'SparkLearn', title: '错题本' },
   '/practice/favorites': { group: 'SparkLearn', title: '收藏题目' },
-  '/report': { group: 'SparkLearn', title: '学习结果' },
+  '/report': { group: 'SparkLearn', title: '学习报告' },
   '/loop': { group: 'SparkLearn', title: '复习计划' },
   '/tutor': { group: '工具', title: '智能辅导' },
   '/video': { group: '工具', title: '视频中心' },

@@ -287,59 +287,57 @@ export default function ReportPage() {
 
             {report ? (
               <div className="flex flex-col flex-1">
-                <div className="space-y-4 flex-1">
-                  {/* AI Summary */}
-                  <SoftCard className="bg-gradient-to-br from-[#f8faff] to-[#f0f4ff]">
-                    <div className="flex items-start gap-2">
-                      <FileText className="h-4 w-4 text-blue mt-0.5 shrink-0" />
-                      <p className="text-small leading-7 text-ink whitespace-pre-wrap">
-                        {aiGenerating ? (
-                          <span className="inline-flex items-center gap-2 text-muted">
-                            <span className="inline-block h-2 w-2 rounded-full bg-purple animate-pulse" />
-                            AI 正在分析学习数据并生成{modeLabels[mode]}...
-                          </span>
-                        ) : (
-                          aiSummary || report.aiSummary
-                        )}
-                      </p>
-                    </div>
-                  </SoftCard>
-
-                  {/* Time Distribution */}
-                  <div>
-                    <h3 className="text-small font-bold text-ink mb-3">时间分布</h3>
-                    <div className="space-y-2.5">
-                      {report.timeDistribution.map((item) => (
-                        <div key={item.category} className="flex items-center gap-3">
-                          <span className="w-16 text-micro text-muted shrink-0">{item.category}</span>
-                          <div className="flex-1 h-2 rounded-full bg-[#e8eff8] overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-blue to-[#60a5fa]"
-                              style={{ width: `${Math.min(100, (item.minutes / 150) * 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-micro font-bold text-ink w-12 text-right">{item.minutes}分</span>
-                        </div>
-                      ))}
+                {/* AI Summary - ONLY this part scrolls */}
+                <SoftCard className="mb-4">
+                  <div className="flex items-start gap-2">
+                    <FileText className="h-4 w-4 text-blue mt-0.5 shrink-0" />
+                    <div className="text-small leading-7 text-ink whitespace-pre-wrap max-h-[150px] overflow-y-auto pr-1">
+                      {aiGenerating ? (
+                        <span className="inline-flex items-center gap-2 text-muted">
+                          <span className="inline-block h-2 w-2 rounded-full bg-purple animate-pulse" />
+                          AI 正在分析学习数据并生成{modeLabels[mode]}...
+                        </span>
+                      ) : (
+                        aiSummary || report.aiSummary
+                      )}
                     </div>
                   </div>
+                </SoftCard>
 
-                  {/* Weak Points */}
-                  <div>
-                    <h3 className="text-small font-bold text-ink mb-3">薄弱知识点</h3>
-                    <div className="space-y-2">
-                      {report.weakPoints.map((wp) => (
-                        <div key={wp.name} className="flex items-center justify-between rounded-[8px] border border-[#fee2e2] bg-[#fff5f5] px-3 py-2">
-                          <span className="text-small text-ink">{wp.name}</span>
-                          <Pill tone="red">{Math.round(wp.score * 100)}%</Pill>
+                {/* Time Distribution - fixed, no scroll */}
+                <div className="mb-4">
+                  <h3 className="text-small font-bold text-ink mb-3">时间分布</h3>
+                  <div className="space-y-2.5">
+                    {report.timeDistribution.map((item) => (
+                      <div key={item.category} className="flex items-center gap-3">
+                        <span className="w-16 text-micro text-muted shrink-0">{item.category}</span>
+                        <div className="flex-1 h-2 rounded-full bg-[#e8eff8] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-blue to-[#60a5fa]"
+                            style={{ width: `${Math.min(100, (item.minutes / 150) * 100)}%` }}
+                          />
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-micro font-bold text-ink w-12 text-right">{item.minutes}分</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Learning Trend - pinned to bottom */}
-                <div className="mt-auto pt-5 border-t border-[#eef2f7]">
+                {/* Weak Points - fixed, no scroll */}
+                <div className="mb-4">
+                  <h3 className="text-small font-bold text-ink mb-3">薄弱知识点</h3>
+                  <div className="space-y-2">
+                    {report.weakPoints.map((wp) => (
+                      <div key={wp.name} className="flex items-center justify-between rounded-[8px] border border-[#fee2e2] bg-[#fff5f5] px-3 py-2">
+                        <span className="text-small text-ink">{wp.name}</span>
+                        <Pill tone="red">{Math.round(wp.score * 100)}%</Pill>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Learning Trend - fixed at bottom */}
+                <div className="mt-auto pt-4 border-t border-line">
                   <h3 className="text-small font-bold text-ink mb-3">学习趋势</h3>
                   <TrendChart mode={mode} />
                 </div>
