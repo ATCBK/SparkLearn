@@ -626,6 +626,66 @@ async def refresh_evaluation(req: EvalRefreshReq):
     return ok({'message': '评估完成', 'report': report})
 
 
+class AiSummaryReq(BaseModel):
+    period: str = 'week'
+
+
+@router.post('/report/ai-summary')
+async def generate_report_ai_summary(req: AiSummaryReq):
+    """Stream an AI-generated learning report summary via SSE."""
+    period = req.period if req.period in {'day', 'week', 'month'} else 'week'
+
+    # Gather context data for the AI
+    profile_row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (settings.single_user_id,))
+    mastery_rows = fetch_all(
+        'SELECT knowledge_point_name, score, chapter FROM mastery_records WHERE user_id = ? ORDER BY score ASC LIMIT 5',
+        (settings.single_user_id,),
+    )
+    weak_points = [{'name': r['knowledge_point_name'], 'score': round(float(r['score']), 2)} for r in mastery_rows]
+
+    period_labels = {'day': '今日', 'week': '本周', 'month': '本月'}
+    period_label = period_labels.get(period, '本周')
+
+    # Build stats context
+    report_resp = await get_evaluation_report(period)
+    stats = report_resp.data['stats']
+
+    prompt = (
+        f"你是一个学习分析助手。请根据以下学习数据，为学生生成一份{period_label}学习报告总结。\n"
+        f"要求：分析学习情况、指出进步和不足、给出具体可执行的建议。语气亲切专业，200字左右。\n\n"
+        f"【{period_label}学习数据】\n"
+        f"- 学习时长: {stats['total_hours']}小时\n"
+        f"- 任务完成率: {int(stats['task_completion_rate'] * 100)}%\n"
+        f"- 练习正确率: {int(stats['quiz_accuracy'] * 100)}%\n"
+        f"- 连续学习天数: {stats['streak_days']}天\n"
+        f"- 薄弱知识点: {json.dumps([wp['name'] for wp in weak_points], ensure_ascii=False)}\n"
+    )
+
+    if profile_row:
+        goal = profile_row['goal'] or '[]'
+        prefs = profile_row['learning_preference'] or '[]'
+        prompt += f"- 学习目标: {goal}\n- 学习偏好: {prefs}\n"
+
+    prompt += f"\n请生成{period_label}学习报告总结："
+
+    async def _stream() -> AsyncGenerator[tuple[str, dict], None]:
+        async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode='general', history=[]):
+            if evt_type == 'text':
+                yield ('text', payload)
+            elif evt_type == 'done':
+                yield ('done', payload)
+                break
+            elif evt_type == 'error':
+                yield ('error', payload)
+                break
+
+    return StreamingResponse(
+        sse_wrap(_stream()),
+        media_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+    )
+
+
 def _role_row_to_dict(row) -> dict[str, Any]:
     return {
         'id': row['id'],
