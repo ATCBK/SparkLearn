@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ChevronLeft, CheckCircle, XCircle } from 'lucide-react'
 import { api } from '@/lib/api'
 import { PageHead, ProtoButton, ProtoCard, SoftCard, Pill } from '@/components/proto'
+import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 interface QuizRecord {
   quiz_id: string
@@ -81,7 +82,9 @@ export default function PracticeRecordsPage() {
       <div className="grid grid-cols-[1fr_280px] gap-4 max-[980px]:grid-cols-1">
         <ProtoCard>
           {loading ? (
-            <div className="py-20 text-center text-muted">加载中...</div>
+            <div className="flex items-center justify-center py-20">
+              <TypewriterLoader text="加载记录中..." />
+            </div>
           ) : records.length === 0 ? (
             <div className="py-20 text-center">
               <p className="text-small text-muted">暂无答题记录</p>

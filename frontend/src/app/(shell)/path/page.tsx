@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Zap } from 'lucide-react'
 import { api } from '@/lib/api'
+import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 // ============ 类型定义 ============
 interface PathNode {
@@ -663,8 +664,7 @@ function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources 
       <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-4 shadow-sm">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2563EB] border-t-transparent" />
-            <p className="mt-3 text-xs text-[#6B7280]">AI 正在生成建议…</p>
+            <TypewriterLoader text="AI 正在生成建议…" size="sm" />
           </div>
         ) : (
         <>

@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle2, FileText, Loader2, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search } from 'lucide-react'
+import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
+import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
@@ -288,7 +289,7 @@ export default function GeneratePage() {
             {['分析学习画像', '读取路径节点', '加载知识库资料', '多智能体生成内容', '安全检查', '保存资源索引'].map((row, idx) => (
               <SoftCard key={row} className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-small font-bold text-ink">
-                  {generating && idx < 4 ? <Loader2 className="h-4 w-4 animate-spin text-blue" /> : <CheckCircle2 className="h-4 w-4 text-green" />}
+                  {generating && idx < 4 ? <TypewriterLoader size="sm" /> : <CheckCircle2 className="h-4 w-4 text-green" />}
                   {row}
                 </span>
                 <Pill tone={generating && idx < 4 ? 'blue' : 'green'}>{generating && idx < 4 ? '处理中' : '完成'}</Pill>

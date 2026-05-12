@@ -2142,5 +2142,28 @@
       "knowledge_point_name": "异常处理"
     },
     "at": "2026-05-11"
+  },
+  {
+    "quiz_id": "dq_254a4541_1",
+    "answer": "读取",
+    "correct": false,
+    "correct_answer": "写入",
+    "knowledge_point_id": "5.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_254a4541_1",
+      "type": "single",
+      "content": "文件打开模式 \"w\" 表示什么？",
+      "options": [
+        "读取",
+        "写入",
+        "追加",
+        "二进制"
+      ],
+      "explanation": "\"w\" 模式表示以写入模式打开文件，会覆盖原内容。",
+      "knowledge_point_id": "5.1",
+      "knowledge_point_name": "文件操作"
+    },
+    "at": "2026-05-12"
   }
 ]

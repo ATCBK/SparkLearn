@@ -572,3 +572,23 @@
 {"ts": "2026-05-11T15:54:38.864563Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8a19d29e", "use_llm": false}
 {"ts": "2026-05-11T15:54:39.198223Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0626395f", "use_llm": false}
 {"ts": "2026-05-11T15:54:42.343986Z", "type": "submit_quiz", "quiz_id": "dq_0626395f_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-12T01:18:16.979082Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3273a4ad", "use_llm": false}
+{"ts": "2026-05-12T01:18:17.889060Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0bcedf0e", "use_llm": false}
+{"ts": "2026-05-12T01:22:37.208870Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "baefb146", "use_llm": false}
+{"ts": "2026-05-12T01:22:37.649726Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "434a61ad", "use_llm": false}
+{"ts": "2026-05-12T01:28:30.593863Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c3be415e", "use_llm": false}
+{"ts": "2026-05-12T01:28:30.952583Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6f3259e8", "use_llm": false}
+{"ts": "2026-05-12T01:28:42.967192Z", "type": "path_node_suggestions", "node_title": "完成 8 题达标练习", "node_goal": "完成 8 题达标练习", "phase": "达标阶段", "timestamp": "2026-05-12T01:28:42.966504Z"}
+{"ts": "2026-05-12T01:28:48.064029Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "78511926", "use_llm": false}
+{"ts": "2026-05-12T01:28:48.724123Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1fdd9f7b", "use_llm": false}
+{"ts": "2026-05-12T01:29:00.316467Z", "type": "task_status_updated", "task_id": "1", "status": "completed"}
+{"ts": "2026-05-12T01:29:00.965388Z", "type": "task_status_updated", "task_id": "2", "status": "completed"}
+{"ts": "2026-05-12T01:29:01.868159Z", "type": "task_status_updated", "task_id": "3", "status": "completed"}
+{"ts": "2026-05-12T01:29:02.393247Z", "type": "task_status_updated", "task_id": "2", "status": "pending"}
+{"ts": "2026-05-12T01:29:04.496421Z", "type": "task_status_updated", "task_id": "1", "status": "pending"}
+{"ts": "2026-05-12T01:29:05.216803Z", "type": "task_status_updated", "task_id": "3", "status": "pending"}
+{"ts": "2026-05-12T01:31:31.007879Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "740f53d5", "use_llm": false}
+{"ts": "2026-05-12T01:31:31.249504Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "254a4541", "use_llm": false}
+{"ts": "2026-05-12T01:31:33.489959Z", "type": "submit_quiz", "quiz_id": "dq_254a4541_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-12T01:31:39.569338Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "67ad31c2", "use_llm": false}
+{"ts": "2026-05-12T01:31:44.754108Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "55d1146f", "use_llm": false}

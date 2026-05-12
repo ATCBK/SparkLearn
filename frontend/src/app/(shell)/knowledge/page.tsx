@@ -1,9 +1,16 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Database, FileUp, Loader2, Search, Trash2 } from 'lucide-react'
+import { Database, FileUp, Search, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { api, KnowledgeFile, KnowledgeStats } from '@/lib/api'
 import { MetricStrip, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
+
+interface ChunkData {
+  id: number
+  content: string
+  chunkIndex: number
+}
 
 export default function KnowledgePage() {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -13,10 +20,19 @@ export default function KnowledgePage() {
   const [query, setQuery] = useState('')
   const [busyId, setBusyId] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [chunks, setChunks] = useState<ChunkData[]>([])
+  const [chunksLoading, setChunksLoading] = useState(false)
+  const [showChunks, setShowChunks] = useState(false)
 
   useEffect(() => {
     void load()
   }, [])
+
+  // 当选中文件变化时，重置 chunks 展示
+  useEffect(() => {
+    setChunks([])
+    setShowChunks(false)
+  }, [selected?.id])
 
   async function load() {
     const [list, s] = await Promise.all([api.getKnowledgeFiles(), api.getKnowledgeStats()])
@@ -56,6 +72,24 @@ export default function KnowledgePage() {
     await api.deleteKnowledgeFile(file.id)
     setSelected(null)
     await load()
+  }
+
+  async function loadChunks() {
+    if (!selected || selected.status !== 'indexed') return
+    if (showChunks) {
+      setShowChunks(false)
+      return
+    }
+    setChunksLoading(true)
+    try {
+      const data = await api.getKnowledgeChunks(selected.id)
+      setChunks(data)
+      setShowChunks(true)
+    } catch (ex) {
+      setError(ex instanceof Error ? ex.message : '加载片段失败')
+    } finally {
+      setChunksLoading(false)
+    }
   }
 
   const filtered = files.filter(file => !query || file.filename.includes(query) || file.tags.join(' ').includes(query))
@@ -132,7 +166,7 @@ export default function KnowledgePage() {
                     <td className="p-3">
                       <div className="flex gap-2">
                         <ProtoButton variant="tertiary" className="h-8 px-2" onClick={() => void indexFile(file)} disabled={busyId === file.id}>
-                          {busyId === file.id ? <Loader2 className="h-4 w-4 animate-spin" /> : '整理'}
+                          {busyId === file.id ? <TypewriterLoader size="sm" /> : '整理'}
                         </ProtoButton>
                         <button onClick={() => void remove(file)} className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-light hover:text-red" aria-label="删除">
                           <Trash2 className="h-4 w-4" />
@@ -152,6 +186,46 @@ export default function KnowledgePage() {
         <ProtoCard>
           <h2 className="mb-3 flex items-center gap-2 text-h2 font-bold text-ink"><Database className="h-5 w-5 text-blue" />资料摘要</h2>
           <p className="text-small leading-7 text-muted">{selected?.summary || '选择文件后查看整理摘要。'}</p>
+          {selected?.status === 'indexed' && (
+            <div className="mt-4">
+              <button
+                onClick={() => void loadChunks()}
+                disabled={chunksLoading}
+                className="flex items-center gap-2 rounded-[10px] border border-line bg-[#f9fafb] px-4 py-2 text-small font-medium text-ink hover:border-blue hover:bg-blue-light transition-colors"
+              >
+                {chunksLoading ? (
+                  <TypewriterLoader size="sm" />
+                ) : showChunks ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+                {showChunks ? '收起知识片段' : `查看向量化结果（${selected.chunkCount} 条片段）`}
+              </button>
+              {showChunks && chunks.length > 0 && (
+                <div className="mt-3 max-h-[480px] overflow-y-auto rounded-[12px] border border-line">
+                  {chunks.map((chunk, idx) => (
+                    <div key={chunk.id} className={`p-4 ${idx > 0 ? 'border-t border-line' : ''}`}>
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="flex h-6 min-w-[24px] items-center justify-center rounded-md bg-blue/10 px-1.5 text-micro font-bold text-blue">
+                          #{chunk.chunkIndex + 1}
+                        </span>
+                        <span className="text-micro text-muted">
+                          {chunk.content.length} 字符
+                        </span>
+                      </div>
+                      <p className="whitespace-pre-wrap text-small leading-6 text-muted">
+                        {chunk.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showChunks && chunks.length === 0 && (
+                <p className="mt-3 text-small text-muted">暂无片段数据。</p>
+              )}
+            </div>
+          )}
         </ProtoCard>
         <ProtoCard>
           <h2 className="mb-3 text-h2 font-bold text-ink">隐私与使用</h2>

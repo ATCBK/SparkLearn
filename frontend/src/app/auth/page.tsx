@@ -1,150 +1,263 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { cn } from '@/lib/utils/cn'
-import { Eye, EyeOff } from 'lucide-react'
+import Image from 'next/image'
+import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react'
+import './auth.css'
 
 export default function AuthPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<'login' | 'register'>('login')
+  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [remember, setRemember] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  const showToast = useCallback((text: string) => {
+    setToast(text)
+    setTimeout(() => setToast(null), 2200)
+  }, [])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    router.push('/onboarding')
+
+    if (!email || !password) {
+      showToast('请填写邮箱和密码')
+      return
+    }
+
+    if (mode === 'register' && password !== confirmPassword) {
+      showToast('两次输入的密码不一致')
+      return
+    }
+
+    setLoading(true)
+    setTimeout(() => {
+      setLoading(false)
+      if (mode === 'login') {
+        router.push('/onboarding')
+      } else {
+        showToast('注册成功，即将跳转...')
+        setTimeout(() => router.push('/onboarding'), 800)
+      }
+    }, 850)
   }
 
+  const isLogin = mode === 'login'
+
   return (
-    <div className="min-h-screen flex">
-      {/* Left - Brand */}
-      <div
-        className="w-1/2 flex flex-col items-center justify-center p-16 text-white"
-        style={{ background: 'linear-gradient(135deg, #1d1d1f, #2c2c2e)' }}
-      >
-        {/* Logo */}
-        <div className="w-20 h-20 rounded-[20px] flex items-center justify-center mb-6"
-          style={{ background: 'linear-gradient(135deg, #0071e3, #5ac8fa)' }}
-        >
-          <span className="text-[32px] font-bold text-white">S</span>
-        </div>
-
-        {/* Name */}
-        <h1 className="text-h1 font-bold text-white/90 mb-2">SparkLearn</h1>
-
-        {/* Subtitle */}
-        <p className="text-body text-white/40 mb-10 max-w-[300px] text-center">
-          AI 驱动的个性化学习平台
-        </p>
-
-        {/* Data Highlights */}
-        <div className="flex gap-12">
-          <div className="text-center">
-            <div className="text-h2 font-bold text-white/80">10w+</div>
-            <div className="text-micro text-white/30 mt-1">学习用户</div>
-          </div>
-          <div className="text-center">
-            <div className="text-h2 font-bold text-white/80">95%</div>
-            <div className="text-micro text-white/30 mt-1">提分率</div>
-          </div>
-          <div className="text-center">
-            <div className="text-h2 font-bold text-white/80">50+</div>
-            <div className="text-micro text-white/30 mt-1">课程覆盖</div>
-          </div>
+    <main className="auth-page">
+      {/* Brand */}
+      <div className="brand">
+        <Image
+          src="/sparklearn-logo.png"
+          alt="学而思 SparkLearn"
+          width={68}
+          height={56}
+          className="brand-logo"
+          priority
+        />
+        <div>
+          <strong className="brand-name">学而思 SparkLearn</strong>
+          <span className="brand-sub">智能个性化学习平台</span>
         </div>
       </div>
 
-      {/* Right - Form */}
-      <div className="w-1/2 flex items-center justify-center p-16 bg-bg">
-        <div className="w-full max-w-[340px]">
+      <section className="layout">
+        {/* Left intro */}
+        <div className="intro">
+          <h1 className="intro-title">
+            让学习更懂你
+            <span className="intro-title-accent">成就每一次进步</span>
+          </h1>
+          <p className="intro-desc">
+            基于你的目标、基础与学习偏好，智能规划专属学习路径，精准推荐资源，陪伴你高效成长。
+          </p>
+
+          <div className="feature-row">
+            {/* Feature 1 - 学习画像 */}
+            <article className="feature-card">
+              <div className="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} className="w-[18px] h-[18px]">
+                  <circle cx="12" cy="8" r="3.5" />
+                  <path d="M5 21a7 7 0 0 1 14 0" />
+                  <path d="M6.5 12.5a8 8 0 0 0 11 0" />
+                </svg>
+              </div>
+              <h2 className="feature-title">学习画像</h2>
+              <p className="feature-desc">数据驱动的个性化分析<br />全面了解你的学习情况</p>
+              <div className="mini-pill">知识掌握度 72%</div>
+              <div className="progress-bar">
+                <i className="progress-fill" style={{ width: '72%' }} />
+              </div>
+            </article>
+
+            {/* Feature 2 - 学习路径 */}
+            <article className="feature-card">
+              <div className="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} className="w-[18px] h-[18px]">
+                  <path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+              </div>
+              <h2 className="feature-title">当前学习路径</h2>
+              <p className="feature-desc">函数与导数进阶<br />第 3/8 阶段 · 进行中</p>
+              <div className="path-dots" aria-hidden="true">
+                <span className="dot dot-1" />
+                <span className="dot dot-2" />
+                <span className="dot dot-3" />
+              </div>
+            </article>
+
+            {/* Feature 3 - 今日推荐 */}
+            <article className="feature-card">
+              <div className="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.3} className="w-[18px] h-[18px]">
+                  <rect x="6" y="4" width="12" height="16" rx="2" />
+                  <path d="M9 8h6M9 12h6M9 16h3" />
+                  <path d="m16 3 1.5 2.5" />
+                </svg>
+              </div>
+              <h2 className="feature-title">今日推荐任务</h2>
+              <p className="feature-desc">导数的应用练习<br />巩固知识 · 提升能力</p>
+              <div className="action-line">
+                <b>去学习</b>
+                <span>→</span>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        {/* Right login card */}
+        <aside className="login-card">
+          <h2 className="login-title">{isLogin ? '欢迎回来' : '创建账号'}</h2>
+          <p className="login-sub">
+            {isLogin ? '登录继续你的个性化学习之旅' : '注册后开启你的个性化学习之旅'}
+          </p>
+
           {/* Tabs */}
-          <div className="flex gap-1 bg-bg-hover p-1 rounded-[12px] mb-7">
+          <div className="tabs" role="tablist" aria-label="登录注册切换">
             <button
-              onClick={() => setTab('login')}
-              className={cn(
-                'flex-1 py-2.5 rounded-[10px] text-small font-medium transition-colors',
-                tab === 'login'
-                  ? 'bg-bg-card text-ink shadow-sm'
-                  : 'text-ink-secondary hover:text-ink',
-              )}
+              className={`tab ${isLogin ? 'active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={isLogin}
+              onClick={() => setMode('login')}
             >
               登录
             </button>
             <button
-              onClick={() => setTab('register')}
-              className={cn(
-                'flex-1 py-2.5 rounded-[10px] text-small font-medium transition-colors',
-                tab === 'register'
-                  ? 'bg-bg-card text-ink shadow-sm'
-                  : 'text-ink-secondary hover:text-ink',
-              )}
+              className={`tab ${!isLogin ? 'active' : ''}`}
+              type="button"
+              role="tab"
+              aria-selected={!isLogin}
+              onClick={() => setMode('register')}
             >
               注册
             </button>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input label="邮箱" type="email" placeholder="请输入邮箱" />
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="field">
+              <Mail className="field-icon" size={18} strokeWidth={2} />
+              <input
+                type="email"
+                placeholder="请输入邮箱"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-            <div className="relative">
-              <Input
-                label="密码"
+            <div className="field">
+              <Lock className="field-icon" size={18} strokeWidth={2} />
+              <input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="请输入密码"
+                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
               <button
+                className="eye-btn"
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-[38px] text-ink-disabled hover:text-ink-secondary transition-colors"
+                aria-label="显示或隐藏密码"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
 
-            {tab === 'register' && (
-              <div className="relative">
-                <Input
-                  label="确认密码"
+            {!isLogin && (
+              <div className="field">
+                <Lock className="field-icon" size={18} strokeWidth={2} />
+                <input
                   type={showConfirm ? 'text' : 'password'}
                   placeholder="请再次输入密码"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
                 <button
+                  className="eye-btn"
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-[38px] text-ink-disabled hover:text-ink-secondary transition-colors"
+                  aria-label="显示或隐藏确认密码"
                 >
-                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             )}
 
-            {/* Remember + Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="form-row">
+              <label className="check-label">
                 <input
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border-black/10 text-blue focus:ring-blue/20"
                 />
-                <span className="text-small text-ink-secondary">记住我</span>
+                <span>记住我</span>
               </label>
-              <button type="button" className="text-small text-blue hover:underline">
+              <button
+                className="forgot-btn"
+                type="button"
+                onClick={() => showToast('密码找回暂未接入，请联系老师或管理员。')}
+              >
                 忘记密码？
               </button>
             </div>
 
-            <Button className="w-full" size="lg" type="submit">
-              {tab === 'login' ? '登录' : '注册'}
-            </Button>
+            <button className="submit-btn" type="submit" disabled={loading}>
+              {loading
+                ? (isLogin ? '正在登录...' : '正在注册...')
+                : (isLogin ? '立即登录' : '立即注册')
+              }
+            </button>
           </form>
-        </div>
+
+          <div className="agreement">
+            <Shield size={18} className="text-[#8a99b0]" />
+            <span>
+              登录即表示同意{' '}
+              <a href="#" onClick={(e) => e.preventDefault()}>《用户协议》</a>
+              {' '}与{' '}
+              <a href="#" onClick={(e) => e.preventDefault()}>《隐私政策》</a>
+            </span>
+          </div>
+        </aside>
+      </section>
+
+      {/* Toast */}
+      <div className={`toast ${toast ? 'show' : ''}`}>
+        {toast}
       </div>
-    </div>
+    </main>
   )
 }

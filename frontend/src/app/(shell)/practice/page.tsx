@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, ChevronLeft, ChevronRight, Zap, Check, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Zap, Check, X } from 'lucide-react'
 import { api, QuizQuestion } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 interface ExtendedQuizQuestion extends QuizQuestion {
   title?: string
@@ -227,7 +228,7 @@ export default function PracticePage() {
         <ProtoCard>
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-blue" />
+              <TypewriterLoader text="加载题目中..." />
             </div>
           ) : questions.length === 0 ? (
             <div className="py-20 text-center">
@@ -598,7 +599,7 @@ export default function PracticePage() {
             </div>
 
             <ProtoButton className="mt-3 w-full" onClick={generateQuestions} disabled={generating || !topic.trim()}>
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : '生成练习题'}
+              {generating ? <TypewriterLoader size="sm" /> : '生成练习题'}
             </ProtoButton>
           </ProtoCard>
 

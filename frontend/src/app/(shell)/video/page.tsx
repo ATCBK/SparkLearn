@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react'
 import { api, VideoInfo } from '@/lib/api'
 import { Card } from '@/components/ui/Card'
-import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Play, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { formatDuration } from '@/lib/utils/format'
+import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 export default function VideoPage() {
   const [videos, setVideos] = useState<VideoInfo[]>([])
@@ -34,9 +34,8 @@ export default function VideoPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="aspect-video w-full rounded-[20px]" />
+      <div className="flex items-center justify-center py-20">
+        <TypewriterLoader text="加载视频中..." />
       </div>
     )
   }
