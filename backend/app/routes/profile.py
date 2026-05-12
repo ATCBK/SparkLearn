@@ -63,7 +63,7 @@ async def initiate():
     return ok(
         {
             "session_id": session_id,
-            "first_question": "你好，我是学习助手。请先告诉我你的专业和当前学习目标。",
+            "first_question": "你好，我是小星同学。请先告诉我你的专业和当前学习目标。",
             "round": 1,
             "total_rounds": 3,
         }

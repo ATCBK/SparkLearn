@@ -48,7 +48,7 @@ const STEPS: StepData[] = [
   {
     key: 'goal',
     title: '学习目标',
-    greeting: '你好！我是你的学习精灵 ✨\n为了为你制定最合适的学习计划，\n我们先来聊聊你的学习目标吧~',
+    greeting: '你好！我是小星同学 ✨\n为了为你制定最合适的学习计划，\n我们先来聊聊你的学习目标吧~',
     question: '你希望达成什么样的学习目标呢？',
     cards: [
       { icon: <BarChart3 size={20} />, label: '掌握核心技能', desc: '系统学习，打好基础' },

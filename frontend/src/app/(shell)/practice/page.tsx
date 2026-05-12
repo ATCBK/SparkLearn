@@ -210,17 +210,29 @@ export default function PracticePage() {
 
   return (
     <div>
-      <PageHead
-        eyebrow="练习评测 / 判题、解析、错题"
-        title="练习评测"
-        description="完成针对性练习后，系统会回写画像、错题本和学习路径。"
-        actions={<div className="flex gap-2"><ProtoButton href="/practice/mistakes" variant="secondary">错题本</ProtoButton><ProtoButton href="/practice/favorites" variant="secondary">收藏题目</ProtoButton></div>}
-        chips={[
-          { value: `${questions.length} 题`, label: '本次练习' },
-          { value: '80%', label: '达标线' },
-          { value: `${accuracy}%`, label: '当前正确率' },
-        ]}
-      />
+      <header className="mb-5 flex items-start justify-between gap-6 border-b border-line pb-4">
+        <div className="min-w-0">
+          <div className="mb-2 text-small font-extrabold text-soft">练习评测 / 判题、解析、错题</div>
+          <div className="flex items-center gap-3">
+            <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">练习评测</h1>
+            <ProtoButton href="/practice/mistakes" variant="secondary">错题本</ProtoButton>
+            <ProtoButton href="/practice/favorites" variant="secondary">收藏题目</ProtoButton>
+          </div>
+          <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">完成针对性练习后，系统会回写画像、错题本和学习路径。</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {[
+            { value: `${questions.length} 题`, label: '本次练习' },
+            { value: '80%', label: '达标线' },
+            { value: `${accuracy}%`, label: '当前正确率' },
+          ].map((chip) => (
+            <div key={chip.label} className="min-w-[108px] rounded-[10px] border border-line bg-white px-3 py-2">
+              <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
+              <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
+            </div>
+          ))}
+        </div>
+      </header>
 
       {error && <div className="mb-4 rounded-[12px] bg-red-light p-4 text-small text-red">{error}</div>}
 

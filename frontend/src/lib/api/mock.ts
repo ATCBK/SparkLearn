@@ -123,7 +123,7 @@ export async function sendMessage(content: string): Promise<Message> {
 export async function getChatHistory(): Promise<Message[]> {
   await delay(300)
   return [
-    { id: 'm1', role: 'assistant', content: '你好！我是你的 AI 学习助手。有什么 Python 问题我可以帮你解答？', timestamp: '2026-04-16T10:00:00Z' },
+    { id: 'm1', role: 'assistant', content: '你好！我是小星同学。有什么 Python 问题我可以帮你解答？', timestamp: '2026-04-16T10:00:00Z' },
     { id: 'm2', role: 'user', content: '什么是闭包？', timestamp: '2026-04-16T10:01:00Z' },
     { id: 'm3', role: 'assistant', content: '闭包（Closure）是指一个函数能够记住并访问它被创建时的词法作用域，即使函数在其作用域之外被调用。\n\n```python\ndef outer(x):\n    def inner(y):\n        return x + y\n    return inner\n\nadd_5 = outer(5)\nprint(add_5(3))  # 输出: 8\n```\n\n在这个例子中，`inner` 函数"捕获"了变量 `x`，即使 `outer` 已经执行完毕。', timestamp: '2026-04-16T10:01:30Z' },
   ]

@@ -182,12 +182,14 @@ export default function GeneratePage() {
 
   return (
     <div>
-      <PageHead
-        eyebrow="资源中心 / 生成与资源库"
-        title="资源中心"
-        description="在这里生成个性化学习资源，也可以进入资源库管理已保存内容。"
-        actions={<div className="flex gap-2"><button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] border border-line bg-white text-small font-bold text-ink hover:border-blue transition-colors">进入资源库</button></div>}
-      />
+      <header className="mb-5 border-b border-line pb-4">
+        <div className="mb-2 text-small font-extrabold text-soft">资源中心 / 生成与资源库</div>
+        <div className="flex items-center gap-3">
+          <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">资源中心</h1>
+          <button onClick={() => setView('library')} className="inline-flex h-9 items-center justify-center gap-2 rounded-[8px] px-3.5 text-small font-bold transition-colors bg-white text-blue ring-1 ring-[#bfdbfe] hover:bg-blue-light">进入资源库</button>
+        </div>
+        <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">在这里生成个性化学习资源，也可以进入资源库管理已保存内容。</p>
+      </header>
 
       <ProtoCard className="mb-4 overflow-hidden p-0">
         <div className="grid grid-cols-6 max-[900px]:grid-cols-3 max-[560px]:grid-cols-2">

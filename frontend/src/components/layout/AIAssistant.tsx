@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Maximize2, Minus, Send, ThumbsDown, ThumbsUp, X } from 'lucide-react'
+import { Minus, Send, ThumbsDown, ThumbsUp, X, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils/cn'
 import styled from 'styled-components'
@@ -10,15 +10,15 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 const CONTEXTS: Record<string, { title: string; hint: string; quick: string[] }> = {
-  '/': { title: '学习助手', hint: '我可以解释今日任务为什么这样安排。', quick: ['我今天先做什么', '为什么推荐这些资源', '帮我调整顺序'] },
-  '/profile': { title: '画像助手', hint: '我可以解释画像维度和更新依据。', quick: ['解释我的薄弱点', '更新学习画像', '我适合什么资源'] },
-  '/path': { title: '路径助手', hint: '我可以说明节点顺序和达标条件。', quick: ['为什么先学这里', '调整学习目标', '推荐下一步'] },
-  '/generate': { title: '生成助手', hint: '我可以帮你优化生成要求。', quick: ['优化提示词', '选择资源类型', '解释生成结果'] },
-  '/resources': { title: '资源助手', hint: '我可以讲解当前资源和安排练习。', quick: ['讲解这个资源', '生成配套练习', '找补弱资料'] },
-  '/knowledge': { title: '资料助手', hint: '我可以帮你判断资料是否适合生成资源。', quick: ['总结资料用途', '哪些可用于生成', '整理资料建议'] },
-  '/practice': { title: '练习助手', hint: '我可以讲解错因并推荐补弱资源。', quick: ['讲解这道题', '生成变式题', '推荐补弱资源'] },
-  '/report': { title: '报告助手', hint: '我可以解读学习报告和下一步计划。', quick: ['解读本周报告', '下一步先做什么', '哪些薄弱点最急'] },
-  '/loop': { title: '复习助手', hint: '我可以帮你安排三天复习计划。', quick: ['安排复习顺序', '今天复习什么', '减少复习压力'] },
+  '/': { title: '小星同学', hint: '我可以解释今日任务为什么这样安排。', quick: ['我今天先做什么', '为什么推荐这些资源', '帮我调整顺序'] },
+  '/profile': { title: '小星同学', hint: '我可以解释画像维度和更新依据。', quick: ['解释我的薄弱点', '更新学习画像', '我适合什么资源'] },
+  '/path': { title: '小星同学', hint: '我可以说明节点顺序和达标条件。', quick: ['为什么先学这里', '调整学习目标', '推荐下一步'] },
+  '/generate': { title: '小星同学', hint: '我可以帮你优化生成要求。', quick: ['优化提示词', '选择资源类型', '解释生成结果'] },
+  '/resources': { title: '小星同学', hint: '我可以讲解当前资源和安排练习。', quick: ['讲解这个资源', '生成配套练习', '找补弱资料'] },
+  '/knowledge': { title: '小星同学', hint: '我可以帮你判断资料是否适合生成资源。', quick: ['总结资料用途', '哪些可用于生成', '整理资料建议'] },
+  '/practice': { title: '小星同学', hint: '我可以讲解错因并推荐补弱资源。', quick: ['讲解这道题', '生成变式题', '推荐补弱资源'] },
+  '/report': { title: '小星同学', hint: '我可以解读学习报告和下一步计划。', quick: ['解读本周报告', '下一步先做什么', '哪些薄弱点最急'] },
+  '/loop': { title: '小星同学', hint: '我可以帮你安排三天复习计划。', quick: ['安排复习顺序', '今天复习什么', '减少复习压力'] },
 }
 
 type ChatMessage = {
@@ -49,8 +49,17 @@ export function AIAssistant() {
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0 })
   const cardRef = useRef<HTMLDivElement>(null)
 
+  // 学习空间过场动画
+  const [transitioning, setTransitioning] = useState(false)
+
+  function goToLearningSpace() {
+    setTransitioning(true)
+    setTimeout(() => {
+      router.push('/tutor')
+    }, 800)
+  }
+
   const ctx = useMemo(() => CONTEXTS[pathname] || CONTEXTS['/'], [pathname])
-  if (pathname === '/tutor') return null
 
   useEffect(() => {
     requestAnimationFrame(() => {
@@ -123,6 +132,9 @@ export function AIAssistant() {
     }
   }, [open])
 
+  // 在 /tutor 页面不渲染
+  if (pathname === '/tutor') return null
+
   async function ask(text: string) {
     const question = text.trim()
     if (!question || streaming) return
@@ -167,7 +179,7 @@ export function AIAssistant() {
           onError: (err) => {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === assistantId ? { ...m, content: err.message || 'AI 助手暂时不可用。' } : m,
+                m.id === assistantId ? { ...m, content: err.message || '小星同学暂时不可用。' } : m,
               ),
             )
           },
@@ -177,7 +189,7 @@ export function AIAssistant() {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: ex instanceof Error ? ex.message : 'AI 助手暂时不可用。' }
+            ? { ...m, content: ex instanceof Error ? ex.message : '小星同学暂时不可用。' }
             : m,
         ),
       )
@@ -189,14 +201,44 @@ export function AIAssistant() {
   const hasMessages = messages.length > 0
 
   return (
-    <StyledWrapper
-      className="fixed z-50"
-      $open={open}
-      style={{
-        bottom: `${24 - position.y}px`,
-        right: `${24 - position.x}px`,
-      }}
-    >
+    <>
+      {/* 学习空间过场动画 */}
+      {transitioning && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, #1e1b4b, #312e81, #4c1d95)',
+            animation: 'fadeIn 0.3s ease forwards',
+          }}
+        >
+          <div
+            className="flex flex-col items-center gap-4"
+            style={{ animation: 'scaleIn 0.5s ease forwards' }}
+          >
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-white/10 backdrop-blur-sm ring-2 ring-white/20">
+              <Sparkles size={36} className="text-white animate-pulse" />
+            </div>
+            <p className="text-lg font-semibold text-white/90">正在进入学习空间...</p>
+            <div className="flex gap-1.5">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: '0ms' }} />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: '150ms' }} />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`
+            @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes scaleIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+          `}</style>
+        </div>
+      )}
+      <StyledWrapper
+        className="fixed z-50"
+        $open={open}
+        style={{
+          bottom: `${24 - position.y}px`,
+          right: `${24 - position.x}px`,
+        }}
+      >
       <div
         ref={cardRef}
         className="widget-root"
@@ -272,12 +314,13 @@ export function AIAssistant() {
                 <span className="chat-title">{ctx.title}</span>
                 <div className="chat-header-actions">
                   <button
-                    onClick={() => router.push('/tutor')}
-                    className="header-btn"
-                    title="打开完整辅导"
-                    aria-label="打开完整辅导"
+                    onClick={goToLearningSpace}
+                    className="header-btn learning-space-btn"
+                    title="进入学习空间"
+                    aria-label="进入学习空间"
                   >
-                    <Maximize2 size={14} />
+                    <Sparkles size={13} />
+                    <span>学习空间</span>
                   </button>
                   <button
                     onClick={() => setOpen(false)}
@@ -382,7 +425,7 @@ export function AIAssistant() {
 
               {/* Input area */}
               <div className="chat-input-area">
-                <div className="chat-bot">
+                <div className="chat-input-box">
                   <textarea
                     ref={textareaRef}
                     value={input}
@@ -395,22 +438,20 @@ export function AIAssistant() {
                     }}
                     placeholder="输入你的问题...✦˚"
                   />
-                </div>
-                <div className="options">
-                  <div className="btns-add">
-                    <button onClick={() => router.push('/tutor')}>
-                      <Maximize2 size={16} />
+                  <div className="input-actions">
+                    <label className="input-action-btn" title="上传文件" aria-label="上传文件">
+                      <input type="file" className="hidden" accept=".txt,.pdf,.md,.doc,.docx" />
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    </label>
+                    <button
+                      className="input-send-btn"
+                      disabled={streaming || !input.trim()}
+                      onClick={() => void ask(input)}
+                      aria-label="发送"
+                    >
+                      <Send size={15} />
                     </button>
                   </div>
-                  <button
-                    className="btn-submit"
-                    disabled={streaming || !input.trim()}
-                    onClick={() => void ask(input)}
-                  >
-                    <i>
-                      <Send size={16} />
-                    </i>
-                  </button>
                 </div>
               </div>
             </div>
@@ -418,6 +459,7 @@ export function AIAssistant() {
         )}
       </div>
     </StyledWrapper>
+    </>
   )
 }
 
@@ -803,6 +845,23 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     }
   }
 
+  .header-btn.learning-space-btn {
+    width: auto;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #7c3aed, #9147ff);
+    color: white;
+
+    &:hover {
+      background: linear-gradient(135deg, #6d28d9, #7c3aed);
+      color: white;
+      transform: scale(1.02);
+    }
+  }
+
   .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -1023,107 +1082,87 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   .chat-input-area {
     padding: 8px 12px;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
   }
 
-  .chat-bot {
+  .chat-input-box {
     display: flex;
+    align-items: flex-end;
+    gap: 0;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    padding: 6px 6px 6px 12px;
+    transition: border-color 0.2s;
+
+    &:focus-within {
+      border-color: #7c3aed;
+    }
 
     & textarea {
       background-color: transparent;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      border: none;
       width: 100%;
       color: #333;
       font-family: sans-serif;
       font-size: 13px;
-      padding: 8px 12px;
+      padding: 4px 0;
       resize: none;
       outline: none;
-      min-height: 36px;
+      min-height: 28px;
       max-height: 96px;
       line-height: 1.4;
 
       &::placeholder {
         color: #bbb;
-        transition: color 0.2s;
-      }
-
-      &:focus::placeholder {
-        color: #999;
-      }
-
-      &:focus {
-        border-color: #7c3aed;
       }
     }
   }
 
-  .options {
+  .input-actions {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
+    gap: 4px;
+    flex-shrink: 0;
+    padding-bottom: 2px;
   }
 
-  .btns-add {
+  .input-action-btn {
+    width: 28px;
+    height: 28px;
     display: flex;
-    gap: 8px;
-
-    & button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: rgba(0, 0, 0, 0.2);
-      background-color: transparent;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:hover {
-        color: #666;
-      }
-    }
-  }
-
-  .btn-submit {
-    display: flex;
-    padding: 2px;
-    background-image: linear-gradient(to top, #ff4141, #9147ff, #3b82f6);
-    border-radius: 10px;
-    box-shadow: inset 0 6px 2px -4px rgba(255, 255, 255, 0.5);
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    color: #999;
     cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: #666;
+    }
+
+    & input {
+      display: none;
+    }
+  }
+
+  .input-send-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
     border: none;
-    outline: none;
-    opacity: 0.7;
-    transition: all 0.15s ease;
-
-    & i {
-      width: 30px;
-      height: 30px;
-      padding: 6px;
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: 10px;
-      backdrop-filter: blur(3px);
-      color: #cfcfcf;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    & svg {
-      transition: all 0.3s ease;
-    }
+    background: linear-gradient(135deg, #7c3aed, #ec4899);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0.9;
 
     &:hover:not(:disabled) {
       opacity: 1;
-
-      & svg {
-        color: #f3f6fd;
-        filter: drop-shadow(0 0 5px #ffffff);
-      }
+      transform: scale(1.05);
     }
 
     &:active {
@@ -1131,9 +1170,13 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     }
 
     &:disabled {
-      opacity: 0.4;
+      opacity: 0.3;
       cursor: not-allowed;
     }
+  }
+
+  .hidden {
+    display: none;
   }
 
   @keyframes rotate-background-balls {
