@@ -1,20 +1,19 @@
 {
   "goal": [
-    "期末提分"
+    "掌握核心技能"
   ],
-  "knowledge_level": "有一些基础",
+  "knowledge_level": "有一定基础",
   "weak_points": [
-    "函数",
-    "面向对象"
+    "项目实战经验",
+    "高级设计能力"
   ],
   "learning_preference": [
-    "实践型",
-    "视觉型"
+    "动手实践，边学边做"
   ],
   "cognitive_style": "归纳型",
-  "daily_time": 60,
+  "daily_time": 30,
   "practical_ability": "能独立完成小项目",
   "current_stage": "函数与模块",
   "version": 1,
-  "updated_at": "2026-05-10T06:13:20.884483Z"
+  "updated_at": "2026-05-12T07:40:50.513705Z"
 }

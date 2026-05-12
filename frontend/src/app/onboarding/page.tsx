@@ -1,15 +1,12 @@
 'use client'
-/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { cn } from '@/lib/utils/cn'
 import {
-  CheckCircle2,
-  ArrowRight,
+  Send,
   ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
   Target,
   BookOpen,
   Lightbulb,
@@ -24,6 +21,7 @@ import {
   FileText,
   Zap,
   BarChart3,
+  Sparkles,
 } from 'lucide-react'
 
 /* ── 类型 ─────────────────────────────────────────── */
@@ -37,9 +35,11 @@ interface CardOption {
 interface StepData {
   key: string
   title: string
+  greeting: string
   question: string
   cards?: CardOption[]
   tags?: string[]
+  multiSelect?: boolean
 }
 
 /* ── 步骤数据 ──────────────────────────────────────── */
@@ -48,54 +48,66 @@ const STEPS: StepData[] = [
   {
     key: 'goal',
     title: '学习目标',
-    question: '你想达成什么样的学习目标？',
+    greeting: '你好！我是你的学习精灵 ✨\n为了为你制定最合适的学习计划，\n我们先来聊聊你的学习目标吧~',
+    question: '你希望达成什么样的学习目标呢？',
     cards: [
-      { icon: <BarChart3 size={22} />, label: '期末提分', desc: '高效备考冲刺' },
-      { icon: <Zap size={22} />, label: '竞赛准备', desc: '算法竞赛训练' },
-      { icon: <Gamepad2 size={22} />, label: '兴趣探索', desc: '发现编程乐趣' },
-      { icon: <Briefcase size={22} />, label: '求职准备', desc: '面试刷题进阶' },
+      { icon: <BarChart3 size={20} />, label: '掌握核心技能', desc: '系统学习，打好基础' },
+      { icon: <Briefcase size={20} />, label: '准备找工作', desc: '提升竞争力，拿到offer' },
+      { icon: <Zap size={20} />, label: '项目实战能力', desc: '能独立完成项目' },
+      { icon: <Gamepad2 size={20} />, label: '兴趣探索', desc: '先了解，再深入' },
     ],
   },
   {
     key: 'level',
     title: '编程基础',
-    question: '你的编程基础如何？',
+    greeting: '了解了！接下来了解一下你的编程基础，\n这样可以更好地为你安排内容 😊',
+    question: '你目前的编程水平是？',
     cards: [
-      { icon: <Lightbulb size={22} />, label: '零基础', desc: '从未接触编程' },
-      { icon: <FileText size={22} />, label: '有一些基础', desc: '了解基本概念' },
-      { icon: <Code size={22} />, label: '基础较好', desc: '能独立写项目' },
-      { icon: <GraduationCap size={22} />, label: '有编程经验', desc: '熟练掌握语言' },
+      { icon: <Lightbulb size={20} />, label: '零基础', desc: '完全没接触过' },
+      { icon: <FileText size={20} />, label: '入门阶段', desc: '学过一些基础语法' },
+      { icon: <Code size={20} />, label: '有一定基础', desc: '能写简单项目' },
+      { icon: <GraduationCap size={20} />, label: '基础较好', desc: '熟练掌握一门语言' },
     ],
   },
   {
     key: 'weak',
     title: '薄弱环节',
-    question: '哪些方面需要加强？',
-    tags: ['数据结构', '算法设计', '语法基础', '调试能力', '代码规范', '项目实战', '复杂度分析', '面向对象'],
+    greeting: '明白！知道了你的基础情况 👍\n接下来，我们来找出你觉得需要重点加强的方向，\n你觉得自己哪些方面需要加强？',
+    question: '选择你想重点提升的方向（可多选）',
+    tags: ['语法与数据结构', '项目实战经验', '高级设计能力', '编程语言实践', '其他方面'],
+    multiSelect: true,
   },
   {
     key: 'preference',
     title: '学习偏好',
-    question: '你喜欢怎样的学习方式？',
+    greeting: '了解！每个人的学习方式都不同 📚\n你更喜欢哪种学习方式呢？',
+    question: '你更喜欢哪种学习方式？',
     cards: [
-      { icon: <Eye size={22} />, label: '视觉型', desc: '图表动画理解' },
-      { icon: <Headphones size={22} />, label: '听觉型', desc: '视频讲解为主' },
-      { icon: <PenTool size={22} />, label: '实践型', desc: '动手编码练习' },
-      { icon: <BookOpen size={22} />, label: '阅读型', desc: '文档教材学习' },
+      { icon: <Eye size={20} />, label: '视频教程，直观看懂', desc: '' },
+      { icon: <BookOpen size={20} />, label: '文档阅读，深入理解', desc: '' },
+      { icon: <PenTool size={20} />, label: '动手实践，边学边做', desc: '' },
+      { icon: <Headphones size={20} />, label: '互动交流，共同进步', desc: '' },
     ],
+    multiSelect: true,
   },
   {
     key: 'time',
     title: '学习时间',
-    question: '每天能投入多少时间学习？',
-    cards: [
-      { icon: <Clock size={22} />, label: '30分钟以内', desc: '碎片时间学习' },
-      { icon: <Clock size={22} />, label: '30-60分钟', desc: '每天一小段' },
-      { icon: <Clock size={22} />, label: '1-2小时', desc: '专注学习时段' },
-      { icon: <Clock size={22} />, label: '2小时以上', desc: '深度沉浸学习' },
-    ],
+    greeting: '最后一个问题啦！🎉\n了解你的时间安排，帮你制定合理的计划，\n你每周大概有多少时间学习？',
+    question: '你每天大概能投入多少时间学习？',
+    tags: ['5小时以下', '5-10小时', '10-20小时', '20小时以上'],
+    multiSelect: false,
   },
 ]
+
+/* ── 消息类型 ─────────────────────────────────────── */
+
+interface ChatMessage {
+  id: string
+  role: 'assistant' | 'user'
+  content: string
+  type: 'text' | 'options' | 'selection'
+}
 
 /* ── 主组件 ─────────────────────────────────────────── */
 
@@ -103,334 +115,386 @@ export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState<Record<number, string[]>>({})
-  const [isTyping, setIsTyping] = useState(true)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [inputValue, setInputValue] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [showOptions, setShowOptions] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // 初始化第一步的消息
+  useEffect(() => {
+    startStep(0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
-    setIsTyping(true)
-    const t = setTimeout(() => setIsTyping(false), 1000)
-    return () => clearTimeout(t)
-  }, [step])
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, showOptions])
 
-  const current = STEPS[step]
-  const selected = selections[step] || []
-  const canNext = step === STEPS.length - 1 || selected.length > 0
+  function startStep(stepIndex: number) {
+    const stepData = STEPS[stepIndex]
+    setIsTyping(true)
+    setShowOptions(false)
+
+    setTimeout(() => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `greeting-${stepIndex}`,
+          role: 'assistant',
+          content: stepData.greeting,
+          type: 'text',
+        },
+      ])
+      setIsTyping(false)
+
+      // 短暂延迟后显示选项
+      setTimeout(() => {
+        setShowOptions(true)
+      }, 400)
+    }, 800)
+  }
 
   function toggle(opt: string) {
+    const current = STEPS[step]
     setSelections(prev => {
       const arr = prev[step] || []
-      return {
-        ...prev,
-        [step]: arr.includes(opt) ? arr.filter(o => o !== opt) : [...arr, opt],
+      if (current.multiSelect || current.tags) {
+        // 多选模式（tags 默认多选，除非 multiSelect 明确为 false）
+        if (current.multiSelect === false) {
+          return { ...prev, [step]: arr.includes(opt) ? [] : [opt] }
+        }
+        return {
+          ...prev,
+          [step]: arr.includes(opt) ? arr.filter(o => o !== opt) : [...arr, opt],
+        }
       }
+      // 单选模式
+      return { ...prev, [step]: [opt] }
     })
   }
 
+  function confirmSelection() {
+    const selected = selections[step] || []
+    if (selected.length === 0) return
+
+    // 添加用户选择消息
+    setMessages(prev => [
+      ...prev,
+      {
+        id: `user-${step}`,
+        role: 'user',
+        content: selected.join('、'),
+        type: 'selection',
+      },
+    ])
+    setShowOptions(false)
+
+    // 进入下一步
+    if (step < STEPS.length - 1) {
+      const nextStep = step + 1
+      setStep(nextStep)
+      setTimeout(() => startStep(nextStep), 300)
+    } else {
+      // 完成建档
+      finishOnboarding()
+    }
+  }
+
+  function handleSendMessage() {
+    const text = inputValue.trim()
+    if (!text) return
+
+    setMessages(prev => [
+      ...prev,
+      { id: `input-${Date.now()}`, role: 'user', content: text, type: 'text' },
+    ])
+    setInputValue('')
+
+    // 将用户输入作为当前步骤的选择
+    setSelections(prev => ({
+      ...prev,
+      [step]: [text],
+    }))
+    setShowOptions(false)
+
+    // 进入下一步
+    if (step < STEPS.length - 1) {
+      const nextStep = step + 1
+      setStep(nextStep)
+      setTimeout(() => startStep(nextStep), 300)
+    } else {
+      finishOnboarding()
+    }
+  }
+
+  async function finishOnboarding() {
+    setIsTyping(true)
+    setTimeout(() => {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: 'finish',
+          role: 'assistant',
+          content: '太棒了！我已经了解你的学习情况了 🎊\n正在为你生成个性化学习方案...',
+          type: 'text',
+        },
+      ])
+      setIsTyping(false)
+
+      // 提交数据并跳转
+      submitOnboarding()
+    }, 800)
+  }
+
+  async function submitOnboarding() {
+    try {
+      const body = {
+        goal: selections[0] || [],
+        level: selections[1] || [],
+        weak: selections[2] || [],
+        preference: selections[3] || [],
+        time: selections[4] || [],
+      }
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/profile/onboarding`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      )
+    } catch {
+      // 即使提交失败也跳转
+    }
+    setTimeout(() => router.push('/'), 1500)
+  }
+
+  const selected = selections[step] || []
+  const current = STEPS[step]
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#fbfbfd',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 24px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif',
-    }}>
-      <div style={{ width: '100%', maxWidth: 640, display: 'flex', flexDirection: 'column', flex: 1 }}>
-
-        {/* ═══ 步骤指示器 ═══ */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 40,
-        }}>
-          {STEPS.map((s, i) => (
-            <div key={s.key} style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                {/* 圆圈 */}
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: i <= step ? '#fff' : '#aeaeb2',
-                  background: i < step ? '#34c759' : i === step ? '#0071e3' : '#f5f5f7',
-                  boxShadow: i === step ? '0 2px 12px rgba(0,113,227,0.25)' : 'none',
-                  transition: 'all 0.3s',
-                }}>
-                  {i < step ? <CheckCircle2 size={16} /> : i + 1}
-                </div>
-                {/* 标签 */}
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: i < step ? '#34c759' : i === step ? '#0071e3' : '#aeaeb2',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {s.title}
-                </span>
+    <div className="flex min-h-screen flex-col items-center bg-[#f5f7fa] px-4 py-8">
+      {/* ═══ 顶部步骤指示器 ═══ */}
+      <div className="mb-6 flex items-center justify-center gap-0">
+        {STEPS.map((s, i) => (
+          <div key={s.key} className="flex items-center">
+            <div className="flex flex-col items-center gap-1.5">
+              <div
+                className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold transition-all ${
+                  i < step
+                    ? 'bg-[#34c759] text-white'
+                    : i === step
+                      ? 'bg-[#2563eb] text-white shadow-md shadow-blue-200'
+                      : 'bg-[#e2e8f0] text-[#94a3b8]'
+                }`}
+              >
+                {i < step ? <CheckCircle2 size={14} /> : i + 1}
               </div>
-              {/* 连接线 */}
-              {i < STEPS.length - 1 && (
-                <div style={{
-                  width: 48,
-                  height: 2,
-                  borderRadius: 1,
-                  background: i < step ? '#34c759' : '#f5f5f7',
-                  margin: '0 4px',
-                  marginBottom: 22,
-                  transition: 'background 0.3s',
-                }} />
-              )}
+              <span
+                className={`text-[11px] font-medium whitespace-nowrap ${
+                  i < step ? 'text-[#34c759]' : i === step ? 'text-[#2563eb]' : 'text-[#94a3b8]'
+                }`}
+              >
+                {s.title}
+              </span>
             </div>
-          ))}
-        </div>
-
-        {/* ═══ 主内容卡片 ═══ */}
-        <div style={{
-          background: '#fff',
-          borderRadius: 20,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02)',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}>
-
-          {/* AI 气泡 */}
-          <div style={{ padding: '32px 32px 16px' }}>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: '#0071e3',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>AI</span>
-              </div>
-              <div style={{
-                background: '#f5f5f7',
-                borderRadius: 12,
-                padding: '12px 16px',
-                maxWidth: 400,
-              }}>
-                {isTyping ? (
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#aeaeb2', animation: 'pulse 1.2s infinite' }} />
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#aeaeb2', animation: 'pulse 1.2s 0.2s infinite' }} />
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#aeaeb2', animation: 'pulse 1.2s 0.4s infinite' }} />
-                  </div>
-                ) : (
-                  <p style={{ fontSize: 15, color: '#1d1d1f', margin: 0, lineHeight: 1.5 }}>{current.question}</p>
-                )}
-              </div>
-            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className={`mx-3 mb-5 h-[2px] w-12 rounded-full transition-colors ${
+                  i < step ? 'bg-[#34c759]' : 'bg-[#e2e8f0]'
+                }`}
+              />
+            )}
           </div>
+        ))}
+      </div>
+
+      {/* ═══ 主卡片容器 ═══ */}
+      <div className="w-full max-w-[680px] h-[calc(100vh-160px)] rounded-2xl border border-[#e8ecf2] bg-white shadow-lg shadow-black/[0.03] flex flex-col overflow-hidden">
+        {/* 对话内容区 */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.map((msg) => (
+            <MessageBubble key={msg.id} message={msg} />
+          ))}
+
+          {/* 打字指示器 */}
+          {isTyping && (
+            <div className="flex items-start gap-3">
+              <SpriteAvatar />
+              <div className="rounded-2xl rounded-tl-sm bg-[#f8fafc] px-4 py-3 border border-[#eef2f7]">
+                <div className="flex gap-1.5">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '0ms' }} />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '150ms' }} />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 选项区域 */}
-          {!isTyping && (
-            <div style={{ flex: 1, padding: '8px 32px 32px', display: 'flex', flexDirection: 'column' }}>
-
-              {/* ── 卡片网格 ── */}
+          {showOptions && !isTyping && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* 卡片选项 */}
               {current.cards && (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 12,
-                  marginBottom: 24,
-                }}>
-                  {current.cards.map(card => {
+                <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
+                  {current.cards.map((card) => {
                     const isActive = selected.includes(card.label)
                     return (
                       <button
                         key={card.label}
                         onClick={() => toggle(card.label)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          textAlign: 'center',
-                          padding: '24px 16px',
-                          borderRadius: 16,
-                          border: isActive ? '2px solid #0071e3' : '2px solid rgba(0,0,0,0.06)',
-                          background: isActive ? 'rgba(0,113,227,0.08)' : '#fff',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                        }}
+                        className={`group flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-5 text-center transition-all ${
+                          isActive
+                            ? 'border-[#2563eb] bg-[#eff6ff] shadow-sm'
+                            : 'border-[#eef2f7] bg-white hover:border-[#93c5fd] hover:bg-[#f8fafc]'
+                        }`}
                       >
-                        <div style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 14,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginBottom: 10,
-                          background: isActive ? '#0071e3' : '#f5f5f7',
-                          color: isActive ? '#fff' : '#6e6e73',
-                          transition: 'all 0.2s',
-                        }}>
+                        <div
+                          className={`grid h-10 w-10 place-items-center rounded-xl transition-colors ${
+                            isActive ? 'bg-[#2563eb] text-white' : 'bg-[#f1f5f9] text-[#64748b] group-hover:bg-[#e2e8f0]'
+                          }`}
+                        >
                           {card.icon}
                         </div>
-                        <span style={{
-                          fontSize: 14,
-                          fontWeight: 600,
-                          color: isActive ? '#0071e3' : '#1d1d1f',
-                          marginBottom: 2,
-                        }}>
+                        <div className={`text-sm font-semibold ${isActive ? 'text-[#2563eb]' : 'text-[#1e293b]'}`}>
                           {card.label}
-                        </span>
-                        <span style={{
-                          fontSize: 11,
-                          color: isActive ? 'rgba(0,113,227,0.6)' : '#aeaeb2',
-                        }}>
-                          {card.desc}
-                        </span>
+                        </div>
+                        {card.desc && (
+                          <div className={`text-xs ${isActive ? 'text-[#60a5fa]' : 'text-[#94a3b8]'}`}>
+                            {card.desc}
+                          </div>
+                        )}
                       </button>
                     )
                   })}
                 </div>
               )}
 
-              {/* ── 标签云 ── */}
+              {/* 标签选项 */}
               {current.tags && (
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1f', marginBottom: 12 }}>
-                    选择需要加强的方向（可多选）
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {current.tags.map(tag => {
-                      const isActive = selected.includes(tag)
-                      return (
-                        <button
-                          key={tag}
-                          onClick={() => toggle(tag)}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: 100,
-                            fontSize: 14,
-                            fontWeight: 500,
-                            border: 'none',
-                            cursor: 'pointer',
-                            background: isActive ? '#0071e3' : '#f5f5f7',
-                            color: isActive ? '#fff' : '#6e6e73',
-                            transition: 'all 0.2s',
-                          }}
-                        >
-                          {tag}
-                        </button>
-                      )
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {current.tags.map((tag) => {
+                    const isActive = selected.includes(tag)
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => toggle(tag)}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+                          isActive
+                            ? 'border-[#2563eb] bg-[#2563eb] text-white shadow-sm'
+                            : 'border-[#e2e8f0] bg-white text-[#475569] hover:border-[#93c5fd] hover:bg-[#f8fafc]'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
-
-              {/* ── 摘要（最后一步） ── */}
-              {step === STEPS.length - 1 && !isTyping && (
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#1d1d1f', marginBottom: 16 }}>
-                    以下是为你构建的学习画像：
-                  </div>
-                  {STEPS.map((s, i) => (
-                    <div key={s.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                      <span style={{ fontSize: 14, color: '#6e6e73', width: 72, flexShrink: 0, paddingTop: 2 }}>
-                        {s.title}
-                      </span>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {(selections[i] || []).length > 0
-                          ? selections[i].map(sel => (
-                              <span key={sel} style={{
-                                padding: '4px 12px',
-                                borderRadius: 100,
-                                fontSize: 11,
-                                fontWeight: 500,
-                                background: 'rgba(0,113,227,0.08)',
-                                color: '#0071e3',
-                              }}>{sel}</span>
-                            ))
-                          : <span style={{ fontSize: 14, color: '#aeaeb2' }}>未选择</span>
-                        }
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* ── 占位，推按钮到底部 ── */}
-              <div style={{ flex: 1 }} />
             </div>
           )}
+
+          <div ref={chatEndRef} />
         </div>
 
-        {/* ═══ 导航按钮 ═══ */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 24,
-        }}>
-          <button
-            onClick={() => step > 0 && setStep(step - 1)}
-            disabled={step === 0}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 20px',
-              borderRadius: 12,
-              border: 'none',
-              background: 'transparent',
-              fontSize: 15,
-              fontWeight: 500,
-              color: step === 0 ? '#aeaeb2' : '#6e6e73',
-              cursor: step === 0 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <ArrowLeft size={16} />
-            上一步
-          </button>
-          <button
-            onClick={() => {
-              if (step < STEPS.length - 1) setStep(step + 1)
-              else router.push('/')
-            }}
-            disabled={!canNext}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 24px',
-              borderRadius: 12,
-              border: 'none',
-              background: canNext ? '#0071e3' : '#f5f5f7',
-              color: canNext ? '#fff' : '#aeaeb2',
-              fontSize: 15,
-              fontWeight: 500,
-              cursor: canNext ? 'pointer' : 'not-allowed',
-              boxShadow: canNext ? '0 2px 8px rgba(0,113,227,0.04)' : 'none',
-            }}
-          >
-            {step === STEPS.length - 1 ? '开始学习' : '下一步'}
-            <ArrowRight size={16} />
-          </button>
+        {/* 底部操作栏 - 卡片内部底部 */}
+        <div className="shrink-0 border-t border-[#eef2f7] px-6 py-4 space-y-3">
+          {/* 输入框 */}
+          <div className="relative">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSendMessage()
+                }
+              }}
+              placeholder="你可以直接输入你的想法..."
+              className="h-11 w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] pl-4 pr-12 text-sm outline-none transition-colors placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:bg-white focus:ring-2 focus:ring-blue-100"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim()}
+              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-[#2563eb] text-white transition-opacity disabled:opacity-30"
+              aria-label="发送"
+            >
+              <Send size={15} />
+            </button>
+          </div>
+
+          {/* 导航按钮 */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => {
+                if (step > 0) {
+                  const prevStep = step - 1
+                  setStep(prevStep)
+                  setShowOptions(true)
+                }
+              }}
+              disabled={step === 0}
+              className="flex items-center gap-1.5 text-sm font-medium text-[#64748b] transition-colors hover:text-[#2563eb] disabled:opacity-30"
+            >
+              <ArrowLeft size={15} />
+              上一步
+            </button>
+
+            <button
+              onClick={confirmSelection}
+              disabled={selected.length === 0}
+              className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
+                selected.length > 0
+                  ? 'bg-[#2563eb] text-white shadow-sm hover:bg-[#1d4ed8]'
+                  : 'bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed'
+              }`}
+            >
+              {step === STEPS.length - 1 ? '完成建档' : '下一步'}
+              {step === STEPS.length - 1 ? <Sparkles size={15} /> : <ArrowRight size={15} />}
+            </button>
+          </div>
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* 打字动画 keyframes */}
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 1; }
-        }
-      `}</style>
+/* ── 精灵头像组件 ─── */
+
+function SpriteAvatar() {
+  return (
+    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] shadow-md shadow-blue-200">
+      <Sparkles size={16} className="text-white" />
+    </div>
+  )
+}
+
+/* ── 消息气泡组件 ─── */
+
+function MessageBubble({ message }: { message: ChatMessage }) {
+  if (message.role === 'assistant') {
+    return (
+      <div className="flex items-start gap-3">
+        <SpriteAvatar />
+        <div className="max-w-[520px] rounded-2xl rounded-tl-sm border border-[#eef2f7] bg-[#f8fafc] px-5 py-4 shadow-sm">
+          <p className="whitespace-pre-line text-sm leading-7 text-[#1e293b]">
+            {message.content}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // 用户消息
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[360px] rounded-2xl rounded-tr-sm bg-[#2563eb] px-4 py-3 shadow-sm">
+        <p className="text-sm leading-relaxed text-white">
+          {message.content}
+        </p>
+      </div>
     </div>
   )
 }

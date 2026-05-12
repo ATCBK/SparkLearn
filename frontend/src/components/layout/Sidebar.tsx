@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { ThemeSwitch } from '@/components/ui/ThemeSwitch'
 import {
   Home,
   User,
@@ -102,26 +103,20 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
         ))}
       </nav>
 
-      {/* 底部状态卡片 */}
-      <div className="absolute bottom-6 left-3 right-3 rounded-[12px] border border-[#E5EAF2] bg-[#F9FAFB] p-3.5">
-        <div className="text-xs font-bold text-[#111827]">今日状态</div>
-        <div className="mt-2 space-y-2 text-xs text-[#6B7280]">
-          <div>
-            <span className="font-bold">薄弱点：</span>
-            <span>类与对象</span>
+      {/* 底部用户设置中心 */}
+      <div className="absolute bottom-4 left-3 right-3 space-y-3">
+        <ThemeSwitch />
+        <Link
+          href="/profile/settings"
+          className="flex items-center gap-3 rounded-[12px] border border-line bg-bg-hover p-3 hover:bg-bg-card transition-colors"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white shrink-0">李</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-small font-bold text-ink truncate">李明</div>
+            <div className="text-micro text-muted truncate">个人设置</div>
           </div>
-          <div>
-            <span className="font-bold">建议耗时：</span>
-            <span>24 分钟</span>
-          </div>
-          <div>
-            <span className="font-bold">路径状态：</span>
-            <span>待确认</span>
-          </div>
-        </div>
-        <div className="mt-3 text-xs text-[#6B7280]">
-          优先补齐当前卡点，再推进下一阶段。
-        </div>
+          <LogOut className="h-4 w-4 text-muted shrink-0" />
+        </Link>
       </div>
     </div>
   )

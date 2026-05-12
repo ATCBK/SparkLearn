@@ -32,10 +32,6 @@ export function Topbar({ sidebarWidth }: { sidebarWidth: number }) {
         {meta.group} / <b className="text-ink">{meta.title}</b>
       </div>
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-small font-extrabold text-text">
-          <span className="grid h-[30px] w-[30px] place-items-center rounded-full bg-blue text-micro text-white">李</span>
-          <span className="hidden sm:inline">李明</span>
-        </div>
       </div>
     </header>
   )
