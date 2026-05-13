@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -488,139 +488,243 @@ export default function TutorPage() {
     return <ErrorState type="server" onRetry={loadWorkspace} />
   }
 
+
   return (
     <>
-      <div className="h-screen bg-[#f7f8fa] overflow-hidden flex">
-        {/* Left sidebar */}
-        <aside className={cn('h-full bg-white border-r border-[#eef1f5] transition-all duration-300 ease-out overflow-hidden flex flex-col', panelCollapsed ? 'w-[56px]' : 'w-[240px]')}>
-          <div className="px-3 py-3 border-b border-[#eef1f5] flex items-center justify-between">
-            {!panelCollapsed && (
-              <button onClick={() => router.push('/')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#f1f5f9] text-sm font-medium text-[#1e293b] hover:bg-[#e2e8f0] transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-                返回主页
-              </button>
-            )}
-            <button className="w-8 h-8 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center text-[#64748b]" onClick={() => setPanelCollapsed((v) => !v)}>
-              {panelCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+      <div className="h-screen flex bg-[#f5f7fa]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+        {/* ═══ 左侧导航栏（浅色） ═══ */}
+        <nav className="w-[200px] shrink-0 bg-[#f0f4ff] border-r border-[#e2e8f0] flex flex-col">
+          {/* 新建对话按钮 */}
+          <div className="p-3">
+            <button onClick={() => void handleCreateConversation()} className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-sm font-semibold transition-colors shadow-sm">
+              <Plus className="w-4 h-4" /> 新建对话
             </button>
           </div>
-          {!panelCollapsed && (
-            <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-4">
-              <section>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">角色</h3>
-                  <button onClick={openCreateRoleModal} className="w-6 h-6 rounded-md hover:bg-[#f1f5f9] flex items-center justify-center text-[#64748b]"><Plus className="w-3.5 h-3.5" /></button>
-                </div>
-                <div className="space-y-1">
-                  {roles.map((role) => (
-                    <div key={role.id} className={cn('group flex items-center justify-between rounded-lg px-2.5 py-2 cursor-pointer transition-colors', currentRoleId === role.id ? 'bg-[#eff6ff] text-[#2563eb]' : 'hover:bg-[#f8fafc] text-[#475569]')} onClick={() => void handleRoleChange(role.id)}>
-                      <div className="flex items-center gap-2 min-w-0"><UserCog className="w-3.5 h-3.5 shrink-0" /><span className="text-sm truncate">{role.name}</span></div>
-                      <div className="hidden group-hover:flex items-center gap-0.5">
-                        <button className="w-5 h-5 rounded flex items-center justify-center hover:bg-white" onClick={(e) => { e.stopPropagation(); openEditRoleModal(role) }}><Pencil className="w-3 h-3" /></button>
-                        <button className="w-5 h-5 rounded flex items-center justify-center hover:bg-white text-red-500" onClick={(e) => { e.stopPropagation(); void handleDeleteRole(role.id) }}><Trash2 className="w-3 h-3" /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-              <section>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider">历史记录</h3>
-                  <button onClick={() => void handleCreateConversation()} className="w-6 h-6 rounded-md hover:bg-[#f1f5f9] flex items-center justify-center text-[#64748b]"><Plus className="w-3.5 h-3.5" /></button>
-                </div>
-                <div className="space-y-1">
-                  {conversations.map((conv) => (
-                    <div key={conv.id} className={cn('group flex items-center justify-between rounded-lg px-2.5 py-2 cursor-pointer transition-colors', currentConversationId === conv.id ? 'bg-[#eff6ff] text-[#2563eb]' : 'hover:bg-[#f8fafc] text-[#475569]')} onClick={() => void switchConversation(conv)}>
-                      {renamingConversationId === conv.id ? (
-                        <div className="flex gap-1 w-full" onClick={(e) => e.stopPropagation()}>
-                          <input className="flex-1 min-w-0 border border-[#e2e8f0] rounded px-2 py-0.5 text-xs" value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleRenameConversation(conv.id) }} autoFocus />
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 min-w-0"><MessageSquareText className="w-3.5 h-3.5 shrink-0" /><span className="text-sm truncate">{conv.title}</span></div>
-                          <div className="hidden group-hover:flex items-center gap-0.5">
-                            <button className="w-5 h-5 rounded flex items-center justify-center hover:bg-white" onClick={(e) => { e.stopPropagation(); setRenamingConversationId(conv.id); setRenameTitle(conv.title) }}><Pencil className="w-3 h-3" /></button>
-                            <button className="w-5 h-5 rounded flex items-center justify-center hover:bg-white text-red-500" onClick={(e) => { e.stopPropagation(); void handleDeleteConversation(conv.id) }}><Trash2 className="w-3 h-3" /></button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
+
+          {/* 导航菜单 */}
+          <div className="px-3 space-y-0.5 flex-1">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#2563eb] text-white text-sm font-medium shadow-sm">
+              <Sparkles className="w-4 h-4" /> 学习空间
+            </div>
+            <button onClick={openCreateRoleModal} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+              <UserCog className="w-4 h-4" /> 角色工坊
+            </button>
+            <button onClick={() => setWorkshopEnabled((v) => !v)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors', workshopEnabled ? 'bg-white text-[#2563eb] shadow-sm' : 'text-[#475569] hover:bg-white hover:text-[#1e293b]')}>
+              <Users className="w-4 h-4" /> 研讨会
+            </button>
+
+            <div className="my-3 border-t border-[#e2e8f0]" />
+
+            <button onClick={() => router.push('/generate')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+              <FileText className="w-4 h-4" /> 资源库
+            </button>
+            <button onClick={() => router.push('/knowledge')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+              <Bot className="w-4 h-4" /> 知识库
+            </button>
+            <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+              <Paperclip className="w-4 h-4" /> 我的文件
+            </button>
+          </div>
+
+          {/* 底部 */}
+          <div className="p-3 border-t border-[#e2e8f0] space-y-2">
+            <button onClick={() => router.push('/')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+              <ArrowLeft className="w-4 h-4" /> 返回主平台
+            </button>
+            <div className="flex items-center gap-2.5 px-3 py-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center text-xs font-bold text-white">李</div>
+              <div>
+                <p className="text-sm font-medium text-[#1e293b]">李明</p>
+                <p className="text-[11px] text-[#94a3b8]">学习平台</p>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* ═══ 中间对话列表栏 ═══ */}
+        <div className="w-[280px] shrink-0 bg-white border-r border-[#eef1f5] flex flex-col">
+          {/* 搜索 */}
+          <div className="p-3 border-b border-[#eef1f5]">
+            <div className="flex items-center gap-2 h-9 rounded-lg bg-[#f5f7fa] px-3">
+              <MessageSquareText className="w-4 h-4 text-[#94a3b8]" />
+              <input type="text" placeholder="搜索对话" className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#94a3b8]" />
+            </div>
+          </div>
+
+          {/* 角色切换 */}
+          {roles.length > 0 && (
+            <div className="px-3 py-2 border-b border-[#eef1f5]">
+              <div className="flex items-center gap-1 overflow-x-auto">
+                {roles.map((role) => (
+                  <button key={role.id} onClick={() => void handleRoleChange(role.id)} className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors', currentRoleId === role.id ? 'bg-[#2563eb] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]')}>
+                    {role.name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
-        </aside>
 
-        {/* Main content */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* 对话列表 */}
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {conversations.map((conv) => (
+              <div key={conv.id} onClick={() => void switchConversation(conv)} className={cn('group px-4 py-3 border-b border-[#f5f7fa] cursor-pointer transition-colors', currentConversationId === conv.id ? 'bg-[#eff6ff]' : 'hover:bg-[#f8fafc]')}>
+                {renamingConversationId === conv.id ? (
+                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                    <input className="flex-1 min-w-0 border border-[#e2e8f0] rounded px-2 py-1 text-xs" value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleRenameConversation(conv.id) }} autoFocus />
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className={cn('text-sm font-medium truncate', currentConversationId === conv.id ? 'text-[#2563eb]' : 'text-[#1e293b]')}>{conv.title}</p>
+                      <p className="text-xs text-[#94a3b8] mt-0.5">{conv.messageCount} 条消息</p>
+                    </div>
+                    <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                      <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#e2e8f0] text-[#94a3b8]" onClick={(e) => { e.stopPropagation(); setRenamingConversationId(conv.id); setRenameTitle(conv.title) }}><Pencil className="w-3 h-3" /></button>
+                      <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#e2e8f0] text-red-400" onClick={(e) => { e.stopPropagation(); void handleDeleteConversation(conv.id) }}><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ═══ 主对话区 ═══ */}
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
           {actionError && <div className="px-6 pt-3"><p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{actionError}</p></div>}
+
+          {/* 对话标题栏 */}
+          {currentConversation && (
+            <div className="px-6 py-3 border-b border-[#eef1f5] flex items-center justify-between">
+              <h2 className="text-base font-semibold text-[#1e293b]">{currentConversation.title}</h2>
+              <p className="text-xs text-[#94a3b8]">{currentRole ? currentRole.name : ''}</p>
+            </div>
+          )}
+
+          {/* 消息区域 */}
           <div className="flex-1 min-h-0 overflow-y-auto">
             {!hasInteracted ? (
               <div className="h-full flex flex-col items-center justify-center px-6">
-                <div className="relative z-10 max-w-[640px] w-full text-center">
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] shadow-lg mb-5"><Sparkles className="w-10 h-10 text-white" /></div>
-                  <h2 className="text-[42px] leading-tight font-semibold tracking-tight text-[#1e293b] mb-3">学习空间</h2>
-                  <p className="text-[#64748b] text-base mb-8">讲题、拆解知识点、总结文档，根据角色风格回答问题。</p>
-                  <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
-                    <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#e2e8f0] bg-white hover:border-[#93c5fd] text-sm text-[#475569]" onClick={() => applySuggestion('帮我讲解二分查找并给一个例题')}><Sparkles className="w-4 h-4" /> 讲题</button>
-                    <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#e2e8f0] bg-white hover:border-[#93c5fd] text-sm text-[#475569]" onClick={() => applySuggestion('给我出3道Python基础选择题并附答案')}><FileText className="w-4 h-4" /> 出题</button>
-                    <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#e2e8f0] bg-white hover:border-[#93c5fd] text-sm text-[#475569]" onClick={() => fileInputRef.current?.click()}><Paperclip className="w-4 h-4" /> 上传文件</button>
-                    <button className={cn('inline-flex items-center gap-1.5 px-4 py-2 rounded-full border text-sm', workshopEnabled ? 'bg-[#2563eb] text-white border-[#2563eb]' : 'border-[#e2e8f0] bg-white text-[#475569]')} onClick={() => setWorkshopEnabled((v) => !v)}><Users className="w-4 h-4" /> 研讨会</button>
-                  </div>
-                  <div className="mx-auto max-w-[560px] rounded-2xl border border-[#e2e8f0] bg-white shadow-sm p-4">
-                    <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="请输入，Enter键发送，Shift+Enter换行" rows={3} className="w-full resize-none border-0 bg-transparent text-sm text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none" />
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#f1f5f9]">
-                      <div className="flex items-center gap-2">
-                        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handlePickFiles(e.target.files)} />
-                        <button className="w-8 h-8 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]" onClick={() => fileInputRef.current?.click()}><Paperclip className="w-4 h-4" /></button>
-                      </div>
-                      <button onClick={() => void handleSend()} disabled={(!input.trim() && pendingFiles.length === 0) || streaming} className="h-9 px-5 rounded-xl bg-[#2563eb] text-white text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-40 transition-colors">发送</button>
-                    </div>
-                  </div>
-                  {workshopEnabled && (<div className="mt-4 mx-auto max-w-[560px] text-left"><p className="text-xs text-[#94a3b8] mb-2">参会智能体</p><div className="flex flex-wrap gap-2">{roles.map((role) => { const sel = workshopRoleIds.includes(role.id); return (<button key={`ws-${role.id}`} className={cn('px-3 py-1.5 rounded-full border text-xs', sel ? 'bg-[#eff6ff] border-[#2563eb] text-[#2563eb]' : 'bg-white border-[#e2e8f0] text-[#64748b]')} onClick={() => toggleWorkshopRole(role.id)}>{role.name}</button>) })}</div></div>)}
+                <div className="max-w-[560px] w-full text-center">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] shadow-lg mb-4"><Sparkles className="w-8 h-8 text-white" /></div>
+                  <h2 className="text-2xl font-semibold text-[#1e293b] mb-2">有什么可以帮你的？</h2>
+                  <p className="text-[#64748b] text-sm mb-6">和 AI 对话，问任何学习问题</p>
                 </div>
               </div>
             ) : (
-              <div className="px-6 py-4 space-y-4 max-w-[860px] mx-auto w-full">
-                {workshopEnabled && hubMessages.length > 0 && (<div className="rounded-xl border border-[#e2e8f0] bg-white p-3"><div className="flex items-center justify-between mb-2"><p className="text-sm font-semibold">研讨会</p><p className="text-xs text-[#94a3b8]">{workshopPhase ? `${workshopPhase.phase}` : ''}</p></div><div key={`hub-${workshopRunId}`} className="max-h-[180px] overflow-y-auto space-y-2">{hubMessages.map((evt, idx) => (<div key={`${evt.agentId}-${idx}`} className="rounded-lg bg-[#f8fafc] border border-[#eef2f7] px-3 py-2"><p className="text-xs font-medium">{evt.agentName}</p><p className="text-xs text-[#64748b] mt-1 whitespace-pre-wrap">{evt.content}</p></div>))}</div></div>)}
+              <div className="px-6 py-5 space-y-6 max-w-[800px] mx-auto w-full">
+                {workshopEnabled && hubMessages.length > 0 && (<div className="rounded-xl border border-[#e2e8f0] bg-[#fafafa] p-3 mb-4"><div className="flex items-center justify-between mb-2"><p className="text-sm font-semibold text-[#1e293b]">研讨会</p></div><div key={`hub-${workshopRunId}`} className="max-h-[180px] overflow-y-auto space-y-2">{hubMessages.map((evt, idx) => (<div key={`${evt.agentId}-${idx}`} className="rounded-lg bg-white border border-[#eef2f7] px-3 py-2"><p className="text-xs font-medium text-[#475569]">{evt.agentName}</p><p className="text-xs text-[#64748b] mt-1 whitespace-pre-wrap">{evt.content}</p></div>))}</div></div>)}
+
                 {messages.map((msg) => {
                   if (streaming && msg.role === 'assistant' && !msg.content.trim()) return null
                   const summary = msg.role === 'assistant' ? parseWorkshopSummary(msg.content) : null
                   return (
-                    <div key={msg.id} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                      <div className={cn('group max-w-[75%] rounded-2xl px-4 py-3', msg.role === 'user' ? 'bg-[#2563eb] text-white' : 'bg-white border border-[#eef2f7] shadow-sm')}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            {msg.role === 'assistant' ? (summary ? (<div className="space-y-3">{summary.coreConclusion && <div><p className="text-xs text-[#94a3b8] mb-1">核心结论</p><p className="text-sm whitespace-pre-wrap">{summary.coreConclusion}</p></div>}{summary.steps.length > 0 && <div><p className="text-xs text-[#94a3b8] mb-1">行动清单</p>{summary.steps.map((s, i) => <p key={i} className="text-sm">{i+1}. {s}</p>)}</div>}{summary.followUps.length > 0 && <div><p className="text-xs text-[#94a3b8] mb-2">追问</p><div className="grid gap-1.5">{summary.followUps.map((q, i) => <button key={i} className="w-full text-left text-xs px-3 py-2 rounded-lg border border-[#e2e8f0] hover:border-[#93c5fd]" onClick={() => void handleSend(q)} disabled={streaming}>{q}</button>)}</div></div>}</div>) : (<div className="prose prose-sm max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown></div>)) : (<p className="text-sm whitespace-pre-wrap">{msg.content}</p>)}
-                            {msg.fileNames && msg.fileNames.length > 0 && (<div className="mt-2 flex flex-wrap gap-1.5">{msg.fileNames.map((name) => <span key={name} className="text-xs px-2 py-0.5 rounded border border-[#e2e8f0] bg-[#f8fafc]">{name}</span>)}</div>)}
+                    <div key={msg.id}>
+                      {msg.role === 'user' ? (
+                        <div className="flex justify-end mb-4">
+                          <div className="max-w-[70%] rounded-2xl rounded-tr-sm bg-[#eff6ff] px-4 py-2.5">
+                            <p className="text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{msg.content}</p>
+                            {msg.fileNames && msg.fileNames.length > 0 && (<div className="mt-2 flex flex-wrap gap-1.5">{msg.fileNames.map((name) => <span key={name} className="text-xs px-2 py-0.5 rounded border border-[#e2e8f0] bg-white">{name}</span>)}</div>)}
                           </div>
-                          {!streaming && (<button className="shrink-0 opacity-0 group-hover:opacity-100 text-[#94a3b8] hover:text-red-500" onClick={() => void handleDeleteMessage(msg.id)}><X className="w-3.5 h-3.5" /></button>)}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex gap-3 mb-6">
+                          <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center mt-1"><Sparkles className="w-4 h-4 text-white" /></div>
+                          <div className="flex-1 min-w-0">
+                            {summary ? (
+                              <div className="space-y-4">
+                                {summary.coreConclusion && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">核心结论</p><p className="text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{summary.coreConclusion}</p></div>}
+                                {summary.steps.length > 0 && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">行动清单</p><div className="space-y-1">{summary.steps.map((s, i) => <p key={i} className="text-[15px] leading-[1.8] text-[#1e293b]">{i+1}. {s}</p>)}</div></div>}
+                                {summary.followUps.length > 0 && <div><p className="text-xs font-medium text-[#94a3b8] mb-2">追问</p><div className="flex flex-wrap gap-2">{summary.followUps.map((q, i) => <button key={i} className="text-[13px] px-3 py-1.5 rounded-full border border-[#e2e8f0] text-[#475569] hover:border-[#2563eb] hover:text-[#2563eb] transition-colors" onClick={() => void handleSend(q)} disabled={streaming}>{q}</button>)}</div></div>}
+                              </div>
+                            ) : (
+                              <div className="prose prose-base max-w-none text-[#1e293b] prose-p:leading-[1.8] prose-p:my-3 prose-p:text-[15px] prose-headings:text-[#1e293b] prose-headings:font-semibold prose-code:text-[#e11d48] prose-code:bg-[#f5f5f5] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-pre:bg-[#1e1e1e] prose-pre:text-[#d4d4d4] prose-pre:rounded-xl prose-pre:text-[13px] prose-li:text-[15px] prose-li:leading-[1.8]">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
-                {streaming && messages[messages.length - 1]?.content === '' && (<div className="flex justify-start"><div className="bg-white border border-[#eef2f7] shadow-sm rounded-2xl px-4 py-3"><div className="flex gap-1.5"><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '0ms' }}></span><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '150ms' }}></span><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '300ms' }}></span></div></div></div>)}
+                {streaming && messages[messages.length - 1]?.content === '' && (<div className="flex gap-3 mb-6"><div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center"><Sparkles className="w-4 h-4 text-white" /></div><div className="flex gap-1.5 pt-3"><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '0ms' }}></span><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '150ms' }}></span><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '300ms' }}></span></div></div>)}
                 <div ref={messagesEndRef} />
               </div>
             )}
           </div>
-          {hasInteracted && (
-            <div className="shrink-0 px-6 pb-4 pt-2 max-w-[860px] mx-auto w-full">
-              <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm p-3">
-                {pendingFiles.length > 0 && (<div className="flex flex-wrap gap-2 mb-2">{pendingFiles.map((f) => (<span key={f.id} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-[#f8fafc] border border-[#e2e8f0]"><FileText className="w-3 h-3" />{f.filename}<button onClick={() => removePendingFile(f.id)}><X className="w-3 h-3" /></button></span>))}</div>)}
-                <div className="flex items-end gap-2">
-                  <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="继续提问..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-sm placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
-                  <button className="w-8 h-8 rounded-lg hover:bg-[#f1f5f9] flex items-center justify-center text-[#94a3b8]" onClick={() => fileInputRef.current?.click()}><Paperclip className="w-4 h-4" /></button>
-                  <button onClick={() => void handleSend()} disabled={(!input.trim() && pendingFiles.length === 0) || streaming} className="w-9 h-9 rounded-xl bg-[#2563eb] text-white flex items-center justify-center hover:bg-[#1d4ed8] disabled:opacity-40"><Send className="w-4 h-4" /></button>
+
+          {/* 底部输入区 */}
+          <div className="shrink-0 px-6 pb-4 pt-2">
+            <div className="max-w-[800px] mx-auto">
+              {pendingFiles.length > 0 && (<div className="flex flex-wrap gap-2 mb-2">{pendingFiles.map((f) => (<span key={f.id} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-[#f8fafc] border border-[#e2e8f0]"><FileText className="w-3 h-3" />{f.filename}<button onClick={() => removePendingFile(f.id)}><X className="w-3 h-3" /></button></span>))}</div>)}
+              <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，问任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
+                  <button onClick={() => void handleSend()} disabled={(!input.trim() && pendingFiles.length === 0) || streaming} className="w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center hover:bg-[#1d4ed8] disabled:opacity-30 transition-colors"><Send className="w-4 h-4" /></button>
+                </div>
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#f1f5f9]">
+                  <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handlePickFiles(e.target.files)} />
+                  <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors"><Paperclip className="w-3.5 h-3.5" /> 上传文件</button>
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors" onClick={() => applySuggestion('帮我讲解这道题')}><Sparkles className="w-3.5 h-3.5" /> 讲题</button>
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors" onClick={() => applySuggestion('给我出几道练习题')}><FileText className="w-3.5 h-3.5" /> 出题</button>
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors" onClick={() => applySuggestion('请总结这份文档的要点')}><FileText className="w-3.5 h-3.5" /> 文档总结</button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </main>
+
+        {/* ═══ 右侧面板 ═══ */}
+        <aside className="w-[280px] shrink-0 bg-white border-l border-[#eef1f5] overflow-y-auto p-4 space-y-5 max-[1200px]:hidden">
+          {/* 快捷功能 */}
+          <section>
+            <h3 className="text-sm font-semibold text-[#1e293b] mb-3">快捷功能</h3>
+            <div className="space-y-2">
+              <button onClick={() => applySuggestion('帮我讲解二分查找并给一个例题')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#eef1f5] hover:border-[#93c5fd] hover:bg-[#f8fafc] transition-colors text-left">
+                <div className="w-9 h-9 rounded-lg bg-[#eff6ff] flex items-center justify-center"><Sparkles className="w-4 h-4 text-[#2563eb]" /></div>
+                <div><p className="text-sm font-medium text-[#1e293b]">讲题</p><p className="text-[11px] text-[#94a3b8]">上传题目，AI 详细讲解</p></div>
+              </button>
+              <button onClick={() => applySuggestion('给我出3道Python基础选择题并附答案')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#eef1f5] hover:border-[#93c5fd] hover:bg-[#f8fafc] transition-colors text-left">
+                <div className="w-9 h-9 rounded-lg bg-[#fef3c7] flex items-center justify-center"><FileText className="w-4 h-4 text-[#d97706]" /></div>
+                <div><p className="text-sm font-medium text-[#1e293b]">出题</p><p className="text-[11px] text-[#94a3b8]">根据知识点生成题目</p></div>
+              </button>
+              <button onClick={() => applySuggestion('请根据我上传的资料做一个要点总结')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#eef1f5] hover:border-[#93c5fd] hover:bg-[#f8fafc] transition-colors text-left">
+                <div className="w-9 h-9 rounded-lg bg-[#ecfdf5] flex items-center justify-center"><FileText className="w-4 h-4 text-[#059669]" /></div>
+                <div><p className="text-sm font-medium text-[#1e293b]">文档总结</p><p className="text-[11px] text-[#94a3b8]">上传文档，AI 归纳要点</p></div>
+              </button>
+            </div>
+          </section>
+
+          {/* 文件上传 */}
+          <section>
+            <h3 className="text-sm font-semibold text-[#1e293b] mb-3">文件上传</h3>
+            <div className="rounded-xl border-2 border-dashed border-[#e2e8f0] p-4 text-center hover:border-[#93c5fd] transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <Paperclip className="w-6 h-6 text-[#94a3b8] mx-auto mb-2" />
+              <p className="text-xs text-[#64748b]">点击或拖拽文件到这里上传</p>
+              <p className="text-[11px] text-[#94a3b8] mt-1">支持 PDF、Word、PPT、图片等</p>
+            </div>
+          </section>
+
+          {/* 最近上传 */}
+          {pendingFiles.length > 0 && (
+            <section>
+              <h3 className="text-sm font-semibold text-[#1e293b] mb-3">最近上传</h3>
+              <div className="space-y-2">
+                {pendingFiles.map((f) => (
+                  <div key={f.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#f8fafc] border border-[#eef1f5]">
+                    <FileText className="w-4 h-4 text-[#2563eb] shrink-0" />
+                    <span className="text-xs text-[#475569] truncate flex-1">{f.filename}</span>
+                    <button onClick={() => removePendingFile(f.id)} className="text-[#94a3b8] hover:text-red-500"><X className="w-3 h-3" /></button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </aside>
       </div>
 
+      {/* 角色编辑弹窗 */}
       {roleModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setRoleModalOpen(false)}>
           <div className="w-full max-w-[560px] bg-white rounded-2xl shadow-xl p-5" onClick={(e) => e.stopPropagation()}>

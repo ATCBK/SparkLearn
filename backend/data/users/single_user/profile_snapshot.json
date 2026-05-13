@@ -2,18 +2,17 @@
   "goal": [
     "掌握核心技能"
   ],
-  "knowledge_level": "有一定基础",
+  "knowledge_level": "零基础",
   "weak_points": [
-    "项目实战经验",
-    "高级设计能力"
+    "还要懂架构"
   ],
   "learning_preference": [
-    "动手实践，边学边做"
+    "视频教程，直观看懂"
   ],
   "cognitive_style": "归纳型",
   "daily_time": 30,
   "practical_ability": "能独立完成小项目",
   "current_stage": "函数与模块",
   "version": 1,
-  "updated_at": "2026-05-12T07:40:50.513705Z"
+  "updated_at": "2026-05-13T07:44:29.634936Z"
 }

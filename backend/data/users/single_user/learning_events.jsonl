@@ -628,3 +628,10 @@
 {"ts": "2026-05-12T08:02:33.176003Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "15a90705", "use_llm": false}
 {"ts": "2026-05-12T08:02:33.477345Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "9abff7a1", "use_llm": false}
 {"ts": "2026-05-12T09:16:47.015963Z", "type": "tutor_chat", "conversation_id": 39, "role_id": 26, "question": "你好"}
+{"ts": "2026-05-12T09:28:34.341839Z", "type": "tutor_chat", "conversation_id": 39, "role_id": 26, "question": "你是谁"}
+{"ts": "2026-05-13T07:42:05.730567Z", "type": "tutor_chat", "conversation_id": 40, "role_id": 26, "question": "这个文件讲了什么？"}
+{"ts": "2026-05-13T07:43:10.355831Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2b50dacf", "use_llm": false}
+{"ts": "2026-05-13T07:43:10.558007Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8528a4b7", "use_llm": false}
+{"ts": "2026-05-13T07:43:12.342846Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "01e60c29", "use_llm": false}
+{"ts": "2026-05-13T07:43:13.133724Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a913d243", "use_llm": false}
+{"ts": "2026-05-13T07:44:29.656000Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "零基础", "weak_points": ["还要懂架构"], "learning_preference": ["视频教程，直观看懂"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-13T07:44:29.634936Z"}}
