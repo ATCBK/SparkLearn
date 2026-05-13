@@ -642,3 +642,6 @@
 {"ts": "2026-05-13T11:07:51.445593Z", "type": "tutor_chat", "conversation_id": 45, "role_id": 26, "question": "我想学习Python但是不知道怎么学该怎么办？"}
 {"ts": "2026-05-13T11:44:36.726355Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dc23537b", "use_llm": false}
 {"ts": "2026-05-13T11:44:37.183744Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c44a4aa7", "use_llm": false}
+{"ts": "2026-05-13T13:18:36.945689Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dc467ffb", "use_llm": false}
+{"ts": "2026-05-13T13:18:37.272350Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "fff9b48d", "use_llm": false}
+{"ts": "2026-05-13T15:00:37.319917Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "基础较好", "weak_points": ["项目实战经验", "高级设计能力"], "learning_preference": ["文档阅读，深入理解"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-13T15:00:37.292458Z"}}

@@ -1,60 +1,66 @@
 [
   {
-    "id": "dq_c44a4aa7_1",
+    "id": "dq_fff9b48d_1",
     "type": "single",
-    "content": "字符串的 strip() 方法的作用是什么？",
+    "content": "try-except-finally 中 finally 的作用是什么？",
     "options": [
-      "转换大小写",
-      "删除两端空格",
-      "替换字符",
-      "分割字符串"
+      "捕获异常",
+      "处理异常",
+      "无论是否异常都执行",
+      "结束程序"
     ],
-    "correct_answer": "删除两端空格",
-    "explanation": "strip() 删除字符串两端的空格和换行符。",
-    "knowledge_point_id": "1.4",
-    "knowledge_point_name": "字符串处理"
-  },
-  {
-    "id": "dq_c44a4aa7_2",
-    "type": "single",
-    "content": "以下哪个是自定义异常的正确方式？",
-    "options": [
-      "class MyError(Exception):",
-      "class MyError(Error):",
-      "class MyError(BaseException):",
-      "class MyError(object):"
-    ],
-    "correct_answer": "class MyError(Exception):",
-    "explanation": "自定义异常应该继承 Exception 类。",
+    "correct_answer": "无论是否异常都执行",
+    "explanation": "finally 块中的代码无论是否发生异常都会执行。",
     "knowledge_point_id": "4.1",
     "knowledge_point_name": "异常处理"
   },
   {
-    "id": "dq_c44a4aa7_3",
-    "type": "fill_blank",
-    "content": "列表的 ______ 方法可以清空列表中的所有元素。",
-    "correct_answer": "clear",
-    "explanation": "clear() 方法删除列表中的所有元素。",
-    "knowledge_point_id": "1.3",
-    "knowledge_point_name": "列表操作"
-  },
-  {
-    "id": "dq_c44a4aa7_4",
+    "id": "dq_fff9b48d_2",
     "type": "multiple",
-    "content": "以下哪些操作会改变原列表？",
+    "content": "以下哪些是赋值运算符？",
     "options": [
-      "sort()",
-      "reverse()",
-      "append()",
-      "sorted()"
+      "=",
+      "+=",
+      "-=",
+      "=="
     ],
     "correct_answer": [
-      "sort()",
-      "reverse()",
-      "append()"
+      "=",
+      "+=",
+      "-="
     ],
-    "explanation": "sort()、reverse()、append() 会改变原列表，sorted() 返回新列表。",
-    "knowledge_point_id": "1.3",
-    "knowledge_point_name": "列表操作"
+    "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
+    "knowledge_point_id": "1.1",
+    "knowledge_point_name": "基础语法"
+  },
+  {
+    "id": "dq_fff9b48d_3",
+    "type": "single",
+    "content": "ZeroDivisionError 异常表示什么？",
+    "options": [
+      "值错误",
+      "除以零",
+      "索引超出范围",
+      "类型错误"
+    ],
+    "correct_answer": "除以零",
+    "explanation": "ZeroDivisionError 表示除数为零。",
+    "knowledge_point_id": "4.1",
+    "knowledge_point_name": "异常处理"
+  },
+  {
+    "id": "dq_fff9b48d_4",
+    "type": "single",
+    "content": "以下哪个是 Python 中的逻辑运算符？",
+    "options": [
+      "&",
+      "|",
+      "and",
+      "&&"
+    ],
+    "correct_answer": "and",
+    "explanation": "Python 使用 and、or、not 作为逻辑运算符。",
+    "knowledge_point_id": "2.2",
+    "knowledge_point_name": "条件判断"
   }
 ]

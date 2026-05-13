@@ -6,12 +6,14 @@ import { cn } from '@/lib/utils/cn'
 export function ProtoCard({
   children,
   className,
+  style,
 }: {
   children: React.ReactNode
   className?: string
+  style?: React.CSSProperties
 }) {
   return (
-    <section className={cn('rounded-[12px] border border-line bg-white p-5 shadow-md', className)}>
+    <section style={style} className={cn('rounded-[12px] border border-line bg-white p-5 shadow-md', className)}>
       {children}
     </section>
   )

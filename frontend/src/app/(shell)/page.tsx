@@ -71,9 +71,8 @@ export default function HomePage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-120px)]" style={{ backgroundImage: 'url(/gongzuotai-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
-      <div className="absolute inset-0 bg-white/85 pointer-events-none" />
-      <div className="relative z-10">
+    <div>
+      <div>
       <PageHead
         eyebrow="学习中心 / 资源回顾与新推荐"
         title="今日学习工作台"
@@ -85,8 +84,15 @@ export default function HomePage() {
         ]}
       />
 
-      <ProtoCard className="relative overflow-hidden p-[22px]">
-        <div className="max-w-[680px] space-y-3.5">
+      <ProtoCard className="relative overflow-hidden p-[22px] border-0">
+        {/* 背景图 - 铺满整个卡片 */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/ui-images/home-hero.png"
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="relative z-10 max-w-[680px] space-y-3.5">
           <Pill tone="blue">优先薄弱点</Pill>
           <h2 className="text-[24px] font-bold leading-tight text-ink">{focusTitle}</h2>
           <p className="text-small leading-6 text-muted">

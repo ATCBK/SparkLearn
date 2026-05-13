@@ -12,7 +12,7 @@ export default function ShellLayout({
 }) {
   const [sidebarState, setSidebarState] = useState<'expanded' | 'icons' | 'collapsed'>('expanded')
 
-  const sidebarWidth = sidebarState === 'expanded' ? 232 : sidebarState === 'icons' ? 74 : 0
+  const sidebarWidth = sidebarState === 'expanded' ? 220 : sidebarState === 'icons' ? 74 : 0
 
   return (
     <div className="min-h-screen bg-bg">
@@ -20,7 +20,13 @@ export default function ShellLayout({
       <Topbar sidebarWidth={sidebarWidth} />
       <main
         className="min-h-screen pt-14 transition-[margin-left] duration-300 ease-out"
-        style={{ marginLeft: sidebarWidth }}
+        style={{
+          marginLeft: sidebarWidth,
+          backgroundImage: 'url(/gongzuotai-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center top',
+          backgroundAttachment: 'fixed',
+        }}
       >
         <div className="mx-auto max-w-[1360px] px-8 py-7 max-[760px]:px-4">
           {children}

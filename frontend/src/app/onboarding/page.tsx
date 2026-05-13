@@ -123,7 +123,16 @@ export default function OnboardingPage() {
 
   // 初始化第一步的消息
   useEffect(() => {
-    startStep(0)
+    // 清空之前的状态，防止重复进入时消息重复
+    setMessages([])
+    setSelections({})
+    setStep(0)
+    setShowOptions(false)
+    setIsTyping(false)
+
+    // 延迟启动第一步，确保状态已清空
+    const timer = setTimeout(() => startStep(0), 50)
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -137,15 +146,19 @@ export default function OnboardingPage() {
     setShowOptions(false)
 
     setTimeout(() => {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `greeting-${stepIndex}`,
-          role: 'assistant',
-          content: stepData.greeting,
-          type: 'text',
-        },
-      ])
+      setMessages(prev => {
+        // 防止重复添加同一步骤的 greeting
+        if (prev.some(m => m.id.startsWith(`greeting-${stepIndex}-`))) return prev
+        return [
+          ...prev,
+          {
+            id: `greeting-${stepIndex}-${Date.now()}`,
+            role: 'assistant',
+            content: stepData.greeting,
+            type: 'text',
+          },
+        ]
+      })
       setIsTyping(false)
 
       // 短暂延迟后显示选项

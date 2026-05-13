@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react'
@@ -18,6 +18,49 @@ export default function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+
+  // 打字机效果
+  const SLOGANS = [
+    '基于你的目标、基础与学习偏好，智能规划专属学习路径，精准推荐资源，陪伴你高效成长。',
+    '多智能体协作驱动，实时分析学习行为，动态调整路径节奏，让每一步都恰到好处。',
+    '从知识薄弱点出发，AI 精准定位问题根源，生成专属练习与讲解，高效突破瓶颈。',
+    '学习画像持续进化，越学越懂你，资源推荐越来越精准，成长看得见。',
+  ]
+  const [sloganIndex, setSloganIndex] = useState(0)
+  const [displayText, setDisplayText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    const currentSlogan = SLOGANS[sloganIndex]
+
+    if (!isDeleting) {
+      // 打字
+      if (displayText.length < currentSlogan.length) {
+        timerRef.current = setTimeout(() => {
+          setDisplayText(currentSlogan.slice(0, displayText.length + 1))
+        }, 50)
+      } else {
+        // 打完了，等一会再删
+        timerRef.current = setTimeout(() => setIsDeleting(true), 2500)
+      }
+    } else {
+      // 删字
+      if (displayText.length > 0) {
+        timerRef.current = setTimeout(() => {
+          setDisplayText(displayText.slice(0, -1))
+        }, 25)
+      } else {
+        // 删完了，切换下一条
+        setIsDeleting(false)
+        setSloganIndex((prev) => (prev + 1) % SLOGANS.length)
+      }
+    }
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [displayText, isDeleting, sloganIndex])
 
   const showToast = useCallback((text: string) => {
     setToast(text)
@@ -77,7 +120,7 @@ export default function AuthPage() {
             <span className="intro-title-accent">成就每一次进步</span>
           </h1>
           <p className="intro-desc">
-            基于你的目标、基础与学习偏好，智能规划专属学习路径，精准推荐资源，陪伴你高效成长。
+            {displayText}<span className="typewriter-cursor">|</span>
           </p>
 
           <div className="feature-row">
