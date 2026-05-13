@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search } from 'lucide-react'
+import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -11,13 +11,15 @@ const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
   { type: 'document', label: '讲解文档', desc: '结构化概念讲义' },
   { type: 'ppt', label: 'PPT', desc: '课堂式演示稿' },
   { type: 'mindmap', label: '思维导图', desc: '知识关系梳理' },
+  { type: 'video', label: '教学视频', desc: 'AI 合成讲解视频' },
+  { type: 'blog', label: '播客电台', desc: 'AI 生成音频播客' },
   { type: 'quiz', label: '练习题', desc: '达标检测题组' },
   { type: 'reading', label: '拓展阅读', desc: '延伸材料' },
   { type: 'code', label: '代码案例', desc: '可运行实践案例' },
 ]
 
 function typeLabel(type: string) {
-  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频' }
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台' }
   return map[type] || type
 }
 
@@ -125,7 +127,7 @@ export default function GeneratePage() {
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-small outline-none" placeholder="搜索资源或知识点" />
               </div>
               <select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-10 rounded-[10px] border border-line bg-white px-3 text-small outline-none">
-                {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video'].map(item => <option key={item}>{item}</option>)}
+                {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video', 'blog'].map(item => <option key={item}>{item}</option>)}
               </select>
             </div>
             <div className="grid gap-2">
@@ -235,13 +237,25 @@ export default function GeneratePage() {
 
         {step === 1 && (
           <div className="grid grid-cols-3 gap-3 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
-            {TYPES.map((item) => (
-              <button key={item.type} onClick={() => setType(item.type)} className={`rounded-[12px] border p-4 text-left ${type === item.type ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
-                <FileText className="mb-3 h-5 w-5 text-blue" />
-                <b className="block text-ink">{item.label}</b>
-                <span className="mt-1 block text-small text-muted">{item.desc}</span>
-              </button>
-            ))}
+            {TYPES.map((item) => {
+              const IconMap: Record<string, React.ReactNode> = {
+                document: <FileText className="mb-3 h-5 w-5 text-blue" />,
+                ppt: <Presentation className="mb-3 h-5 w-5 text-blue" />,
+                mindmap: <Brain className="mb-3 h-5 w-5 text-blue" />,
+                video: <Video className="mb-3 h-5 w-5 text-blue" />,
+                blog: <Radio className="mb-3 h-5 w-5 text-blue" />,
+                quiz: <CheckSquare className="mb-3 h-5 w-5 text-blue" />,
+                reading: <BookOpen className="mb-3 h-5 w-5 text-blue" />,
+                code: <Code className="mb-3 h-5 w-5 text-blue" />,
+              }
+              return (
+                <button key={item.type} onClick={() => setType(item.type)} className={`rounded-[12px] border p-4 text-left ${type === item.type ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
+                  {IconMap[item.type] || <FileText className="mb-3 h-5 w-5 text-blue" />}
+                  <b className="block text-ink">{item.label}</b>
+                  <span className="mt-1 block text-small text-muted">{item.desc}</span>
+                </button>
+              )
+            })}
           </div>
         )}
 
@@ -307,10 +321,30 @@ export default function GeneratePage() {
               <>
                 <SoftCard>
                   <b className="block text-h2 text-ink">{resource.title}</b>
-                  <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可进入资源库查看完整预览。'}</p>
+                  {resource.type === 'video' ? (
+                    <div className="mt-3">
+                      {resource.videoUrl ? (
+                        <video src={resource.videoUrl} controls className="w-full rounded-xl bg-black" />
+                      ) : (
+                        <div className="flex items-center justify-center h-48 rounded-xl bg-[#1e293b] text-white/60">
+                          <div className="text-center">
+                            <Video className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">视频已生成，可在视频页面查看完整预览</p>
+                          </div>
+                        </div>
+                      )}
+                      <p className="mt-2 text-small text-muted">视频资源已保存，可前往视频页面播放、下载音频和字幕。</p>
+                    </div>
+                  ) : (
+                    <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可进入资源库查看完整预览。'}</p>
+                  )}
                 </SoftCard>
                 <div className="flex gap-2">
-                  <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">进入资源库</button>
+                  {resource.type === 'video' ? (
+                    <ProtoButton href="/video" variant="primary">前往视频页面</ProtoButton>
+                  ) : (
+                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">进入资源库</button>
+                  )}
                   <ProtoButton href="/practice" variant="secondary">生成配套练习</ProtoButton>
                   <ProtoButton onClick={() => setStep(5)} variant="tertiary"><Save className="h-4 w-4" />确认保存</ProtoButton>
                 </div>

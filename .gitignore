@@ -14,8 +14,12 @@ __pycache__/
 
 backend/data/db/*.db
 backend/data/users/
+backend/data/artifacts/
 
 *.log
 .DS_Store
 Thumbs.db
+
+# Temp browser profiles
+.tmp-chrome-profile/
 

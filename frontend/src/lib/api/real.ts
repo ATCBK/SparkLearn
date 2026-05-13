@@ -239,6 +239,11 @@ export async function downloadResourceSource(resourceId: string): Promise<void> 
 }
 
 export async function generateResource(type: Resource['type'], prompt: string, knowledgeFileIds: number[] = []): Promise<Resource> {
+  // 视频类型走专用生成管线
+  if (type === 'video') {
+    return generateVideo(prompt)
+  }
+
   const events = await readSSE('/api/resources/generate', { type, prompt, knowledge_file_ids: knowledgeFileIds })
   let done: { type: string; payload: Record<string, unknown> } | undefined
   for (let i = events.length - 1; i >= 0; i--) {
@@ -795,13 +800,27 @@ export async function getPathNodeSuggestions(req: {
 }
 
 export async function getVideos(): Promise<VideoInfo[]> {
-  const data = await fetchJson<any[]>('/api/videos')
+  let data: any[]
+  try {
+    data = await fetchJson<any[]>('/api/video/resources')
+  } catch {
+    // fallback to legacy endpoint
+    data = await fetchJson<any[]>('/api/videos')
+  }
   return data.map(v => ({
-    id: v.id,
+    id: v.id || v.resource_id,
     title: v.title,
-    url: v.url,
-    duration: v.duration,
-    createdAt: v.created_at,
+    url: v.url || v.video_url || '',
+    audioUrl: v.audio_url || v.audioUrl,
+    subtitleUrl: v.subtitle_url || v.subtitleUrl,
+    sceneUrl: v.scene_url || v.sceneUrl,
+    shareUrl: v.share_url || v.shareUrl,
+    duration: v.duration || 0,
+    createdAt: v.created_at || v.createdAt || '',
+    hasMp4: Boolean(v.has_mp4 || v.hasMp4),
+    provider: v.provider,
+    ttsProvider: v.tts_provider || v.ttsProvider,
+    muxMessage: v.mux_message || v.muxMessage,
   }))
 }
 
@@ -837,4 +856,91 @@ export async function downloadVideoArtifact(videoId: string, type: 'mp4' | 'audi
   a.click()
   a.remove()
   window.URL.revokeObjectURL(a.href)
+}
+
+export async function polishVideoPrompt(prompt: string, durationSec: number = 90): Promise<{
+  polishId: string
+  title: string
+  polishedPrompt: string
+  scriptOutline: Array<{ segment_id: string; title: string; narration: string; visual_hint: string; duration_ms?: number }>
+  estimatedDurationSec: number
+  voice: string
+}> {
+  const data = await fetchJson<any>('/api/video/polish', {
+    method: 'POST',
+    body: JSON.stringify({ prompt, duration_sec: durationSec }),
+  })
+  return {
+    polishId: data.polish_id,
+    title: data.title,
+    polishedPrompt: data.polished_prompt,
+    scriptOutline: data.script_outline || [],
+    estimatedDurationSec: data.estimated_duration_sec || durationSec,
+    voice: data.voice || '',
+  }
+}
+
+export async function generateVideo(
+  prompt: string,
+  onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void,
+): Promise<Resource> {
+  // Step 1: Polish the prompt into a script
+  const polish = await polishVideoPrompt(prompt)
+
+  // Step 2: Create a video generation job
+  const job = await fetchJson<any>('/api/video/jobs', {
+    method: 'POST',
+    body: JSON.stringify({
+      polish_id: polish.polishId,
+      prompt: polish.polishedPrompt,
+      title: polish.title,
+      script_outline: polish.scriptOutline,
+      video_provider: 'html_ppt',
+    }),
+  })
+
+  const jobId = job.job_id
+  const resourceId = job.resource_id
+
+  // Step 3: Stream job events
+  if (job.events_url) {
+    try {
+      const eventsUrl = `${API_BASE}${job.events_url}`
+      const res = await fetch(eventsUrl)
+      if (res.body) {
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const chunks = buffer.split('\n\n')
+          buffer = chunks.pop() || ''
+          for (const c of chunks) {
+            const line = c.split('\n').find(l => l.startsWith('data: '))
+            if (!line) continue
+            try {
+              const evt = JSON.parse(line.slice(6))
+              onEvent?.(evt)
+            } catch { /* skip malformed */ }
+          }
+        }
+      }
+    } catch { /* SSE stream failed, video may still be generating */ }
+  }
+
+  // Step 4: Fetch the final resource
+  try {
+    const resource = await fetchJson<any>(`/api/video/resources/${resourceId}`)
+    return toResource({ ...resource, type: 'video' })
+  } catch {
+    return {
+      id: resourceId || `video-${Date.now()}`,
+      title: polish.title || prompt.slice(0, 20),
+      type: 'video',
+      status: 'generating',
+      createdAt: new Date().toISOString(),
+    }
+  }
 }

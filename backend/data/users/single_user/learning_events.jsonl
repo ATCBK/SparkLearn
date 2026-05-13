@@ -640,3 +640,5 @@
 {"ts": "2026-05-13T08:25:29.054789Z", "type": "tutor_chat", "conversation_id": 43, "role_id": 27, "question": "你好"}
 {"ts": "2026-05-13T08:27:59.312209Z", "type": "tutor_chat", "conversation_id": 44, "role_id": 27, "question": "你好"}
 {"ts": "2026-05-13T11:07:51.445593Z", "type": "tutor_chat", "conversation_id": 45, "role_id": 26, "question": "我想学习Python但是不知道怎么学该怎么办？"}
+{"ts": "2026-05-13T11:44:36.726355Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dc23537b", "use_llm": false}
+{"ts": "2026-05-13T11:44:37.183744Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c44a4aa7", "use_llm": false}

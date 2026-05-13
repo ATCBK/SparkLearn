@@ -11,7 +11,7 @@ export interface Task {
 export interface Resource {
   id: string
   title: string
-  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video'
+  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video' | 'blog'
   status: 'generating' | 'completed' | 'failed'
   createdAt: string
   content?: string

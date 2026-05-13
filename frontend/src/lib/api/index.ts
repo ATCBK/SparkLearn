@@ -66,6 +66,8 @@ export const api = {
 
   deleteVideoResource: impl.deleteVideoResource,
   downloadVideoArtifact: impl.downloadVideoArtifact,
+  polishVideoPrompt: impl.polishVideoPrompt,
+  generateVideo: impl.generateVideo,
 
   getKnowledgeFiles: impl.getKnowledgeFiles,
   uploadKnowledgeFiles: impl.uploadKnowledgeFiles,
