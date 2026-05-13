@@ -506,10 +506,10 @@ export default function TutorPage() {
             <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#2563eb] text-white text-sm font-medium shadow-sm">
               <Sparkles className="w-4 h-4" /> 学习空间
             </div>
-            <button onClick={openCreateRoleModal} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+            <button onClick={() => router.push('/tutor/roles')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <UserCog className="w-4 h-4" /> 角色工坊
             </button>
-            <button onClick={() => setWorkshopEnabled((v) => !v)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors', workshopEnabled ? 'bg-white text-[#2563eb] shadow-sm' : 'text-[#475569] hover:bg-white hover:text-[#1e293b]')}>
+            <button onClick={() => router.push('/tutor/workshop')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-[#475569] hover:bg-white hover:text-[#1e293b] transition-colors">
               <Users className="w-4 h-4" /> 研讨会
             </button>
 

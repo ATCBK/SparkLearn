@@ -71,7 +71,9 @@ export default function HomePage() {
   }
 
   return (
-    <div>
+    <div className="relative min-h-[calc(100vh-120px)]" style={{ backgroundImage: 'url(/gongzuotai-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+      <div className="absolute inset-0 bg-white/85 pointer-events-none" />
+      <div className="relative z-10">
       <PageHead
         eyebrow="学习中心 / 资源回顾与新推荐"
         title="今日学习工作台"
@@ -163,6 +165,7 @@ export default function HomePage() {
           </div>
           <ProtoButton href="/generate" variant="secondary" className="mt-5">根据当前卡点生成新资源</ProtoButton>
         </ProtoCard>
+      </div>
       </div>
     </div>
   )

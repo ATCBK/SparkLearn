@@ -171,6 +171,47 @@ async def delete_role(role_id: int):
     return ok({'deleted': True})
 
 
+class OptimizePromptReq(BaseModel):
+    field: str  # persona, background, style_guide, rules
+    content: str
+    role_name: str = ''
+
+
+@router.post('/tutor/roles/optimize-prompt')
+async def optimize_prompt(req: OptimizePromptReq):
+    """AI 一键优化提示词"""
+    field_labels = {
+        'persona': 'Persona（角色设定）',
+        'background': '背景设定',
+        'style_guide': '风格指南',
+        'rules': '规则约束',
+    }
+    field_label = field_labels.get(req.field, req.field)
+
+    system_prompt = f"""你是一位专业的 AI 提示词优化专家。用户正在为一个名为"{req.role_name}"的 AI 导师角色编写{field_label}。
+请优化以下内容，使其更加清晰、结构化、专业。保持原意不变，但让表达更精准、更有层次感。
+如果内容为空或过于简短，请根据角色名称生成一份高质量的{field_label}。
+
+要求：
+- 使用中文
+- 结构清晰，适当分段
+- 具体可执行，避免空泛
+- 保持在 500 字以内
+
+直接输出优化后的内容，不要加任何前缀说明。"""
+
+    user_content = req.content if req.content.strip() else f'请为"{req.role_name}"角色生成{field_label}'
+
+    result_text = ''
+    async for evt_type, payload in spark_lite.stream_chat_events(
+        user_content, mode='general', system_prompt=system_prompt
+    ):
+        if evt_type == 'text':
+            result_text += str(payload.get('content', ''))
+
+    return ok({'optimized': result_text.strip()})
+
+
 @router.get('/tutor/conversations')
 async def list_conversations():
     rows = fetch_all(

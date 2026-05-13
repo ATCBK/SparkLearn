@@ -635,3 +635,8 @@
 {"ts": "2026-05-13T07:43:12.342846Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "01e60c29", "use_llm": false}
 {"ts": "2026-05-13T07:43:13.133724Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a913d243", "use_llm": false}
 {"ts": "2026-05-13T07:44:29.656000Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "零基础", "weak_points": ["还要懂架构"], "learning_preference": ["视频教程，直观看懂"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-13T07:44:29.634936Z"}}
+{"ts": "2026-05-13T08:07:19.502296Z", "type": "tutor_chat", "conversation_id": 41, "role_id": 26, "question": "你好"}
+{"ts": "2026-05-13T08:23:00.631851Z", "type": "tutor_chat", "conversation_id": 42, "role_id": 27, "question": "你好"}
+{"ts": "2026-05-13T08:25:29.054789Z", "type": "tutor_chat", "conversation_id": 43, "role_id": 27, "question": "你好"}
+{"ts": "2026-05-13T08:27:59.312209Z", "type": "tutor_chat", "conversation_id": 44, "role_id": 27, "question": "你好"}
+{"ts": "2026-05-13T11:07:51.445593Z", "type": "tutor_chat", "conversation_id": 45, "role_id": 26, "question": "我想学习Python但是不知道怎么学该怎么办？"}

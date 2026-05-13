@@ -29,6 +29,7 @@ export const api = {
   createTutorRole: impl.createTutorRole,
   updateTutorRole: impl.updateTutorRole,
   deleteTutorRole: impl.deleteTutorRole,
+  optimizeRolePrompt: impl.optimizeRolePrompt,
   getTutorConversations: impl.getTutorConversations,
   createTutorConversation: impl.createTutorConversation,
   updateTutorConversation: impl.updateTutorConversation,

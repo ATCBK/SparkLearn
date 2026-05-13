@@ -417,6 +417,14 @@ export async function deleteTutorRole(roleId: number): Promise<void> {
   await fetchJson(`/api/tutor/roles/${roleId}`, { method: 'DELETE' })
 }
 
+export async function optimizeRolePrompt(field: string, content: string, roleName: string): Promise<string> {
+  const data = await fetchJson<{ optimized: string }>('/api/tutor/roles/optimize-prompt', {
+    method: 'POST',
+    body: JSON.stringify({ field, content, role_name: roleName }),
+  })
+  return data.optimized
+}
+
 export async function getTutorConversations(): Promise<TutorConversation[]> {
   const data = await fetchJson<any[]>('/api/tutor/conversations')
   return data.map(c => ({
