@@ -1,0 +1,212 @@
+{
+  "title": "python变量讲解",
+  "slides": [
+    {
+      "slide_id": "slide_001",
+      "index": 1,
+      "deck_title": "python变量讲解",
+      "slide_type": "cover",
+      "title": "python变量讲解",
+      "subtitle": "一节面向 beginner 学习者的 AI 微课",
+      "bullets": [
+        "先建立直觉",
+        "再看关键规则",
+        "最后用练习巩固"
+      ],
+      "visual_hint": "封面使用大标题、课程路径和轻量图形背景。",
+      "teacher_note": "开场要告诉学生这节课能解决什么具体困惑。",
+      "interaction": "你现在听到这个主题时，最容易卡住的是哪一点？",
+      "code": "",
+      "mistake": "",
+      "answer": "",
+      "narration": "欢迎来到这节关于python变量讲解的微课。我们不会一上来堆定义，而是先从一个问题出发，再用类比、图解和例子逐步拆开。学完后，你应该能说清它是什么、什么时候用，以及最容易错在哪里。",
+      "start_ms": 0,
+      "end_ms": 10000,
+      "segment_id": "seg_001"
+    },
+    {
+      "slide_id": "slide_002",
+      "index": 2,
+      "deck_title": "python变量讲解",
+      "slide_type": "goals",
+      "title": "本节课你会学会什么",
+      "subtitle": "把学习目标拆成三个可检查结果",
+      "bullets": [
+        "说清 python变量讲解 的核心含义",
+        "看懂一个最小示例",
+        "避开一个常见误区"
+      ],
+      "visual_hint": "使用 checklist 和进度条表现学习目标。",
+      "teacher_note": "目标要可验证，避免只写理解、掌握这类空泛词。",
+      "interaction": "看完这三项目标，先选一个你最想解决的问题。",
+      "code": "",
+      "mistake": "",
+      "answer": "",
+      "narration": "这节课有三个目标。第一，你要能用自己的话解释python变量讲解。第二，你要能看懂一个最小示例，知道每一步发生了什么。第三，你要能识别一个常见错误，避免以后写代码或做题时反复踩坑。",
+      "start_ms": 10000,
+      "end_ms": 20000,
+      "segment_id": "seg_002"
+    },
+    {
+      "slide_id": "slide_003",
+      "index": 3,
+      "deck_title": "python变量讲解",
+      "slide_type": "hook",
+      "title": "先看一个真实问题",
+      "subtitle": "为什么这个知识点值得学",
+      "bullets": [
+        "如果只背定义，很快会忘",
+        "如果知道它解决的问题，就容易迁移",
+        "先问：它帮我们省掉了什么麻烦？"
+      ],
+      "visual_hint": "画面左侧展示困惑表情，右侧展示问题气泡。",
+      "teacher_note": "用问题驱动后续讲解，降低抽象感。",
+      "interaction": "你觉得python变量讲解主要是为了解决记忆问题、表达问题，还是复用问题？",
+      "code": "",
+      "mistake": "",
+      "answer": "",
+      "narration": "学习python变量讲解时，很多同学会直接背定义，但背完很难用。更好的方式是先问：这个概念到底解决了什么麻烦？当我们知道它服务于哪个问题，后面的规则就不再是孤立的条文。",
+      "start_ms": 20000,
+      "end_ms": 30000,
+      "segment_id": "seg_003"
+    },
+    {
+      "slide_id": "slide_004",
+      "index": 4,
+      "deck_title": "python变量讲解",
+      "slide_type": "concept",
+      "title": "一句话讲清核心概念",
+      "subtitle": "先抓主干，再补细节",
+      "bullets": [
+        "python变量讲解 是用来组织和表达程序含义的工具",
+        "核心不是记名字，而是理解关系",
+        "先分清“是什么”和“怎么用”"
+      ],
+      "visual_hint": "中央概念卡片，周围三条关系箭头。",
+      "teacher_note": "概念页只放最关键的定义，细节留给后续页。",
+      "interaction": "请暂停 5 秒，用自己的话复述这一页的第一句话。",
+      "code": "",
+      "mistake": "",
+      "answer": "",
+      "narration": "我们先用一句话抓住python变量讲解：它是帮助我们组织和表达程序含义的工具。注意，这里的重点不是记住一个术语，而是看清它和数据、操作、结果之间的关系。",
+      "start_ms": 30000,
+      "end_ms": 40000,
+      "segment_id": "seg_004"
+    },
+    {
+      "slide_id": "slide_005",
+      "index": 5,
+      "deck_title": "python变量讲解",
+      "slide_type": "analogy",
+      "title": "用生活类比建立直觉",
+      "subtitle": "把抽象概念变成可想象的画面",
+      "bullets": [
+        "左边：生活中的标签、盒子、流程",
+        "右边：程序里的名称、数据、执行",
+        "类比只帮你入门，不能替代规则"
+      ],
+      "visual_hint": "左右分栏：生活场景 vs 程序世界。",
+      "teacher_note": "提醒学生类比有边界，避免类比误导。",
+      "interaction": "你还能为这个主题想出另一个生活类比吗？",
+      "code": "",
+      "mistake": "",
+      "answer": "",
+      "narration": "可以把python变量讲解先类比成生活中的标签和盒子：标签让我们快速找到东西，盒子保存具体内容。在程序里，类似的结构帮助我们定位数据、组织操作。不过类比只是入口，真正写代码时还要回到语言规则。",
+      "start_ms": 40000,
+      "end_ms": 50000,
+      "segment_id": "seg_005"
+    },
+    {
+      "slide_id": "slide_006",
+      "index": 6,
+      "deck_title": "python变量讲解",
+      "slide_type": "process",
+      "title": "把使用过程拆成三步",
+      "subtitle": "遇到题目时按步骤判断",
+      "bullets": [
+        "第 1 步：找到对象",
+        "第 2 步：确定关系",
+        "第 3 步：观察结果"
+      ],
+      "visual_hint": "三段式流程图，每一步有图标和箭头。",
+      "teacher_note": "流程页用于建立解题路径。",
+      "interaction": "下一次看到类似题目时，先别急着写答案，先按三步标注。",
+      "code": "",
+      "mistake": "",
+      "answer": "",
+      "narration": "使用python变量讲解时，可以拆成三步。第一步，找到正在处理的对象。第二步，确定对象之间的关系。第三步，观察执行后的结果。这个三步法能帮你把模糊的理解变成可操作的判断。",
+      "start_ms": 50000,
+      "end_ms": 60000,
+      "segment_id": "seg_006"
+    },
+    {
+      "slide_id": "slide_007",
+      "index": 7,
+      "deck_title": "python变量讲解",
+      "slide_type": "code",
+      "title": "看一个最小示例",
+      "subtitle": "代码越短，越容易看清本质",
+      "bullets": [
+        "先读代码，不急着运行",
+        "关注每一行改变了什么",
+        "把结果和概念对应起来"
+      ],
+      "visual_hint": "代码编辑器样式，右侧显示运行结果。",
+      "teacher_note": "代码示例只保留必要行，避免信息过载。",
+      "interaction": "运行前先预测输出结果，再对照答案。",
+      "code": "score = 95\nname = \"SparkLearn\"\nprint(name, score)",
+      "mistake": "",
+      "answer": "",
+      "narration": "现在看一个最小示例。请先不要急着看答案，先逐行读代码：第一行创建或准备对象，第二行使用它，最后一行观察结果。短代码的价值在于让我们把概念和执行结果一一对应起来。",
+      "start_ms": 60000,
+      "end_ms": 70000,
+      "segment_id": "seg_007"
+    },
+    {
+      "slide_id": "slide_008",
+      "index": 8,
+      "deck_title": "python变量讲解",
+      "slide_type": "mistake",
+      "title": "常见误区：只看表面写法",
+      "subtitle": "错误通常来自把概念和语法混在一起",
+      "bullets": [
+        "误区：只记住写法",
+        "后果：换个题目就不会",
+        "修正：解释每一步为什么成立"
+      ],
+      "visual_hint": "错误卡片与正确卡片对比。",
+      "teacher_note": "这一页用于防止机械记忆。",
+      "interaction": "请找出你过去是否也只记过写法，而没有解释原因。",
+      "code": "",
+      "mistake": "只背 python变量讲解 的固定写法，却说不清它解决的问题。",
+      "answer": "先说明对象、关系和结果，再写具体语法。",
+      "narration": "学习python变量讲解最常见的误区，是只记表面写法。这样做短期看起来快，但只要题目稍微变化，就很难迁移。更稳的方法是先解释对象、关系和结果，再把解释落到代码或题目步骤上。",
+      "start_ms": 70000,
+      "end_ms": 80000,
+      "segment_id": "seg_008"
+    },
+    {
+      "slide_id": "slide_009",
+      "index": 9,
+      "deck_title": "python变量讲解",
+      "slide_type": "summary",
+      "title": "三句话带走",
+      "subtitle": "把这节课压缩成可复习的结论",
+      "bullets": [
+        "python变量讲解 要先理解问题，再记规则",
+        "用类比建立直觉，用代码验证结果",
+        "遇到新题时按对象、关系、结果三步分析"
+      ],
+      "visual_hint": "总结清单和下一步学习按钮。",
+      "teacher_note": "总结页要形成可复述的闭环。",
+      "interaction": "下一步：把今天的例子改一个条件，再预测结果。",
+      "code": "",
+      "mistake": "",
+      "answer": "",
+      "narration": "最后用三句话总结。第一，学习python变量讲解要先理解它解决的问题，再记规则。第二，用类比建立直觉，但要用代码或题目验证结果。第三，遇到新题时按对象、关系、结果三步分析。如果你能做到这些，就已经从听懂python变量讲解走向会用了。",
+      "start_ms": 80000,
+      "end_ms": 90000,
+      "segment_id": "seg_009"
+    }
+  ]
+}

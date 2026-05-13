@@ -819,3 +819,22 @@ export async function getContributionData(): Promise<ContributionDay[]> {
 
 
 
+
+
+export async function deleteVideoResource(videoId: string): Promise<void> {
+  await fetchJson(`/api/video/resources/${videoId}`, { method: 'DELETE' })
+}
+
+export async function downloadVideoArtifact(videoId: string, type: 'mp4' | 'audio' | 'srt'): Promise<void> {
+  const url = `${API_BASE}/api/video/resources/${videoId}/download/${type}?t=${Date.now()}`
+  const res = await fetch(url)
+  if (!res.ok) return
+  const blob = await res.blob()
+  const a = document.createElement('a')
+  a.href = window.URL.createObjectURL(blob)
+  a.download = `video-${videoId}.${type === 'audio' ? 'mp3' : type}`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  window.URL.revokeObjectURL(a.href)
+}

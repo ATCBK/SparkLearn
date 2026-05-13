@@ -5,6 +5,7 @@ export const RESOURCE_TYPES = [
   { key: 'quiz' as const, label: '练习题', icon: 'HelpCircle' },
   { key: 'reading' as const, label: '拓展阅读', icon: 'BookOpen' },
   { key: 'code' as const, label: '代码案例', icon: 'Code' },
+  { key: 'video' as const, label: '讲解视频', icon: 'Play' },
 ] as const
 
 export type ResourceType = typeof RESOURCE_TYPES[number]['key']

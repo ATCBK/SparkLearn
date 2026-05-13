@@ -14,6 +14,7 @@ from .routes.profile import router as profile_router
 from .routes.quiz import router as quiz_router
 from .routes.resources import router as resources_router
 from .routes.tutor_eval import router as tutor_eval_router
+from .routes.video import router as video_router
 from .routes.voice_admin import router as voice_admin_router
 
 
@@ -58,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(resources_router)
     app.include_router(quiz_router)
     app.include_router(tutor_eval_router)
+    app.include_router(video_router)
     app.include_router(voice_admin_router)
     return app
 
