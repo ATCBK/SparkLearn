@@ -196,7 +196,7 @@ export default function OnboardingPage() {
     setMessages(prev => [
       ...prev,
       {
-        id: `user-${step}`,
+        id: `user-${step}-${Date.now()}`,
         role: 'user',
         content: selected.join('、'),
         type: 'selection',

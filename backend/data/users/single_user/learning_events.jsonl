@@ -704,3 +704,19 @@
 {"ts": "2026-05-14T03:34:05.290042Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8d9fd8cd", "use_llm": false}
 {"ts": "2026-05-14T09:03:48.317183Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "80bc0202", "use_llm": false}
 {"ts": "2026-05-14T09:03:48.324481Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "85bfe258", "use_llm": false}
+{"ts": "2026-05-14T12:16:58.716554Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "零基础", "weak_points": ["编程语言实践", "高级设计能力"], "learning_preference": ["动手实践，边学边做"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T12:16:58.693015Z"}}
+{"ts": "2026-05-14T12:17:01.082989Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "零基础", "weak_points": ["编程语言实践", "高级设计能力"], "learning_preference": ["动手实践，边学边做"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T12:17:01.058214Z"}}
+{"ts": "2026-05-14T12:23:49.066664Z", "type": "profile_updated", "patch": {"name": "张同学", "email": "student@sparklearn.ai", "major": "计算机科学", "grade": "大二", "goal": ["掌握核心技能"], "daily_time": 35}}
+{"ts": "2026-05-14T12:25:49.773805Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "194855b5", "use_llm": false}
+{"ts": "2026-05-14T12:25:49.779816Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "ff66f462", "use_llm": false}
+{"ts": "2026-05-14T13:22:58.992015Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "基础较好", "weak_points": ["语法与数据结构", "项目实战经验"], "learning_preference": ["动手实践，边学边做"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T13:22:58.972452Z"}}
+{"ts": "2026-05-14T13:23:00.874637Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "基础较好", "weak_points": ["语法与数据结构", "项目实战经验"], "learning_preference": ["动手实践，边学边做"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T13:23:00.855120Z"}}
+{"ts": "2026-05-14T13:24:02.385802Z", "type": "path_node_suggestions", "node_title": "完成返回值理解", "node_goal": "完成返回值理解", "phase": "达标阶段", "timestamp": "2026-05-14T13:24:02.385098Z"}
+{"ts": "2026-05-14T13:25:10.761829Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "536da33d", "use_llm": false}
+{"ts": "2026-05-14T13:25:10.768354Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c9a7f26d", "use_llm": false}
+{"ts": "2026-05-14T13:25:15.859270Z", "type": "submit_quiz", "quiz_id": "dq_c9a7f26d_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-14T13:27:25.544506Z", "type": "tutor_chat", "conversation_id": 1, "role_id": 1, "question": "你好"}
+{"ts": "2026-05-14T13:35:12.986905Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e5d06191", "use_llm": false}
+{"ts": "2026-05-14T13:35:12.993907Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3c13530c", "use_llm": false}
+{"ts": "2026-05-14T13:35:15.083962Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "ab68c04a", "use_llm": false}
+{"ts": "2026-05-14T13:35:15.094487Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "5ac192f9", "use_llm": false}

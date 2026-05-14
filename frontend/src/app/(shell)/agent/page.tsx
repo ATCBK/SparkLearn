@@ -29,20 +29,30 @@ export default function AgentPage() {
   // Loading state
   if (pet === undefined) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-pulse text-muted">加载中...</div>
+      <div>
+        <PageHead
+          eyebrow="学习中心 / 学习伙伴"
+          title="学习伙伴空间"
+          description="正在加载..."
+        />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-[#6b7280]">正在连接学习伙伴...</span>
+          </div>
+        </div>
       </div>
     )
   }
 
-  // No pet yet - show adoption flow
+  // No pet yet - show adoption prompt inside chat layout
   if (pet === null) {
     return (
       <div>
         <PageHead
           eyebrow="学习中心 / 学习伙伴"
-          title="认养你的学习伙伴"
-          description="选择一只 AI 小助手，它会陪你一起学习、帮你找资料、整理笔记。"
+          title="学习伙伴空间"
+          description="认养一只 AI 小助手，它会陪你一起学习、帮你找资料、整理笔记。"
         />
         <AdoptionFlow onAdopted={() => setRefreshKey(k => k + 1)} />
       </div>

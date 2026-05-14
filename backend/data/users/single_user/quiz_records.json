@@ -2257,5 +2257,28 @@
       "knowledge_point_name": "异常处理"
     },
     "at": "2026-05-14"
+  },
+  {
+    "quiz_id": "dq_c9a7f26d_1",
+    "answer": "替换字符",
+    "correct": false,
+    "correct_answer": "删除两端空格",
+    "knowledge_point_id": "1.4",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_c9a7f26d_1",
+      "type": "single",
+      "content": "字符串的 strip() 方法的作用是什么？",
+      "options": [
+        "转换大小写",
+        "删除两端空格",
+        "替换字符",
+        "分割字符串"
+      ],
+      "explanation": "strip() 删除字符串两端的空格和换行符。",
+      "knowledge_point_id": "1.4",
+      "knowledge_point_name": "字符串处理"
+    },
+    "at": "2026-05-14"
   }
 ]

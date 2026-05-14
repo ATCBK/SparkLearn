@@ -11,16 +11,23 @@ export default function HomePage() {
   const [recs, setRecs] = useState<Recommendation[]>([])
   const [newTitle, setNewTitle] = useState('')
   const [busy, setBusy] = useState('')
+  const [loading, setLoading] = useState(true)
 
   async function load() {
-    const [taskData, resourceData, recData] = await Promise.all([
-      api.getTodayTasks(),
-      api.getRecentResources(),
-      api.getRecommendations(),
-    ])
-    setTasks(taskData)
-    setResources(resourceData)
-    setRecs(recData)
+    try {
+      const [taskData, resourceData, recData] = await Promise.all([
+        api.getTodayTasks(),
+        api.getRecentResources(),
+        api.getRecommendations(),
+      ])
+      setTasks(taskData)
+      setResources(resourceData)
+      setRecs(recData)
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -72,6 +79,14 @@ export default function HomePage() {
 
   return (
     <div>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-[#6b7280]">正在加载学习空间...</span>
+          </div>
+        </div>
+      ) : (
       <div>
       <PageHead
         eyebrow="学习中心 / 资源回顾与新推荐"
@@ -188,6 +203,7 @@ export default function HomePage() {
         </ProtoCard>
       </div>
       </div>
+      )}
     </div>
   )
 }

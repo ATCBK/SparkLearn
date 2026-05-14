@@ -68,3 +68,4 @@
 {"ts": "2026-05-11T10:09:57.013183Z", "type": "resource_deleted", "resource_id": "gen-d2de4527", "removed_count": 1}
 {"ts": "2026-05-11T10:10:12.290791Z", "type": "resource_deleted", "resource_id": "gen-9022d424", "removed_count": 1}
 {"ts": "2026-05-11T10:10:12.296797Z", "type": "resource_deleted", "resource_id": "gen-9022d424", "removed_count": 0}
+{"ts": "2026-05-14T13:24:58.959558Z", "type": "resource_generated", "resource_id": "gen-860d548e"}

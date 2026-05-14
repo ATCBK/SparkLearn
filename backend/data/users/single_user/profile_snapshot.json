@@ -1,20 +1,19 @@
 {
   "goal": [
-    "项目实战能力"
+    "掌握核心技能"
   ],
-  "knowledge_level": "零基础",
+  "knowledge_level": "基础较好",
   "weak_points": [
-    "编程语言实践",
-    "高级设计能力"
+    "语法与数据结构",
+    "项目实战经验"
   ],
   "learning_preference": [
-    "动手实践，边学边做",
-    "互动交流，共同进步"
+    "动手实践，边学边做"
   ],
   "cognitive_style": "归纳型",
   "daily_time": 30,
   "practical_ability": "能独立完成小项目",
   "current_stage": "函数与模块",
   "version": 1,
-  "updated_at": "2026-05-14T01:38:03.021662Z"
+  "updated_at": "2026-05-14T13:23:00.855120Z"
 }
