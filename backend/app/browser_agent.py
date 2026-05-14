@@ -54,6 +54,7 @@ class BrowserAgentService:
                 viewport={"width": 1280, "height": 800},
             )
             page = context.new_page()
+            self._inject_ai_border(page)
 
             try:
                 # Step 1: Open Bing homepage
@@ -174,6 +175,7 @@ class BrowserAgentService:
                 viewport={"width": 1280, "height": 800},
             )
             page = context.new_page()
+            self._inject_ai_border(page)
 
             try:
                 step(2, "navigate", f"正在访问页面...")
@@ -222,6 +224,7 @@ class BrowserAgentService:
                 viewport={"width": 1280, "height": 800},
             )
             page = context.new_page()
+            self._inject_ai_border(page)
 
             try:
                 # Search
@@ -299,6 +302,43 @@ class BrowserAgentService:
                 browser.close()
 
     # ========== Extraction helpers ==========
+
+    def _inject_ai_border(self, page):
+        """注入彩色炫光边框到页面最外层，表示 AI 正在控制"""
+        css = """
+            @keyframes ai-rainbow-border {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+            #__ai_glow_overlay__ {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483647;
+                pointer-events: none;
+                border: 4px solid transparent;
+                background: linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0, #7b68ee, #ff0080) border-box;
+                -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+                -webkit-mask-composite: xor;
+                mask-composite: exclude;
+                background-size: 300% 300%;
+                animation: ai-rainbow-border 3s linear infinite;
+                border-radius: 0;
+            }
+        """
+        js_inject = """
+            if (!document.getElementById('__ai_glow_overlay__')) {
+                const style = document.createElement('style');
+                style.id = '__ai_glow_style__';
+                style.textContent = `""" + css.replace('`', '\\`').replace('\n', ' ') + """`;
+                document.head.appendChild(style);
+                const div = document.createElement('div');
+                div.id = '__ai_glow_overlay__';
+                document.body.appendChild(div);
+            }
+        """
+        page.on("load", lambda: page.evaluate(f"() => {{ {js_inject} }}"))
+        page.add_init_script(js_inject)
 
     def _extract_bing_results_sync(self, page, max_results: int) -> list[dict]:
         results: list[dict] = []

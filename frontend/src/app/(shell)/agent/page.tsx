@@ -63,14 +63,14 @@ export default function AgentPage() {
         ]}
       />
 
-      <div className="grid grid-cols-[1fr_320px] gap-5 max-[960px]:grid-cols-1">
-        {/* 左侧：对话区 */}
-        <div className="space-y-5">
+      <div className="grid grid-cols-[1fr_320px] gap-5 max-[960px]:grid-cols-1" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+        {/* 左侧：对话区 - 固定高度 */}
+        <div className="min-h-0">
           <AgentChat pet={pet} onXpChange={() => setRefreshKey(k => k + 1)} />
         </div>
 
-        {/* 右侧：伙伴信息 + 历史 */}
-        <div className="space-y-5">
+        {/* 右侧：伙伴信息 + 历史 - 超出滚动 */}
+        <div className="space-y-5 overflow-y-auto max-h-[calc(100vh-200px)] pr-1">
           <AgentPetCard pet={pet} onUpdate={() => setRefreshKey(k => k + 1)} />
           <AgentHistory />
         </div>

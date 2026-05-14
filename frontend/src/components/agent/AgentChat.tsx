@@ -89,13 +89,18 @@ export function AgentChat({ pet, onXpChange }: Props) {
       setPolling(true)
       setSteps([])
 
-      // Start polling
+      // Start polling with guard against duplicate completion handling
+      let handled = false
       pollingRef.current = setInterval(async () => {
+        if (handled) return
         try {
           const task = await api.getAgentTask(result.task_id)
           setSteps(task.steps || [])
 
           if (task.status === 'completed' || task.status === 'failed') {
+            if (handled) return
+            handled = true
+
             // Stop polling
             if (pollingRef.current) clearInterval(pollingRef.current)
             pollingRef.current = null
@@ -186,9 +191,9 @@ export function AgentChat({ pet, onXpChange }: Props) {
   }
 
   return (
-    <ProtoCard className="flex flex-col" style={{ minHeight: '560px' }}>
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[480px] pr-1">
+    <ProtoCard className="flex flex-col h-[calc(100vh-220px)] min-h-[500px]">
+      {/* Messages area - fills available space, scrolls internally */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
         {messages.map(msg => (
           <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] ${msg.sender === 'user' ? 'order-1' : ''}`}>
@@ -271,7 +276,7 @@ export function AgentChat({ pet, onXpChange }: Props) {
       </div>
 
       {/* Task type selector */}
-      <div className="flex gap-1.5 mb-3">
+      <div className="flex gap-1.5 mb-3 mt-4 shrink-0">
         {TASK_TYPE_OPTIONS.map(opt => (
           <button
             key={opt.id}
@@ -295,7 +300,7 @@ export function AgentChat({ pet, onXpChange }: Props) {
       {/* Input */}
       <form
         onSubmit={e => { e.preventDefault(); void handleSend() }}
-        className="flex gap-2"
+        className="flex gap-2 shrink-0"
       >
         <input
           value={input}

@@ -281,11 +281,17 @@ async def _do_search(task_id: str, query: str, persona: str) -> dict:
 
 
 async def _do_search_llm_fallback(task_id: str, query: str, persona: str) -> dict:
-    prompt = f"""{persona}
+    prompt = f"""请根据以下学习需求，推荐 3-5 个优质学习资源。
 
-Please recommend 3-5 real learning resources for: {query}
+学习需求：{query}
 
-Return JSON only: {{"items": [{{"title": "title", "summary": "50 chars max", "url": "real url", "source": "site name"}}]}}"""
+请严格按以下 JSON 格式返回（不要包含其他文字）：
+{{"items": [{{"title": "资源标题", "summary": "50字以内的摘要描述", "url": "资源链接", "source": "来源网站"}}]}}
+
+要求：
+- 推荐真实存在的知名教程、文档或博客
+- 优先推荐中文资源
+- 摘要要精炼有用"""
 
     chunks: list[str] = []
     async for c in spark_lite.stream_chat(prompt, mode="general"):
@@ -326,12 +332,12 @@ async def _do_summarize(task_id: str, input_text: str, persona: str) -> dict:
         _add_step(task_id, 1, "start", "正在分析文本内容...")
 
     _add_step(task_id, 7, "extract", "正在生成结构化摘要...")
-    prompt = f"""{persona}
+    prompt = f"""请对以下内容生成结构化摘要。
 
-Summarize the following content. Return JSON only:
-{{"topic": "one sentence topic", "key_points": ["point1", "point2", "point3"], "conclusion": "1-2 sentence conclusion"}}
+内容：{content_to_summarize[:3000]}
 
-Content: {content_to_summarize[:3000]}"""
+请严格按以下 JSON 格式返回（不要包含其他文字）：
+{{"topic": "一句话概括主题", "key_points": ["要点1", "要点2", "要点3"], "conclusion": "1-2句话总结"}}"""
 
     chunks: list[str] = []
     async for c in spark_lite.stream_chat(prompt, mode="general"):
@@ -378,11 +384,12 @@ async def _do_compare(task_id: str, query: str, persona: str) -> dict:
 
 
 async def _do_compare_llm_fallback(task_id: str, query: str, persona: str) -> dict:
-    prompt = f"""{persona}
+    prompt = f"""请从不同角度解释以下概念，提供 3 种不同视角的解释。
 
-Explain this concept from 3 different perspectives: {query}
+概念：{query}
 
-Return JSON only: {{"items": [{{"source": "perspective name", "explanation": "100 chars max", "url": ""}}], "comparison": "50 char comparison"}}"""
+请严格按以下 JSON 格式返回（不要包含其他文字）：
+{{"items": [{{"source": "视角名称", "explanation": "该视角的解释（100字以内）", "url": ""}}], "comparison": "50字以内的对比总结"}}"""
 
     chunks: list[str] = []
     async for c in spark_lite.stream_chat(prompt, mode="general"):
@@ -403,11 +410,12 @@ async def _do_recommend(task_id: str, input_text: str, persona: str) -> dict:
     _add_step(task_id, 1, "navigate", "正在分析学习情况...")
     _add_step(task_id, 2, "search", "正在筛选推荐内容...")
 
-    prompt = f"""{persona}
+    prompt = f"""请根据以下学习情况推荐 3 条学习资源。
 
-Recommend 3 learning resources based on: {input_text}
+学习情况：{input_text}
 
-Return JSON only: {{"items": [{{"title": "title", "summary": "50 chars", "url": "", "reason": "why"}}]}}"""
+请严格按以下 JSON 格式返回（不要包含其他文字）：
+{{"items": [{{"title": "资源标题", "summary": "50字以内简介", "url": "", "reason": "推荐理由"}}]}}"""
 
     _add_step(task_id, 3, "extract", "正在生成推荐...")
     chunks: list[str] = []

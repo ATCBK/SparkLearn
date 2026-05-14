@@ -49,7 +49,7 @@ export function AgentHistory() {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
         {tasks.map(task => {
           const typeInfo = TASK_TYPE_INFO[task.task_type] || TASK_TYPE_INFO.search
           const statusInfo = STATUS_INFO[task.status] || STATUS_INFO.pending
