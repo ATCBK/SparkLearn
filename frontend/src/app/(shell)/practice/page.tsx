@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Zap, Check, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks } from 'lucide-react'
 import { api, QuizQuestion } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -512,7 +512,12 @@ export default function PracticePage() {
         <aside className="grid gap-3">
           <ProtoCard>
             <div className="flex items-center justify-between">
-              <h2 className="text-h2 font-bold text-ink">生成练习</h2>
+              <div className="flex items-center gap-2">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#fff7ed] text-[#d97706]">
+                  <CheckSquare className="h-4 w-4" />
+                </div>
+                <h2 className="text-h2 font-bold text-ink">生成练习</h2>
+              </div>
               <Pill tone="blue">个性化</Pill>
             </div>
             
@@ -617,7 +622,12 @@ export default function PracticePage() {
 
           <ProtoCard>
             <div className="flex items-center justify-between">
-              <h2 className="text-h2 font-bold text-ink">答题进度</h2>
+              <div className="flex items-center gap-2">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#fff7ed] text-[#d97706]">
+                  <ListChecks className="h-4 w-4" />
+                </div>
+                <h2 className="text-h2 font-bold text-ink">答题进度</h2>
+              </div>
               <Pill tone="blue">{questions.length > 0 ? `${currentIndex + 1} / ${questions.length}` : '0 / 0'}</Pill>
             </div>
             {questions.length > 0 && (

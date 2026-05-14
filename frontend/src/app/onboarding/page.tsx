@@ -30,6 +30,7 @@ interface CardOption {
   icon: React.ReactNode
   label: string
   desc: string
+  color?: 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'teal' | 'pink'
 }
 
 interface StepData {
@@ -51,10 +52,10 @@ const STEPS: StepData[] = [
     greeting: '你好！我是小星同学 ✨\n为了为你制定最合适的学习计划，\n我们先来聊聊你的学习目标吧~',
     question: '你希望达成什么样的学习目标呢？',
     cards: [
-      { icon: <BarChart3 size={20} />, label: '掌握核心技能', desc: '系统学习，打好基础' },
-      { icon: <Briefcase size={20} />, label: '准备找工作', desc: '提升竞争力，拿到offer' },
-      { icon: <Zap size={20} />, label: '项目实战能力', desc: '能独立完成项目' },
-      { icon: <Gamepad2 size={20} />, label: '兴趣探索', desc: '先了解，再深入' },
+      { icon: <BarChart3 size={20} />, label: '掌握核心技能', desc: '系统学习，打好基础', color: 'blue' },
+      { icon: <Briefcase size={20} />, label: '准备找工作', desc: '提升竞争力，拿到offer', color: 'purple' },
+      { icon: <Zap size={20} />, label: '项目实战能力', desc: '能独立完成项目', color: 'orange' },
+      { icon: <Gamepad2 size={20} />, label: '兴趣探索', desc: '先了解，再深入', color: 'green' },
     ],
   },
   {
@@ -63,10 +64,10 @@ const STEPS: StepData[] = [
     greeting: '了解了！接下来了解一下你的编程基础，\n这样可以更好地为你安排内容 😊',
     question: '你目前的编程水平是？',
     cards: [
-      { icon: <Lightbulb size={20} />, label: '零基础', desc: '完全没接触过' },
-      { icon: <FileText size={20} />, label: '入门阶段', desc: '学过一些基础语法' },
-      { icon: <Code size={20} />, label: '有一定基础', desc: '能写简单项目' },
-      { icon: <GraduationCap size={20} />, label: '基础较好', desc: '熟练掌握一门语言' },
+      { icon: <Lightbulb size={20} />, label: '零基础', desc: '完全没接触过', color: 'orange' },
+      { icon: <FileText size={20} />, label: '入门阶段', desc: '学过一些基础语法', color: 'blue' },
+      { icon: <Code size={20} />, label: '有一定基础', desc: '能写简单项目', color: 'green' },
+      { icon: <GraduationCap size={20} />, label: '基础较好', desc: '熟练掌握一门语言', color: 'purple' },
     ],
   },
   {
@@ -83,10 +84,10 @@ const STEPS: StepData[] = [
     greeting: '了解！每个人的学习方式都不同 📚\n你更喜欢哪种学习方式呢？',
     question: '你更喜欢哪种学习方式？',
     cards: [
-      { icon: <Eye size={20} />, label: '视频教程，直观看懂', desc: '' },
-      { icon: <BookOpen size={20} />, label: '文档阅读，深入理解', desc: '' },
-      { icon: <PenTool size={20} />, label: '动手实践，边学边做', desc: '' },
-      { icon: <Headphones size={20} />, label: '互动交流，共同进步', desc: '' },
+      { icon: <Eye size={20} />, label: '视频教程，直观看懂', desc: '', color: 'purple' },
+      { icon: <BookOpen size={20} />, label: '文档阅读，深入理解', desc: '', color: 'blue' },
+      { icon: <PenTool size={20} />, label: '动手实践，边学边做', desc: '', color: 'green' },
+      { icon: <Headphones size={20} />, label: '互动交流，共同进步', desc: '', color: 'orange' },
     ],
     multiSelect: true,
   },
@@ -353,6 +354,13 @@ export default function OnboardingPage() {
                 <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
                   {current.cards.map((card) => {
                     const isActive = selected.includes(card.label)
+                    const colorMap: Record<string, { bg: string; activeBg: string; text: string }> = {
+                      blue: { bg: 'bg-[#eff6ff]', activeBg: 'bg-[#2563eb]', text: 'text-[#2563eb]' },
+                      purple: { bg: 'bg-[#f3efff]', activeBg: 'bg-[#7c3aed]', text: 'text-[#7c3aed]' },
+                      green: { bg: 'bg-[#ecfdf5]', activeBg: 'bg-[#059669]', text: 'text-[#059669]' },
+                      orange: { bg: 'bg-[#fff7ed]', activeBg: 'bg-[#d97706]', text: 'text-[#d97706]' },
+                    }
+                    const c = colorMap[card.color || 'blue'] || colorMap.blue
                     return (
                       <button
                         key={card.label}
@@ -365,7 +373,7 @@ export default function OnboardingPage() {
                       >
                         <div
                           className={`grid h-10 w-10 place-items-center rounded-xl transition-colors ${
-                            isActive ? 'bg-[#2563eb] text-white' : 'bg-[#f1f5f9] text-[#64748b] group-hover:bg-[#e2e8f0]'
+                            isActive ? `${c.activeBg} text-white` : `${c.bg} ${c.text}`
                           }`}
                         >
                           {card.icon}

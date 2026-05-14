@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Database, FileUp, Search, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Database, FileText, FileUp, Search, Trash2, ChevronDown, ChevronUp, Files, CheckCircle2, Layers, Link2 } from 'lucide-react'
 import { api, KnowledgeFile, KnowledgeStats } from '@/lib/api'
-import { MetricStrip, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 interface ChunkData {
@@ -101,14 +101,24 @@ export default function KnowledgePage() {
         title="知识库"
         description="上传课程资料后执行整理，系统会提取文本、切片、生成摘要和标签，供资源生成与 AI 辅导引用。"
       />
-      <MetricStrip
-        items={[
-          { value: `${stats.total}`, label: '文件总数' },
-          { value: `${stats.indexed}`, label: '已整理' },
-          { value: `${stats.chunks}`, label: '知识片段' },
-          { value: `${stats.references}`, label: '引用次数' },
-        ]}
-      />
+      <div className="grid grid-cols-4 overflow-hidden rounded-[12px] border border-line bg-white shadow-md max-[760px]:grid-cols-2">
+        {[
+          { value: `${stats.total}`, label: '文件总数', icon: <Files className="h-5 w-5" />, color: 'bg-[#ecfeff] text-[#0891b2]' },
+          { value: `${stats.indexed}`, label: '已整理', icon: <CheckCircle2 className="h-5 w-5" />, color: 'bg-[#ecfdf5] text-[#059669]' },
+          { value: `${stats.chunks}`, label: '知识片段', icon: <Layers className="h-5 w-5" />, color: 'bg-[#f3efff] text-[#7c3aed]' },
+          { value: `${stats.references}`, label: '引用次数', icon: <Link2 className="h-5 w-5" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+        ].map((item, idx) => (
+          <div key={item.label} className={`flex items-center gap-3 p-4 ${idx !== 3 ? 'border-r border-[#eef2f7] max-[760px]:border-r-0' : ''}`}>
+            <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${item.color}`}>
+              {item.icon}
+            </div>
+            <div>
+              <b className="block text-[20px] text-ink">{item.value}</b>
+              <span className="mt-1 block text-micro leading-5 text-muted">{item.label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div className="mt-4 grid grid-cols-[360px_1fr] gap-4 max-[980px]:grid-cols-1">
         <ProtoCard>
@@ -184,7 +194,12 @@ export default function KnowledgePage() {
 
       <div className="mt-4 grid grid-cols-[1.2fr_.8fr] gap-4 max-[980px]:grid-cols-1">
         <ProtoCard>
-          <h2 className="mb-3 flex items-center gap-2 text-h2 font-bold text-ink"><Database className="h-5 w-5 text-blue" />资料摘要</h2>
+          <div className="mb-3 flex items-center gap-2">
+            <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
+              <FileText className="h-4 w-4" />
+            </div>
+            <h2 className="text-h2 font-bold text-ink">资料摘要</h2>
+          </div>
           <p className="text-small leading-7 text-muted">{selected?.summary || '选择文件后查看整理摘要。'}</p>
           {selected?.status === 'indexed' && (
             <div className="mt-4">
@@ -228,7 +243,12 @@ export default function KnowledgePage() {
           )}
         </ProtoCard>
         <ProtoCard>
-          <h2 className="mb-3 text-h2 font-bold text-ink">隐私与使用</h2>
+          <h2 className="mb-3 text-h2 font-bold text-ink flex items-center gap-2">
+            <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#ecfeff] text-[#0891b2]">
+              <Database className="h-4 w-4" />
+            </div>
+            隐私与使用
+          </h2>
           <div className="grid gap-2">
             <SoftCard className="text-small text-muted">资料仅存储在本地项目数据目录。</SoftCard>
             <SoftCard className="text-small text-muted">只有已整理资料会进入生成上下文。</SoftCard>

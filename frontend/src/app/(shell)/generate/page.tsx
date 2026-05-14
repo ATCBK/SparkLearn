@@ -187,6 +187,9 @@ export default function GeneratePage() {
       <header className="mb-5 border-b border-line pb-4">
         <div className="mb-2 text-small font-extrabold text-soft">资源中心 / 生成与资源库</div>
         <div className="flex items-center gap-3">
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
+            <Sparkles className="h-4 w-4" />
+          </div>
           <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">资源中心</h1>
           <button onClick={() => setView('library')} className="inline-flex h-9 items-center justify-center gap-2 rounded-[8px] px-3.5 text-small font-bold transition-colors bg-white text-blue ring-1 ring-[#bfdbfe] hover:bg-blue-light">进入资源库</button>
         </div>
@@ -201,7 +204,7 @@ export default function GeneratePage() {
               onClick={() => setStep(idx)}
               className={`min-h-16 border-0 border-r border-[#eef2f7] p-3 text-left last:border-r-0 ${idx === step ? 'bg-blue-light text-blue shadow-[inset_0_-3px_0_#2563eb]' : idx < step ? 'bg-green-light text-green' : 'bg-white text-muted'}`}
             >
-              <span className="block text-[11px] font-extrabold">0{idx + 1}</span>
+              <span className={`grid h-6 w-6 place-items-center rounded-md text-[11px] font-extrabold ${idx === step ? 'bg-[#eff6ff] text-[#2563eb]' : idx < step ? 'bg-[#ecfdf5] text-[#059669]' : 'bg-[#f1f5f9] text-muted'}`}>0{idx + 1}</span>
               <b className="mt-1 block text-small">{label}</b>
             </button>
           ))}
@@ -238,19 +241,22 @@ export default function GeneratePage() {
         {step === 1 && (
           <div className="grid grid-cols-3 gap-3 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
             {TYPES.map((item) => {
-              const IconMap: Record<string, React.ReactNode> = {
-                document: <FileText className="mb-3 h-5 w-5 text-blue" />,
-                ppt: <Presentation className="mb-3 h-5 w-5 text-blue" />,
-                mindmap: <Brain className="mb-3 h-5 w-5 text-blue" />,
-                video: <Video className="mb-3 h-5 w-5 text-blue" />,
-                blog: <Radio className="mb-3 h-5 w-5 text-blue" />,
-                quiz: <CheckSquare className="mb-3 h-5 w-5 text-blue" />,
-                reading: <BookOpen className="mb-3 h-5 w-5 text-blue" />,
-                code: <Code className="mb-3 h-5 w-5 text-blue" />,
+              const IconMap: Record<string, { icon: React.ReactNode; color: string }> = {
+                document: { icon: <FileText className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+                ppt: { icon: <Presentation className="h-4 w-4" />, color: 'bg-[#fff7ed] text-[#d97706]' },
+                mindmap: { icon: <Brain className="h-4 w-4" />, color: 'bg-[#f3efff] text-[#7c3aed]' },
+                video: { icon: <Video className="h-4 w-4" />, color: 'bg-[#f3efff] text-[#7c3aed]' },
+                blog: { icon: <Radio className="h-4 w-4" />, color: 'bg-[#ecfeff] text-[#0891b2]' },
+                quiz: { icon: <CheckSquare className="h-4 w-4" />, color: 'bg-[#fff7ed] text-[#d97706]' },
+                reading: { icon: <BookOpen className="h-4 w-4" />, color: 'bg-[#ecfdf5] text-[#059669]' },
+                code: { icon: <Code className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
               }
+              const t = IconMap[item.type] || { icon: <FileText className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' }
               return (
                 <button key={item.type} onClick={() => setType(item.type)} className={`rounded-[12px] border p-4 text-left ${type === item.type ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
-                  {IconMap[item.type] || <FileText className="mb-3 h-5 w-5 text-blue" />}
+                  <div className={`mb-3 grid h-9 w-9 place-items-center rounded-xl ${t.color}`}>
+                    {t.icon}
+                  </div>
                   <b className="block text-ink">{item.label}</b>
                   <span className="mt-1 block text-small text-muted">{item.desc}</span>
                 </button>

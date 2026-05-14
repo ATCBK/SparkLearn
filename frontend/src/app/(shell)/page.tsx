@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Plus, Trash2 } from 'lucide-react'
+import { Check, Plus, Trash2, PieChart, ClipboardList, Flame, CheckCircle2, FileText, Brain, BookOpen, Sparkles } from 'lucide-react'
 import { api, Recommendation, Resource, Task } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
@@ -113,14 +113,19 @@ export default function HomePage() {
 
       <div className="mt-5 grid grid-cols-4 overflow-hidden rounded-[12px] border border-line bg-white shadow-md max-[760px]:grid-cols-2">
         {[
-          [`${completion}%`, '今日任务', '已完成比例'],
-          [`${tasks.length || 8} 项`, '任务池', '可创建和删除'],
-          ['12 天', '连续学习', '保持得不错'],
-          [`${pending.length} 项`, '待完成', '完成后进入下一步'],
-        ].map(([value, label, desc], idx) => (
-          <div key={label} className={`p-4 ${idx !== 3 ? 'border-r border-[#eef2f7]' : ''}`}>
-            <b className="block text-[20px] text-ink">{value}</b>
-            <span className="mt-1 block text-micro leading-5 text-muted">{label}<br />{desc}</span>
+          { value: `${completion}%`, label: '今日任务', desc: '已完成比例', icon: <PieChart className="h-5 w-5" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+          { value: `${tasks.length || 8} 项`, label: '任务池', desc: '可创建和删除', icon: <ClipboardList className="h-5 w-5" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+          { value: '12 天', label: '连续学习', desc: '保持得不错', icon: <Flame className="h-5 w-5" />, color: 'bg-[#ecfdf5] text-[#059669]' },
+          { value: `${pending.length} 项`, label: '待完成', desc: '完成后进入下一步', icon: <CheckCircle2 className="h-5 w-5" />, color: 'bg-[#ecfdf5] text-[#059669]' },
+        ].map((item, idx) => (
+          <div key={item.label} className={`flex items-center gap-3 p-4 ${idx !== 3 ? 'border-r border-[#eef2f7]' : ''}`}>
+            <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${item.color}`}>
+              {item.icon}
+            </div>
+            <div>
+              <b className="block text-[20px] text-ink">{item.value}</b>
+              <span className="block text-micro leading-5 text-muted">{item.label}<br />{item.desc}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -128,7 +133,12 @@ export default function HomePage() {
       <div className="mt-5 grid grid-cols-[1fr_.85fr] gap-4 max-[960px]:grid-cols-1">
         <ProtoCard>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-h2 font-bold text-ink">今日任务</h2>
+            <div className="flex items-center gap-2">
+              <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
+                <CheckCircle2 className="h-4 w-4" />
+              </div>
+              <h2 className="text-h2 font-bold text-ink">今日任务</h2>
+            </div>
             <Pill tone="blue">{pending.length} 条待完成</Pill>
           </div>
           <form
@@ -156,7 +166,12 @@ export default function HomePage() {
 
         <ProtoCard>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-h2 font-bold text-ink">今日新资源推荐</h2>
+            <div className="flex items-center gap-2">
+              <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#fff7ed] text-[#d97706]">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <h2 className="text-h2 font-bold text-ink">今日新资源推荐</h2>
+            </div>
             <ProtoButton href="/resources" variant="ghost">查看全部 →</ProtoButton>
           </div>
           <div className="mt-5 space-y-1">
@@ -179,15 +194,28 @@ export default function HomePage() {
 
 function TaskRow({ task, busy, onToggle, onDelete }: { task: Task; busy: boolean; onToggle: () => void; onDelete: () => void }) {
   const completed = task.status === 'completed'
+  const typeIcons: Record<string, { icon: React.ReactNode; color: string }> = {
+    reading: { icon: <FileText className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+    quiz: { icon: <Brain className="h-4 w-4" />, color: 'bg-[#f3efff] text-[#7c3aed]' },
+    practice: { icon: <BookOpen className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+    video: { icon: <Flame className="h-4 w-4" />, color: 'bg-[#fff7ed] text-[#d97706]' },
+  }
+  const t = typeIcons[task.type] || typeIcons.reading
+
   return (
-    <SoftCard className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 bg-white">
+    <SoftCard className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-3 bg-white">
+      {/* 彩色图标 */}
+      <div className={`grid h-9 w-9 place-items-center rounded-xl ${t.color}`}>
+        {t.icon}
+      </div>
+      {/* 勾选按钮 */}
       <button
         onClick={onToggle}
         disabled={busy}
-        className={`grid h-7 w-7 place-items-center rounded-full border ${completed ? 'border-green bg-green text-white' : 'border-line bg-white text-muted hover:border-blue'}`}
+        className={`grid h-6 w-6 place-items-center rounded-full border-2 transition-colors ${completed ? 'border-[#059669] bg-[#059669] text-white' : 'border-[#d1d5db] bg-white hover:border-[#2563eb]'}`}
         aria-label={completed ? '标记为未完成' : '标记为完成'}
       >
-        {completed && <Check className="h-4 w-4" />}
+        {completed && <Check className="h-3.5 w-3.5" />}
       </button>
       <div className="min-w-0">
         <b className={`block truncate text-small ${completed ? 'text-muted line-through' : 'text-ink'}`}>{task.title}</b>
@@ -203,7 +231,10 @@ function TaskRow({ task, busy, onToggle, onDelete }: { task: Task; busy: boolean
 
 function Reco({ title, meta, action }: { title: string; meta: string; action: string }) {
   return (
-    <SoftCard className="grid grid-cols-[1fr_auto] items-center gap-3 bg-white">
+    <SoftCard className="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white">
+      <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#eff6ff] text-[#2563eb]">
+        <FileText className="h-4 w-4" />
+      </div>
       <div className="min-w-0">
         <b className="block text-small text-ink">{title}</b>
         <span className="mt-1 block text-micro leading-5 text-muted">{meta}</span>

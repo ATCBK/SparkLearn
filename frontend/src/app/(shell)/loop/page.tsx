@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CalendarDays } from 'lucide-react'
+import { CalendarDays, Lightbulb, Bell } from 'lucide-react'
 import { api, Task } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
@@ -16,6 +16,12 @@ export default function LoopPage() {
   return (
     <div>
       <PageHead eyebrow="分析与反馈 / 复习计划" title="复习计划" description="复习计划把错题、薄弱点和路径节点压缩成未来三天的行动卡。" />
+      <div className="mb-5 -mt-3 flex items-center gap-2">
+        <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#ecfdf5] text-[#059669]">
+          <CalendarDays className="h-4 w-4" />
+        </div>
+        <h2 className="text-h2 font-bold text-ink">未来三天计划</h2>
+      </div>
       <div className="grid grid-cols-3 gap-4 max-[900px]:grid-cols-1">
         {days.map((day, idx) => (
           <ProtoCard key={day.title}>
@@ -27,7 +33,12 @@ export default function LoopPage() {
       </div>
       <div className="mt-4 grid grid-cols-[1fr_.9fr] gap-4 max-[900px]:grid-cols-1">
         <ProtoCard>
-          <h2 className="mb-3 flex items-center gap-2 text-h2 font-bold text-ink"><CalendarDays className="h-5 w-5 text-blue" />本周提醒</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-h2 font-bold text-ink">
+            <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#ecfdf5] text-[#059669]">
+              <Bell className="h-4 w-4" />
+            </div>
+            本周提醒
+          </h2>
           <div className="grid gap-2">
             {(tasks.length ? tasks : [{ id: '1', title: '完成函数返回值达标练习', duration: 12, type: 'quiz', status: 'pending' } as Task]).map(task => (
               <SoftCard key={task.id} className="flex items-center justify-between">
@@ -38,7 +49,12 @@ export default function LoopPage() {
           </div>
         </ProtoCard>
         <ProtoCard>
-          <h2 className="mb-3 text-h2 font-bold text-ink">AI 能帮你的</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-h2 font-bold text-ink">
+            <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#f3efff] text-[#7c3aed]">
+              <Lightbulb className="h-4 w-4" />
+            </div>
+            AI 能帮你的
+          </h2>
           <div className="grid gap-2">
             <SoftCard className="text-small text-muted">把错题改成 5 道变式练习。</SoftCard>
             <SoftCard className="text-small text-muted">用生活化类比讲解 return。</SoftCard>

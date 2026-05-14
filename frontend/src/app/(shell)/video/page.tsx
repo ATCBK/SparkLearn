@@ -63,7 +63,12 @@ export default function VideoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-h1 text-ink">视频播放</h1>
+        <div className="flex items-center gap-2">
+          <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#f3efff] text-[#7c3aed]">
+            <Play className="h-4 w-4" />
+          </div>
+          <h1 className="text-h1 text-ink">视频播放</h1>
+        </div>
         <p className="text-body text-ink-secondary mt-1">观看课程视频，提升学习效果</p>
       </div>
 
@@ -164,7 +169,12 @@ export default function VideoPage() {
 
           {/* Video List */}
           <div className="space-y-2">
-            <h3 className="text-small font-semibold text-ink mb-2">全部视频</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#f3efff] text-[#7c3aed]">
+                <Play className="h-4 w-4" />
+              </div>
+              <h3 className="text-small font-semibold text-ink">全部视频</h3>
+            </div>
             {videos.map(video => (
               <Card
                 key={video.id}
@@ -175,7 +185,7 @@ export default function VideoPage() {
                 )}
                 onClick={() => setSelected(video)}
               >
-                <div className="w-10 h-10 rounded-lg bg-blue-light flex items-center justify-center text-blue shrink-0">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#f3efff] text-[#7c3aed]">
                   <Play className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">

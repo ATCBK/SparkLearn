@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, FileText, Sparkles } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, FileText, Sparkles, BarChart3 } from 'lucide-react'
 import { PageHead, Pill, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { api, ReportData } from '@/lib/api'
@@ -212,9 +212,9 @@ export default function ReportPage() {
           <ProtoCard className="overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-h2 font-bold text-ink flex items-center gap-2">
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-light">
-                  <Calendar className="h-4 w-4 text-blue" />
-                </span>
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#f3efff] text-[#7c3aed]">
+                  <BarChart3 className="h-4 w-4" />
+                </div>
                 学习热力图
               </h2>
               <HeatmapLegend />
@@ -270,9 +270,9 @@ export default function ReportPage() {
           <ProtoCard className="flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-purple-light">
-                  <Sparkles className="h-4 w-4 text-purple" />
-                </span>
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#f3efff] text-[#7c3aed]">
+                  <Sparkles className="h-4 w-4" />
+                </div>
                 <h2 className="text-h2 font-bold text-ink">AI {modeLabels[mode]}</h2>
               </div>
               <button
