@@ -93,34 +93,38 @@ export function PageHead({
     <header className="mb-5 flex items-start justify-between gap-6 border-b border-line pb-4">
       <div className="min-w-0">
         <div className="mb-2 text-small font-extrabold text-soft">{eyebrow}</div>
-        <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">{title}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">{title}</h1>
+          {actions}
+        </div>
         {description && <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">{description}</p>}
       </div>
-      <div className="flex shrink-0 items-center gap-2.5">
-        {chips?.map((chip) => {
-          const tone = chip.tone ? chipTones[chip.tone] : null
-          return (
-            <div key={chip.label} className="group relative min-w-[118px] overflow-hidden rounded-[12px] border border-line bg-white px-3.5 py-2.5 shadow-sm transition-shadow hover:shadow-md">
-              {/* 装饰性渐变角标 */}
-              {tone && (
-                <div className={cn('absolute -right-2 -top-2 h-8 w-8 rounded-full opacity-30', tone.bg)} />
-              )}
-              <div className="relative flex items-center gap-2.5">
-                {chip.icon && tone && (
-                  <div className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-lg', tone.bg, tone.text)}>
-                    {chip.icon}
-                  </div>
+      {chips && (
+        <div className="flex shrink-0 items-center gap-2.5">
+          {chips.map((chip) => {
+            const tone = chip.tone ? chipTones[chip.tone] : null
+            return (
+              <div key={chip.label} className="group relative min-w-[118px] overflow-hidden rounded-[12px] border border-line bg-white px-3.5 py-2.5 shadow-sm transition-shadow hover:shadow-md">
+                {/* 装饰性渐变角标 */}
+                {tone && (
+                  <div className={cn('absolute -right-2 -top-2 h-8 w-8 rounded-full opacity-30', tone.bg)} />
                 )}
-                <div>
-                  <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
-                  <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
+                <div className="relative flex items-center gap-2.5">
+                  {chip.icon && tone && (
+                    <div className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-lg', tone.bg, tone.text)}>
+                      {chip.icon}
+                    </div>
+                  )}
+                  <div>
+                    <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
+                    <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        })}
-        {actions}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </header>
   )
 }

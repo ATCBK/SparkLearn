@@ -2,7 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useState } from 'react'
-import { BookmarkX, Star } from 'lucide-react'
+import { BookmarkX, Star, ChevronLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 import { PageHead, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
@@ -15,7 +15,7 @@ export default function FavoritesPage() {
   useEffect(() => { void load() }, [])
   return (
     <div>
-      <PageHead eyebrow="资源与练习 / 收藏题目" title="收藏题目" description="收藏题可用于生成复习练习，适合考前集中回顾。" actions={<ProtoButton href="/practice" variant="secondary">返回练习评测</ProtoButton>} />
+      <PageHead eyebrow="资源与练习 / 收藏题目" title="收藏题目" description="收藏题可用于生成复习练习，适合考前集中回顾。" actions={<ProtoButton href="/practice" variant="secondary"><ChevronLeft className="h-4 w-4" />返回练习评测</ProtoButton>} />
       <div className="mb-5 -mt-3 flex items-center gap-2">
         <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#fff7ed] text-[#d97706]">
           <Star className="h-4 w-4" />

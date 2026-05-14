@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks, ClipboardList, Target, TrendingUp } from 'lucide-react'
 import { api, QuizQuestion } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -246,17 +246,33 @@ export default function PracticePage() {
           </div>
           <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">完成针对性练习后，系统会回写画像、错题本和学习路径。</p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2.5">
           {[
-            { value: `${questions.length} 题`, label: '本次练习' },
-            { value: '80%', label: '达标线' },
-            { value: `${accuracy}%`, label: '当前正确率' },
-          ].map((chip) => (
-            <div key={chip.label} className="min-w-[108px] rounded-[10px] border border-line bg-white px-3 py-2">
-              <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
-              <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
-            </div>
-          ))}
+            { value: `${questions.length} 题`, label: '本次练习', icon: <ClipboardList className="h-4 w-4" />, tone: 'blue' },
+            { value: '80%', label: '达标线', icon: <Target className="h-4 w-4" />, tone: 'green' },
+            { value: `${accuracy}%`, label: '当前正确率', icon: <TrendingUp className="h-4 w-4" />, tone: 'purple' },
+          ].map((chip) => {
+            const toneColors: Record<string, { bg: string; text: string }> = {
+              blue: { bg: 'bg-[#eff6ff]', text: 'text-[#2563eb]' },
+              green: { bg: 'bg-[#ecfdf5]', text: 'text-[#059669]' },
+              purple: { bg: 'bg-[#f3efff]', text: 'text-[#7c3aed]' },
+            }
+            const colors = toneColors[chip.tone]
+            return (
+              <div key={chip.label} className="group relative min-w-[118px] overflow-hidden rounded-[12px] border border-line bg-white px-3.5 py-2.5 shadow-sm transition-shadow hover:shadow-md">
+                <div className={`absolute -right-2 -top-2 h-8 w-8 rounded-full opacity-30 ${colors.bg}`} />
+                <div className="relative flex items-center gap-2.5">
+                  <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${colors.bg} ${colors.text}`}>
+                    {chip.icon}
+                  </div>
+                  <div>
+                    <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
+                    <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </header>
 
