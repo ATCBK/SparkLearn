@@ -354,3 +354,88 @@ export interface ContributionDay {
   date: string // YYYY-MM-DD
   count: number // learning sessions
 }
+
+// ─── Agent Pet Types ─────────────────────────────────────────────────────────
+
+export interface AgentPet {
+  id: string
+  name: string
+  avatar: 'fox' | 'owl' | 'robot'
+  personality: 'concise' | 'verbose' | 'encouraging'
+  level: number
+  xp: number
+  next_level_xp: number | null
+  unlocked_abilities: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface AgentTaskStep {
+  step: number
+  action: string
+  description: string
+  time: string
+}
+
+export interface AgentTask {
+  task_id: string
+  task_type: 'search' | 'summarize' | 'compare' | 'recommend'
+  input_text: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  result: AgentSearchResult | AgentSummaryResult | AgentCompareResult | null
+  error_message: string | null
+  feedback: 'useful' | 'not_useful' | null
+  steps?: AgentTaskStep[]
+  created_at: string
+  updated_at: string
+}
+
+export interface AgentSearchResult {
+  items: Array<{
+    title: string
+    summary: string
+    url: string
+    source: string
+  }>
+}
+
+export interface AgentSummaryResult {
+  topic: string
+  key_points: string[]
+  conclusion: string
+}
+
+export interface AgentCompareResult {
+  items: Array<{
+    source: string
+    explanation: string
+    url: string
+  }>
+  comparison: string
+}
+
+export interface AgentTaskList {
+  items: AgentTask[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface AdoptPetPayload {
+  name: string
+  avatar: string
+  personality: string
+}
+
+export interface CreateAgentTaskPayload {
+  task_type: string
+  input_text: string
+}
+
+export interface BookmarkPayload {
+  task_id: string
+  item_index: number
+  title: string
+  url: string
+  summary: string
+}

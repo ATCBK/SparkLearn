@@ -702,3 +702,5 @@
 {"ts": "2026-05-14T03:32:02.858634Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "47b83332", "use_llm": false}
 {"ts": "2026-05-14T03:34:05.283041Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "b0f5da09", "use_llm": false}
 {"ts": "2026-05-14T03:34:05.290042Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8d9fd8cd", "use_llm": false}
+{"ts": "2026-05-14T09:03:48.317183Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "80bc0202", "use_llm": false}
+{"ts": "2026-05-14T09:03:48.324481Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "85bfe258", "use_llm": false}

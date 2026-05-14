@@ -70,6 +70,12 @@ class Settings(BaseSettings):
     video_ai_temperature: float = 0.7
     video_ai_fallback_enabled: bool = True
 
+    # Agent browser settings
+    agent_browser_headless: bool = False   # False = 演示模式，浏览器窗口可见
+    # Agent browser settings
+    agent_browser_headless: bool = False   # False = 演示模式，浏览器窗口可见
+    agent_browser_slow_mo: int = 800       # 毫秒，让操作慢一点方便观看
+
     single_user_id: str = "single_user"
     cors_origin: str = "http://localhost:3000"
 

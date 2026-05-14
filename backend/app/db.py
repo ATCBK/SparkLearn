@@ -142,6 +142,60 @@ def init_db() -> None:
               content TEXT NOT NULL,
               created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS agent_pets (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL,
+              name TEXT NOT NULL DEFAULT '小助手',
+              avatar TEXT NOT NULL DEFAULT 'fox',
+              personality TEXT NOT NULL DEFAULT 'encouraging',
+              level INTEGER NOT NULL DEFAULT 1,
+              xp INTEGER NOT NULL DEFAULT 0,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(user_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS agent_tasks (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL,
+              pet_id TEXT NOT NULL,
+              task_type TEXT NOT NULL,
+              input_text TEXT NOT NULL,
+              result_json TEXT,
+              error_message TEXT,
+              feedback TEXT,
+              status TEXT NOT NULL DEFAULT 'pending',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_agent_tasks_user
+            ON agent_tasks(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS agent_messages (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              task_id TEXT NOT NULL,
+              user_id TEXT NOT NULL,
+              sender TEXT NOT NULL,
+              content TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_agent_messages_task
+            ON agent_messages(task_id, created_at ASC);
+
+            CREATE TABLE IF NOT EXISTS agent_task_steps (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              task_id TEXT NOT NULL,
+              step_index INTEGER NOT NULL,
+              action TEXT NOT NULL,
+              description TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_agent_task_steps
+            ON agent_task_steps(task_id, step_index ASC);
             """
         )
 

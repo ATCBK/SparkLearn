@@ -77,6 +77,17 @@ export const api = {
   deleteKnowledgeFile: impl.deleteKnowledgeFile,
   getKnowledgeStats: impl.getKnowledgeStats,
   getKnowledgeChunks: impl.getKnowledgeChunks,
+
+  // Agent Pet
+  getAgentPet: impl.getAgentPet,
+  adoptAgentPet: impl.adoptAgentPet,
+  updateAgentPet: impl.updateAgentPet,
+  createAgentTask: impl.createAgentTask,
+  getAgentTask: impl.getAgentTask,
+  getAgentTasks: impl.getAgentTasks,
+  submitAgentFeedback: impl.submitAgentFeedback,
+  bookmarkAgentResult: impl.bookmarkAgentResult,
+  getAgentRecommendations: impl.getAgentRecommendations,
 }
 
 export type {
@@ -84,4 +95,6 @@ export type {
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
+  AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
+  AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
 } from './types'

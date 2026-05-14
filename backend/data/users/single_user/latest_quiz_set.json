@@ -1,69 +1,60 @@
 [
   {
-    "id": "dq_8d9fd8cd_1",
-    "type": "multiple",
-    "content": "以下哪些方法可以用于字符串？",
+    "id": "dq_85bfe258_1",
+    "type": "fill_blank",
+    "content": "字典的 ______ 方法可以获取所有的键。",
+    "correct_answer": "keys",
+    "explanation": "keys() 方法返回字典的所有键。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
+  },
+  {
+    "id": "dq_85bfe258_2",
+    "type": "single",
+    "content": "for 循环中 range(5) 会生成什么？",
     "options": [
-      "upper()",
-      "lower()",
-      "append()",
-      "sort()"
+      "0到5",
+      "0到4",
+      "1到5",
+      "1到4"
     ],
-    "correct_answer": [
-      "upper()",
-      "lower()"
+    "correct_answer": "0到4",
+    "explanation": "range(5) 生成 0, 1, 2, 3, 4。",
+    "knowledge_point_id": "2.1",
+    "knowledge_point_name": "循环语句"
+  },
+  {
+    "id": "dq_85bfe258_3",
+    "type": "single",
+    "content": "字符串的 strip() 方法的作用是什么？",
+    "options": [
+      "转换大小写",
+      "删除两端空格",
+      "替换字符",
+      "分割字符串"
     ],
-    "explanation": "upper() 和 lower() 是字符串方法，append() 和 sort() 是列表方法。",
+    "correct_answer": "删除两端空格",
+    "explanation": "strip() 删除字符串两端的空格和换行符。",
     "knowledge_point_id": "1.4",
     "knowledge_point_name": "字符串处理"
   },
   {
-    "id": "dq_8d9fd8cd_2",
-    "type": "single",
-    "content": "字符串的 find() 方法返回什么？",
-    "options": [
-      "字符串长度",
-      "子字符串的索引",
-      "布尔值",
-      "字符数"
-    ],
-    "correct_answer": "子字符串的索引",
-    "explanation": "find() 返回子字符串第一次出现的索引，如果不存在返回 -1。",
-    "knowledge_point_id": "1.4",
-    "knowledge_point_name": "字符串处理"
-  },
-  {
-    "id": "dq_8d9fd8cd_3",
-    "type": "single",
-    "content": "open() 函数的第二个参数是什么？",
-    "options": [
-      "文件名",
-      "打开模式",
-      "编码方式",
-      "缓冲大小"
-    ],
-    "correct_answer": "打开模式",
-    "explanation": "open() 的第二个参数指定文件打开模式，如 r、w、a 等。",
-    "knowledge_point_id": "5.1",
-    "knowledge_point_name": "文件操作"
-  },
-  {
-    "id": "dq_8d9fd8cd_4",
+    "id": "dq_85bfe258_4",
     "type": "multiple",
-    "content": "以下哪些是赋值运算符？",
+    "content": "以下哪些是函数的特点？",
     "options": [
-      "=",
-      "+=",
-      "-=",
-      "=="
+      "可重用",
+      "可接收参数",
+      "必须有返回值",
+      "可以嵌套"
     ],
     "correct_answer": [
-      "=",
-      "+=",
-      "-="
+      "可重用",
+      "可接收参数",
+      "可以嵌套"
     ],
-    "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
+    "explanation": "函数可重用、可接收参数、可嵌套，但不一定有返回值。",
+    "knowledge_point_id": "3.1",
+    "knowledge_point_name": "函数定义"
   }
 ]

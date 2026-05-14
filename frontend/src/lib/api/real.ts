@@ -958,3 +958,60 @@ export async function generateVideo(
     }
   }
 }
+
+// ─── Agent Pet API ─────────────────────────────────────────────────────────────
+
+import type {
+  AgentPet, AgentTask, AgentTaskList, AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
+} from './types'
+
+export async function getAgentPet(): Promise<AgentPet | null> {
+  return fetchJson('/api/agent/pet')
+}
+
+export async function adoptAgentPet(payload: AdoptPetPayload): Promise<AgentPet> {
+  return fetchJson('/api/agent/pet', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateAgentPet(payload: { personality?: string; name?: string }): Promise<AgentPet> {
+  return fetchJson('/api/agent/pet', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function createAgentTask(payload: CreateAgentTaskPayload): Promise<{ task_id: string; task_type: string; status: string; created_at: string }> {
+  return fetchJson('/api/agent/task', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getAgentTask(taskId: string): Promise<AgentTask> {
+  return fetchJson(`/api/agent/task/${taskId}`)
+}
+
+export async function getAgentTasks(page: number = 1, pageSize: number = 20): Promise<AgentTaskList> {
+  return fetchJson(`/api/agent/tasks?page=${page}&page_size=${pageSize}`)
+}
+
+export async function submitAgentFeedback(taskId: string, feedback: 'useful' | 'not_useful'): Promise<void> {
+  await fetchJson(`/api/agent/task/${taskId}/feedback`, {
+    method: 'POST',
+    body: JSON.stringify({ feedback }),
+  })
+}
+
+export async function bookmarkAgentResult(payload: BookmarkPayload): Promise<{ title: string; tags: string[]; url: string }> {
+  return fetchJson('/api/agent/bookmark', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getAgentRecommendations(): Promise<{ items: Array<{ title: string; summary: string; url: string; reason: string }>; date: string }> {
+  return fetchJson('/api/agent/recommendations')
+}

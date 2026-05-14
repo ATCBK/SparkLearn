@@ -13,6 +13,7 @@ import {
   Database,
   Zap,
   LogOut,
+  Bot,
 } from 'lucide-react'
 
 interface NavItem {
@@ -32,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   // 资源与练习
   { label: '资源中心', href: '/generate', icon: <BookOpen className="h-5 w-5" />, group: '资源与练习' },
   { label: '练习评测', href: '/practice', icon: <CheckSquare className="h-5 w-5" />, group: '资源与练习' },
+  { label: '学习伙伴', href: '/agent', icon: <Bot className="h-5 w-5" />, group: '资源与练习' },
 
   // 分析与反馈
   { label: '学习报告', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
