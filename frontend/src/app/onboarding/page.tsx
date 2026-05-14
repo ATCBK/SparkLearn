@@ -1,4 +1,4 @@
-'use client'
+ 'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -288,7 +288,7 @@ export default function OnboardingPage() {
   const current = STEPS[step]
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-[#f5f7fa] px-4 py-8">
+    <div className="flex min-h-screen flex-col items-center px-4 py-8" style={{ backgroundImage: 'url(/ui-images/onboarding-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       {/* ═══ 顶部步骤指示器 ═══ */}
       <div className="mb-6 flex items-center justify-center gap-0">
         {STEPS.map((s, i) => (

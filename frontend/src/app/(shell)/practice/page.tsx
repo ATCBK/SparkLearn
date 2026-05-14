@@ -37,19 +37,48 @@ export default function PracticePage() {
   const [progressPage, setProgressPage] = useState(0)
   const [answerRecords, setAnswerRecords] = useState<AnswerRecord[]>([]) // 答题记录
 
-  // 初始加载题目 - 自动生成8道题
+  // 初始加载题目 - 自动生成4道题
   useEffect(() => {
-    void initializeQuestions()
+    let cancelled = false
+
+    async function init() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await api.getQuizQuestions('函数返回值', 4)
+        if (cancelled) return
+        if (data && data.length > 0) {
+          const enriched = data.map((q: any) => ({
+            ...q,
+            title: q.content || q.title || '题目',
+            question: q.content || q.question || '',
+          }))
+          setQuestions(enriched)
+          setCurrentIndex(0)
+          setSubmitted(false)
+          setSelectedAnswer(null)
+        } else {
+          setError('未获取到题目数据，请稍后重试')
+          setQuestions([])
+        }
+      } catch (ex) {
+        if (cancelled) return
+        setError(ex instanceof Error ? ex.message : '初始化题目失败')
+        setQuestions([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void init()
+    return () => { cancelled = true }
   }, [])
 
   async function initializeQuestions() {
     setLoading(true)
     setError('')
     try {
-      // 添加1-2秒的延迟，让用户看到加载动画
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000))
-      
-      const data = await api.getQuizQuestions('函数返回值', 4)
+      const data = await api.getQuizQuestions(topic, parseInt(count) || 4)
       if (data && data.length > 0) {
         const enriched = data.map((q: any) => ({
           ...q,
@@ -60,8 +89,8 @@ export default function PracticePage() {
         setCurrentIndex(0)
         setSubmitted(false)
         setSelectedAnswer(null)
-        setCount('4')
-        setTopic('函数返回值')
+        setAnswerRecords([])
+        setProgressPage(0)
       } else {
         setError('未获取到题目数据，请稍后重试')
         setQuestions([])
@@ -89,9 +118,6 @@ export default function PracticePage() {
     setGenerating(true)
     setError('')
     try {
-      // 添加1-2秒的延迟，让用户看到加载动画
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000))
-      
       const data = await api.getQuizQuestions(topic, countNum)
       if (data && data.length > 0) {
         const enriched = data.map((q: any) => ({

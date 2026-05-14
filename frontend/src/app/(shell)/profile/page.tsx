@@ -6,6 +6,9 @@ import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/compone
 
 export default function ProfilePage() {
   const [chatOpen, setChatOpen] = useState(false)
+  const [gender, setGender] = useState<'male' | 'female'>('male')
+
+  const avatarSrc = gender === 'male' ? '/ui-images/profile-male.png' : '/ui-images/profile-female.png'
 
   return (
     <div>
@@ -22,7 +25,22 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-[360px_1fr] gap-4 max-[1100px]:grid-cols-1">
         <ProtoCard className="relative min-h-[580px] overflow-hidden p-0">
-          <img src="/profile-anatomy-bg.png" alt="学生人物画像" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={avatarSrc} alt="学生人物画像" className="absolute inset-0 h-full w-full object-cover" />
+          {/* 性别切换按钮 */}
+          <div className="absolute top-4 right-4 z-10 flex gap-1 rounded-full bg-white/80 p-1 shadow-md backdrop-blur">
+            <button
+              onClick={() => setGender('male')}
+              className={`rounded-full px-3 py-1.5 text-micro font-bold transition-colors ${gender === 'male' ? 'bg-[#2563eb] text-white' : 'text-[#6b7280] hover:bg-[#f3f4f6]'}`}
+            >
+              男生
+            </button>
+            <button
+              onClick={() => setGender('female')}
+              className={`rounded-full px-3 py-1.5 text-micro font-bold transition-colors ${gender === 'female' ? 'bg-[#ec4899] text-white' : 'text-[#6b7280] hover:bg-[#f3f4f6]'}`}
+            >
+              女生
+            </button>
+          </div>
           <div className="absolute bottom-6 left-6 right-6 rounded-[14px] border border-line bg-white/92 p-4 shadow-md backdrop-blur">
             <Pill tone="blue">人物画像</Pill>
             <h2 className="mt-2 text-h2 font-bold text-ink">李明 · 项目实践准备期</h2>
@@ -31,15 +49,15 @@ export default function ProfilePage() {
         </ProtoCard>
 
         <div className="grid grid-cols-2 gap-4 max-[760px]:grid-cols-1">
-          <ProtoCard className="flex items-center gap-5">
-            <div className="grid h-[116px] w-[116px] shrink-0 place-items-center rounded-full border border-[#eef3f9]" style={{ background: 'radial-gradient(circle at center, #fff 0 40px, transparent 41px), conic-gradient(#2563eb 0 48%, #e8eff8 48% 100%)' }}>
-              <div className="text-center"><b className="block text-[28px] leading-none">48%</b><span className="text-[11px] text-muted">当前稳定度</span></div>
-            </div>
-            <div>
-              <Pill tone="orange">需要关注</Pill>
-              <h2 className="mt-3 text-h2 font-bold text-ink">函数返回值</h2>
-              <p className="mt-3 text-small leading-6 text-muted">这块不是完全不会，而是关键概念容易串线，导致一做题就乱。</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+          <ProtoCard>
+            <Pill tone="orange">需要关注</Pill>
+            <h2 className="mt-3 text-h2 font-bold text-ink">函数返回值</h2>
+            <p className="mt-2 text-small leading-6 text-muted">这块不是完全不会，而是关键概念容易串线，导致一做题就乱。</p>
+            <div className="mt-4 flex items-center gap-5">
+              <div className="grid h-[100px] w-[100px] shrink-0 place-items-center rounded-full border border-[#eef3f9]" style={{ background: 'radial-gradient(circle at center, #fff 0 34px, transparent 35px), conic-gradient(#2563eb 0 48%, #e8eff8 48% 100%)' }}>
+                <div className="text-center"><b className="block text-[24px] leading-none">48%</b><span className="text-[10px] text-muted">当前稳定度</span></div>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <Pill>return 和 print 容易混</Pill>
                 <Pill>局部变量作用范围不够稳</Pill>
               </div>

@@ -2211,5 +2211,51 @@
       "knowledge_point_name": "循环语句"
     },
     "at": "2026-05-12"
+  },
+  {
+    "quiz_id": "dq_a73f3e11_1",
+    "answer": "过滤",
+    "correct": false,
+    "correct_answer": "获取索引和值",
+    "knowledge_point_id": "2.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_a73f3e11_1",
+      "type": "single",
+      "content": "enumerate() 函数的作用是什么？",
+      "options": [
+        "计数",
+        "获取索引和值",
+        "排序",
+        "过滤"
+      ],
+      "explanation": "enumerate() 返回索引和对应的值。",
+      "knowledge_point_id": "2.1",
+      "knowledge_point_name": "循环语句"
+    },
+    "at": "2026-05-14"
+  },
+  {
+    "quiz_id": "dq_0d29aa62_1",
+    "answer": "字典键不存在",
+    "correct": true,
+    "correct_answer": "字典键不存在",
+    "knowledge_point_id": "4.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_0d29aa62_1",
+      "type": "single",
+      "content": "KeyError 异常表示什么？",
+      "options": [
+        "值错误",
+        "索引超出范围",
+        "字典键不存在",
+        "类型错误"
+      ],
+      "explanation": "KeyError 表示字典中访问的键不存在。",
+      "knowledge_point_id": "4.1",
+      "knowledge_point_name": "异常处理"
+    },
+    "at": "2026-05-14"
   }
 ]

@@ -104,6 +104,7 @@ export default function AuthPage() {
           width={68}
           height={56}
           className="brand-logo"
+          style={{ width: 'auto', height: 'auto' }}
           priority
         />
         <div>

@@ -207,7 +207,7 @@ export function AIAssistant() {
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center"
           style={{
-            background: 'linear-gradient(135deg, #1e1b4b, #312e81, #4c1d95)',
+            background: 'linear-gradient(135deg, #172554, #1e40af, #1e3a8a)',
             animation: 'fadeIn 0.3s ease forwards',
           }}
         >
@@ -852,11 +852,11 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     font-size: 12px;
     font-weight: 600;
     border-radius: 8px;
-    background: linear-gradient(135deg, #7c3aed, #9147ff);
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
     color: white;
 
     &:hover {
-      background: linear-gradient(135deg, #6d28d9, #7c3aed);
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
       color: white;
       transform: scale(1.02);
     }
@@ -882,7 +882,7 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
   .welcome-icon {
     font-size: 32px;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, #9147ff, #ec4899);
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -911,15 +911,15 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     padding: 6px 12px;
     font-size: 12px;
     border-radius: 16px;
-    border: 1px solid rgba(145, 71, 255, 0.2);
-    background: rgba(145, 71, 255, 0.05);
-    color: #7c3aed;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    background: rgba(37, 99, 235, 0.05);
+    color: #2563eb;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      background: rgba(145, 71, 255, 0.12);
-      border-color: rgba(145, 71, 255, 0.4);
+      background: rgba(37, 99, 235, 0.12);
+      border-color: rgba(37, 99, 235, 0.4);
     }
   }
 
@@ -946,7 +946,7 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #9147ff, #ec4899);
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
     display: flex;
     align-items: center;
     justify-content: center;

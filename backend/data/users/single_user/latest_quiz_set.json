@@ -1,36 +1,6 @@
 [
   {
-    "id": "dq_df15eb4d_1",
-    "type": "single",
-    "content": "readline() 方法的作用是什么？",
-    "options": [
-      "写入文件",
-      "读取整个文件",
-      "读取一行",
-      "关闭文件"
-    ],
-    "correct_answer": "读取一行",
-    "explanation": "readline() 方法读取文件的一行。",
-    "knowledge_point_id": "5.1",
-    "knowledge_point_name": "文件操作"
-  },
-  {
-    "id": "dq_df15eb4d_2",
-    "type": "single",
-    "content": "字典（dict）中的键必须是什么类型？",
-    "options": [
-      "任何类型",
-      "可哈希的不可变类型",
-      "字符串",
-      "整数"
-    ],
-    "correct_answer": "可哈希的不可变类型",
-    "explanation": "字典的键必须是可哈希的不可变类型，如字符串、数字、元组等。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_df15eb4d_3",
+    "id": "dq_0b6094db_1",
     "type": "single",
     "content": "AttributeError 异常表示什么？",
     "options": [
@@ -45,18 +15,42 @@
     "knowledge_point_name": "异常处理"
   },
   {
-    "id": "dq_df15eb4d_4",
+    "id": "dq_0b6094db_2",
     "type": "single",
-    "content": "Python 中用于定义函数的关键字是？",
+    "content": "not 运算符的作用是什么？",
     "options": [
-      "function",
-      "def",
-      "func",
-      "define"
+      "逻辑与",
+      "逻辑或",
+      "逻辑非",
+      "比较"
     ],
-    "correct_answer": "def",
-    "explanation": "Python 使用 def 关键字定义函数。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
+    "correct_answer": "逻辑非",
+    "explanation": "not 运算符用于逻辑非操作。",
+    "knowledge_point_id": "2.2",
+    "knowledge_point_name": "条件判断"
+  },
+  {
+    "id": "dq_0b6094db_3",
+    "type": "single",
+    "content": "以下哪个是 Python 中的逻辑运算符？",
+    "options": [
+      "&",
+      "|",
+      "and",
+      "&&"
+    ],
+    "correct_answer": "and",
+    "explanation": "Python 使用 and、or、not 作为逻辑运算符。",
+    "knowledge_point_id": "2.2",
+    "knowledge_point_name": "条件判断"
+  },
+  {
+    "id": "dq_0b6094db_4",
+    "type": "fill_blank",
+    "content": "字符串的 ______ 方法可以将字符串转换为大写。",
+    "correct_answer": "upper",
+    "explanation": "upper() 方法将字符串转换为大写。",
+    "knowledge_point_id": "1.4",
+    "knowledge_point_name": "字符串处理"
   }
 ]
