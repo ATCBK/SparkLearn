@@ -379,6 +379,29 @@ async def upload_tutor_file(files: list[UploadFile] = File(...)):
     return ok(saved)
 
 
+@router.get('/tutor/files')
+async def list_tutor_files():
+    """列出用户上传过的所有文件"""
+    rows = fetch_all(
+        'SELECT id, filename, mime_type, size_bytes, created_at FROM tutor_files WHERE user_id = ? ORDER BY created_at DESC',
+        (settings.single_user_id,),
+    )
+    return ok([dict(r) for r in rows])
+
+
+@router.delete('/tutor/files/{file_id}')
+async def delete_tutor_file(file_id: int):
+    """删除一个上传的文件"""
+    row = fetch_one('SELECT id, stored_path FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, settings.single_user_id))
+    if not row:
+        raise HTTPException(status_code=404, detail='文件不存在')
+    stored = Path(row['stored_path'])
+    if stored.exists():
+        stored.unlink()
+    execute('DELETE FROM tutor_files WHERE id = ?', (file_id,))
+    return ok({'deleted': True})
+
+
 @router.post('/tutor/chat')
 async def tutor_chat(req: TutorReq):
     conversation_id = req.conversation_id or _ensure_default_conversation()

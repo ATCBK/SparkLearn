@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { Target, Lightbulb, Clock } from 'lucide-react'
 
 export default function ProfilePage() {
   const [chatOpen, setChatOpen] = useState(false)
@@ -17,9 +18,9 @@ export default function ProfilePage() {
         title="学习画像"
         description="这一页只保留会直接影响你学习体验的内容：当前卡点、适合的学法和本阶段目标。"
         chips={[
-          { value: '48%', label: '返回值掌握' },
-          { value: '案例驱动', label: '学习偏好' },
-          { value: '08:12', label: '最近更新' },
+          { value: '48%', label: '返回值掌握', icon: <Target className="h-4 w-4" />, tone: 'purple' as const },
+          { value: '案例驱动', label: '学习偏好', icon: <Lightbulb className="h-4 w-4" />, tone: 'blue' as const },
+          { value: '08:12', label: '最近更新', icon: <Clock className="h-4 w-4" />, tone: 'green' as const },
         ]}
       />
 

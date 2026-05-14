@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronLeft, CheckCircle, XCircle } from 'lucide-react'
+import { ChevronLeft, CheckCircle, XCircle, ClipboardList, CheckCircle2, Target } from 'lucide-react'
 import { api } from '@/lib/api'
 import { PageHead, ProtoButton, ProtoCard, SoftCard, Pill } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -71,9 +71,9 @@ export default function PracticeRecordsPage() {
         description="查看你的所有答题记录和统计数据"
         actions={<ProtoButton href="/practice" variant="secondary"><ChevronLeft className="h-4 w-4" />返回练习</ProtoButton>}
         chips={[
-          { value: `${stats.total} 题`, label: '总计' },
-          { value: `${stats.correct} 题`, label: '正确' },
-          { value: `${stats.accuracy}%`, label: '正确率' },
+          { value: `${stats.total} 题`, label: '总计', icon: <ClipboardList className="h-4 w-4" />, tone: 'blue' as const },
+          { value: `${stats.correct} 题`, label: '正确', icon: <CheckCircle2 className="h-4 w-4" />, tone: 'green' as const },
+          { value: `${stats.accuracy}%`, label: '正确率', icon: <Target className="h-4 w-4" />, tone: 'purple' as const },
         ]}
       />
 

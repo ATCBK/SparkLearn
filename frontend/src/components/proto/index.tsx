@@ -67,6 +67,15 @@ export function ProtoButton({
   return <button className={cls} {...props}>{children}</button>
 }
 
+const chipTones = {
+  blue: { bg: 'bg-[#eff6ff]', text: 'text-[#2563eb]' },
+  green: { bg: 'bg-[#ecfdf5]', text: 'text-[#059669]' },
+  orange: { bg: 'bg-[#fff7ed]', text: 'text-[#d97706]' },
+  purple: { bg: 'bg-[#f3efff]', text: 'text-[#7c3aed]' },
+  cyan: { bg: 'bg-[#ecfeff]', text: 'text-[#0891b2]' },
+  red: { bg: 'bg-[#fef2f2]', text: 'text-[#dc2626]' },
+}
+
 export function PageHead({
   eyebrow,
   title,
@@ -78,7 +87,7 @@ export function PageHead({
   title: string
   description?: string
   actions?: React.ReactNode
-  chips?: Array<{ value: string; label: string }>
+  chips?: Array<{ value: string; label: string; icon?: React.ReactNode; tone?: keyof typeof chipTones }>
 }) {
   return (
     <header className="mb-5 flex items-start justify-between gap-6 border-b border-line pb-4">
@@ -87,13 +96,29 @@ export function PageHead({
         <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">{title}</h1>
         {description && <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">{description}</p>}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {chips?.map((chip) => (
-          <div key={chip.label} className="min-w-[108px] rounded-[10px] border border-line bg-white px-3 py-2">
-            <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
-            <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
-          </div>
-        ))}
+      <div className="flex shrink-0 items-center gap-2.5">
+        {chips?.map((chip) => {
+          const tone = chip.tone ? chipTones[chip.tone] : null
+          return (
+            <div key={chip.label} className="group relative min-w-[118px] overflow-hidden rounded-[12px] border border-line bg-white px-3.5 py-2.5 shadow-sm transition-shadow hover:shadow-md">
+              {/* 装饰性渐变角标 */}
+              {tone && (
+                <div className={cn('absolute -right-2 -top-2 h-8 w-8 rounded-full opacity-30', tone.bg)} />
+              )}
+              <div className="relative flex items-center gap-2.5">
+                {chip.icon && tone && (
+                  <div className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-lg', tone.bg, tone.text)}>
+                    {chip.icon}
+                  </div>
+                )}
+                <div>
+                  <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
+                  <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
         {actions}
       </div>
     </header>

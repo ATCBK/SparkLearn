@@ -497,6 +497,20 @@ export async function uploadTutorFiles(files: File[]): Promise<TutorFile[]> {
   }))
 }
 
+export async function getTutorFiles(): Promise<TutorFile[]> {
+  const data = await fetchJson<any[]>('/api/tutor/files')
+  return (data || []).map(f => ({
+    id: Number(f.id),
+    filename: String(f.filename || ''),
+    mimeType: String(f.mime_type || ''),
+    sizeBytes: Number(f.size_bytes || 0),
+  }))
+}
+
+export async function deleteTutorFile(fileId: number): Promise<void> {
+  await fetchJson(`/api/tutor/files/${fileId}`, { method: 'DELETE' })
+}
+
 export async function getQuizQuestions(chapter: string, count: number = 8): Promise<QuizQuestion[]> {
   const data = await fetchJson<any[]>(`/api/quiz?chapter=${encodeURIComponent(chapter)}&count=${Math.min(50, Math.max(1, count))}`)
   return data.map(q => ({

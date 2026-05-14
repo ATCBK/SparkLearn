@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Plus, Trash2, PieChart, ClipboardList, Flame, CheckCircle2, FileText, Brain, BookOpen, Sparkles } from 'lucide-react'
+import { Check, Plus, Trash2, PieChart, ClipboardList, Flame, CheckCircle2, FileText, Brain, BookOpen, Sparkles, Clock, GitBranch } from 'lucide-react'
 import { api, Recommendation, Resource, Task } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
@@ -78,9 +78,9 @@ export default function HomePage() {
         title="今日学习工作台"
         description="今天先把当前卡点补上，再完成一轮短练习，最后确认是否进入下一模块。"
         chips={[
-          { value: `${totalMinutes} 分钟`, label: '今日预计' },
-          { value: `${pending.length} 项`, label: '路径待确认' },
-          { value: '12 天', label: '连续学习' },
+          { value: `${totalMinutes} 分钟`, label: '今日预计', icon: <Clock className="h-4 w-4" />, tone: 'blue' as const },
+          { value: `${pending.length} 项`, label: '路径待确认', icon: <GitBranch className="h-4 w-4" />, tone: 'orange' as const },
+          { value: '12 天', label: '连续学习', icon: <Flame className="h-4 w-4" />, tone: 'green' as const },
         ]}
       />
 

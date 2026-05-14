@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, FileText, Sparkles, BarChart3 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, FileText, Sparkles, BarChart3, Clock, CheckCircle2, Target } from 'lucide-react'
 import { PageHead, Pill, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { api, ReportData } from '@/lib/api'
@@ -156,9 +156,9 @@ export default function ReportPage() {
         title="学习报告"
         description="通过热力图和 AI 报告全面了解你的学习节奏与效率。"
         chips={report ? [
-          { value: `${report.stats.totalHours}h`, label: '学习时长' },
-          { value: `${Math.round(report.stats.taskCompletionRate * 100)}%`, label: '任务完成' },
-          { value: `${Math.round(report.stats.quizAccuracy * 100)}%`, label: '练习正确率' },
+          { value: `${report.stats.totalHours}h`, label: '学习时长', icon: <Clock className="h-4 w-4" />, tone: 'blue' as const },
+          { value: `${Math.round(report.stats.taskCompletionRate * 100)}%`, label: '任务完成', icon: <CheckCircle2 className="h-4 w-4" />, tone: 'green' as const },
+          { value: `${Math.round(report.stats.quizAccuracy * 100)}%`, label: '练习正确率', icon: <Target className="h-4 w-4" />, tone: 'purple' as const },
         ] : undefined}
       />
 

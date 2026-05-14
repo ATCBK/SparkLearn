@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code } from 'lucide-react'
+import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -113,9 +113,9 @@ export default function GeneratePage() {
           title="资源库"
           description="所有生成和推荐过的资源都会沉淀在这里，学习进度会影响后续练习与报告。"
           chips={[
-            { value: `${resources.length}`, label: '已保存资源' },
-            { value: `${resources.filter(r => r.status === 'completed').length}`, label: '可学习' },
-            { value: `${resources.filter(r => r.type === 'ppt').length}`, label: 'PPT' },
+            { value: `${resources.length}`, label: '已保存资源', icon: <Database className="h-4 w-4" />, tone: 'cyan' as const },
+            { value: `${resources.filter(r => r.status === 'completed').length}`, label: '可学习', icon: <BookOpen className="h-4 w-4" />, tone: 'green' as const },
+            { value: `${resources.filter(r => r.type === 'ppt').length}`, label: 'PPT', icon: <Presentation className="h-4 w-4" />, tone: 'purple' as const },
           ]}
         />
 

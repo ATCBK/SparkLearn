@@ -36,6 +36,8 @@ export const api = {
   deleteTutorConversation: impl.deleteTutorConversation,
   deleteTutorMessage: impl.deleteTutorMessage,
   uploadTutorFiles: impl.uploadTutorFiles,
+  getTutorFiles: impl.getTutorFiles,
+  deleteTutorFile: impl.deleteTutorFile,
 
   getQuizQuestions: impl.getQuizQuestions,
   submitQuizAnswer: impl.submitQuizAnswer,
