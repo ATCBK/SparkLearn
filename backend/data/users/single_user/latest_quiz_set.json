@@ -1,62 +1,56 @@
 [
   {
-    "id": "dq_5ac192f9_1",
+    "id": "dq_d9ffee26_1",
     "type": "single",
-    "content": "列表的 sort() 方法会改变原列表吗？",
+    "content": "字符串的 title() 方法的作用是什么？",
     "options": [
-      "不会",
-      "会",
-      "取决于参数",
-      "取决于列表大小"
+      "转换为大写",
+      "转换为小写",
+      "每个单词首字母大写",
+      "删除空格"
     ],
-    "correct_answer": "会",
-    "explanation": "sort() 方法会原地排序列表，改变原列表。",
-    "knowledge_point_id": "1.3",
-    "knowledge_point_name": "列表操作"
+    "correct_answer": "每个单词首字母大写",
+    "explanation": "title() 将每个单词的首字母转为大写。",
+    "knowledge_point_id": "1.4",
+    "knowledge_point_name": "字符串处理"
   },
   {
-    "id": "dq_5ac192f9_2",
+    "id": "dq_d9ffee26_2",
     "type": "single",
-    "content": "for 循环中 range(5) 会生成什么？",
+    "content": "以下哪个是函数的默认参数？",
     "options": [
-      "0到5",
-      "0到4",
-      "1到5",
-      "1到4"
+      "def func(a, b=5):",
+      "def func(a=5, b):",
+      "def func(a, b):",
+      "def func(a=5, b=10):"
     ],
-    "correct_answer": "0到4",
-    "explanation": "range(5) 生成 0, 1, 2, 3, 4。",
-    "knowledge_point_id": "2.1",
-    "knowledge_point_name": "循环语句"
-  },
-  {
-    "id": "dq_5ac192f9_3",
-    "type": "single",
-    "content": "函数中 *args 的作用是什么？",
-    "options": [
-      "接收关键字参数",
-      "接收可变数量的位置参数",
-      "接收单个参数",
-      "接收列表参数"
-    ],
-    "correct_answer": "接收可变数量的位置参数",
-    "explanation": "*args 用于接收任意数量的位置参数，作为元组存储。",
+    "correct_answer": "def func(a, b=5):",
+    "explanation": "默认参数必须在非默认参数之后。",
     "knowledge_point_id": "3.1",
     "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_5ac192f9_4",
+    "id": "dq_d9ffee26_3",
     "type": "single",
-    "content": "not 运算符的作用是什么？",
+    "content": "write() 方法的作用是什么？",
     "options": [
-      "逻辑与",
-      "逻辑或",
-      "逻辑非",
-      "比较"
+      "读取文件",
+      "写入字符串",
+      "读取一行",
+      "关闭文件"
     ],
-    "correct_answer": "逻辑非",
-    "explanation": "not 运算符用于逻辑非操作。",
-    "knowledge_point_id": "2.2",
-    "knowledge_point_name": "条件判断"
+    "correct_answer": "写入字符串",
+    "explanation": "write() 方法将字符串写入文件。",
+    "knowledge_point_id": "5.1",
+    "knowledge_point_name": "文件操作"
+  },
+  {
+    "id": "dq_d9ffee26_4",
+    "type": "fill_blank",
+    "content": "列表的 ______ 方法可以清空列表中的所有元素。",
+    "correct_answer": "clear",
+    "explanation": "clear() 方法删除列表中的所有元素。",
+    "knowledge_point_id": "1.3",
+    "knowledge_point_name": "列表操作"
   }
 ]
