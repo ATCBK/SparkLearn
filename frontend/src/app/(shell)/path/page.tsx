@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Link from 'next/link'
 import { Zap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -146,59 +147,46 @@ export default function PathPage() {
   const handleRegeneratePath = async () => {
     setLoading(true)
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/path-planning/generate`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ target: targetInput }),
+      const data = await api.generatePathPlanning(targetInput)
+      if (data) {
+        // 更新建议和资源
+        if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+          setGeneratedSuggestions(data.suggestions)
         }
-      )
-      
-      if (response.ok) {
-        const json = await response.json()
-        const data = json.data || json
-        if (data) {
-          // 更新建议和资源
-          if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
-            setGeneratedSuggestions(data.suggestions)
-          }
-          if (Array.isArray(data.resources) && data.resources.length > 0) {
-            setGeneratedResources(data.resources)
-          }
+        if (Array.isArray(data.resources) && data.resources.length > 0) {
+          setGeneratedResources(data.resources)
+        }
 
-          // 更新路径回路节点
-          if (Array.isArray(data.phases) && data.phases.length === 3) {
-            const PHASE_COLORS = ['#16A34A', '#2563EB', '#94A3B8']
-            const PHASE_DESCS = ['夯实基础', '能力达标', '应用提升']
-            const newPhases: Phase[] = data.phases.map((p: any, pIdx: number) => {
-              const phaseId = (pIdx + 1) as 1 | 2 | 3
-              const nodes: PathNode[] = (p.nodes || []).map((n: any, nIdx: number) => {
-                // 新生成的路径：第一阶段全部 current，后面 locked
-                let status: PathNode['status'] = 'locked'
-                if (pIdx === 0 && nIdx === 0) status = 'current'
-                else if (pIdx === 0) status = 'next'
-                return {
-                  id: Number(n.id || (pIdx * 4 + nIdx + 1)),
-                  title: String(n.title || `步骤 ${nIdx + 1}`),
-                  status,
-                  phase: phaseId,
-                }
-              })
+        // 更新路径回路节点
+        const phases_data = (data as any).phases
+        if (Array.isArray(phases_data) && phases_data.length === 3) {
+          const PHASE_COLORS = ['#16A34A', '#2563EB', '#94A3B8']
+          const PHASE_DESCS = ['夯实基础', '能力达标', '应用提升']
+          const newPhases: Phase[] = phases_data.map((p: any, pIdx: number) => {
+            const phaseId = (pIdx + 1) as 1 | 2 | 3
+            const nodes: PathNode[] = (p.nodes || []).map((n: any, nIdx: number) => {
+              let status: PathNode['status'] = 'locked'
+              if (pIdx === 0 && nIdx === 0) status = 'current'
+              else if (pIdx === 0) status = 'next'
               return {
-                id: phaseId,
-                title: String(p.title || `阶段 ${phaseId}`),
-                subtitle: `${phaseId} / 3`,
-                color: PHASE_COLORS[pIdx],
-                description: String(p.description || PHASE_DESCS[pIdx]),
-                nodes,
+                id: Number(n.id || (pIdx * 4 + nIdx + 1)),
+                title: String(n.title || `步骤 ${nIdx + 1}`),
+                status,
+                phase: phaseId,
               }
             })
-            setPhases(newPhases)
-            // 选中新路径的第一个节点
-            if (newPhases[0]?.nodes[0]) {
-              setSelectedNodeId(newPhases[0].nodes[0].id)
+            return {
+              id: phaseId,
+              title: String(p.title || `阶段 ${phaseId}`),
+              subtitle: `${phaseId} / 3`,
+              color: PHASE_COLORS[pIdx],
+              description: String(p.description || PHASE_DESCS[pIdx]),
+              nodes,
             }
+          })
+          setPhases(newPhases)
+          if (newPhases[0]?.nodes[0]) {
+            setSelectedNodeId(newPhases[0].nodes[0].id)
           }
         }
       }
@@ -329,10 +317,10 @@ function SummaryBar() {
 
         {/* 操作按钮 */}
         <div className="flex flex-col gap-2 pl-6">
-          <button className="rounded-[10px] bg-[#2563EB] px-4 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors">
+          <Link href="/path" className="rounded-[10px] bg-[#2563EB] px-4 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors text-center">
             开始今日路径
-          </button>
-          <button className="rounded-[10px] border border-[#E5EAF2] bg-white px-4 py-2 text-sm font-bold text-[#111827] hover:border-[#2563EB] transition-colors">
+          </Link>
+          <button onClick={() => document.querySelector<HTMLInputElement>('[data-target-input]')?.focus()} className="rounded-[10px] border border-[#E5EAF2] bg-white px-4 py-2 text-sm font-bold text-[#111827] hover:border-[#2563EB] transition-colors">
             调整目标
           </button>
         </div>
@@ -372,6 +360,7 @@ function PathCircuitCard({
             value={targetInput}
             onChange={(e) => setTargetInput(e.target.value)}
             placeholder="输入目标，AI 会重排路径…"
+            data-target-input
             className="h-9 w-64 rounded-[10px] border border-[#E5EAF2] bg-[#F9FAFB] px-3 text-sm outline-none focus:border-[#2563EB] focus:bg-white transition-colors"
           />
           <button 
@@ -405,15 +394,15 @@ function PathCircuitCard({
 
       {/* 底部按钮 */}
       <div className="mt-4 flex gap-3">
-        <button className="rounded-[10px] bg-[#2563EB] px-6 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors">
+        <Link href="/generate" className="rounded-[10px] bg-[#2563EB] px-6 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors">
           学习当前节点资源
-        </button>
-        <button className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-2 text-sm font-bold text-[#2563EB] hover:border-[#2563EB] transition-colors">
+        </Link>
+        <Link href="/practice" className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-2 text-sm font-bold text-[#2563EB] hover:border-[#2563EB] transition-colors">
           进入当前节点练习
-        </button>
-        <button className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-2 text-sm font-bold text-[#111827] hover:border-[#E5EAF2] transition-colors">
+        </Link>
+        <Link href="/generate" className="rounded-[10px] border border-[#E5EAF2] bg-white px-6 py-2 text-sm font-bold text-[#111827] hover:border-[#E5EAF2] transition-colors">
           生成补弱资源
-        </button>
+        </Link>
       </div>
     </div>
   )
@@ -707,7 +696,7 @@ function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources 
 
         {/* 底部操作 */}
         <div className="mt-4 border-t border-[#E5EAF2] pt-3">
-          <a href="/resources" className="block w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors text-center">
+          <a href="/generate" className="block w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors text-center">
             查看全部资源
           </a>
         </div>

@@ -541,7 +541,7 @@ export default function PracticePage() {
                       <p className="mt-3 text-small leading-6 text-muted">{currentQuestion.explanation || '暂无解析'}</p>
                       <div className="mt-4 flex flex-wrap gap-2.5">
                         <ProtoButton href="/generate">一键生成补弱资源</ProtoButton>
-                        <ProtoButton href="/resources" variant="secondary">查看推荐资源</ProtoButton>
+                        <ProtoButton href="/generate" variant="secondary">查看推荐资源</ProtoButton>
                       </div>
                     </SoftCard>
                   )}

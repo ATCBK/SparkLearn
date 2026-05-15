@@ -347,7 +347,7 @@ export default function GeneratePage() {
                 </SoftCard>
                 <div className="flex gap-2">
                   {resource.type === 'video' ? (
-                    <ProtoButton href="/video" variant="primary">前往视频页面</ProtoButton>
+                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">在资源库中查看</button>
                   ) : (
                     <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">进入资源库</button>
                   )}

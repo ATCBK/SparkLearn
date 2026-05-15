@@ -118,14 +118,14 @@ export default function ProfilePage() {
         </ProtoCard>
 
         <ProtoCard>
-          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">最近学习过的资源</h2><ProtoButton href="/resources" variant="ghost">查看全部 →</ProtoButton></div>
+          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">最近学习过的资源</h2><ProtoButton href="/generate" variant="ghost">查看全部 →</ProtoButton></div>
           <p className="mt-5 text-small leading-6 text-muted">从这里继续上次没学完的内容，不用重新找入口。</p>
           <div className="mt-4 space-y-3">
             <Resource title="return 到底返回给谁" meta="视频 · 已学习 70% · 来源：错题补弱" tag="继续学习" />
             <Resource title="函数作用域错题讲义" meta="文档 · 已打开 2 次 · 来源：练习错题" tag="已纳入画像" />
             <Resource title="成绩统计小项目代码案例" meta="代码案例 · 已学习 35% · 来源：画像偏好" tag="待完成" />
           </div>
-          <div className="mt-4 flex flex-wrap gap-2.5"><ProtoButton href="/resources" variant="secondary">继续最近资源</ProtoButton><ProtoButton href="/generate" variant="tertiary">生成补弱资源</ProtoButton></div>
+          <div className="mt-4 flex flex-wrap gap-2.5"><ProtoButton href="/generate" variant="secondary">继续最近资源</ProtoButton><ProtoButton href="/generate" variant="tertiary">生成补弱资源</ProtoButton></div>
         </ProtoCard>
       </div>
 

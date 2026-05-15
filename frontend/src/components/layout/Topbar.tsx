@@ -8,15 +8,12 @@ const PAGE_NAMES: Record<string, { group: string; title: string }> = {
   '/profile/settings': { group: '底部', title: '个人信息' },
   '/path': { group: 'SparkLearn', title: '个性化路径' },
   '/generate': { group: 'SparkLearn', title: '资源中心' },
-  '/resources': { group: 'SparkLearn', title: '资源库' },
   '/knowledge': { group: 'SparkLearn', title: '知识库' },
   '/practice': { group: 'SparkLearn', title: '练习评测' },
   '/practice/mistakes': { group: 'SparkLearn', title: '错题本' },
   '/practice/favorites': { group: 'SparkLearn', title: '收藏题目' },
   '/report': { group: 'SparkLearn', title: '学习报告' },
-  '/loop': { group: 'SparkLearn', title: '复习计划' },
   '/tutor': { group: '工具', title: '智能辅导' },
-  '/video': { group: '工具', title: '视频中心' },
 }
 
 export function Topbar({ sidebarWidth }: { sidebarWidth: number }) {

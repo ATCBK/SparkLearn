@@ -120,7 +120,7 @@ export default function HomePage() {
             <Pill tone="green">预计 {totalMinutes} 分钟</Pill>
           </div>
           <div className="flex flex-wrap gap-2.5 pt-1">
-            <ProtoButton href="/resources">开始回顾资源</ProtoButton>
+            <ProtoButton href="/generate">开始回顾资源</ProtoButton>
             <ProtoButton href="/practice" variant="secondary">先做练习</ProtoButton>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function HomePage() {
               </div>
               <h2 className="text-h2 font-bold text-ink">今日新资源推荐</h2>
             </div>
-            <ProtoButton href="/resources" variant="ghost">查看全部 →</ProtoButton>
+            <ProtoButton href="/generate" variant="ghost">查看全部 →</ProtoButton>
           </div>
           <div className="mt-5 space-y-1">
             {(recs.length ? recs : resources.map((resource, idx) => ({
@@ -255,7 +255,7 @@ function Reco({ title, meta, action }: { title: string; meta: string; action: st
         <b className="block text-small text-ink">{title}</b>
         <span className="mt-1 block text-micro leading-5 text-muted">{meta}</span>
       </div>
-      <ProtoButton href="/resources" variant="tertiary">{action}</ProtoButton>
+      <ProtoButton href="/generate" variant="tertiary">{action}</ProtoButton>
     </SoftCard>
   )
 }
