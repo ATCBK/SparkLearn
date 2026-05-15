@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { Zap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
@@ -73,8 +72,8 @@ const SUGGESTIONS = [
 ]
 
 const RESOURCES = [
-  { id: 1, title: '函数返回值项目讲义', tag: '优先学习', link: '/resources?type=lecture&id=1' },
-  { id: 2, title: '函数作用域精讲讲义', tag: '待复习', link: '/resources?type=lecture&id=2' },
+  { id: 1, title: '函数返回值项目讲义', tag: '优先学习', link: '/generate?tab=library&type=lecture&id=1' },
+  { id: 2, title: '函数作用域精讲讲义', tag: '待复习', link: '/generate?tab=library&type=lecture&id=2' },
   { id: 3, title: '返回值补弱题练', tag: '5 题', link: '/practice?topic=返回值' },
 ]
 
@@ -133,9 +132,9 @@ export default function PathPage() {
         { id: 3, text: `掌握 ${goal} 的核心概念`, desc: '根据当前节点自动推荐的学习重点。' },
       ])
       setGeneratedResources([
-        { id: 1, title: `${goal}精讲讲义`, tag: '优先学习', link: `/resources?type=lecture&goal=${encodeURIComponent(goal)}` },
+        { id: 1, title: `${goal}精讲讲义`, tag: '优先学习', link: `/generate?tab=library&type=lecture&goal=${encodeURIComponent(goal)}` },
         { id: 2, title: `${goal}补弱题练`, tag: '5题', link: `/practice?topic=${encodeURIComponent(goal)}` },
-        { id: 3, title: `${goal}项目案例`, tag: '待复习', link: `/resources?type=project&goal=${encodeURIComponent(goal)}` },
+        { id: 3, title: `${goal}项目案例`, tag: '待复习', link: `/generate?tab=library&type=project&goal=${encodeURIComponent(goal)}` },
       ])
     } finally {
       if (seq === requestSeqRef.current) {
@@ -234,24 +233,6 @@ export default function PathPage() {
   )
 }
 
-// ============ 顶部栏 ============
-function TopBar() {
-  return (
-    <div className="fixed left-0 right-0 top-0 z-10 h-14 border-b border-[#E5EAF2] bg-white">
-      <div className="flex h-full items-center justify-between px-8">
-        <div className="text-sm font-bold text-[#6B7280]">
-          SparkLearn / <span className="text-[#111827]">个性化路径</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">
-            李
-          </div>
-          <span className="text-sm font-bold text-[#111827]">李明</span>
-        </div>
-      </div>
-    </div>
-  )
-}
 function PageHeader() {
   return (
     <div className="mb-6">
@@ -587,29 +568,7 @@ function PathNode({ node, isSelected, onClick, width = 150, height = 72 }: PathN
   )
 }
 
-// ============ 转弯线 ============
-interface TurnLineProps {
-  top: number
-  left: number
-  color: string
-}
-
-function TurnLine({ top, left, color }: TurnLineProps) {
-  return (
-    <div
-      className="absolute"
-      style={{
-        top,
-        left,
-        width: 64,
-        height: 96,
-        border: `3px solid ${color}`,
-        borderLeft: 'none',
-        borderRadius: '0 32px 32px 0',
-      }}
-    />
-  )
-}// ============ 右侧建议栏 ============
+// ============ 右侧建议栏 ============
 interface SuggestionPanelProps {
   selectedNodeId: number | null
   suggestions?: Array<{ id: number; text: string; desc: string }>
@@ -704,14 +663,5 @@ function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources 
         )}
       </div>
     </div>
-  )
-}
-
-// ============ AI 悬浮按钮 ============
-function AIFloatingButton() {
-  return (
-    <button className="fixed bottom-8 right-8 flex h-14 w-14 items-center justify-center rounded-full bg-[#2563EB] text-white shadow-lg hover:bg-[#1d4ed8] transition-colors">
-      <Zap className="h-6 w-6" />
-    </button>
   )
 }

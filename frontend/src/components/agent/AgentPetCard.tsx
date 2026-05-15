@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { AgentPet, api } from '@/lib/api'
 import { ProtoCard, Pill, Bar } from '@/components/proto'
 import { Settings, Star } from 'lucide-react'
+import { PetAvatar, PetType } from './PetAvatar'
 
-const AVATAR_EMOJI: Record<string, string> = { fox: '🦊', owl: '🦉', robot: '🤖' }
+const AVATAR_EMOJI: Record<string, string> = { fox: '🦊', owl: '🦉', robot: '🤖', cat: '🐱', dragon: '🐲', penguin: '🐧', bunny: '🐰', panda: '🐼' }
 const PERSONALITY_LABEL: Record<string, string> = { concise: '简洁型', verbose: '话多型', encouraging: '鼓励型' }
 const ABILITY_LABELS: Record<string, string> = {
   search: '搜索资料',
@@ -51,7 +52,9 @@ export function AgentPetCard({ pet, onUpdate }: Props) {
 
       {/* Avatar + Info */}
       <div className="text-center">
-        <div className="text-5xl mb-2">{AVATAR_EMOJI[pet.avatar] || '🦊'}</div>
+        <div className="flex justify-center mb-2">
+          <PetAvatar type={pet.avatar as PetType} state="idle" size="lg" />
+        </div>
         <h3 className="text-lg font-bold text-[#111827]">{pet.name}</h3>
         <div className="flex items-center justify-center gap-2 mt-1">
           <Pill tone="orange"><Star className="h-3 w-3" /> Lv.{pet.level}</Pill>

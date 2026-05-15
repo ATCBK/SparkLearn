@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/agent", tags=["agent"])
 
 # --- Constants ---
 
-AVATARS = ("fox", "owl", "robot")
+AVATARS = ("fox", "owl", "robot", "cat", "dragon", "penguin", "bunny", "panda")
 PERSONALITIES = ("concise", "verbose", "encouraging")
 TASK_TYPES = ("search", "summarize", "compare", "recommend")
 

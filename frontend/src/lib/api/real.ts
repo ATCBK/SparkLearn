@@ -1015,3 +1015,28 @@ export async function bookmarkAgentResult(payload: BookmarkPayload): Promise<{ t
 export async function getAgentRecommendations(): Promise<{ items: Array<{ title: string; summary: string; url: string; reason: string }>; date: string }> {
   return fetchJson('/api/agent/recommendations')
 }
+
+// ─── Voice TTS API ─────────────────────────────────────────────────────────────
+
+export async function synthesizeSpeech(text: string, options?: { voice?: string; speed?: number; volume?: number; pitch?: number }): Promise<Blob> {
+  const res = await fetch(`${API_BASE}/api/voice/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text,
+      voice: options?.voice || '',
+      speed: options?.speed ?? 50,
+      volume: options?.volume ?? 60,
+      pitch: options?.pitch ?? 50,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: '语音合成失败' }))
+    throw new Error(err.error || `语音合成失败：${res.status}`)
+  }
+  return res.blob()
+}
+
+export async function getTtsStatus(): Promise<{ provider: string; configured: boolean; default_voice: string; text_limit: number }> {
+  return fetchJson('/api/voice/tts/status')
+}

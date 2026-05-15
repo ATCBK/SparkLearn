@@ -17,7 +17,7 @@ export default function ShellLayout({
   return (
     <div className="min-h-screen bg-bg">
       <Sidebar state={sidebarState} onStateChange={setSidebarState} />
-      <Topbar sidebarWidth={sidebarWidth} />
+      <Topbar sidebarWidth={sidebarWidth} sidebarExpanded={sidebarState === 'expanded'} onToggleSidebar={() => setSidebarState(sidebarState === 'expanded' ? 'icons' : 'expanded')} />
       <main
         className="min-h-screen pt-14 transition-[margin-left] duration-300 ease-out"
         style={{

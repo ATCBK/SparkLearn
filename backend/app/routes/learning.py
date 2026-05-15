@@ -330,7 +330,9 @@ async def get_mastery():
 
 @router.get('/dashboard/stats')
 async def get_dashboard_stats():
-    report = await get_evaluation_report()  # type: ignore[name-defined]
+    from .report_service import get_evaluation_report
+
+    report = await get_evaluation_report()
     stats = report.data['stats']
     return ok(stats)
 
@@ -609,5 +611,4 @@ def _profile_dict(row) -> dict[str, Any]:
     }
 
 
-# lazy import to avoid circular reference
-from .tutor_eval import get_evaluation_report  # noqa: E402
+

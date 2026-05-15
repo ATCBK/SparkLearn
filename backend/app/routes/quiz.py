@@ -332,6 +332,9 @@ async def delete_quiz_record(quiz_id: str):
     write_json(settings.single_user_id, 'quiz_records.json', filtered)
     
     return ok({'quiz_id': quiz_id, 'removed_count': removed})
+
+
+@router.get('/wrong')
 async def get_wrong_quiz():
     records = read_json(settings.single_user_id, 'quiz_records.json', [])
     wrong = [r for r in records if not r.get('correct', False)]

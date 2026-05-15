@@ -425,9 +425,19 @@ const data = await api.generatePathPlanning(targetInput)
 
 ## 八、快速修复清单（可立即执行）
 
-- [ ] 修复 `report/page.tsx` 中的环境变量名：`NEXT_PUBLIC_API_BASE` → `NEXT_PUBLIC_API_BASE_URL`
-- [ ] 在侧边栏 `NAV_ITEMS` 中添加"复习计划"（`/loop`）入口
-- [ ] 在练习页头部添加"答题记录"按钮链接到 `/practice/records`
-- [ ] 删除 `onboarding/page.tsx` 中未使用的 `Target` 和 `Clock` 导入
-- [ ] 删除或归档 `path/page-new.tsx`
-- [ ] 将 `path/page.tsx` 中的 raw fetch 替换为 `api.generatePathPlanning()`
+- [x] 修复 `report/page.tsx` 中的环境变量名：`NEXT_PUBLIC_API_BASE` → `NEXT_PUBLIC_API_BASE_URL`（已在之前修复）
+- [x] 删除 `onboarding/page.tsx` 中未使用的 `Target` 和 `Clock` 导入（已在之前修复）
+- [x] 删除或归档 `path/page-new.tsx`（已在之前修复）
+- [x] 将 `path/page.tsx` 中的 raw fetch 替换为 `api.generatePathPlanning()`（已在之前修复）
+- [x] 后端循环导入重构：抽取 `report_service.py` 独立模块（#2）
+- [x] 侧边栏折叠状态响应：根据 state 动态设置宽度（#3）
+- [x] 删除 `/loop` 复习计划页面（用户决定删除）
+- [x] `/resources` 链接全部改为 `/generate`（#5 方案 A）
+- [x] 退出登录功能：侧边栏底部添加真正的退出按钮（#6）
+- [x] 删除 ThemeSwitch 组件（#9 - 用户决定删除）
+- [x] CORS 配置统一：使用 `cors_origins` 列表同时允许 localhost 和 127.0.0.1（#12）
+- [x] 修复 quiz.py 中 `get_wrong_quiz` 缺失的 `@router.get('/wrong')` 装饰器
+- [x] 清理 `path/page.tsx` 冗余代码：删除 TopBar、AIFloatingButton、TurnLine（#25）
+- [x] 清理 `report/page.tsx` 冗余代码：删除 formatDate、reportLoading（#25）
+- [x] 清理 `config.py` 重复的 `agent_browser_headless` 配置
+

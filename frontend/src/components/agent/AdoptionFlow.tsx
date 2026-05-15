@@ -3,13 +3,18 @@
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import { ProtoButton, ProtoCard } from '@/components/proto'
-import { Check, Target, Clock, Sparkles } from 'lucide-react'
+import { Check, Target, Clock, Sparkles, Search, FileText, GitCompare, BookOpen, TrendingUp } from 'lucide-react'
 import { PetAvatar, PetType } from './PetAvatar'
 
-const AVATARS: Array<{ id: PetType; name: string; desc: string; trait: string }> = [
-  { id: 'fox', name: '小狐狸', desc: '机灵好奇，善于发现新资源', trait: '搜索能力强' },
-  { id: 'owl', name: '猫头鹰', desc: '博学沉稳，善于分析和总结', trait: '分析能力强' },
-  { id: 'robot', name: '小机器人', desc: '高效精准，善于整理和规划', trait: '整理能力强' },
+const AVATARS: Array<{ id: PetType; name: string; desc: string; trait: string; category: string }> = [
+  { id: 'fox', name: '灵狐', desc: '机灵好奇，擅长快速搜索和发现优质学习资源', trait: '搜索发现', category: '探索系' },
+  { id: 'owl', name: '智枭', desc: '博学沉稳，擅长深度分析和知识点总结归纳', trait: '分析总结', category: '学术系' },
+  { id: 'robot', name: '芯助', desc: '高效精准，擅长整理笔记和制定学习计划', trait: '规划整理', category: '效率系' },
+  { id: 'cat', name: '星猫', desc: '灵动优雅，擅长陪伴式学习和情绪调节', trait: '陪伴激励', category: '陪伴系' },
+  { id: 'dragon', name: '焰龙', desc: '热情勇敢，擅长攻克难题和挑战高难度内容', trait: '攻坚克难', category: '挑战系' },
+  { id: 'penguin', name: '冰企', desc: '踏实可靠，擅长每日打卡和习惯养成督促', trait: '习惯养成', category: '坚持系' },
+  { id: 'bunny', name: '棉兔', desc: '温柔耐心，擅长错题分析和薄弱点针对训练', trait: '查漏补缺', category: '补强系' },
+  { id: 'panda', name: '竹圆', desc: '从容淡定，擅长知识梳理和构建知识体系图谱', trait: '体系构建', category: '体系系' },
 ]
 
 const COMPANION_STYLES = [
@@ -108,31 +113,56 @@ export function AdoptionFlow({ onAdopted }: Props) {
       {step === 0 && (
         <div>
           <h2 className="text-lg font-bold text-center mb-2">选择你的学习伙伴</h2>
-          <p className="text-sm text-[#6b7280] text-center mb-6">它将陪伴你的整个学习旅程</p>
-          <div className="grid grid-cols-3 gap-4">
+          <p className="text-sm text-[#6b7280] text-center mb-2">每只学伴都有独特的性格和擅长领域，它将陪伴你的整个学习旅程。</p>
+          <div className="bg-[#eff6ff] rounded-lg px-3 py-2 text-xs text-[#2563eb] text-center mb-5">
+            💡 学伴的特长会影响它帮你学习的方式——比如「灵狐」更擅长帮你找资料，「棉兔」更擅长帮你分析错题。
+          </div>
+          <div className="grid grid-cols-4 gap-3 max-[640px]:grid-cols-2">
             {AVATARS.map(a => (
               <button
                 key={a.id}
                 onClick={() => setAvatar(a.id)}
-                className={`p-5 rounded-xl border-2 transition-all text-center ${
+                className={`p-3 rounded-xl border-2 transition-all text-center ${
                   avatar === a.id
-                    ? 'border-[#2563eb] bg-[#eff6ff] shadow-md scale-[1.02]'
+                    ? 'border-[#2563eb] bg-[#eff6ff] shadow-md scale-[1.03]'
                     : 'border-[#e2e8f0] hover:border-[#93c5fd] hover:bg-[#f8fafc]'
                 }`}
               >
-                <div className="flex justify-center mb-3">
-                  <PetAvatar type={a.id} state={avatar === a.id ? 'waiting' : 'idle'} size="md" />
+                <div className="flex justify-center mb-2">
+                  <PetAvatar type={a.id} state={avatar === a.id ? 'waiting' : 'idle'} size="sm" />
                 </div>
-                <div className="font-bold text-[#111827]">{a.name}</div>
-                <div className="text-xs text-[#6b7280] mt-1">{a.desc}</div>
-                <div className="mt-2 inline-block px-2 py-0.5 rounded-full bg-[#eff6ff] text-[10px] font-medium text-[#2563eb]">
-                  {a.trait}
+                <div className="font-bold text-sm text-[#111827]">{a.name}</div>
+                <div className="text-[10px] text-[#6b7280] mt-0.5 line-clamp-2 leading-tight">{a.desc}</div>
+                <div className="mt-1.5 inline-block px-1.5 py-0.5 rounded-full bg-[#f1f5f9] text-[10px] font-medium text-[#475569]">
+                  {a.category}
                 </div>
               </button>
             ))}
           </div>
+
+          {/* 选中学伴的详细介绍 */}
+          {avatar && (
+            <div className="mt-4 p-4 rounded-xl bg-[#f8fafc] border border-[#e2e8f0]">
+              <div className="flex items-center gap-3">
+                <PetAvatar type={avatar} state="idle" size="md" />
+                <div>
+                  <div className="font-bold text-[#111827]">{AVATARS.find(a => a.id === avatar)?.name}</div>
+                  <div className="text-xs text-[#6b7280] mt-0.5">{AVATARS.find(a => a.id === avatar)?.desc}</div>
+                  <div className="flex gap-2 mt-2">
+                    <span className="px-2 py-0.5 rounded-full bg-[#eff6ff] text-[10px] font-bold text-[#2563eb]">
+                      擅长：{AVATARS.find(a => a.id === avatar)?.trait}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[10px] font-bold text-[#059669]">
+                      {AVATARS.find(a => a.id === avatar)?.category}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end mt-6">
-            <ProtoButton onClick={() => setStep(1)}>下一步</ProtoButton>
+            <ProtoButton onClick={() => setStep(1)}>下一步 →</ProtoButton>
           </div>
         </div>
       )}
@@ -144,7 +174,10 @@ export function AdoptionFlow({ onAdopted }: Props) {
             <Target className="inline h-5 w-5 text-[#2563eb] mr-1" />
             设定学习目标
           </h2>
-          <p className="text-sm text-[#6b7280] text-center mb-6">让学伴了解你的学习情况，才能更好地帮助你</p>
+          <p className="text-sm text-[#6b7280] text-center mb-3">让学伴了解你的学习情况，才能更好地帮助你</p>
+          <div className="bg-[#fff7ed] rounded-lg px-3 py-2 text-xs text-[#9a3412] mb-5">
+            🎯 学伴会根据你的目标和薄弱点，主动推荐资料、提醒复习、调整辅导策略。填写越具体，它帮你越精准。
+          </div>
 
           {/* 学习目标 */}
           <div className="mb-5">
@@ -207,7 +240,10 @@ export function AdoptionFlow({ onAdopted }: Props) {
             <Sparkles className="inline h-5 w-5 text-[#2563eb] mr-1" />
             选择陪伴风格
           </h2>
-          <p className="text-sm text-[#6b7280] text-center mb-6">你希望学伴用什么方式和你互动？</p>
+          <p className="text-sm text-[#6b7280] text-center mb-3">你希望学伴用什么方式和你互动？</p>
+          <div className="bg-[#f0fdf4] rounded-lg px-3 py-2 text-xs text-[#166534] mb-5">
+            🧠 陪伴风格决定了学伴的说话方式和辅导策略。比如「严格导师」会直接指出错误并要求订正，「温柔朋友」会先肯定你的进步再给建议。你随时可以在设置中修改。
+          </div>
 
           <div className="space-y-3">
             {COMPANION_STYLES.map(s => (
@@ -246,7 +282,8 @@ export function AdoptionFlow({ onAdopted }: Props) {
       {/* Step 3: 起名 + 确认 */}
       {step === 3 && (
         <div className="text-center">
-          <h2 className="text-lg font-bold mb-4">给你的学伴起个名字</h2>
+          <h2 className="text-lg font-bold mb-2">给你的学伴起个名字</h2>
+          <p className="text-sm text-[#6b7280] mb-4">一个好名字会让你和学伴的关系更亲近</p>
 
           <div className="flex justify-center mb-4">
             <PetAvatar type={avatar} state="waiting" size="lg" />
@@ -259,15 +296,19 @@ export function AdoptionFlow({ onAdopted }: Props) {
             maxLength={10}
             className="w-full max-w-[300px] mx-auto h-12 rounded-xl border border-[#e2e8f0] px-4 text-center text-lg font-medium outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#bfdbfe]"
           />
-          <p className="text-xs text-[#6b7280] mt-2 mb-6">支持中文、英文、数字</p>
+          <p className="text-xs text-[#6b7280] mt-2 mb-5">支持中文、英文、数字</p>
 
           {/* 认养预览 */}
-          <div className="bg-[#f8fafc] rounded-xl p-4 text-left max-w-[400px] mx-auto mb-6">
-            <div className="text-xs font-bold text-[#6b7280] uppercase tracking-wide mb-3">学伴档案预览</div>
+          <div className="bg-[#f8fafc] rounded-xl p-4 text-left max-w-[440px] mx-auto mb-4">
+            <div className="text-xs font-bold text-[#6b7280] uppercase tracking-wide mb-3">📋 学伴档案预览</div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-[#6b7280]">形象</span>
-                <span className="font-medium">{AVATARS.find(a => a.id === avatar)?.name}</span>
+                <span className="font-medium">{AVATARS.find(a => a.id === avatar)?.name}（{AVATARS.find(a => a.id === avatar)?.category}）</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#6b7280]">擅长领域</span>
+                <span className="font-medium">{AVATARS.find(a => a.id === avatar)?.trait}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#6b7280]">陪伴风格</span>
@@ -276,13 +317,13 @@ export function AdoptionFlow({ onAdopted }: Props) {
               {studyGoal && (
                 <div className="flex justify-between">
                   <span className="text-[#6b7280]">学习目标</span>
-                  <span className="font-medium truncate max-w-[180px]">{studyGoal}</span>
+                  <span className="font-medium truncate max-w-[200px]">{studyGoal}</span>
                 </div>
               )}
               {weakPoints && (
                 <div className="flex justify-between">
                   <span className="text-[#6b7280]">薄弱点</span>
-                  <span className="font-medium truncate max-w-[180px]">{weakPoints}</span>
+                  <span className="font-medium truncate max-w-[200px]">{weakPoints}</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -290,6 +331,43 @@ export function AdoptionFlow({ onAdopted }: Props) {
                 <span className="font-medium">{STUDY_TIMES.find(t => t.id === studyTime)?.label}</span>
               </div>
             </div>
+          </div>
+
+          {/* 功能预告 */}
+          <div className="bg-[#eff6ff] rounded-xl p-4 text-left max-w-[440px] mx-auto mb-6">
+            <div className="text-xs font-bold text-[#2563eb] mb-3">✨ 认养后，你的学伴将能够：</div>
+            <ul className="space-y-2.5 text-xs text-[#374151]">
+              <li className="flex items-center gap-3">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
+                  <Search className="h-3.5 w-3.5" />
+                </div>
+                <span>帮你搜索和筛选高质量学习资料</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#f3efff] text-[#7c3aed]">
+                  <FileText className="h-3.5 w-3.5" />
+                </div>
+                <span>自动总结文章要点，生成结构化笔记</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#fff7ed] text-[#d97706]">
+                  <GitCompare className="h-3.5 w-3.5" />
+                </div>
+                <span>对比不同来源的解释，帮你全面理解</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#ecfdf5] text-[#059669]">
+                  <BookOpen className="h-3.5 w-3.5" />
+                </div>
+                <span>每天根据你的进度推荐学习内容</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#ecfeff] text-[#0891b2]">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                </div>
+                <span>随着使用不断成长，解锁更强的辅导能力</span>
+              </li>
+            </ul>
           </div>
 
           {error && <p className="text-sm text-red-500 mb-4">{error}</p>}

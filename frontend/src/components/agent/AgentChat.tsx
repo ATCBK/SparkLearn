@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from 'react'
 import { api, AgentPet, AgentTask, AgentTaskStep } from '@/lib/api'
 import { ProtoCard, ProtoButton, Pill, SoftCard } from '@/components/proto'
 import { Send, Search, FileText, GitCompare, Bookmark, ThumbsUp, ThumbsDown, Loader2, ExternalLink } from 'lucide-react'
+import { PetAvatar, PetType, taskStatusToPetState } from './PetAvatar'
 
-const AVATAR_EMOJI: Record<string, string> = { fox: '🦊', owl: '🦉', robot: '🤖' }
+const AVATAR_EMOJI: Record<string, string> = { fox: '🦊', owl: '🦉', robot: '🤖', cat: '🐱', dragon: '🐲', penguin: '🐧', bunny: '🐰', panda: '🐼' }
 
 const TASK_TYPE_OPTIONS = [
   { id: 'search', label: '搜索资料', icon: <Search className="h-3.5 w-3.5" />, placeholder: '帮我找 Python 装饰器的入门教程' },
@@ -31,7 +32,7 @@ export function AgentChat({ pet, onXpChange }: Props) {
     {
       id: 'welcome',
       sender: 'agent',
-      content: `你好！我是${pet.name}，你的学习伙伴 ${AVATAR_EMOJI[pet.avatar]}。有什么我能帮你的吗？`,
+      content: `你好！我是${pet.name}，你的学习伙伴。有什么我能帮你的吗？`,
       timestamp: new Date().toISOString(),
     },
   ])
@@ -199,7 +200,7 @@ export function AgentChat({ pet, onXpChange }: Props) {
             <div className={`max-w-[85%] ${msg.sender === 'user' ? 'order-1' : ''}`}>
               {msg.sender === 'agent' && (
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="text-lg">{AVATAR_EMOJI[pet.avatar]}</span>
+                  <PetAvatar type={pet.avatar as PetType} state="idle" size="sm" />
                   <span className="text-xs font-medium text-[#6b7280]">{pet.name}</span>
                 </div>
               )}
@@ -249,7 +250,7 @@ export function AgentChat({ pet, onXpChange }: Props) {
           <div className="flex justify-start">
             <div className="max-w-[85%]">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-lg">{AVATAR_EMOJI[pet.avatar]}</span>
+                <PetAvatar type={pet.avatar as PetType} state="searching" size="sm" />
                 <span className="text-xs font-medium text-[#6b7280]">{pet.name}</span>
               </div>
               <div className="bg-[#f1f5f9] rounded-xl px-3.5 py-2.5">

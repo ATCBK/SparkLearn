@@ -45,9 +45,9 @@ class Settings(BaseSettings):
     xfyun_zw_timeout_sec: int = 240
 
     # iFlytek TTS (video narration)
-    xf_tts_app_id: str = "ef383158"
-    xf_tts_api_key: str = "ce2030e51519a87b0c05b2a06b34b9be"
-    xf_tts_api_secret: str = "NWIzODY5ZmI4OTQxZjAwMmE2YzFkNzlj"
+    xf_tts_app_id: str = ""
+    xf_tts_api_key: str = ""
+    xf_tts_api_secret: str = ""
     xf_tts_base_url: str = "wss://tts-api.xfyun.cn/v2/tts"
     xf_tts_default_voice: str = "xiaoyan"
     xf_tts_max_concurrency: int = 2
@@ -72,12 +72,11 @@ class Settings(BaseSettings):
 
     # Agent browser settings
     agent_browser_headless: bool = False   # False = 演示模式，浏览器窗口可见
-    # Agent browser settings
-    agent_browser_headless: bool = False   # False = 演示模式，浏览器窗口可见
     agent_browser_slow_mo: int = 800       # 毫秒，让操作慢一点方便观看
 
     single_user_id: str = "single_user"
     cors_origin: str = "http://localhost:3000"
+    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     data_dir: Path = ROOT_DIR / "backend" / "data"
     db_path: Path = ROOT_DIR / "backend" / "data" / "db" / "sparklearn.db"

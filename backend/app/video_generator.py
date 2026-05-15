@@ -3,6 +3,7 @@ import math
 import os
 import re
 import shutil
+import ssl
 import subprocess
 import wave
 import base64
@@ -459,7 +460,10 @@ def _try_xfyun_tts_wav(path: Path, text: str) -> tuple[bool, str]:
             },
         }
         pcm = bytearray()
-        with connect(auth_url, open_timeout=max(5, settings.xf_tts_timeout_ms / 1000)) as ws:
+        _ssl_ctx = ssl.create_default_context()
+        _ssl_ctx.check_hostname = False
+        _ssl_ctx.verify_mode = ssl.CERT_NONE
+        with connect(auth_url, open_timeout=max(5, settings.xf_tts_timeout_ms / 1000), ssl=_ssl_ctx) as ws:
             ws.send(json.dumps(payload, ensure_ascii=False))
             while True:
                 raw = ws.recv(timeout=max(5, settings.xf_tts_timeout_ms / 1000))

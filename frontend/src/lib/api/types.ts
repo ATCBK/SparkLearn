@@ -360,7 +360,7 @@ export interface ContributionDay {
 export interface AgentPet {
   id: string
   name: string
-  avatar: 'fox' | 'owl' | 'robot'
+  avatar: 'fox' | 'owl' | 'robot' | 'cat' | 'dragon' | 'penguin' | 'bunny' | 'panda'
   personality: 'concise' | 'verbose' | 'encouraging'
   level: number
   xp: number

@@ -812,3 +812,8 @@
 {"ts": "2026-05-15T00:29:53.708242Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "749c81eb", "use_llm": false}
 {"ts": "2026-05-15T00:31:24.480319Z", "type": "tutor_chat", "conversation_id": 2, "role_id": 1, "question": "你好"}
 {"ts": "2026-05-15T00:33:32.779452Z", "type": "tutor_chat", "conversation_id": 3, "role_id": 1, "question": "Python函数怎么学"}
+{"ts": "2026-05-15T02:09:42.117330Z", "type": "tutor_chat", "conversation_id": 3, "role_id": 1, "question": "你好"}
+{"ts": "2026-05-15T02:18:06.296366Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7a0bc596", "use_llm": false}
+{"ts": "2026-05-15T02:18:06.309894Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "bd72644b", "use_llm": false}
+{"ts": "2026-05-15T02:19:41.373367Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "850acbfb", "use_llm": false}
+{"ts": "2026-05-15T02:19:41.381363Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "50bb8386", "use_llm": false}

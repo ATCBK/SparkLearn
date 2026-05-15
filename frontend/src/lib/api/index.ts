@@ -88,6 +88,10 @@ export const api = {
   submitAgentFeedback: impl.submitAgentFeedback,
   bookmarkAgentResult: impl.bookmarkAgentResult,
   getAgentRecommendations: impl.getAgentRecommendations,
+
+  // Voice TTS
+  synthesizeSpeech: impl.synthesizeSpeech,
+  getTtsStatus: impl.getTtsStatus,
 }
 
 export type {

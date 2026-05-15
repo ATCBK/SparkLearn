@@ -1,8 +1,7 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ThemeSwitch } from '@/components/ui/ThemeSwitch'
 import {
   Home,
   User,
@@ -11,7 +10,6 @@ import {
   CheckSquare,
   BarChart3,
   Database,
-  Zap,
   LogOut,
   Bot,
 } from 'lucide-react'
@@ -46,6 +44,7 @@ interface SidebarProps {
 
 export function Sidebar({ state, onStateChange }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const groupedItems = NAV_ITEMS.reduce(
     (acc, item) => {
@@ -60,18 +59,35 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
     [] as Array<{ name: string; items: NavItem[] }>
   )
 
-  const sidebarWidth = state === 'expanded' ? 220 : state === 'icons' ? 74 : 0
+  const isExpanded = state === 'expanded'
+  const isIcons = state === 'icons'
+
+  const handleLogout = () => {
+    // 清除本地存储的用户状态
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sparklearn_user')
+      localStorage.removeItem('sparklearn_token')
+      sessionStorage.clear()
+    }
+    router.push('/auth')
+  }
 
   return (
-    <div className="fixed left-0 top-0 z-20 h-screen w-[220px] border-r border-[#E5EAF2] bg-white overflow-y-auto">
+    <div
+      className={`fixed left-0 top-0 z-20 h-screen border-r border-[#E5EAF2] bg-white overflow-y-auto transition-all duration-300 ${
+        isExpanded ? 'w-[220px]' : isIcons ? 'w-[74px]' : 'w-0 overflow-hidden'
+      }`}
+    >
       {/* Logo 区域 */}
       <div className="border-b border-[#E5EAF2] p-4">
         <div className="flex items-center gap-3">
-          <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 object-contain" />
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-[#111827]">学而思 SparkLearn</div>
-            <div className="text-xs text-[#6B7280] truncate">个性化学习闭环</div>
-          </div>
+          <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 object-contain shrink-0" />
+          {isExpanded && (
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-[#111827]">学而思 SparkLearn</div>
+              <div className="text-xs text-[#6B7280] truncate">个性化学习闭环</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -79,9 +95,11 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
       <nav className="space-y-6 px-3 py-6">
         {groupedItems.map((group) => (
           <div key={group.name}>
-            <div className="px-3 text-xs font-extrabold uppercase tracking-wider text-[#9CA3AF]">
-              {group.name}
-            </div>
+            {isExpanded && (
+              <div className="px-3 text-xs font-extrabold uppercase tracking-wider text-[#9CA3AF]">
+                {group.name}
+              </div>
+            )}
             <div className="mt-3 space-y-1">
               {group.items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -89,14 +107,17 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    title={isIcons ? item.label : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${
+                      isIcons ? 'justify-center' : ''
+                    } ${
                       isActive
                         ? 'bg-[#EEF5FF] text-[#2563EB]'
                         : 'text-[#52627B] hover:bg-[#F3F4F6]'
                     }`}
                   >
                     {item.icon}
-                    <span>{item.label}</span>
+                    {isExpanded && <span>{item.label}</span>}
                   </Link>
                 )
               })}
@@ -105,20 +126,46 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
         ))}
       </nav>
 
-      {/* 底部用户设置中心 */}
+      {/* 底部用户区域 */}
       <div className="absolute bottom-4 left-3 right-3 space-y-3">
-        <ThemeSwitch />
-        <Link
-          href="/profile/settings"
-          className="flex items-center gap-3 rounded-[12px] border border-line bg-bg-hover p-3 hover:bg-bg-card transition-colors"
-        >
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white shrink-0">李</span>
-          <div className="flex-1 min-w-0">
-            <div className="text-small font-bold text-ink truncate">李明</div>
-            <div className="text-micro text-muted truncate">个人设置</div>
+        {isExpanded ? (
+          <>
+            <Link
+              href="/profile/settings"
+              className="flex items-center gap-3 rounded-[12px] border border-line bg-bg-hover p-3 hover:bg-bg-card transition-colors"
+            >
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white shrink-0">李</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-small font-bold text-ink truncate">李明</div>
+                <div className="text-micro text-muted truncate">个人设置</div>
+              </div>
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[#52627B] hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>退出登录</span>
+            </button>
+          </>
+        ) : isIcons ? (
+          <div className="flex flex-col items-center gap-2">
+            <Link
+              href="/profile/settings"
+              title="个人设置"
+              className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white"
+            >
+              李
+            </Link>
+            <button
+              onClick={handleLogout}
+              title="退出登录"
+              className="grid h-9 w-9 place-items-center rounded-lg text-[#52627B] hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-          <LogOut className="h-4 w-4 text-muted shrink-0" />
-        </Link>
+        ) : null}
       </div>
     </div>
   )

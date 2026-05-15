@@ -5,6 +5,7 @@ import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, Mess
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
+import { AudioRadio, RadioTrack } from '@/components/ui/AudioRadio'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
@@ -17,6 +18,17 @@ const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
   { type: 'reading', label: '拓展阅读', desc: '延伸材料' },
   { type: 'code', label: '代码案例', desc: '可运行实践案例' },
 ]
+
+const TYPE_PROMPTS: Record<string, string> = {
+  document: '请基于当前薄弱点"函数返回值"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。',
+  ppt: '请基于"函数返回值"生成一份课堂演示PPT，包含核心概念、代码示例和课堂互动环节。',
+  mindmap: '请基于"函数返回值"生成一份思维导图，梳理函数定义、参数传递、返回值、作用域之间的关系。',
+  video: '请基于"函数返回值"生成一段教学视频脚本，用生活化类比讲解 return 的作用。',
+  blog: '请用通俗易懂的方式讲解"函数返回值"这个概念，像播客节目一样轻松有趣地科普，让零基础的人也能听懂。',
+  quiz: '请基于"函数返回值"生成一组练习题，覆盖简单、中等、困难三个难度。',
+  reading: '请基于"函数返回值"生成一份拓展阅读材料，包含背景知识和实际应用场景。',
+  code: '请基于"函数返回值"生成一个完整的代码案例，包含问题描述、代码实现和详细讲解。',
+}
 
 function typeLabel(type: string) {
   const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台' }
@@ -158,7 +170,27 @@ export default function GeneratePage() {
                 </div>
                 <Bar value={selected.progress ?? 42} />
                 <div className="mt-4 min-h-[300px] overflow-hidden rounded-[12px] border border-line bg-[#f9fafb]">
-                  {selected.sourceUrl ? (
+                  {selected.type === 'blog' ? (
+                    <div className="p-5">
+                      <AudioRadio
+                        tracks={(() => {
+                          let content = selected.content || ''
+                          content = content.replace(/^#[^\n]*\n+/, '').trim()
+                          if (!content) return [{ id: '1', title: selected.title, text: '播客内容加载中...', subtitle: '' }]
+                          const paragraphs = content.split(/\n{2,}/).filter(p => p.trim().length > 20)
+                          if (paragraphs.length <= 1) {
+                            return [{ id: '1', title: selected.title, text: content.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000), subtitle: content.slice(0, 50) + '...' }]
+                          }
+                          return paragraphs.slice(0, 10).map((p, idx) => ({
+                            id: `${idx + 1}`,
+                            title: `第 ${idx + 1} 段`,
+                            text: p.replace(/[#*`>\-|[\]()]/g, '').slice(0, 1000),
+                            subtitle: p.replace(/[#*`>\-|[\]()]/g, '').slice(0, 60) + '...',
+                          }))
+                        })()}
+                      />
+                    </div>
+                  ) : selected.sourceUrl ? (
                     <iframe title={selected.title} src={`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`} className="h-[420px] w-full border-0" />
                   ) : (
                     <div className="p-5">
@@ -253,7 +285,7 @@ export default function GeneratePage() {
               }
               const t = IconMap[item.type] || { icon: <FileText className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' }
               return (
-                <button key={item.type} onClick={() => setType(item.type)} className={`rounded-[12px] border p-4 text-left ${type === item.type ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
+                <button key={item.type} onClick={() => { setType(item.type); setPrompt(TYPE_PROMPTS[item.type] || prompt) }} className={`rounded-[12px] border p-4 text-left ${type === item.type ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
                   <div className={`mb-3 grid h-9 w-9 place-items-center rounded-xl ${t.color}`}>
                     {t.icon}
                   </div>
@@ -340,6 +372,28 @@ export default function GeneratePage() {
                         </div>
                       )}
                       <p className="mt-2 text-small text-muted">视频资源已保存，可前往视频页面播放、下载音频和字幕。</p>
+                    </div>
+                  ) : resource.type === 'blog' ? (
+                    <div className="mt-3">
+                      <AudioRadio
+                        tracks={(() => {
+                          let content = resource.content || ''
+                          // Strip the "# prompt" header line that resource generation adds
+                          content = content.replace(/^#[^\n]*\n+/, '').trim()
+                          if (!content) return [{ id: '1', title: resource.title, text: '播客内容生成中...', subtitle: '' }]
+                          const paragraphs = content.split(/\n{2,}/).filter(p => p.trim().length > 20)
+                          if (paragraphs.length <= 1) {
+                            return [{ id: '1', title: resource.title, text: content.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000), subtitle: content.slice(0, 50) + '...' }]
+                          }
+                          return paragraphs.slice(0, 10).map((p, idx) => ({
+                            id: `${idx + 1}`,
+                            title: `第 ${idx + 1} 段`,
+                            text: p.replace(/[#*`>\-|[\]()]/g, '').slice(0, 1000),
+                            subtitle: p.replace(/[#*`>\-|[\]()]/g, '').slice(0, 60) + '...',
+                          }))
+                        })()}
+                      />
+                      <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音讲解。</p>
                     </div>
                   ) : (
                     <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可进入资源库查看完整预览。'}</p>

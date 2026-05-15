@@ -40,10 +40,6 @@ function getHeatColor(value: number): string {
   return colors[Math.min(value, 4)]
 }
 
-function formatDate(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
-
 function getDateLabel(date: Date, mode: ViewMode): string {
   const y = date.getFullYear()
   const m = date.getMonth() + 1
@@ -65,7 +61,6 @@ export default function ReportPage() {
   const [heatmapData, setHeatmapData] = useState<number[][]>([])
   const [report, setReport] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [reportLoading, setReportLoading] = useState(false)
   const [aiSummary, setAiSummary] = useState<string>('')
   const [aiGenerating, setAiGenerating] = useState(false)
 
