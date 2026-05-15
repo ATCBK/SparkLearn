@@ -1,134 +1,135 @@
 <p align="center">
-  <img src="frontend/public/sparklearn-logo-official.png" alt="SparkLearn Logo" width="80" />
+  <img src="frontend/public/sparklearn-logo-official.png" alt="SparkLearn" width="88" />
 </p>
 
-<h1 align="center">学而思 SparkLearn</h1>
+<h1 align="center">SparkLearn · 个性化学习多智能体平台</h1>
 
 <p align="center">
-  <strong>AI 驱动的个性化学习闭环平台</strong>
+  <em>让每一位学生都拥有专属的 AI 学习伙伴</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Frontend-Next.js_16-black?logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/AI-讯飞星火_&_Coze-blue" alt="AI" />
-  <img src="https://img.shields.io/badge/TTS-讯飞语音合成-orange" alt="TTS" />
-  <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
+  <img src="https://img.shields.io/badge/Next.js-16.2-black?logo=next.js" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi" />
+  <img src="https://img.shields.io/badge/讯飞星火-Spark_Lite-1a73e8" />
+  <img src="https://img.shields.io/badge/多智能体-Multi--Agent-7c3aed" />
+  <img src="https://img.shields.io/badge/多模态-Video_·_TTS_·_PPT-f59e0b" />
 </p>
 
 ---
 
-## ✨ 项目简介
+## 项目愿景
 
-SparkLearn 是一个面向学生的 **AI 个性化学习平台**，通过学习画像、智能路径规划、多模态资源生成和实时辅导，构建完整的学习闭环。
-
-> 🎯 核心理念：**画像驱动 → 路径规划 → 资源生成 → 练习评测 → 报告反馈 → 持续优化**
+高等教育正面临一个核心矛盾：学生的学习基础、认知风格、兴趣方向千差万别，但教学资源和辅导方式却高度标准化。SparkLearn 试图用 AI 多智能体协同的方式，为每位学生构建一套**动态演化的个性化学习闭环**——从了解学生开始，到规划路径、生成资源、实时辅导、评估反馈，再回到画像更新，形成持续优化的学习体验。
 
 ---
 
-## 🏗️ 系统架构
+## 核心能力
+
+### 🧠 对话式学习画像
+
+不再让学生填写冗长的问卷。系统通过自然语言对话，在轻松的交互中自动抽取学生的知识基础、认知风格、学习偏好、薄弱环节、目标规划、时间节奏等多维度特征，构建动态学生画像。画像随学习行为持续更新——每一次练习、每一次提问都在让系统更懂你。
+
+### 🤖 多智能体协同资源生成
+
+系统内部由多个专职智能体协作完成资源生产：
+
+| 智能体角色 | 职责 | 产出 |
+|-----------|------|------|
+| 文档撰写 Agent | 结构化知识讲解 | Markdown 讲义、概念文档 |
+| 演示设计 Agent | 课堂级演示文稿 | PPT（讯飞智文生成） |
+| 思维梳理 Agent | 知识关系可视化 | 思维导图 |
+| 视频制作 Agent | 多模态教学内容 | AI 配音 + 动态演示视频 |
+| 播客主播 Agent | 口语化知识科普 | 播客电台音频（TTS 合成） |
+| 题目命制 Agent | 分层练习检测 | 单选/多选/填空题组 |
+| 阅读推荐 Agent | 拓展学习材料 | 延伸阅读文档 |
+| 代码教练 Agent | 实操案例教学 | 可运行代码案例 |
+
+所有资源生成都基于学生画像和当前学习节点，确保内容精准匹配学习需求。
+
+### 🗺️ 个性化学习路径
+
+结合画像分析和知识图谱，系统为学生规划科学的学习路径。路径不是静态的——当学生在某个节点表现优异或遇到困难时，系统会动态调整后续规划，推荐最合适的下一步资源和练习。
+
+### 💬 智能辅导与多角色研讨
+
+学习空间提供实时 AI 辅导能力：
+- **多角色切换**：严谨导师、陪练伙伴、温柔朋友……不同风格满足不同场景
+- **多智能体研讨会**：多个 AI 角色围绕同一问题展开协同讨论，提供多视角解答
+- **知识库 RAG**：上传个人资料，AI 基于你的材料进行精准答疑
+- **语音交互**：支持语音输入提问和 AI 回复语音播报，解放双手
+
+### 📊 学习效果评估
+
+系统实时追踪学习行为、练习正确率、资源使用情况，通过热力图、趋势分析和 AI 生成的学习报告（日报/周报/月报），帮助学生全面了解自己的学习节奏和薄弱环节，并据此动态调整资源推送策略。
+
+### 🎙️ 多模态内容体验
+
+- **教学视频**：AI 自动生成脚本 → HTML 动态演示 → 讯飞 TTS 配音 → 完整教学视频
+- **播客电台**：将知识点转化为轻松有趣的播客节目，支持分段连播
+- **语音合成**：讯飞在线 TTS，任何 AI 生成的文本都可以一键朗读
+- **PPT 演示**：讯飞智文自动生成课堂级演示文稿
+
+---
+
+## 技术架构
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend (Next.js 16)                  │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ │
-│  │ 画像 │ │ 路径 │ │ 资源 │ │ 练习 │ │ 报告 │ │ 辅导 │ │
-│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ │
-├─────────────────────────────────────────────────────────┤
-│                    Backend (FastAPI)                      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐ │
-│  │ 讯飞星火 │ │ Coze Bot │ │ 讯飞 TTS │ │ 讯飞智文PPT│ │
-│  └──────────┘ └──────────┘ └──────────┘ └────────────┘ │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                     用户交互层 (Next.js 16)                    │
+│                                                              │
+│   Onboarding    学习画像    路径规划    资源中心    练习评测    │
+│   学习空间      学习报告    知识库      AI精灵     视频中心    │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│                   多智能体协同层 (FastAPI)                     │
+│                                                              │
+│   ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐           │
+│   │画像Agent│  │路径Agent│  │辅导Agent│  │评估Agent│           │
+│   └────────┘  └────────┘  └────────┘  └────────┘           │
+│   ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐           │
+│   │文档Agent│  │视频Agent│  │题目Agent│  │播客Agent│           │
+│   └────────┘  └────────┘  └────────┘  └────────┘           │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│                      AI 能力底座                              │
+│                                                              │
+│   讯飞星火大模型    Coze Bot 平台    讯飞在线 TTS             │
+│   讯飞智文 PPT     Web Speech API   Playwright 渲染          │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 功能模块
+## 产品亮点
 
-| 模块 | 功能 | 状态 |
-|------|------|------|
-| 📊 **学习画像** | AI 分析学习偏好、薄弱点、阶段目标 | ✅ |
-| 🗺️ **路径规划** | 智能生成个性化学习路径，支持动态调整 | ✅ |
-| 📚 **资源中心** | 多类型资源生成（文档/PPT/视频/播客/题目/代码） | ✅ |
-| 🎙️ **播客电台** | AI 生成播客风格科普文案 + 讯飞 TTS 语音合成 | ✅ |
-| 📝 **练习评测** | 智能出题、自动判题、错题本、收藏 | ✅ |
-| 📈 **学习报告** | 热力图 + AI 周报/日报/月报 | ✅ |
-| 💬 **智能辅导** | 多角色 AI 对话、研讨会、知识库 RAG | ✅ |
-| 🔊 **语音交互** | TTS 语音播报 + 语音输入识别 | ✅ |
-| 🐾 **AI 精灵** | 学习伙伴宠物，搜索/摘要/对比能力 | ✅ |
-| 🎬 **教学视频** | AI 脚本 + HTML 演示 + TTS 配音 | ✅ |
-| 📋 **知识库** | 文件上传、分片索引、RAG 检索 | ✅ |
+**🔄 真正的学习闭环**
+画像 → 路径 → 资源 → 学习 → 练习 → 评估 → 画像更新，每个环节数据互通，形成持续优化的正向循环。
 
----
+**🎯 精准个性化**
+不是简单的"推荐相关内容"，而是基于多维画像、学习历史和实时表现，动态调整每一步的学习策略。
 
-## 🎙️ 语音功能
+**🎨 多模态全覆盖**
+文档、PPT、思维导图、视频、播客、题目、代码案例——8 种资源类型覆盖不同学习场景和认知偏好。
 
-本项目集成了 **讯飞在线语音合成（TTS）** 和 **浏览器 Web Speech API**：
+**🗣️ 自然语音交互**
+语音输入 + 语音播报，让学习不再局限于屏幕前的文字阅读，通勤路上也能听播客学知识。
 
-- **语音播报**：AI 回复一键朗读，支持播放/暂停
-- **语音输入**：麦克风按钮，实时中文语音识别转文字
-- **播客电台**：资源中心生成播客风格科普内容，自动分段连播
+**⚡ 流式体验**
+所有 AI 生成内容均支持流式输出和进度追踪，告别白屏等待。
 
-覆盖页面：小星同学浮窗 · 学习空间 · AI 精灵 · 资源中心
+**🛡️ 内容安全**
+内置防幻觉机制和内容安全过滤，确保生成的学术内容准确可靠。
 
 ---
 
-## 🛠️ 技术栈
-
-**前端**
-- Next.js 16 (App Router, Turbopack)
-- React 19 + TypeScript
-- Tailwind CSS + styled-components
-- Lucide Icons
-
-**后端**
-- Python 3.11 + FastAPI
-- 讯飞星火大模型 (Spark Lite)
-- Coze Bot 平台 (资源生成)
-- 讯飞在线语音合成 (WebSocket TTS)
-- 讯飞智文 (PPT 生成)
-- SQLite (本地数据存储)
-- Playwright (PDF 渲染 / 视频生成)
-
----
-
-## 📦 快速开始
+## 快速开始
 
 ### 环境要求
 
-- Node.js 18+
-- Python 3.11+
-- Chrome 浏览器（语音识别需要）
+- Node.js 18+  ·  Python 3.11+  ·  Chrome 浏览器
 
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/ATCBK/SparkLearn.git
-cd SparkLearn
-```
-
-### 2. 配置环境变量
-
-在项目根目录创建 `.env` 文件，填入以下配置：
-
-```env
-# 讯飞星火
-SPARK_APP_ID=your_app_id
-SPARK_API_SECRET=your_secret
-SPARK_API_KEY=your_key
-
-# Coze 资源生成
-COZE_API_TOKEN=your_token
-COZE_BOT_ID_RESOURCE_DEFAULT=your_bot_id
-
-# 讯飞 TTS 语音合成
-XF_TTS_APP_ID=your_tts_app_id
-XF_TTS_API_KEY=your_tts_key
-XF_TTS_API_SECRET=your_tts_secret
-```
-
-### 3. 启动后端
+### 启动后端
 
 ```bash
 cd backend
@@ -136,7 +137,7 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 4. 启动前端
+### 启动前端
 
 ```bash
 cd frontend
@@ -144,43 +145,55 @@ npm install
 npm run dev
 ```
 
-访问 http://localhost:3000 开始使用。
+访问 `http://localhost:3000` 开始体验。
+
+### 环境变量
+
+项目根目录 `.env` 文件需配置讯飞星火、Coze 平台和讯飞 TTS 的密钥，详见项目文档。
 
 ---
 
-## 📁 项目结构
+## 技术栈
+
+| 层级 | 技术选型 |
+|------|---------|
+| 前端框架 | Next.js 16 (App Router, Turbopack) + React 19 + TypeScript |
+| UI 体系 | Tailwind CSS + styled-components + Lucide Icons |
+| 后端框架 | Python 3.11 + FastAPI + Pydantic |
+| 大模型 | 讯飞星火 Spark Lite（对话/辅导/画像） |
+| 资源生成 | Coze Bot 平台（多智能体资源协同） |
+| 语音合成 | 讯飞在线 TTS（WebSocket 实时合成） |
+| 语音识别 | Web Speech API（浏览器端中文识别） |
+| PPT 生成 | 讯飞智文 API |
+| 视频渲染 | Playwright + HTML 动态演示 + TTS 配音 |
+| 数据存储 | SQLite + JSON 文件存储 |
+
+---
+
+## 项目结构
 
 ```
 SparkLearn/
-├── frontend/                # Next.js 前端
-│   ├── src/app/            # 页面路由
-│   │   ├── (shell)/        # 主布局页面（画像/路径/资源/练习/报告）
-│   │   ├── tutor/          # 学习空间（智能辅导）
-│   │   └── onboarding/     # 新用户引导
-│   ├── src/components/     # 组件库
-│   │   ├── ui/             # 通用 UI（AudioRadio 播客播放器等）
-│   │   ├── agent/          # AI 精灵组件
-│   │   └── layout/         # 布局组件（AIAssistant 浮窗）
-│   └── src/lib/api/        # API 层
-├── backend/                 # FastAPI 后端
-│   ├── app/
-│   │   ├── routes/         # API 路由
-│   │   ├── config.py       # 配置管理
-│   │   ├── coze.py         # Coze 适配器
-│   │   └── video_generator.py  # 视频生成
-│   └── data/               # 本地数据存储
-├── Dorc/                    # 项目文档
-└── .env                     # 环境变量（不提交）
+├── frontend/                 # Next.js 前端应用
+│   ├── src/app/             # 页面路由（画像/路径/资源/练习/报告/辅导）
+│   ├── src/components/      # 组件库（AudioRadio/AIAssistant/Agent 等）
+│   └── src/lib/api/         # 统一 API 层
+├── backend/                  # FastAPI 后端服务
+│   ├── app/routes/          # API 路由（资源/语音/视频/练习/学习等）
+│   ├── app/coze.py          # Coze 多智能体适配器
+│   └── app/video_generator.py  # 视频生成引擎
+├── Dorc/                     # 项目文档（开发规范/赛题/Bug清单）
+└── spec/                     # 技术规格文档
 ```
 
 ---
 
-## 👥 团队
+## 团队
 
 学而思 SparkLearn 开发团队
 
 ---
 
-## 📄 License
-
-MIT License
+<p align="center">
+  <sub>基于讯飞星火大模型 · 第十五届中国软件杯参赛作品</sub>
+</p>
