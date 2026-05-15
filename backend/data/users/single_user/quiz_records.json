@@ -2280,5 +2280,126 @@
       "knowledge_point_name": "字符串处理"
     },
     "at": "2026-05-14"
+  },
+  {
+    "quiz_id": "dq_dce40ec0_1",
+    "answer": [
+      "="
+    ],
+    "correct": false,
+    "correct_answer": [
+      "=",
+      "+=",
+      "-="
+    ],
+    "knowledge_point_id": "1.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_dce40ec0_1",
+      "type": "multiple",
+      "content": "以下哪些是赋值运算符？",
+      "options": [
+        "=",
+        "+=",
+        "-=",
+        "=="
+      ],
+      "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
+      "knowledge_point_id": "1.1",
+      "knowledge_point_name": "基础语法"
+    },
+    "at": "2026-05-14"
+  },
+  {
+    "quiz_id": "dq_dce40ec0_2",
+    "answer": "1到5",
+    "correct": false,
+    "correct_answer": "0到4",
+    "knowledge_point_id": "2.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_dce40ec0_2",
+      "type": "single",
+      "content": "for 循环中 range(5) 会生成什么？",
+      "options": [
+        "0到5",
+        "0到4",
+        "1到5",
+        "1到4"
+      ],
+      "explanation": "range(5) 生成 0, 1, 2, 3, 4。",
+      "knowledge_point_id": "2.1",
+      "knowledge_point_name": "循环语句"
+    },
+    "at": "2026-05-14"
+  },
+  {
+    "quiz_id": "dq_618c7b30_1",
+    "answer": "值错误",
+    "correct": false,
+    "correct_answer": "类型不匹配",
+    "knowledge_point_id": "4.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_618c7b30_1",
+      "type": "single",
+      "content": "TypeError 异常表示什么？",
+      "options": [
+        "值错误",
+        "索引超出范围",
+        "类型不匹配",
+        "键不存在"
+      ],
+      "explanation": "TypeError 表示操作或函数应用于不适当类型的对象。",
+      "knowledge_point_id": "4.1",
+      "knowledge_point_name": "异常处理"
+    },
+    "at": "2026-05-14"
+  },
+  {
+    "quiz_id": "dq_4f593461_1",
+    "answer": "for 用于已知次数，while 用于条件判断",
+    "correct": true,
+    "correct_answer": "for 用于已知次数，while 用于条件判断",
+    "knowledge_point_id": "2.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_4f593461_1",
+      "type": "single",
+      "content": "while 循环和 for 循环的主要区别是什么？",
+      "options": [
+        "while 更快",
+        "for 用于已知次数，while 用于条件判断",
+        "没有区别",
+        "while 只能用于列表"
+      ],
+      "explanation": "for 循环通常用于遍历序列，while 循环用于条件判断。",
+      "knowledge_point_id": "2.1",
+      "knowledge_point_name": "循环语句"
+    },
+    "at": "2026-05-15"
+  },
+  {
+    "quiz_id": "dq_5f0228ba_1",
+    "answer": "b ? a : c",
+    "correct": false,
+    "correct_answer": "a if b else c",
+    "knowledge_point_id": "2.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_5f0228ba_1",
+      "type": "single",
+      "content": "三元表达式的语法是什么？",
+      "options": [
+        "a if b else c",
+        "if b then a else c",
+        "b ? a : c",
+        "a unless b else c"
+      ],
+      "explanation": "Python 的三元表达式格式为 a if condition else b。",
+      "knowledge_point_id": "2.2",
+      "knowledge_point_name": "条件判断"
+    },
+    "at": "2026-05-15"
   }
 ]

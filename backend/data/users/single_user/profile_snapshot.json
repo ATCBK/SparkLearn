@@ -2,10 +2,10 @@
   "goal": [
     "掌握核心技能"
   ],
-  "knowledge_level": "基础较好",
+  "knowledge_level": "基础不是很好",
   "weak_points": [
-    "语法与数据结构",
-    "项目实战经验"
+    "项目实战经验",
+    "高级设计能力"
   ],
   "learning_preference": [
     "动手实践，边学边做"
@@ -15,5 +15,5 @@
   "practical_ability": "能独立完成小项目",
   "current_stage": "函数与模块",
   "version": 1,
-  "updated_at": "2026-05-14T13:23:00.855120Z"
+  "updated_at": "2026-05-15T00:27:20.688710Z"
 }

@@ -728,3 +728,87 @@
 {"ts": "2026-05-14T13:38:32.933575Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c459d981", "use_llm": false}
 {"ts": "2026-05-14T13:41:58.190241Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3d67cc43", "use_llm": false}
 {"ts": "2026-05-14T13:41:58.197243Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d9ffee26", "use_llm": false}
+{"ts": "2026-05-14T14:01:59.416312Z", "type": "path_node_suggestions", "node_title": "完成返回值理解", "node_goal": "完成返回值理解", "phase": "达标阶段", "timestamp": "2026-05-14T14:01:59.416312Z"}
+{"ts": "2026-05-14T14:02:33.729121Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "21403603", "use_llm": false}
+{"ts": "2026-05-14T14:02:33.735646Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "76a85ef9", "use_llm": false}
+{"ts": "2026-05-14T14:02:56.004895Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8c860920", "use_llm": false}
+{"ts": "2026-05-14T14:02:56.011898Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a08ff28a", "use_llm": false}
+{"ts": "2026-05-14T14:08:46.338361Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "274d050a", "use_llm": false}
+{"ts": "2026-05-14T14:08:46.346883Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "27aa324b", "use_llm": false}
+{"ts": "2026-05-14T14:11:35.151295Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1dd19a42", "use_llm": false}
+{"ts": "2026-05-14T14:11:35.160830Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7cdfd816", "use_llm": false}
+{"ts": "2026-05-14T14:13:43.731898Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "aaae9ba1", "use_llm": false}
+{"ts": "2026-05-14T14:13:43.738921Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7f73dd90", "use_llm": false}
+{"ts": "2026-05-14T14:14:14.158453Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "98cb28f0", "use_llm": false}
+{"ts": "2026-05-14T14:14:14.166213Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "9e06151b", "use_llm": false}
+{"ts": "2026-05-14T14:14:17.671387Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "21b5c11f", "use_llm": false}
+{"ts": "2026-05-14T14:14:17.678651Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3c85b122", "use_llm": false}
+{"ts": "2026-05-14T14:14:23.812478Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "77c8d5fa", "use_llm": false}
+{"ts": "2026-05-14T14:14:23.818503Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6e6a859e", "use_llm": false}
+{"ts": "2026-05-14T14:15:34.573799Z", "type": "profile_onboarding", "profile": {"goal": ["兴趣探索"], "knowledge_level": "零基础", "weak_points": ["高级设计能力"], "learning_preference": ["动手实践，边学边做"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T14:15:34.546873Z"}}
+{"ts": "2026-05-14T14:16:11.638410Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6eaf10e4", "use_llm": false}
+{"ts": "2026-05-14T14:16:11.650485Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "358943ab", "use_llm": false}
+{"ts": "2026-05-14T14:16:23.088836Z", "type": "path_node_suggestions", "node_title": "完成 8 题达标练习", "node_goal": "完成 8 题达标练习", "phase": "达标阶段", "timestamp": "2026-05-14T14:16:23.088299Z"}
+{"ts": "2026-05-14T14:16:52.383016Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6343feba", "use_llm": false}
+{"ts": "2026-05-14T14:16:52.390476Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a8afef06", "use_llm": false}
+{"ts": "2026-05-14T14:17:12.581394Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "43bd2536", "use_llm": false}
+{"ts": "2026-05-14T14:17:12.588885Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "02068b33", "use_llm": false}
+{"ts": "2026-05-14T14:17:31.598424Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f4c11052", "use_llm": false}
+{"ts": "2026-05-14T14:17:31.604421Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "65d0ed19", "use_llm": false}
+{"ts": "2026-05-14T14:19:05.970410Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e20457b8", "use_llm": false}
+{"ts": "2026-05-14T14:19:05.978568Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c3f52070", "use_llm": false}
+{"ts": "2026-05-14T14:19:36.031666Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "de1cf8fb", "use_llm": false}
+{"ts": "2026-05-14T14:19:36.038176Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c8631beb", "use_llm": false}
+{"ts": "2026-05-14T14:19:37.370054Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "42b71c27", "use_llm": false}
+{"ts": "2026-05-14T14:19:37.377577Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d4d7ca16", "use_llm": false}
+{"ts": "2026-05-14T14:19:39.121087Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2a912c74", "use_llm": false}
+{"ts": "2026-05-14T14:19:39.127596Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "68a282df", "use_llm": false}
+{"ts": "2026-05-14T14:20:29.336388Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "01a244ad", "use_llm": false}
+{"ts": "2026-05-14T14:20:29.342566Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3f525a4e", "use_llm": false}
+{"ts": "2026-05-14T14:22:51.141578Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "13dcdba1", "use_llm": false}
+{"ts": "2026-05-14T14:22:51.148104Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3274f9cd", "use_llm": false}
+{"ts": "2026-05-14T14:22:54.013025Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1067881b", "use_llm": false}
+{"ts": "2026-05-14T14:22:54.020025Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a8ad486b", "use_llm": false}
+{"ts": "2026-05-14T14:23:18.134324Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "4980364f", "use_llm": false}
+{"ts": "2026-05-14T14:23:18.141840Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "294c8b28", "use_llm": false}
+{"ts": "2026-05-14T14:24:29.696536Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "250c79ef", "use_llm": false}
+{"ts": "2026-05-14T14:24:29.702758Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2c2bd545", "use_llm": false}
+{"ts": "2026-05-14T14:26:00.210228Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1959e1d7", "use_llm": false}
+{"ts": "2026-05-14T14:26:00.216712Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "72cafa26", "use_llm": false}
+{"ts": "2026-05-14T14:27:41.745853Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "890817f0", "use_llm": false}
+{"ts": "2026-05-14T14:27:41.751887Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "5e53620c", "use_llm": false}
+{"ts": "2026-05-14T14:29:42.408653Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3b8ba9be", "use_llm": false}
+{"ts": "2026-05-14T14:29:42.416172Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "22ac3b71", "use_llm": false}
+{"ts": "2026-05-14T14:33:20.518357Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "零基础", "weak_points": ["项目实战经验"], "learning_preference": ["视频教程，直观看懂", "互动交流，共同进步"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T14:33:20.504355Z"}}
+{"ts": "2026-05-14T14:33:22.269744Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "零基础", "weak_points": ["项目实战经验"], "learning_preference": ["视频教程，直观看懂", "互动交流，共同进步"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T14:33:22.253747Z"}}
+{"ts": "2026-05-14T14:33:49.150031Z", "type": "path_node_suggestions", "node_title": "进入模块导入", "node_goal": "进入模块导入", "phase": "达标阶段", "timestamp": "2026-05-14T14:33:49.149488Z"}
+{"ts": "2026-05-14T14:34:13.714739Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a9d027f0", "use_llm": false}
+{"ts": "2026-05-14T14:34:13.722009Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dce40ec0", "use_llm": false}
+{"ts": "2026-05-14T14:34:17.867393Z", "type": "submit_quiz", "quiz_id": "dq_dce40ec0_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-14T14:34:22.932490Z", "type": "submit_quiz", "quiz_id": "dq_dce40ec0_2", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-14T14:36:00.904898Z", "type": "tutor_chat", "conversation_id": 1, "role_id": 1, "question": "你好"}
+{"ts": "2026-05-14T14:38:02.531993Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "入门阶段", "weak_points": ["高级设计能力"], "learning_preference": ["文档阅读，深入理解"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-14T14:38:02.513990Z"}}
+{"ts": "2026-05-14T14:40:04.419083Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f8676515", "use_llm": false}
+{"ts": "2026-05-14T14:40:04.425080Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "03583cf8", "use_llm": false}
+{"ts": "2026-05-14T14:41:07.012721Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "65b5543e", "use_llm": false}
+{"ts": "2026-05-14T14:41:07.020630Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "618c7b30", "use_llm": false}
+{"ts": "2026-05-14T14:41:09.677029Z", "type": "submit_quiz", "quiz_id": "dq_618c7b30_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-14T14:41:26.442390Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d4409bc9", "use_llm": false}
+{"ts": "2026-05-14T14:41:26.448388Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e9357786", "use_llm": false}
+{"ts": "2026-05-14T15:17:42.195740Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "cfb92e48", "use_llm": false}
+{"ts": "2026-05-14T15:17:42.201245Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7e170c9d", "use_llm": false}
+{"ts": "2026-05-15T00:27:18.923949Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "基础不是很好", "weak_points": ["项目实战经验", "高级设计能力"], "learning_preference": ["动手实践，边学边做"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-15T00:27:18.894927Z"}}
+{"ts": "2026-05-15T00:27:20.708222Z", "type": "profile_onboarding", "profile": {"goal": ["掌握核心技能"], "knowledge_level": "基础不是很好", "weak_points": ["项目实战经验", "高级设计能力"], "learning_preference": ["动手实践，边学边做"], "cognitive_style": "归纳型", "daily_time": 30, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-15T00:27:20.688710Z"}}
+{"ts": "2026-05-15T00:28:11.535268Z", "type": "path_planning_generated", "path_id": "path-20260515T002811.531279", "target": "我想自己写一个贪吃蛇小游戏", "timestamp": "2026-05-15T00:28:11.535268Z"}
+{"ts": "2026-05-15T00:28:15.932582Z", "type": "path_node_suggestions", "node_title": "编程基础：变量和数据类型", "node_goal": "编程基础：变量和数据类型", "phase": "基础学习", "timestamp": "2026-05-15T00:28:15.932582Z"}
+{"ts": "2026-05-15T00:29:30.781797Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2cb413f7", "use_llm": false}
+{"ts": "2026-05-15T00:29:30.790810Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "4f593461", "use_llm": false}
+{"ts": "2026-05-15T00:29:34.921455Z", "type": "submit_quiz", "quiz_id": "dq_4f593461_1", "correct": true, "judge_mode": "rule"}
+{"ts": "2026-05-15T00:29:39.050493Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "5f0228ba", "use_llm": false}
+{"ts": "2026-05-15T00:29:43.273273Z", "type": "submit_quiz", "quiz_id": "dq_5f0228ba_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-15T00:29:51.797350Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c1a52c4d", "use_llm": false}
+{"ts": "2026-05-15T00:29:51.809870Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8880db8d", "use_llm": false}
+{"ts": "2026-05-15T00:29:53.699234Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "18735a17", "use_llm": false}
+{"ts": "2026-05-15T00:29:53.708242Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "749c81eb", "use_llm": false}
+{"ts": "2026-05-15T00:31:24.480319Z", "type": "tutor_chat", "conversation_id": 2, "role_id": 1, "question": "你好"}
+{"ts": "2026-05-15T00:33:32.779452Z", "type": "tutor_chat", "conversation_id": 3, "role_id": 1, "question": "Python函数怎么学"}
