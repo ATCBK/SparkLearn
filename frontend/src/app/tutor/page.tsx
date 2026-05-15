@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { api, Message, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
@@ -11,19 +11,23 @@ import {
   FileText,
   MessageSquareText,
   Mic,
+  MicOff,
   Paperclip,
+  Pause,
   Pencil,
   Plus,
   Save,
   Send,
   Trash2,
   UserCog,
+  Volume2,
   X,
   PanelLeftClose,
   PanelLeftOpen,
   Users,
   ArrowLeft,
   Sparkles,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import ReactMarkdown from 'react-markdown'
@@ -133,6 +137,54 @@ export default function TutorPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // TTS playback
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null)
+  const [ttsLoading, setTtsLoading] = useState<string | null>(null)
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
+  const ttsBlobUrlRef = useRef<string | null>(null)
+
+  // Voice input
+  const [recording, setRecording] = useState(false)
+  const recognitionRef = useRef<any>(null)
+
+  const playTts = useCallback(async (msgId: string, text: string) => {
+    if (ttsAudioRef.current) { ttsAudioRef.current.pause(); ttsAudioRef.current = null }
+    if (ttsBlobUrlRef.current) { URL.revokeObjectURL(ttsBlobUrlRef.current); ttsBlobUrlRef.current = null }
+    if (playingMsgId === msgId) { setPlayingMsgId(null); return }
+    setTtsLoading(msgId)
+    try {
+      const blob = await api.synthesizeSpeech(text.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000))
+      const url = URL.createObjectURL(blob)
+      ttsBlobUrlRef.current = url
+      const audio = new Audio(url)
+      ttsAudioRef.current = audio
+      audio.addEventListener('ended', () => setPlayingMsgId(null))
+      await audio.play()
+      setPlayingMsgId(msgId)
+    } catch { /* TTS failed */ }
+    finally { setTtsLoading(null) }
+  }, [playingMsgId])
+
+  const toggleVoiceInput = useCallback(() => {
+    if (recording) { recognitionRef.current?.stop(); setRecording(false); return }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('当前浏览器不支持语音识别，请使用 Chrome。'); return }
+    const recognition = new SR()
+    recognition.lang = 'zh-CN'
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.onresult = (event: any) => {
+      let t = ''
+      for (let i = 0; i < event.results.length; i++) t += event.results[i][0].transcript
+      setInput(t)
+    }
+    recognition.onend = () => setRecording(false)
+    recognition.onerror = () => setRecording(false)
+    recognitionRef.current = recognition
+    recognition.start()
+    setRecording(true)
+  }, [recording])
 
   const currentConversation = useMemo(
     () => conversations.find((c) => c.id === currentConversationId) || null,
@@ -637,6 +689,16 @@ export default function TutorPage() {
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                               </div>
                             )}
+                            {/* TTS 播报按钮 */}
+                            <button
+                              onClick={() => void playTts(msg.id, msg.content)}
+                              disabled={ttsLoading === msg.id}
+                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
+                              title="语音播报"
+                            >
+                              {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                              <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
+                            </button>
                           </div>
                         </div>
                       )}
@@ -656,6 +718,7 @@ export default function TutorPage() {
               <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm px-4 py-3">
                 <div className="flex items-center gap-3">
                   <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，问任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
+                  <button onClick={toggleVoiceInput} className={cn('w-10 h-10 rounded-full flex items-center justify-center transition-colors', recording ? 'bg-red-500 text-white animate-pulse' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#1e293b]')} title={recording ? '停止录音' : '语音输入'}>{recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</button>
                   <button onClick={() => void handleSend()} disabled={(!input.trim() && pendingFiles.length === 0) || streaming} className="w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center hover:bg-[#1d4ed8] disabled:opacity-30 transition-colors"><Send className="w-4 h-4" /></button>
                 </div>
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#f1f5f9]">

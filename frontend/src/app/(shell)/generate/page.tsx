@@ -121,8 +121,8 @@ export default function GeneratePage() {
         </div>
 
         <PageHead
-          eyebrow="资源中心 / 资源库"
-          title="资源库"
+          eyebrow="资源中心 / 我的资源"
+          title="我的资源"
           description="所有生成和推荐过的资源都会沉淀在这里，学习进度会影响后续练习与报告。"
           chips={[
             { value: `${resources.length}`, label: '已保存资源', icon: <Database className="h-4 w-4" />, tone: 'cyan' as const },
@@ -217,15 +217,15 @@ export default function GeneratePage() {
   return (
     <div>
       <header className="mb-5 border-b border-line pb-4">
-        <div className="mb-2 text-small font-extrabold text-soft">资源中心 / 生成与资源库</div>
+        <div className="mb-2 text-small font-extrabold text-soft">资源中心 / 生成与我的资源</div>
         <div className="flex items-center gap-3">
           <div className="grid h-7 w-7 place-items-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
             <Sparkles className="h-4 w-4" />
           </div>
           <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">资源中心</h1>
-          <button onClick={() => setView('library')} className="inline-flex h-9 items-center justify-center gap-2 rounded-[8px] px-3.5 text-small font-bold transition-colors bg-white text-blue ring-1 ring-[#bfdbfe] hover:bg-blue-light">进入资源库</button>
+          <button onClick={() => setView('library')} className="inline-flex h-9 items-center justify-center gap-2 rounded-[8px] px-3.5 text-small font-bold transition-colors bg-white text-blue ring-1 ring-[#bfdbfe] hover:bg-blue-light">我的资源</button>
         </div>
-        <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">在这里生成个性化学习资源，也可以进入资源库管理已保存内容。</p>
+        <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">在这里生成个性化学习资源，也可以查看已保存的资源。</p>
       </header>
 
       <ProtoCard className="mb-4 overflow-hidden p-0">
@@ -245,7 +245,7 @@ export default function GeneratePage() {
 
       <ProtoCard className="p-0">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <div><b className="text-ink">资源生成流程</b><p className="text-micro text-muted">按步骤确认上下文、资料来源和生成要求，完成后保存到资源库。</p></div>
+          <div><b className="text-ink">资源生成流程</b><p className="text-micro text-muted">按步骤确认上下文、资料来源和生成要求，完成后保存到我的资源。</p></div>
           <Pill tone="blue">当前：函数返回值补弱</Pill>
         </div>
         <div className="p-5">
@@ -396,14 +396,14 @@ export default function GeneratePage() {
                       <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音讲解。</p>
                     </div>
                   ) : (
-                    <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可进入资源库查看完整预览。'}</p>
+                    <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可在我的资源中查看完整预览。'}</p>
                   )}
                 </SoftCard>
                 <div className="flex gap-2">
                   {resource.type === 'video' ? (
-                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">在资源库中查看</button>
+                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">在我的资源中查看</button>
                   ) : (
-                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">进入资源库</button>
+                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">我的资源</button>
                   )}
                   <ProtoButton href="/practice" variant="secondary">生成配套练习</ProtoButton>
                   <ProtoButton onClick={() => setStep(5)} variant="tertiary"><Save className="h-4 w-4" />确认保存</ProtoButton>
@@ -418,7 +418,7 @@ export default function GeneratePage() {
         {step === 5 && (
           <SoftCard className="flex items-center justify-between gap-3">
             <div>
-              <b className="text-ink">已保存到资源库</b>
+              <b className="text-ink">已保存到我的资源</b>
               <p className="mt-1 text-small text-muted">资源已关联当前路径节点，下一步建议开始学习并完成达标题。</p>
             </div>
             <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors flex items-center gap-2"><Sparkles className="h-4 w-4" />查看资源</button>

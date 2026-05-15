@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Minus, Send, ThumbsDown, ThumbsUp, X, Sparkles } from 'lucide-react'
+import { Minus, Send, ThumbsDown, ThumbsUp, X, Sparkles, Volume2, Mic, MicOff, Loader2, Pause } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils/cn'
 import styled from 'styled-components'
@@ -13,7 +13,7 @@ const CONTEXTS: Record<string, { title: string; hint: string; quick: string[] }>
   '/': { title: '小星同学', hint: '我可以解释今日任务为什么这样安排。', quick: ['我今天先做什么', '为什么推荐这些资源', '帮我调整顺序'] },
   '/profile': { title: '小星同学', hint: '我可以解释画像维度和更新依据。', quick: ['解释我的薄弱点', '更新学习画像', '我适合什么资源'] },
   '/path': { title: '小星同学', hint: '我可以说明节点顺序和达标条件。', quick: ['为什么先学这里', '调整学习目标', '推荐下一步'] },
-  '/generate': { title: '小星同学', hint: '我可以帮你优化生成要求，也可以讲解资源库中的内容。', quick: ['优化提示词', '选择资源类型', '讲解这个资源'] },
+  '/generate': { title: '小星同学', hint: '我可以帮你优化生成要求，也可以讲解我的资源中的内容。', quick: ['优化提示词', '选择资源类型', '讲解这个资源'] },
   '/knowledge': { title: '小星同学', hint: '我可以帮你判断资料是否适合生成资源。', quick: ['总结资料用途', '哪些可用于生成', '整理资料建议'] },
   '/practice': { title: '小星同学', hint: '我可以讲解错因并推荐补弱资源。', quick: ['讲解这道题', '生成变式题', '推荐补弱资源'] },
   '/report': { title: '小星同学', hint: '我可以解读学习报告和下一步计划。', quick: ['解读本周报告', '下一步先做什么', '哪些薄弱点最急'] },
@@ -42,6 +42,16 @@ export function AIAssistant() {
   const dragStart = useRef({ x: 0, y: 0 })
   const posStart = useRef({ x: 0, y: 0 })
   const hasMoved = useRef(false)
+
+  // TTS playback
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null)
+  const [ttsLoading, setTtsLoading] = useState<string | null>(null)
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
+  const ttsBlobUrlRef = useRef<string | null>(null)
+
+  // Voice input
+  const [recording, setRecording] = useState(false)
+  const recognitionRef = useRef<any>(null)
 
   // 3D tilt state (global mouse tracking)
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0 })
@@ -132,6 +142,64 @@ export function AIAssistant() {
 
   // 在 /tutor 页面不渲染
   if (pathname === '/tutor') return null
+
+  // TTS playback function
+  async function playTts(msgId: string, text: string) {
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause()
+      ttsAudioRef.current = null
+    }
+    if (ttsBlobUrlRef.current) {
+      URL.revokeObjectURL(ttsBlobUrlRef.current)
+      ttsBlobUrlRef.current = null
+    }
+    if (playingMsgId === msgId) {
+      setPlayingMsgId(null)
+      return
+    }
+    setTtsLoading(msgId)
+    try {
+      const blob = await api.synthesizeSpeech(text.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000))
+      const url = URL.createObjectURL(blob)
+      ttsBlobUrlRef.current = url
+      const audio = new Audio(url)
+      ttsAudioRef.current = audio
+      audio.addEventListener('ended', () => setPlayingMsgId(null))
+      await audio.play()
+      setPlayingMsgId(msgId)
+    } catch { /* TTS failed */ }
+    finally { setTtsLoading(null) }
+  }
+
+  // Voice input function
+  function toggleVoiceInput() {
+    if (recording) {
+      recognitionRef.current?.stop()
+      setRecording(false)
+      return
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('当前浏览器不支持语音识别，请使用 Chrome 浏览器。')
+      return
+    }
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'zh-CN'
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.onresult = (event: any) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setInput(transcript)
+    }
+    recognition.onend = () => setRecording(false)
+    recognition.onerror = () => setRecording(false)
+    recognitionRef.current = recognition
+    recognition.start()
+    setRecording(true)
+  }
 
   async function ask(text: string) {
     const question = text.trim()
@@ -388,6 +456,20 @@ export function AIAssistant() {
                               <div className="msg-footer">
                                 <span>AI 生成，仅供参考</span>
                                 <div className="feedback-btns">
+                                  <button
+                                    aria-label="语音播报"
+                                    onClick={() => void playTts(msg.id, msg.content)}
+                                    disabled={ttsLoading === msg.id}
+                                    className={playingMsgId === msg.id ? 'active' : ''}
+                                  >
+                                    {ttsLoading === msg.id ? (
+                                      <Loader2 size={11} className="animate-spin" />
+                                    ) : playingMsgId === msg.id ? (
+                                      <Pause size={11} />
+                                    ) : (
+                                      <Volume2 size={11} />
+                                    )}
+                                  </button>
                                   <button aria-label="有帮助">
                                     <ThumbsUp size={11} />
                                   </button>
@@ -437,6 +519,15 @@ export function AIAssistant() {
                     placeholder="输入你的问题...✦˚"
                   />
                   <div className="input-actions">
+                    <button
+                      type="button"
+                      className={cn('input-action-btn mic-btn', recording && 'recording')}
+                      onClick={toggleVoiceInput}
+                      title={recording ? '停止录音' : '语音输入'}
+                      aria-label={recording ? '停止录音' : '语音输入'}
+                    >
+                      {recording ? <MicOff size={16} /> : <Mic size={16} />}
+                    </button>
                     <label className="input-action-btn" title="上传文件" aria-label="上传文件">
                       <input type="file" className="hidden" accept=".txt,.pdf,.md,.doc,.docx" />
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -1133,6 +1224,8 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     color: #999;
     cursor: pointer;
     transition: all 0.2s;
+    border: none;
+    background: transparent;
 
     &:hover {
       background: rgba(0, 0, 0, 0.05);
@@ -1142,6 +1235,16 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
     & input {
       display: none;
     }
+
+    &.mic-btn.recording {
+      background: #dc2626;
+      color: white;
+      animation: pulse-mic 1.5s infinite;
+    }
+  }
+
+  .feedback-btns button.active {
+    color: #7c3aed;
   }
 
   .input-send-btn {
@@ -1205,5 +1308,10 @@ const StyledWrapper = styled.div<{ $open: boolean }>`
       opacity: 1;
       transform: scale(1) translateY(0);
     }
+  }
+
+  @keyframes pulse-mic {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
   }
 `

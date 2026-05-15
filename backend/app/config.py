@@ -75,6 +75,7 @@ class Settings(BaseSettings):
     agent_browser_slow_mo: int = 800       # 毫秒，让操作慢一点方便观看
 
     single_user_id: str = "single_user"
+    use_mock_data: bool = True
     cors_origin: str = "http://localhost:3000"
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { api, AgentPet, AgentTask, AgentTaskStep } from '@/lib/api'
 import { ProtoCard, ProtoButton, Pill, SoftCard } from '@/components/proto'
-import { Send, Search, FileText, GitCompare, Bookmark, ThumbsUp, ThumbsDown, Loader2, ExternalLink } from 'lucide-react'
-import { PetAvatar, PetType, taskStatusToPetState } from './PetAvatar'
+import { Send, Search, FileText, GitCompare, Bookmark, ThumbsUp, ThumbsDown, Loader2, ExternalLink, Volume2, Mic, MicOff, Pause } from 'lucide-react'
+import { PetAvatar, PetType, PetState, taskStatusToPetState } from './PetAvatar'
 
 const AVATAR_EMOJI: Record<string, string> = { fox: '🦊', owl: '🦉', robot: '🤖', cat: '🐱', dragon: '🐲', penguin: '🐧', bunny: '🐰', panda: '🐼' }
 
@@ -25,9 +25,10 @@ interface ChatMessage {
 interface Props {
   pet: AgentPet
   onXpChange: () => void
+  onStateChange?: (state: PetState, statusText?: string) => void
 }
 
-export function AgentChat({ pet, onXpChange }: Props) {
+export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -44,6 +45,101 @@ export function AgentChat({ pet, onXpChange }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
   const msgCounter = useRef(0)
+
+  // TTS playback state
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null)
+  const [ttsLoading, setTtsLoading] = useState<string | null>(null)
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
+  const ttsBlobUrlRef = useRef<string | null>(null)
+
+  // Voice input state
+  const [recording, setRecording] = useState(false)
+  const recognitionRef = useRef<any>(null)
+
+  // TTS: play agent message
+  const playTts = useCallback(async (msgId: string, text: string) => {
+    // Stop current playback
+    if (ttsAudioRef.current) {
+      ttsAudioRef.current.pause()
+      ttsAudioRef.current = null
+    }
+    if (ttsBlobUrlRef.current) {
+      URL.revokeObjectURL(ttsBlobUrlRef.current)
+      ttsBlobUrlRef.current = null
+    }
+
+    if (playingMsgId === msgId) {
+      setPlayingMsgId(null)
+      return
+    }
+
+    setTtsLoading(msgId)
+    try {
+      const blob = await api.synthesizeSpeech(text.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000))
+      const url = URL.createObjectURL(blob)
+      ttsBlobUrlRef.current = url
+      const audio = new Audio(url)
+      ttsAudioRef.current = audio
+      audio.addEventListener('ended', () => {
+        setPlayingMsgId(null)
+      })
+      await audio.play()
+      setPlayingMsgId(msgId)
+    } catch {
+      // TTS failed silently
+    } finally {
+      setTtsLoading(null)
+    }
+  }, [playingMsgId])
+
+  // Voice input: start/stop recording using Web Speech API
+  const toggleVoiceInput = useCallback(() => {
+    if (recording) {
+      recognitionRef.current?.stop()
+      setRecording(false)
+      return
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('当前浏览器不支持语音识别，请使用 Chrome 浏览器。')
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = 'zh-CN'
+    recognition.continuous = false
+    recognition.interimResults = true
+
+    recognition.onresult = (event: any) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setInput(transcript)
+    }
+
+    recognition.onend = () => {
+      setRecording(false)
+    }
+
+    recognition.onerror = () => {
+      setRecording(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setRecording(true)
+  }, [recording])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (ttsAudioRef.current) ttsAudioRef.current.pause()
+      if (ttsBlobUrlRef.current) URL.revokeObjectURL(ttsBlobUrlRef.current)
+      recognitionRef.current?.stop()
+    }
+  }, [])
 
   // Auto-scroll
   useEffect(() => {
@@ -212,6 +308,25 @@ export function AgentChat({ pet, onXpChange }: Props) {
                 {msg.content}
               </div>
 
+              {/* TTS play button for agent messages */}
+              {msg.sender === 'agent' && msg.content && (
+                <button
+                  onClick={() => void playTts(msg.id, msg.content)}
+                  disabled={ttsLoading === msg.id}
+                  className="mt-1 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-[#6b7280] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
+                  title="语音播报"
+                >
+                  {ttsLoading === msg.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : playingMsgId === msg.id ? (
+                    <Pause className="h-3 w-3" />
+                  ) : (
+                    <Volume2 className="h-3 w-3" />
+                  )}
+                  <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
+                </button>
+              )}
+
               {/* Render task results */}
               {msg.task && msg.task.result && (
                 <div className="mt-2 space-y-2">
@@ -311,6 +426,18 @@ export function AgentChat({ pet, onXpChange }: Props) {
           className="flex-1 h-10 rounded-xl border border-[#e2e8f0] px-4 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#bfdbfe] disabled:bg-[#f9fafb]"
           maxLength={200}
         />
+        <button
+          type="button"
+          onClick={toggleVoiceInput}
+          className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${
+            recording
+              ? 'bg-[#dc2626] text-white animate-pulse'
+              : 'bg-[#f1f5f9] text-[#6b7280] hover:bg-[#e2e8f0] hover:text-[#111827]'
+          }`}
+          title={recording ? '停止录音' : '语音输入'}
+        >
+          {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </button>
         <button
           type="submit"
           disabled={!input.trim() || polling}
