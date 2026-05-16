@@ -756,6 +756,7 @@ function toPathPlanning(raw: any): PathPlanningData {
     target: String(raw?.target ?? ''),
     suggestions,
     resources,
+    phases: Array.isArray(raw?.phases) ? raw.phases : undefined,
     createdAt: String(raw?.created_at ?? ''),
   }
 }

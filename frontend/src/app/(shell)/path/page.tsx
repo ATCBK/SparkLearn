@@ -157,11 +157,11 @@ export default function PathPage() {
         }
 
         // 更新路径回路节点
-        const phases_data = (data as any).phases
-        if (Array.isArray(phases_data) && phases_data.length === 3) {
+        const phases_data = data.phases
+        if (Array.isArray(phases_data) && phases_data.length >= 2) {
           const PHASE_COLORS = ['#16A34A', '#2563EB', '#94A3B8']
           const PHASE_DESCS = ['夯实基础', '能力达标', '应用提升']
-          const newPhases: Phase[] = phases_data.map((p: any, pIdx: number) => {
+          const newPhases: Phase[] = phases_data.slice(0, 3).map((p: any, pIdx: number) => {
             const phaseId = (pIdx + 1) as 1 | 2 | 3
             const nodes: PathNode[] = (p.nodes || []).map((n: any, nIdx: number) => {
               let status: PathNode['status'] = 'locked'
@@ -207,7 +207,7 @@ export default function PathPage() {
         <SummaryBar />
 
         {/* 主体区域：左右两栏 */}
-        <div className="mt-6 grid grid-cols-[1fr_320px] gap-2">
+        <div className="mt-6 grid grid-cols-[1fr_320px] gap-2 max-[980px]:grid-cols-1">
           {/* 左侧：阶段路径回路 */}
           <PathCircuitCard
             targetInput={targetInput}
@@ -249,7 +249,7 @@ function PageHeader() {
 function SummaryBar() {
   return (
     <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm">
-      <div className="grid grid-cols-5 gap-px">
+      <div className="grid grid-cols-5 gap-px max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2 max-[760px]:gap-4">
         {/* 当前目标 */}
         <div className="border-r border-[#E5EAF2] pr-6">
           <div className="text-xs text-[#6B7280]">当前目标</div>
@@ -333,7 +333,7 @@ function PathCircuitCard({
   return (
     <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm">
       {/* 标题 + 目标设定 */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-[#111827]">阶段路径回路</h2>
         <div className="flex items-center gap-2">
           <input
@@ -374,7 +374,7 @@ function PathCircuitCard({
       </div>
 
       {/* 底部按钮 */}
-      <div className="mt-4 flex gap-3">
+      <div className="mt-4 flex gap-3 flex-wrap">
         <Link href="/generate" className="rounded-[10px] bg-[#2563EB] px-6 py-2 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors">
           学习当前节点资源
         </Link>

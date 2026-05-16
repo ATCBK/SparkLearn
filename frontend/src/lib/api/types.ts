@@ -250,6 +250,7 @@ export interface PathPlanningData {
   target: string
   suggestions: PathPlanningSuggestion[]
   resources: PathPlanningResource[]
+  phases?: Array<{ title: string; description?: string; nodes: Array<{ id: number; title: string }> }>
   createdAt: string
 }
 
