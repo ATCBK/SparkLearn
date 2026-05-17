@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from ..coze import coze_adapter
 from ..config import settings
+from ..llm import spark_lite
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
 from ..xfyun_ppt import XfyunPptError, xfyun_ppt_client
@@ -90,6 +91,45 @@ async def generate_resource(req: GenerateReq):
                     "source_url": None,
                     "progress": 100,
                 }
+        elif resource_type == "blog":
+            # 播客电台：直接调用星火大模型生成播客脚本
+            chunks: list[str] = []
+            progress = 10
+
+            knowledge_context = load_knowledge_context(req.knowledge_file_ids or [])
+            user_prompt = req.prompt
+            if knowledge_context:
+                user_prompt = (
+                    f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考：\n{knowledge_context}"
+                )
+            blog_prompt = _build_resource_prompt("blog", user_prompt)
+
+            yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
+            async for evt_type, payload in spark_lite.stream_chat_events(blog_prompt, mode="general", history=[]):
+                if evt_type == "text":
+                    chunk = str(payload.get("content", ""))
+                    if chunk:
+                        chunks.append(chunk)
+                        progress = min(progress + 5, 90)
+                        yield ("text", {"content": chunk, "resource_id": res_id})
+                        yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
+                elif evt_type == "error":
+                    yield ("error", payload)
+
+            content = "".join(chunks).strip()
+            if not content:
+                content = _fallback_resource_content("blog", req.prompt)
+
+            resource = {
+                "id": res_id,
+                "title": req.prompt[:20] or "新生成播客",
+                "type": "blog",
+                "status": "completed",
+                "created_at": _now_date(),
+                "content": f"# {req.prompt}\n\n{content}",
+                "source_url": None,
+                "progress": 100,
+            }
         else:
             chunks: list[str] = []
             explicit_source_url = ""

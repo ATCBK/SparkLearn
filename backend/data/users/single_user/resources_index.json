@@ -1,35 +1,5 @@
 [
   {
-    "id": "gen-2248cd68",
-    "title": "面向对象的课程文档",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-04-21",
-    "content": "# 面向对象的课程文档\n\nhttps://ts.fyshark.com/html_files/document_17675364251.htmlhttps://ts.fyshark.com/html_files/document_1776753642251.html生成一个面向对象的课程文档大纲推荐一些优秀的面向对象课程学习资源如何更好地理解面向对象编程中的封装概念？",
-    "source_url": "https://ts.fyshark.com/html_files/document_1776753642251.html",
-    "progress": 100
-  },
-  {
-    "id": "gen-6828e5a0",
-    "title": "帮我生成一个讲解 面向对象的思维导图",
-    "type": "mindmap",
-    "status": "completed",
-    "created_at": "2026-04-21",
-    "content": "# 帮我生成一个讲解 面向对象的思维导图\n\nhttps://ts.fyshark.com/html_files/document_1767598595.html#面向对象编程（OP）##一、核心概念-类（Class）：定义对象的蓝图，包含属性和方法-对象（Object）：类的实例，拥有具体的属性值和可执行方法-封装（Encapsulation）：隐藏内部细节，通过接口交互，保护数据安全-继承（Inheritance）：子类复用父类属性和方法，实现代码复用与扩展-多态（Polymorphism）：同一行为在不同对象上有不同实现（重载、重写）##二、OP的优势-代码复用性高：继承和组合减少重复代码-可维护性强：封装降低模块间耦合，便于修改-扩展性好：通过继承、多态轻松扩展功能-建模贴近现实：用对象映射现实事物，逻辑更直观##三、常见实现语言-Java：纯面向对象，单继承+接口实现-Python：支持多继承，动态类型，灵活简洁-C++：支持多继承，兼顾面向过程与面向对象-JavaScript：基于原型的面向对象，灵活的原型链##四、设计原则（SOLID）-单一职责原则（SRP）：一个类只负责一个功能模块-开放封闭原则（OCP）：对扩展开放，对修改封闭-里氏替换原则（LSP）：子类可替换父类而不影响功能-接口隔离原则（ISP）：提供最小化的专用接口-依赖倒置原则（DIP）：依赖抽象而非具体实现##五、常见设计模式-创建型模式：工厂方法、单例、抽象工厂、建造者、原型-结构型模式：适配器、装饰器、代理、组合、外观-行为型模式：观察者、策略、模板方法、迭代器、命令https://ts.fyshark.com/html_files/document_1776755985955.html\n\n# 面向对象编程（OOP）\n\n## 一、核心概念\n\n- 类（Class）：定义对象的蓝图，包含属性和方法\n\n- 对象（Object）：类的实例，拥有具体的属性值和可执行方法\n\n- 封装（Encapsulation）：隐藏内部细节，通过接口交互，保护数据安全\n\n- 继承（Inheritance）：子类复用父类属性和方法，实现代码复用与扩展\n\n- 多态（Polymorphism）：同一行为在不同对象上有不同实现（重载、重写）\n\n## 二、OOP的优势\n\n- 代码复用性高：继承和组合减少重复代码\n\n- 可维护性强：封装降低模块间耦合，便于修改\n\n- 扩展性好：通过继承、多态轻松扩展功能\n\n- 建模贴近现实：用对象映射现实事物，逻辑更直观\n\n## 三、常见实现语言\n\n- Java：纯面向对象，单继承+接口实现\n\n- Python：支持多继承，动态类型，灵活简洁\n\n- C++：支持多继承，兼顾面向过程与面向对象\n\n- JavaScript：基于原型的面向对象，灵活的原型链\n\n## 四、设计原则（SOLID）\n\n- 单一职责原则（SRP）：一个类只负责一个功能模块\n\n- 开放封闭原则（OCP）：对扩展开放，对修改封闭\n\n- 里氏替换原则（LSP）：子类可替换父类而不影响功能\n\n- 接口隔离原则（ISP）：提供最小化的专用接口\n\n- 依赖倒置原则（DIP）：依赖抽象而非具体实现\n\n## 五、常见设计模式\n\n- 创建型模式：工厂方法、单例、抽象工厂、建造者、原型\n\n- 结构型模式：适配器、装饰器、代理、组合、外观\n\n- 行为型模式：观察者、策略、模板方法、迭代器、命令在面向对象的思维导图中添加类的创建和实例化的内容推荐一些讲解面向对象的视频教程用思维导图的形式总结面向对象的三大特性",
-    "source_url": "https://ts.fyshark.com/html_files/document_1776755985955.html",
-    "progress": 100
-  },
-  {
-    "id": "gen-3f2bf06f",
-    "title": "帮我生成一个讲解 面向对象的思维导图",
-    "type": "mindmap",
-    "status": "completed",
-    "created_at": "2026-04-21",
-    "content": "# 帮我生成一个讲解 面向对象的思维导图\n\nLinked web document generated. Use preview or download to view it.",
-    "source_url": "https://markmap.keepto.top/images/markmap_1776756118756_991.png",
-    "progress": 100
-  },
-  {
     "id": "gen-96b542e2",
     "title": "Python类精讲",
     "type": "ppt",
@@ -42,132 +12,12 @@
     "progress": 100
   },
   {
-    "id": "gen-1b713cd8",
-    "title": "帮我生成Python函数的讲解课程文档",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-04-28",
-    "content": "# 帮我生成Python函数的讲解课程文档\n\n# 帮我生成Python函数的讲解课程文档\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-1d0fc2f4",
-    "title": "Python 变量",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-06",
-    "content": "# Python 变量\n\n# Python 变量\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-958857ad",
-    "title": "Python 变量",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-06",
-    "content": "# Python 变量\n\n# Python 变量\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-543ec786",
-    "title": "Python 变量",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-06",
-    "content": "# Python 变量\n\n# Python 变量\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-5574abe7",
-    "title": "Python 变量",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-10",
-    "content": "# Python 变量\n\n# Python 变量\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-a46e2d51",
-    "title": "Python 变量",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-10",
-    "content": "# Python 变量\n\n# Python 变量\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-26e2fc37",
-    "title": "Python 变量",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-10",
-    "content": "# Python 变量\n\n# Python 变量\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-a56876ca",
-    "title": "Python 变量",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-10",
-    "content": "# Python 变量\n\n# Python 变量\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-82d57fcb",
-    "title": "请基于当前薄弱点“函数返回值”生成一份1",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-10",
-    "content": "# 请基于当前薄弱点“函数返回值”生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\n# 请基于当前薄弱点“函数返回值”生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-860d548e",
-    "title": "请基于当前薄弱点\"函数返回值\"生成一份1",
-    "type": "document",
-    "status": "completed",
-    "created_at": "2026-05-14",
-    "content": "# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\n# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\ndocument 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-0a8cb156",
-    "title": "请基于当前薄弱点\"函数返回值\"生成一份1",
+    "id": "gen-155088c8",
+    "title": "请用通俗易懂的方式讲解\"函数返回值\"这个",
     "type": "blog",
     "status": "completed",
-    "created_at": "2026-05-15",
-    "content": "# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\n# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\nblog 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-b0d6a52c",
-    "title": "请基于当前薄弱点\"函数返回值\"生成一份1",
-    "type": "blog",
-    "status": "completed",
-    "created_at": "2026-05-15",
-    "content": "# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\n# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\nblog 生成结果为空，请稍后重试。",
-    "source_url": null,
-    "progress": 100
-  },
-  {
-    "id": "gen-62efe3ce",
-    "title": "请基于当前薄弱点\"函数返回值\"生成一份1",
-    "type": "blog",
-    "status": "completed",
-    "created_at": "2026-05-15",
-    "content": "# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\n# 请基于当前薄弱点\"函数返回值\"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。\n\nblog 生成结果为空，请稍后重试。",
+    "created_at": "2026-05-17",
+    "content": "# 请用通俗易懂的方式讲解\"函数返回值\"这个概念，像播客节目一样轻松有趣地科普，让零基础的人也能听懂。\n\n嘿，大家好，欢迎收听今天的 SparkLearn 播客电台。我是你们的老朋友，小科普。今天我们要聊一个非常基础但又非常重要的概念——函数返回值。\n\n首先，让我们来想象一下，你有一个神奇的魔法棒，可以帮你实现任何愿望。但是，这个魔法棒有一个规则：每次使用后，它都会告诉你“我需要一点时间来思考”。然后，它会告诉你：“现在，我要用我的魔法棒去实现你的愿望了。”当你看到魔法棒挥舞起来时，你会想：“哇，这感觉就像函数的返回值！”\n\n那么，什么是函数的返回值呢？简单来说，函数的返回值就是你告诉函数你想要什么结果，而函数就会根据你的要求去计算并返回那个结果。就像魔法棒一样，函数的返回值是函数执行完后给你的一个“答案”。\n\n现在，让我用一个生活中的例子来解释这个概念。假设你是一个厨师，你的朋友来找你吃饭。你决定做一道菜，然后告诉朋友：“我现在去准备，等会儿给你做。”这就是函数的返回值。当你知道朋友会回来的时候，你就可以知道，你的函数已经计算出了结果，并且会返回给你。\n\n现在，我们再来看一个例子。假设你是一名老师，你教学生如何骑自行车。你告诉他们：“我会给你们一些指导，你们跟着做，直到你们能自己骑。”这就是函数的返回值。当你看到学生们能够独立骑行时，你就可以知道，你的函数已经成功地完成了它的任务，并且给出了正确的结果。\n\n最后，让我们来思考一个问题。如果你有一个函数，它总是返回同一个结果，但你不知道这个结果是什么，你会怎么做？答案是，你可以调用这个函数多次，每次都得到相同的结果。这就是函数的返回值。\n\n总结一下，函数的返回值就像是魔法棒的“回答”，是你给函数一个请求后得到的“答案”。通过理解函数的返回值，我们可以更好地控制和利用函数的功能。希望这个例子能帮助你更好地理解函数的返回值。如果你有任何问题或者想法，欢迎在评论区留言，我们一起讨论！",
     "source_url": null,
     "progress": 100
   }

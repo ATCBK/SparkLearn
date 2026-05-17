@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -71,11 +71,7 @@ const SUGGESTIONS = [
   { id: 3, text: '卡住就换一种讲法', desc: '根据当前画像、推荐和路径状态自动推荐。' },
 ]
 
-const RESOURCES = [
-  { id: 1, title: '函数返回值项目讲义', tag: '优先学习', link: '/generate?tab=library&type=lecture&id=1' },
-  { id: 2, title: '函数作用域精讲讲义', tag: '待复习', link: '/generate?tab=library&type=lecture&id=2' },
-  { id: 3, title: '返回值补弱题练', tag: '5 题', link: '/practice?topic=返回值' },
-]
+const RESOURCES: Array<{ id: number; title: string; tag: string; link?: string }> = []
 
 // ============ 主组件 ============
 export default function PathPage() {
@@ -87,6 +83,19 @@ export default function PathPage() {
   const [nodeLoading, setNodeLoading] = useState(false)
   const [phases, setPhases] = useState<Phase[]>(DEFAULT_PHASES)
   const requestSeqRef = useRef(0)
+
+  // 加载真实资源作为资源推送
+  useEffect(() => {
+    api.getRecentResources().then(data => {
+      const mapped = data.slice(0, 3).map((r, idx) => ({
+        id: idx + 1,
+        title: r.title,
+        tag: r.type === 'document' ? '文档' : r.type === 'ppt' ? 'PPT' : r.type === 'mindmap' ? '思维导图' : r.type,
+        link: `/generate?view=library&id=${r.id}`,
+      }))
+      if (mapped.length > 0) setGeneratedResources(mapped)
+    }).catch(() => {})
+  }, [])
 
   const handleNodeClick = async (nodeId: number | null) => {
     if (nodeId === null) return
@@ -655,7 +664,7 @@ function SuggestionPanel({ selectedNodeId, suggestions = SUGGESTIONS, resources 
 
         {/* 底部操作 */}
         <div className="mt-4 border-t border-[#E5EAF2] pt-3">
-          <a href="/generate" className="block w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors text-center">
+          <a href="/generate?view=library" className="block w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors text-center">
             查看全部资源
           </a>
         </div>

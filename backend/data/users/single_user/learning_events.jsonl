@@ -817,3 +817,17 @@
 {"ts": "2026-05-15T02:18:06.309894Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "bd72644b", "use_llm": false}
 {"ts": "2026-05-15T02:19:41.373367Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "850acbfb", "use_llm": false}
 {"ts": "2026-05-15T02:19:41.381363Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "50bb8386", "use_llm": false}
+{"ts": "2026-05-17T09:39:45.187116Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a7d4112d", "use_llm": false}
+{"ts": "2026-05-17T09:39:45.193637Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "302a996b", "use_llm": false}
+{"ts": "2026-05-17T09:41:07.851593Z", "type": "path_planning_generated", "path_id": "path-20260517T094107.842076", "target": "我想自己写一个成绩统计程序", "timestamp": "2026-05-17T09:41:07.851593Z"}
+{"ts": "2026-05-17T09:45:35.942762Z", "type": "tutor_chat", "conversation_id": 3, "role_id": 1, "question": "解释我的薄弱点"}
+{"ts": "2026-05-17T09:45:53.256416Z", "type": "tutor_chat", "conversation_id": 3, "role_id": 1, "question": "我想学习Python函数"}
+{"ts": "2026-05-17T09:48:33.323369Z", "type": "path_node_suggestions", "node_title": "进入模块导入", "node_goal": "进入模块导入", "phase": "达标阶段", "timestamp": "2026-05-17T09:48:33.323058Z"}
+{"ts": "2026-05-17T09:48:34.650859Z", "type": "path_node_suggestions", "node_title": "完成成绩统计项目", "node_goal": "完成成绩统计项目", "phase": "目标阶段", "timestamp": "2026-05-17T09:48:34.650859Z"}
+{"ts": "2026-05-17T09:48:45.437314Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "148dc7eb", "use_llm": false}
+{"ts": "2026-05-17T09:48:45.444326Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "ac2f4663", "use_llm": false}
+{"ts": "2026-05-17T09:51:21.934634Z", "type": "path_node_suggestions", "node_title": "完成成绩统计项目", "node_goal": "完成成绩统计项目", "phase": "目标阶段", "timestamp": "2026-05-17T09:51:21.934634Z"}
+{"ts": "2026-05-17T09:51:28.889738Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "4f7485cd", "use_llm": false}
+{"ts": "2026-05-17T09:51:28.895739Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a0f4a386", "use_llm": false}
+{"ts": "2026-05-17T09:51:34.944030Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0c07bf4b", "use_llm": false}
+{"ts": "2026-05-17T09:51:34.950030Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dc62d921", "use_llm": false}

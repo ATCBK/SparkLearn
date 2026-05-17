@@ -36,6 +36,13 @@ export function AIAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // 监听外部唤醒事件
+  useEffect(() => {
+    const handleOpen = () => setOpen(true)
+    window.addEventListener('open-ai-assistant', handleOpen)
+    return () => window.removeEventListener('open-ai-assistant', handleOpen)
+  }, [])
+
   // Drag state
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)

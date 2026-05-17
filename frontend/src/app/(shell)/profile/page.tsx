@@ -1,13 +1,18 @@
 'use client'
 /* eslint-disable @next/next/no-img-element */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { Target, Lightbulb, Clock } from 'lucide-react'
+import { api, Resource as ResourceType } from '@/lib/api'
 
 export default function ProfilePage() {
-  const [chatOpen, setChatOpen] = useState(false)
   const [gender, setGender] = useState<'male' | 'female'>('male')
+  const [recentResources, setRecentResources] = useState<ResourceType[]>([])
+
+  useEffect(() => {
+    api.getRecentResources().then(data => setRecentResources(data.slice(0, 3))).catch(() => {})
+  }, [])
 
   const avatarSrc = gender === 'male' ? '/ui-images/profile-male.png' : '/ui-images/profile-female.png'
 
@@ -100,7 +105,7 @@ export default function ProfilePage() {
 
       <div className="mt-5 grid grid-cols-[1.1fr_.9fr] gap-4 max-[960px]:grid-cols-1">
         <ProtoCard>
-          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">能力雷达</h2><ProtoButton variant="secondary" onClick={() => setChatOpen(!chatOpen)}>告诉 AI 你想怎么学</ProtoButton></div>
+          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">能力雷达</h2><ProtoButton variant="secondary" onClick={() => window.dispatchEvent(new Event('open-ai-assistant'))}>告诉 AI 你想怎么学</ProtoButton></div>
           <div className="mt-5 grid grid-cols-[260px_1fr] gap-5 max-[760px]:grid-cols-1">
             <RadarChart data={[
               { name: '语法基础', value: 84 },
@@ -118,23 +123,20 @@ export default function ProfilePage() {
         </ProtoCard>
 
         <ProtoCard>
-          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">最近学习过的资源</h2><ProtoButton href="/generate" variant="ghost">查看全部 →</ProtoButton></div>
+          <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">最近学习过的资源</h2><ProtoButton href="/generate?view=library" variant="ghost">查看全部 →</ProtoButton></div>
           <p className="mt-5 text-small leading-6 text-muted">从这里继续上次没学完的内容，不用重新找入口。</p>
           <div className="mt-4 space-y-3">
-            <Resource title="return 到底返回给谁" meta="视频 · 已学习 70% · 来源：错题补弱" tag="继续学习" />
-            <Resource title="函数作用域错题讲义" meta="文档 · 已打开 2 次 · 来源：练习错题" tag="已纳入画像" />
-            <Resource title="成绩统计小项目代码案例" meta="代码案例 · 已学习 35% · 来源：画像偏好" tag="待完成" />
+            {recentResources.length > 0 ? recentResources.map(r => (
+              <Resource key={r.id} id={r.id} title={r.title} meta={`${r.type} · ${r.status === 'completed' ? '已完成' : '进行中'} · ${r.created_at}`} tag={r.status === 'completed' ? '已完成' : '继续学习'} />
+            )) : (
+              <>
+                <Resource title="暂无资源" meta="去资源中心生成你的第一份学习资源" tag="去生成" />
+              </>
+            )}
           </div>
-          <div className="mt-4 flex flex-wrap gap-2.5"><ProtoButton href="/generate" variant="secondary">继续最近资源</ProtoButton><ProtoButton href="/generate" variant="tertiary">生成补弱资源</ProtoButton></div>
+          <div className="mt-4 flex flex-wrap gap-2.5"><ProtoButton href="/generate?view=library" variant="secondary">继续最近资源</ProtoButton><ProtoButton href="/generate" variant="tertiary">生成补弱资源</ProtoButton></div>
         </ProtoCard>
       </div>
-
-      {chatOpen && (
-        <div className="mt-5 grid grid-cols-[1fr_320px] gap-4 max-[960px]:grid-cols-1">
-          <ProtoCard><h2 className="text-h2 font-bold text-ink">告诉 AI 你想怎么学</h2><SoftCard className="mt-4 bg-white">AI：我看到你最近在返回值上连续出错。你更想先看动画讲解，还是直接做代码案例？</SoftCard><div className="mt-4 flex gap-2"><input className="h-10 min-w-0 flex-1 rounded-[10px] border border-line px-3 outline-none" placeholder="例如：我想先看代码案例，再做短练习" /><ProtoButton>发送</ProtoButton></div></ProtoCard>
-          <ProtoCard><h2 className="text-h2 font-bold text-ink">立即开始</h2><p className="mt-4 text-small text-muted">选定你更想要的学法后，直接去生成对应资源或开始当前练习。</p><div className="mt-4 grid gap-2"><ProtoButton href="/generate">按我的学法生成资源</ProtoButton><ProtoButton href="/practice" variant="secondary">直接开始短练习</ProtoButton></div></ProtoCard>
-        </div>
-      )}
     </div>
   )
 }
@@ -258,6 +260,11 @@ function RadarChart({ data }: { data: Array<{ name: string; value: number }> }) 
     </svg>
   )
 }
-function Resource({ title, meta, tag }: { title: string; meta: string; tag: string }) {
-  return <SoftCard className="flex items-center justify-between gap-3 bg-white"><span><b className="block text-small text-ink">{title}</b><span className="text-micro text-muted">{meta}</span></span><Pill tone="blue">{tag}</Pill></SoftCard>
+function Resource({ title, meta, tag, id }: { title: string; meta: string; tag: string; id?: string }) {
+  const href = id ? `/generate?view=library&id=${id}` : '/generate?view=library'
+  return (
+    <a href={href} className="block">
+      <SoftCard className="flex items-center justify-between gap-3 bg-white hover:border-[#2563eb] transition-colors cursor-pointer"><span><b className="block text-small text-ink">{title}</b><span className="text-micro text-muted">{meta}</span></span><Pill tone="blue">{tag}</Pill></SoftCard>
+    </a>
+  )
 }

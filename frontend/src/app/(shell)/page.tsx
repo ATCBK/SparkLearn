@@ -120,7 +120,7 @@ export default function HomePage() {
             <Pill tone="green">预计 {totalMinutes} 分钟</Pill>
           </div>
           <div className="flex flex-wrap gap-2.5 pt-1">
-            <ProtoButton href="/generate">开始回顾资源</ProtoButton>
+            <ProtoButton href="/generate?view=library">开始回顾资源</ProtoButton>
             <ProtoButton href="/practice" variant="secondary">先做练习</ProtoButton>
           </div>
         </div>
@@ -187,7 +187,7 @@ export default function HomePage() {
               </div>
               <h2 className="text-h2 font-bold text-ink">今日新资源推荐</h2>
             </div>
-            <ProtoButton href="/generate" variant="ghost">查看全部 →</ProtoButton>
+            <ProtoButton href="/generate?view=library" variant="ghost">查看全部 →</ProtoButton>
           </div>
           <div className="mt-5 space-y-1">
             {(recs.length ? recs : resources.map((resource, idx) => ({
@@ -196,7 +196,7 @@ export default function HomePage() {
               reason: idx === 0 ? '适合作为当前卡点的第一份复习资源。' : '基于最近学习记录推荐。',
               category: 'today' as const,
             }))).slice(0, 3).map(rec => (
-              <Reco key={rec.id} title={rec.resource.title} meta={rec.reason} action="学习" />
+              <Reco key={rec.id} title={rec.resource.title} meta={rec.reason} action="学习" resourceId={rec.resource.id} />
             ))}
           </div>
           <ProtoButton href="/generate" variant="secondary" className="mt-5">根据当前卡点生成新资源</ProtoButton>
@@ -245,7 +245,8 @@ function TaskRow({ task, busy, onToggle, onDelete }: { task: Task; busy: boolean
   )
 }
 
-function Reco({ title, meta, action }: { title: string; meta: string; action: string }) {
+function Reco({ title, meta, action, resourceId }: { title: string; meta: string; action: string; resourceId?: string }) {
+  const href = resourceId ? `/generate?view=library&id=${resourceId}` : '/generate?view=library'
   return (
     <SoftCard className="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white">
       <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#eff6ff] text-[#2563eb]">
@@ -255,7 +256,7 @@ function Reco({ title, meta, action }: { title: string; meta: string; action: st
         <b className="block text-small text-ink">{title}</b>
         <span className="mt-1 block text-micro leading-5 text-muted">{meta}</span>
       </div>
-      <ProtoButton href="/generate" variant="tertiary">{action}</ProtoButton>
+      <ProtoButton href={href} variant="tertiary">{action}</ProtoButton>
     </SoftCard>
   )
 }

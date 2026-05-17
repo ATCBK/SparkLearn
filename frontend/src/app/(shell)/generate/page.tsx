@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
@@ -36,7 +37,11 @@ function typeLabel(type: string) {
 }
 
 export default function GeneratePage() {
-  const [view, setView] = useState<'generate' | 'library'>('generate')
+  const searchParams = useSearchParams()
+  const initialView = searchParams.get('view') === 'library' ? 'library' : 'generate'
+  const initialResourceId = searchParams.get('id') || ''
+
+  const [view, setView] = useState<'generate' | 'library'>(initialView)
   const [step, setStep] = useState(0)
   const [type, setType] = useState<Resource['type']>('document')
   const [prompt, setPrompt] = useState('请基于当前薄弱点"函数返回值"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。')
@@ -49,7 +54,7 @@ export default function GeneratePage() {
   
   // 资源库相关状态
   const [resources, setResources] = useState<Resource[]>([])
-  const [selectedId, setSelectedId] = useState<string>('')
+  const [selectedId, setSelectedId] = useState<string>(initialResourceId)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('全部')
   const [libraryError, setLibraryError] = useState('')
@@ -70,7 +75,7 @@ export default function GeneratePage() {
     try {
       const data = await api.getResources()
       setResources(data)
-      setSelectedId(prev => prev || data[0]?.id || '')
+      setSelectedId(prev => prev || initialResourceId || data[0]?.id || '')
     } catch (ex) {
       setLibraryError(ex instanceof Error ? ex.message : '资源读取失败')
     }

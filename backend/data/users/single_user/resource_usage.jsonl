@@ -72,3 +72,23 @@
 {"ts": "2026-05-15T02:09:04.197591Z", "type": "resource_generated", "resource_id": "gen-0a8cb156"}
 {"ts": "2026-05-15T02:16:03.469836Z", "type": "resource_generated", "resource_id": "gen-b0d6a52c"}
 {"ts": "2026-05-15T02:19:56.656257Z", "type": "resource_generated", "resource_id": "gen-62efe3ce"}
+{"ts": "2026-05-17T09:44:23.015906Z", "type": "resource_deleted", "resource_id": "gen-62efe3ce", "removed_count": 1}
+{"ts": "2026-05-17T09:59:13.000300Z", "type": "resource_generated", "resource_id": "gen-84591928"}
+{"ts": "2026-05-17T10:01:58.039184Z", "type": "resource_generated", "resource_id": "gen-155088c8"}
+{"ts": "2026-05-17T10:02:37.596484Z", "type": "resource_deleted", "resource_id": "gen-2248cd68", "removed_count": 1}
+{"ts": "2026-05-17T10:02:41.701242Z", "type": "resource_deleted", "resource_id": "gen-6828e5a0", "removed_count": 1}
+{"ts": "2026-05-17T10:02:41.707244Z", "type": "resource_deleted", "resource_id": "gen-6828e5a0", "removed_count": 0}
+{"ts": "2026-05-17T10:02:45.836812Z", "type": "resource_deleted", "resource_id": "gen-3f2bf06f", "removed_count": 1}
+{"ts": "2026-05-17T10:02:49.956278Z", "type": "resource_deleted", "resource_id": "gen-1b713cd8", "removed_count": 1}
+{"ts": "2026-05-17T10:02:51.843753Z", "type": "resource_deleted", "resource_id": "gen-1d0fc2f4", "removed_count": 1}
+{"ts": "2026-05-17T10:02:54.051617Z", "type": "resource_deleted", "resource_id": "gen-958857ad", "removed_count": 1}
+{"ts": "2026-05-17T10:02:55.867132Z", "type": "resource_deleted", "resource_id": "gen-543ec786", "removed_count": 1}
+{"ts": "2026-05-17T10:02:57.821929Z", "type": "resource_deleted", "resource_id": "gen-5574abe7", "removed_count": 1}
+{"ts": "2026-05-17T10:03:00.403660Z", "type": "resource_deleted", "resource_id": "gen-a46e2d51", "removed_count": 1}
+{"ts": "2026-05-17T10:03:02.108832Z", "type": "resource_deleted", "resource_id": "gen-26e2fc37", "removed_count": 1}
+{"ts": "2026-05-17T10:03:04.615526Z", "type": "resource_deleted", "resource_id": "gen-a56876ca", "removed_count": 1}
+{"ts": "2026-05-17T10:03:07.755616Z", "type": "resource_deleted", "resource_id": "gen-82d57fcb", "removed_count": 1}
+{"ts": "2026-05-17T10:03:09.754754Z", "type": "resource_deleted", "resource_id": "gen-860d548e", "removed_count": 1}
+{"ts": "2026-05-17T10:03:11.884434Z", "type": "resource_deleted", "resource_id": "gen-0a8cb156", "removed_count": 1}
+{"ts": "2026-05-17T10:03:14.276122Z", "type": "resource_deleted", "resource_id": "gen-b0d6a52c", "removed_count": 1}
+{"ts": "2026-05-17T10:03:16.397382Z", "type": "resource_deleted", "resource_id": "gen-84591928", "removed_count": 1}
