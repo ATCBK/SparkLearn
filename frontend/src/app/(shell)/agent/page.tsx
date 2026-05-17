@@ -1,17 +1,20 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { api, AgentPet, AgentTask } from '@/lib/api'
+import { api, AgentPet } from '@/lib/api'
 import { PageHead } from '@/components/proto'
-import { Bot, Sparkles, Star } from 'lucide-react'
+import { Star, Sparkles, Zap } from 'lucide-react'
 import { AdoptionFlow } from '@/components/agent/AdoptionFlow'
 import { AgentPetCard } from '@/components/agent/AgentPetCard'
 import { AgentChat } from '@/components/agent/AgentChat'
 import { AgentHistory } from '@/components/agent/AgentHistory'
+import { PetState } from '@/components/agent/PetAvatar'
 
 export default function AgentPage() {
-  const [pet, setPet] = useState<AgentPet | null | undefined>(undefined) // undefined = loading
+  const [pet, setPet] = useState<AgentPet | null | undefined>(undefined)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [petState, setPetState] = useState<PetState>('idle')
+  const [statusText, setStatusText] = useState<string>('')
 
   const loadPet = useCallback(async () => {
     try {
@@ -69,20 +72,31 @@ export default function AgentPage() {
         chips={[
           { value: `Lv.${pet.level}`, label: '当前等级', icon: <Star className="h-4 w-4" />, tone: 'orange' as const },
           { value: `${pet.xp} XP`, label: '经验值', icon: <Sparkles className="h-4 w-4" />, tone: 'blue' as const },
-          { value: `${pet.unlocked_abilities.length} 项`, label: '已解锁能力', icon: <Bot className="h-4 w-4" />, tone: 'green' as const },
+          { value: `${pet.unlocked_abilities.length} 项`, label: '已解锁能力', icon: <Zap className="h-4 w-4" />, tone: 'green' as const },
         ]}
       />
 
-      <div className="grid grid-cols-[1fr_320px] gap-5 max-[960px]:grid-cols-1" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-        {/* 左侧：对话区 - 固定高度 */}
+      <div className="grid grid-cols-[1fr_300px] gap-5 max-[960px]:grid-cols-1">
+        {/* 左侧：对话区 */}
         <div className="min-h-0">
-          <AgentChat pet={pet} onXpChange={() => setRefreshKey(k => k + 1)} />
+          <AgentChat
+            pet={pet}
+            onXpChange={() => setRefreshKey(k => k + 1)}
+            onStateChange={(state, text) => { setPetState(state); setStatusText(text || '') }}
+          />
         </div>
 
-        {/* 右侧：伙伴信息 + 历史 - 超出滚动 */}
-        <div className="space-y-5 overflow-y-auto max-h-[calc(100vh-200px)] pr-1">
-          <AgentPetCard pet={pet} onUpdate={() => setRefreshKey(k => k + 1)} />
-          <AgentHistory />
+        {/* 右侧：学习驾驶舱 */}
+        <div className="space-y-0 overflow-y-auto max-h-[calc(100vh-200px)] pr-1">
+          <AgentPetCard
+            pet={pet}
+            petState={petState}
+            statusText={statusText}
+            onUpdate={() => setRefreshKey(k => k + 1)}
+          />
+          <div className="mt-4">
+            <AgentHistory />
+          </div>
         </div>
       </div>
     </div>

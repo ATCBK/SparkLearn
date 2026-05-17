@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import { ProtoButton, ProtoCard } from '@/components/proto'
-import { Check, Target, Clock, Sparkles, Search, FileText, GitCompare, BookOpen, TrendingUp } from 'lucide-react'
+import { Check, Target, Clock, Sparkles, Search, FileText, GitCompare, BookOpen, TrendingUp, Star } from 'lucide-react'
 import { PetAvatar, PetType } from './PetAvatar'
 
 const AVATARS: Array<{ id: PetType; name: string; desc: string; trait: string; category: string }> = [
@@ -122,18 +122,23 @@ export function AdoptionFlow({ onAdopted }: Props) {
               <button
                 key={a.id}
                 onClick={() => setAvatar(a.id)}
-                className={`p-3 rounded-xl border-2 transition-all text-center ${
+                className={`relative p-4 rounded-2xl border-2 transition-all text-center ${
                   avatar === a.id
-                    ? 'border-[#2563eb] bg-[#eff6ff] shadow-md scale-[1.03]'
-                    : 'border-[#e2e8f0] hover:border-[#93c5fd] hover:bg-[#f8fafc]'
+                    ? 'border-[#2563eb] bg-[#f8fbff] shadow-lg shadow-blue-100'
+                    : 'border-[#e2e8f0] hover:border-[#93c5fd] hover:bg-[#fafbfc]'
                 }`}
               >
+                {avatar === a.id && (
+                  <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-[#2563eb] flex items-center justify-center shadow-sm">
+                    <Check className="h-3.5 w-3.5 text-white" />
+                  </div>
+                )}
                 <div className="flex justify-center mb-2">
                   <PetAvatar type={a.id} state={avatar === a.id ? 'waiting' : 'idle'} size="sm" />
                 </div>
                 <div className="font-bold text-sm text-[#111827]">{a.name}</div>
                 <div className="text-[10px] text-[#6b7280] mt-0.5 line-clamp-2 leading-tight">{a.desc}</div>
-                <div className="mt-1.5 inline-block px-1.5 py-0.5 rounded-full bg-[#f1f5f9] text-[10px] font-medium text-[#475569]">
+                <div className="mt-1.5 inline-block px-1.5 py-0.5 rounded-full bg-[#eff6ff] text-[10px] font-medium text-[#2563eb]">
                   {a.category}
                 </div>
               </button>
@@ -282,100 +287,130 @@ export function AdoptionFlow({ onAdopted }: Props) {
       {/* Step 3: 起名 + 确认 */}
       {step === 3 && (
         <div className="text-center">
-          <h2 className="text-lg font-bold mb-2">给你的学伴起个名字</h2>
+          <h2 className="text-xl font-bold mb-2 flex items-center justify-center gap-2">
+            给你的学伴起个名字
+            <Sparkles className="h-4 w-4 text-[#2563eb]" />
+          </h2>
           <p className="text-sm text-[#6b7280] mb-4">一个好名字会让你和学伴的关系更亲近</p>
 
-          <div className="flex justify-center mb-4">
+          <div className="flex flex-col items-center mb-4">
             <PetAvatar type={avatar} state="waiting" size="lg" />
-          </div>
-
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="输入名字（1-10个字符）"
-            maxLength={10}
-            className="w-full max-w-[300px] mx-auto h-12 rounded-xl border border-[#e2e8f0] px-4 text-center text-lg font-medium outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#bfdbfe]"
-          />
-          <p className="text-xs text-[#6b7280] mt-2 mb-5">支持中文、英文、数字</p>
-
-          {/* 认养预览 */}
-          <div className="bg-[#f8fafc] rounded-xl p-4 text-left max-w-[440px] mx-auto mb-4">
-            <div className="text-xs font-bold text-[#6b7280] uppercase tracking-wide mb-3">📋 学伴档案预览</div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-[#6b7280]">形象</span>
-                <span className="font-medium">{AVATARS.find(a => a.id === avatar)?.name}（{AVATARS.find(a => a.id === avatar)?.category}）</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#6b7280]">擅长领域</span>
-                <span className="font-medium">{AVATARS.find(a => a.id === avatar)?.trait}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#6b7280]">陪伴风格</span>
-                <span className="font-medium">{selectedStyle?.name}</span>
-              </div>
-              {studyGoal && (
-                <div className="flex justify-between">
-                  <span className="text-[#6b7280]">学习目标</span>
-                  <span className="font-medium truncate max-w-[200px]">{studyGoal}</span>
-                </div>
-              )}
-              {weakPoints && (
-                <div className="flex justify-between">
-                  <span className="text-[#6b7280]">薄弱点</span>
-                  <span className="font-medium truncate max-w-[200px]">{weakPoints}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-[#6b7280]">学习时间</span>
-                <span className="font-medium">{STUDY_TIMES.find(t => t.id === studyTime)?.label}</span>
-              </div>
+            <div className="mt-2 px-3 py-1 rounded-full bg-[#eff6ff] text-sm font-bold text-[#2563eb]">
+              {AVATARS.find(a => a.id === avatar)?.name}
             </div>
           </div>
 
-          {/* 功能预告 */}
-          <div className="bg-[#eff6ff] rounded-xl p-4 text-left max-w-[440px] mx-auto mb-6">
-            <div className="text-xs font-bold text-[#2563eb] mb-3">✨ 认养后，你的学伴将能够：</div>
-            <ul className="space-y-2.5 text-xs text-[#374151]">
-              <li className="flex items-center gap-3">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#eff6ff] text-[#2563eb]">
-                  <Search className="h-3.5 w-3.5" />
+          <div className="relative max-w-[400px] mx-auto mb-2">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]">✏️</div>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="输入名字（1-10个字符）"
+              maxLength={10}
+              className="w-full h-13 rounded-xl border border-[#e2e8f0] pl-10 pr-4 text-center text-lg font-medium outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#bfdbfe] placeholder:text-[#9ca3af]"
+            />
+          </div>
+          <p className="text-xs text-[#9ca3af] mb-6">支持中文、英文、数字</p>
+
+          {/* 两列布局：左档案 右功能 */}
+          <div className="grid grid-cols-2 gap-4 text-left max-[600px]:grid-cols-1">
+            {/* 左：学伴档案预览 */}
+            <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-5 h-5 rounded bg-[#f1f5f9] flex items-center justify-center">
+                  <FileText className="h-3 w-3 text-[#6b7280]" />
                 </div>
-                <span>帮你搜索和筛选高质量学习资料</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#f3efff] text-[#7c3aed]">
-                  <FileText className="h-3.5 w-3.5" />
+                <span className="text-sm font-bold text-[#111827]">学伴档案预览</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-[#6b7280]">
+                    <div className="w-5 h-5 rounded bg-[#eff6ff] flex items-center justify-center">
+                      <Star className="h-3 w-3 text-[#2563eb]" />
+                    </div>
+                    形象
+                  </div>
+                  <span className="text-xs font-medium text-[#111827]">{AVATARS.find(a => a.id === avatar)?.name}（{AVATARS.find(a => a.id === avatar)?.category}）</span>
                 </div>
-                <span>自动总结文章要点，生成结构化笔记</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#fff7ed] text-[#d97706]">
-                  <GitCompare className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-[#6b7280]">
+                    <div className="w-5 h-5 rounded bg-[#ecfdf5] flex items-center justify-center">
+                      <Sparkles className="h-3 w-3 text-[#059669]" />
+                    </div>
+                    擅长领域
+                  </div>
+                  <span className="text-xs font-medium text-[#111827]">{AVATARS.find(a => a.id === avatar)?.trait}</span>
                 </div>
-                <span>对比不同来源的解释，帮你全面理解</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#ecfdf5] text-[#059669]">
-                  <BookOpen className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-[#6b7280]">
+                    <div className="w-5 h-5 rounded bg-[#fdf2f8] flex items-center justify-center">
+                      <Target className="h-3 w-3 text-[#db2777]" />
+                    </div>
+                    陪伴风格
+                  </div>
+                  <span className="text-xs font-medium text-[#111827]">{selectedStyle?.name}</span>
                 </div>
-                <span>每天根据你的进度推荐学习内容</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#ecfeff] text-[#0891b2]">
-                  <TrendingUp className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-[#6b7280]">
+                    <div className="w-5 h-5 rounded bg-[#fff7ed] flex items-center justify-center">
+                      <Clock className="h-3 w-3 text-[#d97706]" />
+                    </div>
+                    学习时间
+                  </div>
+                  <span className="text-xs font-medium text-[#111827]">{STUDY_TIMES.find(t => t.id === studyTime)?.label}</span>
                 </div>
-                <span>随着使用不断成长，解锁更强的辅导能力</span>
-              </li>
-            </ul>
+              </div>
+            </div>
+
+            {/* 右：功能预告 */}
+            <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-5 h-5 rounded bg-[#eff6ff] flex items-center justify-center">
+                  <Sparkles className="h-3 w-3 text-[#2563eb]" />
+                </div>
+                <span className="text-sm font-bold text-[#111827]">认养后，你的学伴将能够：</span>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2.5">
+                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#eff6ff] text-[#2563eb]">
+                    <Search className="h-3 w-3" />
+                  </div>
+                  <span className="text-xs text-[#374151]">帮你搜索和筛选高质量学习资料</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#f3efff] text-[#7c3aed]">
+                    <FileText className="h-3 w-3" />
+                  </div>
+                  <span className="text-xs text-[#374151]">自动总结文章要点，生成结构化笔记</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#fff7ed] text-[#d97706]">
+                    <GitCompare className="h-3 w-3" />
+                  </div>
+                  <span className="text-xs text-[#374151]">对比不同来源的解释，帮你全面理解</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#ecfdf5] text-[#059669]">
+                    <BookOpen className="h-3 w-3" />
+                  </div>
+                  <span className="text-xs text-[#374151]">每天根据你的进度推荐学习内容</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#ecfeff] text-[#0891b2]">
+                    <TrendingUp className="h-3 w-3" />
+                  </div>
+                  <span className="text-xs text-[#374151]">随着使用不断成长，解锁更强的辅导能力</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
+          {error && <p className="text-sm text-red-500 mt-4">{error}</p>}
 
-          <div className="flex justify-between max-w-[400px] mx-auto">
+          <div className="flex justify-between mt-8">
             <ProtoButton variant="secondary" onClick={() => setStep(2)}>上一步</ProtoButton>
             <ProtoButton onClick={handleAdopt} disabled={loading}>
-              {loading ? '认养中...' : '🎊 确认认养'}
+              {loading ? '认养中...' : '🐾 确认认养'}
             </ProtoButton>
           </div>
         </div>
