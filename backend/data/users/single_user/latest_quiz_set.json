@@ -1,61 +1,65 @@
 [
   {
-    "id": "dq_5be28134_1",
-    "type": "single",
-    "content": "字符串的 find() 方法返回什么？",
+    "id": "dq_f699498a_1",
+    "type": "multiple",
+    "content": "以下哪些是函数的特点？",
     "options": [
-      "字符串长度",
-      "子字符串的索引",
-      "布尔值",
-      "字符数"
+      "可重用",
+      "可接收参数",
+      "必须有返回值",
+      "可以嵌套"
     ],
-    "correct_answer": "子字符串的索引",
-    "explanation": "find() 返回子字符串第一次出现的索引，如果不存在返回 -1。",
-    "knowledge_point_id": "1.4",
-    "knowledge_point_name": "字符串处理"
+    "correct_answer": [
+      "可重用",
+      "可接收参数",
+      "可以嵌套"
+    ],
+    "explanation": "函数可重用、可接收参数、可嵌套，但不一定有返回值。",
+    "knowledge_point_id": "3.1",
+    "knowledge_point_name": "函数定义"
   },
   {
-    "id": "dq_5be28134_2",
+    "id": "dq_f699498a_2",
     "type": "single",
-    "content": "以下哪个是 Python 中的逻辑运算符？",
+    "content": "TypeError 异常表示什么？",
     "options": [
-      "&",
-      "|",
-      "and",
-      "&&"
+      "值错误",
+      "索引超出范围",
+      "类型不匹配",
+      "键不存在"
     ],
-    "correct_answer": "and",
-    "explanation": "Python 使用 and、or、not 作为逻辑运算符。",
-    "knowledge_point_id": "2.2",
-    "knowledge_point_name": "条件判断"
+    "correct_answer": "类型不匹配",
+    "explanation": "TypeError 表示操作或函数应用于不适当类型的对象。",
+    "knowledge_point_id": "4.1",
+    "knowledge_point_name": "异常处理"
   },
   {
-    "id": "dq_5be28134_3",
+    "id": "dq_f699498a_3",
     "type": "single",
-    "content": "字典（dict）中的键必须是什么类型？",
+    "content": "for 循环中 range(5) 会生成什么？",
     "options": [
-      "任何类型",
-      "可哈希的不可变类型",
-      "字符串",
-      "整数"
+      "0到5",
+      "0到4",
+      "1到5",
+      "1到4"
     ],
-    "correct_answer": "可哈希的不可变类型",
-    "explanation": "字典的键必须是可哈希的不可变类型，如字符串、数字、元组等。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
+    "correct_answer": "0到4",
+    "explanation": "range(5) 生成 0, 1, 2, 3, 4。",
+    "knowledge_point_id": "2.1",
+    "knowledge_point_name": "循环语句"
   },
   {
-    "id": "dq_5be28134_4",
+    "id": "dq_f699498a_4",
     "type": "single",
-    "content": "字符串的 center() 方法的作用是什么？",
+    "content": "字符串的 format() 方法的作用是什么？",
     "options": [
-      "左对齐",
-      "右对齐",
-      "居中对齐",
-      "删除空格"
+      "转换大小写",
+      "格式化字符串",
+      "分割字符串",
+      "替换字符"
     ],
-    "correct_answer": "居中对齐",
-    "explanation": "center() 将字符串居中对齐，用指定字符填充。",
+    "correct_answer": "格式化字符串",
+    "explanation": "format() 用于格式化字符串，替换占位符。",
     "knowledge_point_id": "1.4",
     "knowledge_point_name": "字符串处理"
   }

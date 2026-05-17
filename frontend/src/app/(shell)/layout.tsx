@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { AIAssistant } from '@/components/layout/AIAssistant'
+import { GenerationTaskProvider } from '@/components/providers/GenerationTaskProvider'
 
 export default function ShellLayout({
   children,
@@ -15,6 +16,7 @@ export default function ShellLayout({
   const sidebarWidth = sidebarState === 'expanded' ? 220 : sidebarState === 'icons' ? 74 : 0
 
   return (
+    <GenerationTaskProvider>
     <div className="min-h-screen bg-bg">
       <Sidebar state={sidebarState} onStateChange={setSidebarState} />
       <Topbar sidebarWidth={sidebarWidth} sidebarExpanded={sidebarState === 'expanded'} onToggleSidebar={() => setSidebarState(sidebarState === 'expanded' ? 'icons' : 'expanded')} />
@@ -46,5 +48,6 @@ export default function ShellLayout({
         </button>
       )}
     </div>
+    </GenerationTaskProvider>
   )
 }

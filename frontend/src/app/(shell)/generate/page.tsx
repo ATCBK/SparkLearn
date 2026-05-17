@@ -7,6 +7,7 @@ import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio, RadioTrack } from '@/components/ui/AudioRadio'
+import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
@@ -40,6 +41,7 @@ export default function GeneratePage() {
   const searchParams = useSearchParams()
   const initialView = searchParams.get('view') === 'library' ? 'library' : 'generate'
   const initialResourceId = searchParams.get('id') || ''
+  const { startBackgroundGeneration } = useGenerationTasks()
 
   const [view, setView] = useState<'generate' | 'library'>(initialView)
   const [step, setStep] = useState(0)
@@ -263,6 +265,7 @@ export default function GeneratePage() {
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
             {step < 3 && <ProtoButton onClick={() => setStep(step + 1)}>下一步</ProtoButton>}
             {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />开始生成</ProtoButton>}
+            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, prompt, selectedKnowledge); setStep(0) }}>后台生成</ProtoButton>}
           </div>
         </div>
 

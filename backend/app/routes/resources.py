@@ -223,6 +223,9 @@ async def get_resource_preview_html(resource_id: str):
     if _is_ppt_like_url(link):
         return HTMLResponse(content=_build_ppt_preview_html(link))
 
+    if _is_iframe_embeddable_url(link):
+        return HTMLResponse(content=_build_iframe_preview_html(link))
+
     try:
         html = await _fetch_url_text(link)
         safe_link = link.replace('"', "&quot;")
@@ -350,7 +353,7 @@ def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
             + base
         )
     if resource_type == "mindmap":
-        return "请生成思维导图并输出图片URL，第一行必须是 SOURCE_URL: https://...\n\n主题：" + base
+        return base
     if resource_type == "quiz":
         return "请生成练习题（Markdown），包含题目、答案与解析，覆盖简单/中等/困难。\n\n主题：" + base
     if resource_type == "reading":
@@ -470,6 +473,35 @@ def _build_ppt_preview_html(source_url: str) -> str:
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PPT Preview</title>
+  <style>
+    html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; background: #f7f8fa; }}
+    .wrap {{ width: 100%; height: 100%; }}
+    iframe {{ border: 0; width: 100%; height: 100%; }}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <iframe src="{safe}" allowfullscreen></iframe>
+  </div>
+</body>
+</html>"""
+
+
+def _is_iframe_embeddable_url(url: str) -> bool:
+    """检测可以直接用 iframe 嵌入预览的 URL（如 mermaid.live、markmap 等）"""
+    lowered = (url or "").lower()
+    embeddable_domains = ["mermaid.live", "markmap.keepto.top", "markmap.js.org"]
+    return any(domain in lowered for domain in embeddable_domains)
+
+
+def _build_iframe_preview_html(source_url: str) -> str:
+    safe = source_url.replace('"', "&quot;")
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Preview</title>
   <style>
     html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; background: #f7f8fa; }}
     .wrap {{ width: 100%; height: 100%; }}
