@@ -55,6 +55,7 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
   // Voice input state
   const [recording, setRecording] = useState(false)
   const recognitionRef = useRef<any>(null)
+  const voiceBaseRef = useRef<string>('')
 
   // TTS: play agent message
   const playTts = useCallback(async (msgId: string, text: string) => {
@@ -111,12 +112,13 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
     recognition.continuous = false
     recognition.interimResults = true
 
+    voiceBaseRef.current = input
     recognition.onresult = (event: any) => {
       let transcript = ''
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript
       }
-      setInput(transcript)
+      setInput(voiceBaseRef.current ? voiceBaseRef.current + transcript : transcript)
     }
 
     recognition.onend = () => {
@@ -130,7 +132,7 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
     recognitionRef.current = recognition
     recognition.start()
     setRecording(true)
-  }, [recording])
+  }, [recording, input])
 
   // Cleanup on unmount
   useEffect(() => {

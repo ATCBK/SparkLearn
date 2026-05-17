@@ -52,6 +52,7 @@ export function AIAssistant() {
   // Voice input
   const [recording, setRecording] = useState(false)
   const recognitionRef = useRef<any>(null)
+  const voiceBaseRef = useRef<string>('')
 
   // 3D tilt state (global mouse tracking)
   const [tilt, setTilt] = useState({ rotateX: 0, rotateY: 0 })
@@ -187,12 +188,13 @@ export function AIAssistant() {
     recognition.lang = 'zh-CN'
     recognition.continuous = false
     recognition.interimResults = true
+    voiceBaseRef.current = input
     recognition.onresult = (event: any) => {
       let transcript = ''
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript
       }
-      setInput(transcript)
+      setInput(voiceBaseRef.current ? voiceBaseRef.current + transcript : transcript)
     }
     recognition.onend = () => setRecording(false)
     recognition.onerror = () => setRecording(false)

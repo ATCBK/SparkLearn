@@ -147,6 +147,7 @@ export default function TutorPage() {
   // Voice input
   const [recording, setRecording] = useState(false)
   const recognitionRef = useRef<any>(null)
+  const voiceBaseRef = useRef<string>('')
 
   const playTts = useCallback(async (msgId: string, text: string) => {
     if (ttsAudioRef.current) { ttsAudioRef.current.pause(); ttsAudioRef.current = null }
@@ -174,17 +175,18 @@ export default function TutorPage() {
     recognition.lang = 'zh-CN'
     recognition.continuous = false
     recognition.interimResults = true
+    voiceBaseRef.current = input
     recognition.onresult = (event: any) => {
       let t = ''
       for (let i = 0; i < event.results.length; i++) t += event.results[i][0].transcript
-      setInput(t)
+      setInput(voiceBaseRef.current ? voiceBaseRef.current + t : t)
     }
     recognition.onend = () => setRecording(false)
     recognition.onerror = () => setRecording(false)
     recognitionRef.current = recognition
     recognition.start()
     setRecording(true)
-  }, [recording])
+  }, [recording, input])
 
   const currentConversation = useMemo(
     () => conversations.find((c) => c.id === currentConversationId) || null,
