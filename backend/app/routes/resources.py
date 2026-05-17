@@ -215,19 +215,25 @@ async def get_resource_preview_html(resource_id: str):
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
     link = _resource_source_url(item)
+
+    # 没有外部链接时，直接渲染自身 content
     if not link:
-        raise HTTPException(status_code=404, detail="preview link not found")
+        return HTMLResponse(content=_render_content_as_html(item))
 
     if _is_ppt_like_url(link):
         return HTMLResponse(content=_build_ppt_preview_html(link))
 
-    html = await _fetch_url_text(link)
-    safe_link = link.replace('"', "&quot;")
-    if "<head" in html.lower():
-        html = re.sub(r"(<head[^>]*>)", r'\1<base href="' + safe_link + '" />', html, count=1, flags=re.IGNORECASE)
-    else:
-        html = f'<base href="{safe_link}" />\n{html}'
-    return HTMLResponse(content=html)
+    try:
+        html = await _fetch_url_text(link)
+        safe_link = link.replace('"', "&quot;")
+        if "<head" in html.lower():
+            html = re.sub(r"(<head[^>]*>)", r'\1<base href="' + safe_link + '" />', html, count=1, flags=re.IGNORECASE)
+        else:
+            html = f'<base href="{safe_link}" />\n{html}'
+        return HTMLResponse(content=html)
+    except Exception:
+        # 外部 URL 获取失败（SSL 过期、404 等），fallback 显示资源自身内容
+        return HTMLResponse(content=_render_content_as_html(item))
 
 
 @router.get("/{resource_id}/download")
@@ -385,7 +391,7 @@ async def _fetch_url_text(url: str) -> str:
     if not url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="invalid preview link")
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             content_type = resp.headers.get("content-type", "").lower()
@@ -402,7 +408,7 @@ async def _fetch_url_binary(url: str) -> tuple[bytes, str]:
     if not url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="invalid source link")
     try:
-        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True, verify=False) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             ctype = resp.headers.get("content-type", "application/octet-stream").split(";")[0].strip().lower()
@@ -563,6 +569,13 @@ def _markdown_as_printable_html(*, title: str, markdown_text: str) -> str:
   <div class="content">{body}</div>
 </body>
 </html>"""
+
+
+def _render_content_as_html(item: dict[str, Any]) -> str:
+    """将资源自身的 content 渲染为可预览的 HTML 页面"""
+    title = str(item.get("title", "学习资源"))
+    content = str(item.get("content", "") or "")
+    return _markdown_as_printable_html(title=title, markdown_text=content)
 
 
 def _sanitize_url(url: str) -> str:

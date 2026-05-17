@@ -38,7 +38,6 @@ const StyledWrapper = styled.div<{ $scale: number }>`
     --duration: 3s;
     position: relative;
     transform: scale(${props => props.$scale});
-    animation: bounce05 var(--duration) linear infinite;
   }
 
   .typewriter .slide {
@@ -155,12 +154,6 @@ const StyledWrapper = styled.div<{ $scale: number }>`
       22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key),
       60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
     animation: keyboard05 var(--duration) linear infinite;
-  }
-
-  @keyframes bounce05 {
-    85%, 92%, 100% { transform: scale(${props => props.$scale}) translateY(0); }
-    89% { transform: scale(${props => props.$scale}) translateY(-4px); }
-    95% { transform: scale(${props => props.$scale}) translateY(2px); }
   }
 
   @keyframes slide05 {

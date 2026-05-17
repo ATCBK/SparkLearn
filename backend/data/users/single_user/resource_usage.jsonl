@@ -92,3 +92,7 @@
 {"ts": "2026-05-17T10:03:11.884434Z", "type": "resource_deleted", "resource_id": "gen-0a8cb156", "removed_count": 1}
 {"ts": "2026-05-17T10:03:14.276122Z", "type": "resource_deleted", "resource_id": "gen-b0d6a52c", "removed_count": 1}
 {"ts": "2026-05-17T10:03:16.397382Z", "type": "resource_deleted", "resource_id": "gen-84591928", "removed_count": 1}
+{"ts": "2026-05-17T10:05:50.596286Z", "type": "resource_generated", "resource_id": "gen-c8e6d5d9"}
+{"ts": "2026-05-17T10:10:31.277056Z", "type": "resource_generated", "resource_id": "gen-23aa7593"}
+{"ts": "2026-05-17T10:18:08.494975Z", "type": "resource_deleted", "resource_id": "gen-23aa7593", "removed_count": 1}
+{"ts": "2026-05-17T10:19:47.237194Z", "type": "resource_generated", "resource_id": "gen-162addc0"}
