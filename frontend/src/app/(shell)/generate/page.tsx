@@ -90,6 +90,7 @@ export default function GeneratePage() {
   }, [view])
 
   async function startGenerate() {
+    console.log('[startGenerate] type:', type, 'prompt:', prompt.slice(0, 50))
     setStep(3)
     setGenerating(true)
     setError('')
@@ -199,6 +200,13 @@ export default function GeneratePage() {
                     </div>
                   ) : selected.sourceUrl ? (
                     <iframe title={selected.title} src={`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`} className="h-[420px] w-full border-0" />
+                  ) : selected.type === 'video' ? (
+                    <div className="flex flex-col items-center justify-center h-[300px] bg-[#f8fafc] rounded-xl">
+                      <Video className="w-16 h-16 text-[#2563eb] mb-4" />
+                      <p className="text-base font-bold text-[#111827] mb-2">视频已生成</p>
+                      <p className="text-sm text-[#6b7280] mb-4">前往视频中心查看完整预览和播放</p>
+                      <ProtoButton href="/video">前往视频播放</ProtoButton>
+                    </div>
                   ) : (
                     <div className="p-5">
                       <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
@@ -206,7 +214,11 @@ export default function GeneratePage() {
                   )}
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <ProtoButton href="/practice">学完去练习</ProtoButton>
+                  {selected.type === 'video' ? (
+                    <ProtoButton href="/video">去视频中心播放</ProtoButton>
+                  ) : (
+                    <ProtoButton href="/practice">学完去练习</ProtoButton>
+                  )}
                   <ProtoButton variant="secondary"><MessageCircle className="h-4 w-4" />让 AI 讲解</ProtoButton>
                   <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
                   <ProtoButton variant="tertiary" onClick={() => void removeResource(selected.id)}><Trash2 className="h-4 w-4" />删除</ProtoButton>
@@ -409,7 +421,7 @@ export default function GeneratePage() {
                 </SoftCard>
                 <div className="flex gap-2">
                   {resource.type === 'video' ? (
-                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">在我的资源中查看</button>
+                    <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">我的资源</button>
                   ) : (
                     <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">我的资源</button>
                   )}

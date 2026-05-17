@@ -822,21 +822,27 @@ export async function getVideos(): Promise<VideoInfo[]> {
     // fallback to legacy endpoint
     data = await fetchJson<any[]>('/api/videos')
   }
-  return data.map(v => ({
-    id: v.id || v.resource_id,
-    title: v.title,
-    url: v.url || v.video_url || '',
-    audioUrl: v.audio_url || v.audioUrl,
-    subtitleUrl: v.subtitle_url || v.subtitleUrl,
-    sceneUrl: v.scene_url || v.sceneUrl,
-    shareUrl: v.share_url || v.shareUrl,
-    duration: v.duration || 0,
-    createdAt: v.created_at || v.createdAt || '',
-    hasMp4: Boolean(v.has_mp4 || v.hasMp4),
-    provider: v.provider,
-    ttsProvider: v.tts_provider || v.ttsProvider,
-    muxMessage: v.mux_message || v.muxMessage,
-  }))
+  return data.map(v => {
+    const rawUrl = v.url || v.video_url || ''
+    const rawAudio = v.audio_url || v.audioUrl || ''
+    const rawSubtitle = v.subtitle_url || v.subtitleUrl || ''
+    const rawScene = v.scene_url || v.sceneUrl || ''
+    return {
+      id: v.id || v.resource_id,
+      title: v.title,
+      url: rawUrl ? `${API_BASE}${rawUrl}` : '',
+      audioUrl: rawAudio ? `${API_BASE}${rawAudio}` : undefined,
+      subtitleUrl: rawSubtitle ? `${API_BASE}${rawSubtitle}` : undefined,
+      sceneUrl: rawScene ? `${API_BASE}${rawScene}` : undefined,
+      shareUrl: v.share_url || v.shareUrl,
+      duration: v.duration || 0,
+      createdAt: v.created_at || v.createdAt || '',
+      hasMp4: Boolean(rawUrl && (v.has_mp4 || v.hasMp4)),
+      provider: v.provider,
+      ttsProvider: v.tts_provider || v.ttsProvider,
+      muxMessage: v.mux_message || v.muxMessage,
+    }
+  })
 }
 
 export async function getDailyQuote(): Promise<string> {

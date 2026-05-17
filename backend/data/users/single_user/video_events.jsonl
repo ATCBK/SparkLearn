@@ -54,3 +54,18 @@
 {"ts": "2026-05-13T11:58:18.775099Z", "type": "video_polished", "polish_id": "polish_83c5c259"}
 {"ts": "2026-05-13T11:58:18.829178Z", "type": "video_job_created", "job_id": "job_d98137cc", "resource_id": "video_6da71db0"}
 {"ts": "2026-05-13T12:00:29.894943Z", "type": "video_job_completed", "job_id": "job_d98137cc", "resource_id": "video_6da71db0"}
+{"ts": "2026-05-17T10:58:48.023569Z", "type": "video_resource_deleted", "resource_id": "video_85b0a8d5", "deleted": true}
+{"ts": "2026-05-17T10:58:50.764971Z", "type": "video_resource_deleted", "resource_id": "video_2304a983", "deleted": true}
+{"ts": "2026-05-17T10:58:55.632235Z", "type": "video_resource_deleted", "resource_id": "video_f9e29ba8", "deleted": true}
+{"ts": "2026-05-17T10:59:02.240059Z", "type": "video_resource_deleted", "resource_id": "video_d5c21ada", "deleted": true}
+{"ts": "2026-05-17T10:59:05.644741Z", "type": "video_resource_deleted", "resource_id": "video_de0a1afc", "deleted": true}
+{"ts": "2026-05-17T10:59:10.285109Z", "type": "video_resource_deleted", "resource_id": "video_9d72ae33", "deleted": true}
+{"ts": "2026-05-17T10:59:18.515801Z", "type": "video_resource_deleted", "resource_id": "video_18f5cf84", "deleted": true}
+{"ts": "2026-05-17T11:05:40.820258Z", "type": "video_polished", "polish_id": "polish_01a88068"}
+{"ts": "2026-05-17T11:05:52.127169Z", "type": "video_job_created", "job_id": "job_6982b7a0", "resource_id": "video_c8595b71"}
+{"ts": "2026-05-17T11:07:05.732581Z", "type": "video_polished", "polish_id": "polish_c8207638"}
+{"ts": "2026-05-17T11:07:05.746587Z", "type": "video_job_created", "job_id": "job_c761ea4a", "resource_id": "video_d111307e"}
+{"ts": "2026-05-17T11:08:32.675610Z", "type": "video_job_completed", "job_id": "job_c761ea4a", "resource_id": "video_d111307e"}
+{"ts": "2026-05-17T11:17:04.720449Z", "type": "video_polished", "polish_id": "polish_c8207638"}
+{"ts": "2026-05-17T11:17:04.763977Z", "type": "video_job_created", "job_id": "job_58f19aa8", "resource_id": "video_46634c07"}
+{"ts": "2026-05-17T11:18:47.400246Z", "type": "video_job_completed", "job_id": "job_58f19aa8", "resource_id": "video_46634c07"}

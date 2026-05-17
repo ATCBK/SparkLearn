@@ -37,6 +37,19 @@ def _now_date() -> str:
 @router.get("")
 async def get_resources():
     resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
+    # 合并视频资源
+    video_resources = read_json(settings.single_user_id, "video_resources.json", [])
+    for vr in video_resources:
+        resources.append({
+            "id": vr.get("id", ""),
+            "title": vr.get("title", "视频资源"),
+            "type": "video",
+            "status": vr.get("status", "completed"),
+            "created_at": vr.get("created_at", ""),
+            "content": f"# {vr.get('title', '视频')}\n\n视频资源，请前往视频中心播放。",
+            "source_url": None,
+            "progress": 100,
+        })
     return ok(resources)
 
 

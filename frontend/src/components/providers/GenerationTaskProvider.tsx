@@ -46,7 +46,77 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
     }
     setTasks(prev => [...prev, newTask])
 
-    // 后台发起 SSE 请求
+    // 视频类型走独立管线
+    if (type === 'video') {
+      (async () => {
+        try {
+          // Step 1: Polish
+          const polishRes = await fetch(`${API_BASE}/api/video/polish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, duration_sec: 90 }),
+          })
+          const polishJson = await polishRes.json()
+          const polish = polishJson.data || polishJson
+
+          // Step 2: Create job
+          const jobRes = await fetch(`${API_BASE}/api/video/jobs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              polish_id: polish.polish_id,
+              prompt: polish.polished_prompt || prompt,
+              title: polish.title || prompt.slice(0, 20),
+              script_outline: polish.script_outline || [],
+              video_provider: 'html_ppt',
+            }),
+          })
+          const jobJson = await jobRes.json()
+          const job = jobJson.data || jobJson
+          const resourceId = job.resource_id
+
+          // Step 3: Wait for events to complete
+          if (job.events_url) {
+            try {
+              const eventsRes = await fetch(`${API_BASE}${job.events_url}`)
+              if (eventsRes.body) {
+                const reader = eventsRes.body.getReader()
+                const decoder = new TextDecoder()
+                let buf = ''
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+                  buf += decoder.decode(value, { stream: true })
+                  buf = buf.split('\n\n').pop() || ''
+                }
+              }
+            } catch { /* SSE failed, video may still generate */ }
+          }
+
+          // Step 4: Fetch result
+          const resRes = await fetch(`${API_BASE}/api/video/resources/${resourceId}`)
+          if (resRes.ok) {
+            const resJson = await resRes.json()
+            const raw = resJson.data || resJson
+            const resource: Resource = {
+              id: raw.id || resourceId,
+              title: raw.title || polish.title || prompt.slice(0, 20),
+              type: 'video',
+              status: raw.status || 'completed',
+              createdAt: raw.created_at || new Date().toISOString(),
+            }
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource } : t))
+          } else {
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource: { id: resourceId, title: polish.title || prompt.slice(0, 20), type: 'video', status: 'completed', createdAt: new Date().toISOString() } } : t))
+          }
+        } catch (err: any) {
+          setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err?.message || '视频生成失败' } : t))
+        }
+      })()
+      return
+    }
+
+    // 其他类型走 /api/resources/generate SSE
     fetch(`${API_BASE}/api/resources/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
