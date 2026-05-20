@@ -268,12 +268,12 @@ export default function GeneratePage() {
           <Pill tone="blue">当前：函数返回值补弱</Pill>
         </div>
         <div className="p-5">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col items-start gap-3 min-[760px]:flex-row min-[760px]:items-center min-[760px]:justify-between">
           <div>
             <Pill tone={generating ? 'blue' : resource ? 'green' : 'neutral'}>{generating ? '生成中' : resource ? '已完成' : '待配置'}</Pill>
             <h2 className="mt-3 text-h2 font-bold text-ink">{step === 0 ? '确认这次资源要解决什么问题' : step === 1 ? '选择最适合这个节点的资源类型' : step === 2 ? '配置生成要求' : step === 3 ? '生成过程' : step === 4 ? '结果预览' : '保存并进入学习'}</h2>
           </div>
-          <div className="flex gap-2">
+          <div className="flex w-full flex-wrap gap-2 min-[760px]:w-auto">
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
             {step < 3 && <ProtoButton onClick={() => setStep(step + 1)}>下一步</ProtoButton>}
             {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />开始生成</ProtoButton>}

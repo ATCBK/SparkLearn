@@ -2,17 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Home,
-  User,
-  Map,
-  BookOpen,
-  CheckSquare,
-  BarChart3,
-  Database,
-  LogOut,
-  Bot,
-} from 'lucide-react'
+import { BarChart3, BookOpen, Bot, CheckSquare, Database, Home, LogOut, Map, User } from 'lucide-react'
 
 interface NavItem {
   label: string
@@ -22,18 +12,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  // 学习中心
   { label: '学习工作台', href: '/', icon: <Home className="h-5 w-5" />, group: '学习中心' },
   { label: '学习画像', href: '/profile', icon: <User className="h-5 w-5" />, group: '学习中心' },
   { label: '个性化路径', href: '/path', icon: <Map className="h-5 w-5" />, group: '学习中心' },
   { label: '知识库', href: '/knowledge', icon: <Database className="h-5 w-5" />, group: '学习中心' },
-
-  // 资源与练习
   { label: '资源中心', href: '/generate', icon: <BookOpen className="h-5 w-5" />, group: '资源与练习' },
   { label: '练习评测', href: '/practice', icon: <CheckSquare className="h-5 w-5" />, group: '资源与练习' },
   { label: '学习伙伴', href: '/agent', icon: <Bot className="h-5 w-5" />, group: '资源与练习' },
-
-  // 分析与反馈
   { label: '学习报告', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
 ]
 
@@ -42,9 +27,11 @@ interface SidebarProps {
   onStateChange: (state: 'expanded' | 'icons' | 'collapsed') => void
 }
 
-export function Sidebar({ state, onStateChange }: SidebarProps) {
+export function Sidebar({ state }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const isExpanded = state === 'expanded'
+  const isIcons = state === 'icons'
 
   const groupedItems = NAV_ITEMS.reduce(
     (acc, item) => {
@@ -59,11 +46,7 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
     [] as Array<{ name: string; items: NavItem[] }>
   )
 
-  const isExpanded = state === 'expanded'
-  const isIcons = state === 'icons'
-
   const handleLogout = () => {
-    // 清除本地存储的用户状态
     if (typeof window !== 'undefined') {
       localStorage.removeItem('sparklearn_user')
       localStorage.removeItem('sparklearn_token')
@@ -78,7 +61,6 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
         isExpanded ? 'w-[220px]' : isIcons ? 'w-[74px]' : 'w-0 overflow-hidden'
       }`}
     >
-      {/* Logo 区域 */}
       <div className="border-b border-[#E5EAF2] p-4">
         <div className="flex items-center gap-3">
           <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 object-contain shrink-0" />
@@ -91,7 +73,6 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
         </div>
       </div>
 
-      {/* 导航分组 */}
       <nav className="space-y-6 px-3 py-6">
         {groupedItems.map((group) => (
           <div key={group.name}>
@@ -126,7 +107,6 @@ export function Sidebar({ state, onStateChange }: SidebarProps) {
         ))}
       </nav>
 
-      {/* 底部用户区域 */}
       <div className="absolute bottom-4 left-3 right-3 space-y-3">
         {isExpanded ? (
           <>

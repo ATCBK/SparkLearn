@@ -90,21 +90,21 @@ export function PageHead({
   chips?: Array<{ value: string; label: string; icon?: React.ReactNode; tone?: keyof typeof chipTones }>
 }) {
   return (
-    <header className="mb-5 flex items-start justify-between gap-6 border-b border-line pb-4">
-      <div className="min-w-0">
+    <header className="mb-5 flex flex-col items-start gap-3 border-b border-line pb-4 min-[900px]:flex-row min-[900px]:justify-between">
+      <div className="min-w-0 w-full">
         <div className="mb-2 text-small font-extrabold text-soft">{eyebrow}</div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="m-0 text-h1 font-bold leading-tight tracking-normal text-ink">{title}</h1>
           {actions}
         </div>
         {description && <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">{description}</p>}
       </div>
       {chips && (
-        <div className="flex shrink-0 items-center gap-2.5">
+        <div className="grid w-full grid-cols-2 gap-2.5 min-[900px]:w-auto min-[900px]:grid-cols-1">
           {chips.map((chip) => {
             const tone = chip.tone ? chipTones[chip.tone] : null
             return (
-              <div key={chip.label} className="group relative min-w-[118px] overflow-hidden rounded-[12px] border border-line bg-white px-3.5 py-2.5 shadow-sm transition-shadow hover:shadow-md">
+              <div key={chip.label} className="group relative min-w-0 overflow-hidden rounded-[12px] border border-line bg-white px-3 py-2.5 shadow-sm transition-shadow hover:shadow-md min-[900px]:min-w-[118px]">
                 {/* 装饰性渐变角标 */}
                 {tone && (
                   <div className={cn('absolute -right-2 -top-2 h-8 w-8 rounded-full opacity-30', tone.bg)} />

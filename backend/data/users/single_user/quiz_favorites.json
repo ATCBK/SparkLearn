@@ -1,23 +1,5 @@
 [
   {
-    "quiz_id": "dq_d4b9379c_1",
-    "question": {
-      "id": "dq_d4b9379c_1",
-      "type": "single",
-      "content": "以下哪个是 Python 的可变数据类型？",
-      "options": [
-        "tuple",
-        "list",
-        "string",
-        "int"
-      ],
-      "explanation": "list 是可变类型。",
-      "knowledge_point_id": "1.2",
-      "knowledge_point_name": "数据类型"
-    },
-    "created_at": "2026-04-22"
-  },
-  {
     "quiz_id": "gq_24ae1ff7_3",
     "question": {
       "id": "gq_24ae1ff7_3",

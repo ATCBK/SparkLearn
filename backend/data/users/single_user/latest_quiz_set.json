@@ -1,60 +1,66 @@
 [
   {
-    "id": "dq_30716db3_1",
-    "type": "single",
-    "content": "以下哪个是 Python 的可变数据类型？",
-    "options": [
-      "tuple",
-      "list",
-      "string",
-      "int"
-    ],
-    "correct_answer": "list",
-    "explanation": "list 是可变类型，可以修改其元素。",
-    "knowledge_point_id": "1.2",
-    "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_30716db3_2",
-    "type": "fill_blank",
-    "content": "列表的 ______ 方法可以删除指定索引的元素。",
-    "correct_answer": "pop",
-    "explanation": "pop() 方法删除并返回指定索引的元素。",
-    "knowledge_point_id": "1.3",
-    "knowledge_point_name": "列表操作"
-  },
-  {
-    "id": "dq_30716db3_3",
-    "type": "single",
-    "content": "列表的 append() 方法的作用是什么？",
-    "options": [
-      "删除元素",
-      "添加元素到末尾",
-      "插入元素",
-      "排序"
-    ],
-    "correct_answer": "添加元素到末尾",
-    "explanation": "append() 方法将元素添加到列表的末尾。",
-    "knowledge_point_id": "1.3",
-    "knowledge_point_name": "列表操作"
-  },
-  {
-    "id": "dq_30716db3_4",
+    "id": "dq_795dd826_1",
     "type": "multiple",
-    "content": "以下哪些是列表的方法？",
+    "content": "以下哪些是赋值运算符？",
     "options": [
-      "append()",
-      "extend()",
-      "add()",
-      "insert()"
+      "=",
+      "+=",
+      "-=",
+      "=="
     ],
     "correct_answer": [
-      "append()",
-      "extend()",
-      "insert()"
+      "=",
+      "+=",
+      "-="
     ],
-    "explanation": "append()、extend()、insert() 是列表方法，add() 是集合方法。",
-    "knowledge_point_id": "1.3",
-    "knowledge_point_name": "列表操作"
+    "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
+    "knowledge_point_id": "1.1",
+    "knowledge_point_name": "基础语法"
+  },
+  {
+    "id": "dq_795dd826_2",
+    "type": "single",
+    "content": "not 运算符的作用是什么？",
+    "options": [
+      "逻辑与",
+      "逻辑或",
+      "逻辑非",
+      "比较"
+    ],
+    "correct_answer": "逻辑非",
+    "explanation": "not 运算符用于逻辑非操作。",
+    "knowledge_point_id": "2.2",
+    "knowledge_point_name": "条件判断"
+  },
+  {
+    "id": "dq_795dd826_3",
+    "type": "single",
+    "content": "continue 语句的作用是什么？",
+    "options": [
+      "退出循环",
+      "跳过当前迭代",
+      "暂停循环",
+      "重新开始循环"
+    ],
+    "correct_answer": "跳过当前迭代",
+    "explanation": "continue 语句用于跳过当前迭代，继续下一次迭代。",
+    "knowledge_point_id": "2.1",
+    "knowledge_point_name": "循环语句"
+  },
+  {
+    "id": "dq_795dd826_4",
+    "type": "single",
+    "content": "字符串的 format() 方法的作用是什么？",
+    "options": [
+      "转换大小写",
+      "格式化字符串",
+      "分割字符串",
+      "替换字符"
+    ],
+    "correct_answer": "格式化字符串",
+    "explanation": "format() 用于格式化字符串，替换占位符。",
+    "knowledge_point_id": "1.4",
+    "knowledge_point_name": "字符串处理"
   }
 ]

@@ -2,21 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import { PanelLeftClose } from 'lucide-react'
-
-const PAGE_NAMES: Record<string, { group: string; title: string }> = {
-  '/': { group: 'SparkLearn', title: '学习工作台' },
-  '/profile': { group: 'SparkLearn', title: '学习画像' },
-  '/profile/settings': { group: '底部', title: '个人信息' },
-  '/path': { group: 'SparkLearn', title: '个性化路径' },
-  '/generate': { group: 'SparkLearn', title: '资源中心' },
-  '/knowledge': { group: 'SparkLearn', title: '知识库' },
-  '/practice': { group: 'SparkLearn', title: '练习评测' },
-  '/practice/mistakes': { group: 'SparkLearn', title: '错题本' },
-  '/practice/favorites': { group: 'SparkLearn', title: '收藏题目' },
-  '/report': { group: 'SparkLearn', title: '学习报告' },
-  '/tutor': { group: '工具', title: '智能辅导' },
-  '/agent': { group: 'SparkLearn', title: '学习伙伴' },
-}
+import { PAGE_META } from '@/components/layout/navigation'
 
 interface TopbarProps {
   sidebarWidth: number
@@ -26,7 +12,7 @@ interface TopbarProps {
 
 export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }: TopbarProps) {
   const pathname = usePathname()
-  const meta = PAGE_NAMES[pathname] || PAGE_NAMES['/']
+  const meta = PAGE_META[pathname] || PAGE_META['/']
 
   return (
     <header
@@ -47,8 +33,7 @@ export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }
           {meta.group} / <b className="text-ink">{meta.title}</b>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-      </div>
+      <div className="flex items-center gap-3" />
     </header>
   )
 }

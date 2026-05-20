@@ -74,6 +74,31 @@ body {
   text-orientation: mixed;
 }
 
+@media (max-width: 767px) {
+  body,
+  p,
+  span,
+  a,
+  button,
+  label,
+  li,
+  td,
+  th,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  input,
+  textarea {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+}
+
 button,
 input,
 textarea,
