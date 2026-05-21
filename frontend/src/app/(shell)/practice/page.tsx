@@ -246,7 +246,7 @@ export default function PracticePage() {
           </div>
           <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">完成针对性练习后，系统会回写画像、错题本和学习路径。</p>
         </div>
-        <div className="grid w-full grid-cols-2 gap-2.5 min-[900px]:w-auto min-[900px]:grid-cols-1">
+        <div className="flex w-full flex-wrap gap-2.5 min-[900px]:w-auto min-[900px]:flex-nowrap min-[900px]:justify-end">
           {[
             { value: `${questions.length} 题`, label: '本次练习', icon: <ClipboardList className="h-4 w-4" />, tone: 'blue' },
             { value: '80%', label: '达标线', icon: <Target className="h-4 w-4" />, tone: 'green' },
@@ -266,8 +266,8 @@ export default function PracticePage() {
                     {chip.icon}
                   </div>
                   <div>
-                    <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
-                    <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
+                    <b className="block whitespace-nowrap text-[16px] leading-tight text-ink">{chip.value}</b>
+                    <span className="mt-0.5 block whitespace-nowrap text-micro text-muted">{chip.label}</span>
                   </div>
                 </div>
               </div>

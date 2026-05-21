@@ -1,66 +1,70 @@
 [
   {
-    "id": "dq_795dd826_1",
+    "id": "dq_670bc89e_1",
     "type": "multiple",
-    "content": "以下哪些是赋值运算符？",
+    "content": "以下哪些是集合的方法？",
     "options": [
-      "=",
-      "+=",
-      "-=",
-      "=="
+      "add()",
+      "remove()",
+      "union()",
+      "append()"
     ],
     "correct_answer": [
-      "=",
-      "+=",
-      "-="
+      "add()",
+      "remove()",
+      "union()"
     ],
-    "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
+    "explanation": "add()、remove()、union() 是集合方法，append() 是列表方法。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_795dd826_2",
+    "id": "dq_670bc89e_2",
     "type": "single",
-    "content": "not 运算符的作用是什么？",
+    "content": "以下哪个值在 Python 中被认为是 False？",
     "options": [
-      "逻辑与",
-      "逻辑或",
-      "逻辑非",
-      "比较"
+      "1",
+      "[]",
+      "True",
+      "\"0\""
     ],
-    "correct_answer": "逻辑非",
-    "explanation": "not 运算符用于逻辑非操作。",
+    "correct_answer": "[]",
+    "explanation": "空列表、空字符串、0、None 等被认为是 False。",
     "knowledge_point_id": "2.2",
     "knowledge_point_name": "条件判断"
   },
   {
-    "id": "dq_795dd826_3",
+    "id": "dq_670bc89e_3",
     "type": "single",
-    "content": "continue 语句的作用是什么？",
+    "content": "try-except-finally 中 finally 的作用是什么？",
     "options": [
-      "退出循环",
-      "跳过当前迭代",
-      "暂停循环",
-      "重新开始循环"
+      "捕获异常",
+      "处理异常",
+      "无论是否异常都执行",
+      "结束程序"
     ],
-    "correct_answer": "跳过当前迭代",
-    "explanation": "continue 语句用于跳过当前迭代，继续下一次迭代。",
-    "knowledge_point_id": "2.1",
-    "knowledge_point_name": "循环语句"
+    "correct_answer": "无论是否异常都执行",
+    "explanation": "finally 块中的代码无论是否发生异常都会执行。",
+    "knowledge_point_id": "4.1",
+    "knowledge_point_name": "异常处理"
   },
   {
-    "id": "dq_795dd826_4",
-    "type": "single",
-    "content": "字符串的 format() 方法的作用是什么？",
+    "id": "dq_670bc89e_4",
+    "type": "multiple",
+    "content": "以下哪些是条件判断中的逻辑运算符？",
     "options": [
-      "转换大小写",
-      "格式化字符串",
-      "分割字符串",
-      "替换字符"
+      "and",
+      "or",
+      "not",
+      "&"
     ],
-    "correct_answer": "格式化字符串",
-    "explanation": "format() 用于格式化字符串，替换占位符。",
-    "knowledge_point_id": "1.4",
-    "knowledge_point_name": "字符串处理"
+    "correct_answer": [
+      "and",
+      "or",
+      "not"
+    ],
+    "explanation": "and、or、not 是逻辑运算符，& 是位运算符。",
+    "knowledge_point_id": "2.2",
+    "knowledge_point_name": "条件判断"
   }
 ]

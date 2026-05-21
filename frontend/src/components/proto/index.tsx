@@ -100,7 +100,7 @@ export function PageHead({
         {description && <p className="mt-2 max-w-[760px] text-body leading-7 text-muted">{description}</p>}
       </div>
       {chips && (
-        <div className="grid w-full grid-cols-2 gap-2.5 min-[900px]:w-auto min-[900px]:grid-cols-1">
+        <div className="flex w-full flex-wrap gap-2.5 min-[900px]:w-auto min-[900px]:flex-nowrap min-[900px]:justify-end">
           {chips.map((chip) => {
             const tone = chip.tone ? chipTones[chip.tone] : null
             return (
@@ -116,8 +116,8 @@ export function PageHead({
                     </div>
                   )}
                   <div>
-                    <b className="block text-[16px] leading-tight text-ink">{chip.value}</b>
-                    <span className="mt-0.5 block text-micro text-muted">{chip.label}</span>
+                    <b className="block whitespace-nowrap text-[16px] leading-tight text-ink">{chip.value}</b>
+                    <span className="mt-0.5 block whitespace-nowrap text-micro text-muted">{chip.label}</span>
                   </div>
                 </div>
               </div>

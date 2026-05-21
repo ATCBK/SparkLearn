@@ -1,0 +1,189 @@
+INFO:     127.0.0.1:59220 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59229 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60982 - "OPTIONS /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59376 - "OPTIONS /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53520 - "OPTIONS /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59376 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60982 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53520 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64719 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60530 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60530 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64719 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64719 - "OPTIONS /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60530 - "OPTIONS /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60758 - "OPTIONS /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64719 - "OPTIONS /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60758 - "GET /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60530 - "GET /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64719 - "GET /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60758 - "GET /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60758 - "OPTIONS /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64719 - "OPTIONS /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=ca6cff3b
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:60758 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=752551f1
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:64719 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49670 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60017 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52330 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53601 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64689 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64689 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53601 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53601 - "GET /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64689 - "GET /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59604 - "GET /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53601 - "GET /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53601 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64689 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59604 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53601 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64689 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55034 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63190 - "OPTIONS /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55620 - "OPTIONS /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=856a9b35
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:63190 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=4860756a
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:55620 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55620 - "OPTIONS /api/agent/pet HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63190 - "OPTIONS /api/agent/pet HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63190 - "GET /api/agent/pet HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55620 - "GET /api/agent/pet HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55620 - "OPTIONS /api/agent/tasks?page=1&page_size=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63190 - "OPTIONS /api/agent/tasks?page=1&page_size=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63190 - "GET /api/agent/tasks?page=1&page_size=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55620 - "GET /api/agent/tasks?page=1&page_size=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62482 - "OPTIONS /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50294 - "OPTIONS /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50294 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62482 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62482 - "OPTIONS /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50294 - "OPTIONS /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64902 - "OPTIONS /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59948 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65309 - "OPTIONS /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50294 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64902 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62482 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50294 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65309 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51588 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51588 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51588 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54374 - "GET /api/tasks/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "GET /api/resources/recommendations/list HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54374 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54374 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "GET /api/resources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "OPTIONS /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "OPTIONS /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51588 - "OPTIONS /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54374 - "OPTIONS /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51588 - "GET /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54374 - "GET /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "GET /api/knowledge/files HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51588 - "GET /api/knowledge/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51588 - "OPTIONS /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "OPTIONS /api/knowledge/files?status=indexed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "OPTIONS /api/knowledge/files?status=indexed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54374 - "OPTIONS /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "GET /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54374 - "GET /api/knowledge/files?status=indexed HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56743 - "GET /api/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57534 - "GET /api/knowledge/files?status=indexed HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=08e006e8
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:57534 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=5028adcf
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:56743 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54271 - "GET /api/agent/pet HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49801 - "GET /api/agent/pet HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49801 - "GET /api/agent/tasks?page=1&page_size=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54271 - "GET /api/agent/tasks?page=1&page_size=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54271 - "OPTIONS /api/evaluation/report?period=week HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49801 - "OPTIONS /api/evaluation/report?period=week HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49801 - "GET /api/evaluation/report?period=week HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54271 - "GET /api/evaluation/report?period=week HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=c34677a9
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:54271 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=0c94f707
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:49801 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=45a378ac
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:50698 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
+DEBUG: get_quiz called with chapter=函数返回值, count=4, use_llm=False
+DEBUG: requested_count=4, batch_id=670bc89e
+DEBUG: Using default quiz set
+DEBUG: Selected 4 questions from default set (total available: 80)
+DEBUG: quiz_set generated with 4 questions
+DEBUG: quiz_set written to JSON
+DEBUG: learning event appended
+DEBUG: slim list created with 4 items
+INFO:     127.0.0.1:63972 - "GET /api/quiz?chapter=%E5%87%BD%E6%95%B0%E8%BF%94%E5%9B%9E%E5%80%BC&count=4 HTTP/1.1" 200 OK
