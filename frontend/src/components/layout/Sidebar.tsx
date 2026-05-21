@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { BarChart3, BookOpen, Bot, CheckSquare, Database, Home, LogOut, Map, User } from 'lucide-react'
+import { BarChart3, BookOpen, Bot, CheckSquare, Database, Home, LogOut, Map, Monitor, User } from 'lucide-react'
 
 interface NavItem {
   label: string
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: '练习评测', href: '/practice', icon: <CheckSquare className="h-5 w-5" />, group: '资源与练习' },
   { label: '学习伙伴', href: '/agent', icon: <Bot className="h-5 w-5" />, group: '资源与练习' },
   { label: '学习报告', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
+  { label: '教师大屏', href: '/teacher', icon: <Monitor className="h-5 w-5" />, group: '教师工具' },
 ]
 
 interface SidebarProps {

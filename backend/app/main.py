@@ -17,6 +17,7 @@ from .routes.tutor_eval import router as tutor_eval_router
 from .routes.video import router as video_router
 from .routes.voice_admin import router as voice_admin_router
 from .routes.agent import router as agent_router
+from .routes.teacher import router as teacher_router
 
 
 def _configure_event_loop_policy() -> None:
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(video_router)
     app.include_router(voice_admin_router)
     app.include_router(agent_router)
+    app.include_router(teacher_router)
     return app
 
 
