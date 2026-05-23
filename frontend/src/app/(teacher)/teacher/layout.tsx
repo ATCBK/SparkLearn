@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import {
   BarChart3, BookOpen, Bot, GraduationCap,
   LayoutDashboard, LogOut, Monitor, Users, AlertTriangle,
@@ -19,21 +19,17 @@ const NAV = [
 export default function TeacherShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [ready, setReady] = useState(false)
+  const hasToken = typeof window !== 'undefined' && !!window.localStorage.getItem('teacher_token')
 
   useEffect(() => {
-    // 简单演示鉴权：检查 teacher_token
-    const token = localStorage.getItem('teacher_token')
-    if (!token && pathname !== '/teacher/login') {
+    if (!hasToken && pathname !== '/teacher/login') {
       router.replace('/teacher/login')
-    } else {
-      setReady(true)
     }
-  }, [pathname, router])
+  }, [hasToken, pathname, router])
 
   // 登录页不需要 shell
   if (pathname === '/teacher/login') return <>{children}</>
-  if (!ready) return null
+  if (!hasToken) return null
 
   const handleLogout = () => {
     localStorage.removeItem('teacher_token')

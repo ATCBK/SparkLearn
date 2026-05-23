@@ -942,3 +942,11 @@
 {"ts": "2026-05-20T15:08:46.128010Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0c94f707", "use_llm": false}
 {"ts": "2026-05-20T15:09:14.226570Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "45a378ac", "use_llm": false}
 {"ts": "2026-05-20T15:09:14.234569Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "670bc89e", "use_llm": false}
+{"ts": "2026-05-22T05:29:05.233738Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a47c0ab5", "use_llm": false}
+{"ts": "2026-05-22T05:29:05.241366Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dbbfd2c3", "use_llm": false}
+{"ts": "2026-05-22T05:29:12.069519Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "23f1bc9b", "use_llm": false}
+{"ts": "2026-05-22T05:29:12.074489Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "56cdee07", "use_llm": false}
+{"ts": "2026-05-22T05:33:10.265650Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "096f8ccf", "use_llm": false}
+{"ts": "2026-05-22T05:33:10.273651Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f9f7c1e0", "use_llm": false}
+{"ts": "2026-05-22T05:34:17.021231Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "faacbdc4", "use_llm": false}
+{"ts": "2026-05-22T05:34:17.029756Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "44c42ba7", "use_llm": false}

@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable react/no-unescaped-entities */
 
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Bot, CheckCircle2, Clock } from 'lucide-react'

@@ -1,70 +1,54 @@
 [
   {
-    "id": "dq_670bc89e_1",
+    "id": "dq_44c42ba7_1",
+    "type": "fill_blank",
+    "content": "字符串的 ______ 方法可以将字符串转换为大写。",
+    "correct_answer": "upper",
+    "explanation": "upper() 方法将字符串转换为大写。",
+    "knowledge_point_id": "1.4",
+    "knowledge_point_name": "字符串处理"
+  },
+  {
+    "id": "dq_44c42ba7_2",
     "type": "multiple",
-    "content": "以下哪些是集合的方法？",
+    "content": "以下哪些是 Python 内置数据类型？",
     "options": [
-      "add()",
-      "remove()",
-      "union()",
-      "append()"
+      "list",
+      "dict",
+      "array",
+      "set"
     ],
     "correct_answer": [
-      "add()",
-      "remove()",
-      "union()"
+      "list",
+      "dict",
+      "set"
     ],
-    "explanation": "add()、remove()、union() 是集合方法，append() 是列表方法。",
+    "explanation": "list、dict、set 是内置类型，array 需要导入 array 模块。",
     "knowledge_point_id": "1.2",
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_670bc89e_2",
+    "id": "dq_44c42ba7_3",
     "type": "single",
-    "content": "以下哪个值在 Python 中被认为是 False？",
-    "options": [
-      "1",
-      "[]",
-      "True",
-      "\"0\""
-    ],
-    "correct_answer": "[]",
-    "explanation": "空列表、空字符串、0、None 等被认为是 False。",
-    "knowledge_point_id": "2.2",
-    "knowledge_point_name": "条件判断"
-  },
-  {
-    "id": "dq_670bc89e_3",
-    "type": "single",
-    "content": "try-except-finally 中 finally 的作用是什么？",
+    "content": "raise 语句的作用是什么？",
     "options": [
       "捕获异常",
+      "抛出异常",
       "处理异常",
-      "无论是否异常都执行",
-      "结束程序"
+      "忽略异常"
     ],
-    "correct_answer": "无论是否异常都执行",
-    "explanation": "finally 块中的代码无论是否发生异常都会执行。",
+    "correct_answer": "抛出异常",
+    "explanation": "raise 语句用于主动抛出异常。",
     "knowledge_point_id": "4.1",
     "knowledge_point_name": "异常处理"
   },
   {
-    "id": "dq_670bc89e_4",
-    "type": "multiple",
-    "content": "以下哪些是条件判断中的逻辑运算符？",
-    "options": [
-      "and",
-      "or",
-      "not",
-      "&"
-    ],
-    "correct_answer": [
-      "and",
-      "or",
-      "not"
-    ],
-    "explanation": "and、or、not 是逻辑运算符，& 是位运算符。",
-    "knowledge_point_id": "2.2",
-    "knowledge_point_name": "条件判断"
+    "id": "dq_44c42ba7_4",
+    "type": "fill_blank",
+    "content": "字典的 ______ 方法可以获取所有的键。",
+    "correct_answer": "keys",
+    "explanation": "keys() 方法返回字典的所有键。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
   }
 ]
