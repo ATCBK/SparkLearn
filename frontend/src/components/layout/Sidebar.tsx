@@ -1,8 +1,8 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { BarChart3, BookOpen, Bot, CheckSquare, Database, Home, LogOut, Map, Monitor, User } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { BarChart3, BookOpen, Bot, CheckSquare, Database, Home, LogOut, Map, User } from 'lucide-react'
 
 interface NavItem {
   label: string
@@ -20,7 +20,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: '练习评测', href: '/practice', icon: <CheckSquare className="h-5 w-5" />, group: '资源与练习' },
   { label: '学习伙伴', href: '/agent', icon: <Bot className="h-5 w-5" />, group: '资源与练习' },
   { label: '学习报告', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
-  { label: '教师工作台', href: '/teacher', icon: <Monitor className="h-5 w-5" />, group: '教师工具' },
 ]
 
 interface SidebarProps {
@@ -58,17 +57,17 @@ export function Sidebar({ state }: SidebarProps) {
 
   return (
     <div
-      className={`fixed left-0 top-0 z-20 h-screen border-r border-[#E5EAF2] bg-white overflow-y-auto transition-all duration-300 ${
+      className={`fixed left-0 top-0 z-20 h-screen overflow-y-auto border-r border-[#E5EAF2] bg-white transition-all duration-300 ${
         isExpanded ? 'w-[220px]' : isIcons ? 'w-[74px]' : 'w-0 overflow-hidden'
       }`}
     >
       <div className="border-b border-[#E5EAF2] p-4">
         <div className="flex items-center gap-3">
-          <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 object-contain shrink-0" />
+          <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 shrink-0 object-contain" />
           {isExpanded && (
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-sm font-bold text-[#111827]">学而思 SparkLearn</div>
-              <div className="text-xs text-[#6B7280] truncate">个性化学习闭环</div>
+              <div className="truncate text-xs text-[#6B7280]">个性化学习闭环</div>
             </div>
           )}
         </div>
@@ -77,11 +76,7 @@ export function Sidebar({ state }: SidebarProps) {
       <nav className="space-y-6 px-3 py-6">
         {groupedItems.map((group) => (
           <div key={group.name}>
-            {isExpanded && (
-              <div className="px-3 text-xs font-extrabold uppercase tracking-wider text-[#9CA3AF]">
-                {group.name}
-              </div>
-            )}
+            {isExpanded && <div className="px-3 text-xs font-extrabold uppercase tracking-wider text-[#9CA3AF]">{group.name}</div>}
             <div className="mt-3 space-y-1">
               {group.items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -92,11 +87,7 @@ export function Sidebar({ state }: SidebarProps) {
                     title={isIcons ? item.label : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${
                       isIcons ? 'justify-center' : ''
-                    } ${
-                      isActive
-                        ? 'bg-[#EEF5FF] text-[#2563EB]'
-                        : 'text-[#52627B] hover:bg-[#F3F4F6]'
-                    }`}
+                    } ${isActive ? 'bg-[#EEF5FF] text-[#2563EB]' : 'text-[#52627B] hover:bg-[#F3F4F6]'}`}
                   >
                     {item.icon}
                     {isExpanded && <span>{item.label}</span>}
@@ -111,37 +102,27 @@ export function Sidebar({ state }: SidebarProps) {
       <div className="absolute bottom-4 left-3 right-3 space-y-3">
         {isExpanded ? (
           <>
-            <Link
-              href="/profile/settings"
-              className="flex items-center gap-3 rounded-[12px] border border-line bg-bg-hover p-3 hover:bg-bg-card transition-colors"
-            >
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white shrink-0">李</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-small font-bold text-ink truncate">李明</div>
-                <div className="text-micro text-muted truncate">个人设置</div>
+            <Link href="/profile/settings" className="flex items-center gap-3 rounded-[12px] border border-line bg-bg-hover p-3 transition-colors hover:bg-bg-card">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue text-small font-bold text-white">李</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-small font-bold text-ink">李明</div>
+                <div className="truncate text-micro text-muted">个人设置</div>
               </div>
             </Link>
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[#52627B] hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors"
-            >
+            <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[#52627B] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]">
               <LogOut className="h-4 w-4" />
               <span>退出登录</span>
             </button>
           </>
         ) : isIcons ? (
           <div className="flex flex-col items-center gap-2">
-            <Link
-              href="/profile/settings"
-              title="个人设置"
-              className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white"
-            >
+            <Link href="/profile/settings" title="个人设置" className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white">
               李
             </Link>
             <button
               onClick={handleLogout}
               title="退出登录"
-              className="grid h-9 w-9 place-items-center rounded-lg text-[#52627B] hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors"
+              className="grid h-9 w-9 place-items-center rounded-lg text-[#52627B] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -151,3 +132,4 @@ export function Sidebar({ state }: SidebarProps) {
     </div>
   )
 }
+

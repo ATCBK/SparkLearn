@@ -3,17 +3,14 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import {
-  BarChart3, BookOpen, Bot, GraduationCap,
-  LayoutDashboard, LogOut, Monitor, Users, AlertTriangle,
-} from 'lucide-react'
+import { AlertTriangle, BarChart3, Bot, GraduationCap, LayoutDashboard, LogOut, Monitor, Users } from 'lucide-react'
 
 const NAV = [
-  { label: '工作台',   href: '/teacher/dashboard',      icon: LayoutDashboard },
-  { label: '学生管理', href: '/teacher/students',        icon: Users },
-  { label: '干预中心', href: '/teacher/interventions',   icon: AlertTriangle },
-  { label: 'AI 助手',  href: '/teacher/ai',              icon: Bot },
-  { label: '学习报告', href: '/teacher/reports',         icon: BarChart3 },
+  { label: '工作台', href: '/teacher/dashboard', icon: LayoutDashboard },
+  { label: '学生管理', href: '/teacher/students', icon: Users },
+  { label: '干预中心', href: '/teacher/interventions', icon: AlertTriangle },
+  { label: 'AI 助手', href: '/teacher/ai', icon: Bot },
+  { label: '学习报告', href: '/teacher/reports', icon: BarChart3 },
 ]
 
 export default function TeacherShellLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +24,6 @@ export default function TeacherShellLayout({ children }: { children: React.React
     }
   }, [hasToken, pathname, router])
 
-  // 登录页不需要 shell
   if (pathname === '/teacher/login') return <>{children}</>
   if (!hasToken) return null
 
@@ -37,21 +33,18 @@ export default function TeacherShellLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f6f8fb]">
-      {/* 侧边栏 */}
-      <aside className="fixed left-0 top-0 z-20 flex h-screen w-[220px] flex-col border-r border-[#e5e7eb] bg-white">
-        {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-[#e5e7eb] px-5 py-4">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#2563eb] text-white">
+    <div className="flex min-h-screen bg-[#f4f7fb]">
+      <aside className="fixed left-0 top-0 z-20 flex h-screen w-[236px] flex-col border-r border-[#dfe6ef] bg-white">
+        <div className="flex items-center gap-3 border-b border-[#e5ebf3] px-5 py-4">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#0f4c81] text-white">
             <GraduationCap className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-[#111827]">教师工作台</div>
-            <div className="text-xs text-[#6b7280]">SparkLearn</div>
+            <div className="text-sm font-bold text-[#0f172a]">学而思 SparkLearn</div>
+            <div className="text-xs text-[#64748b]">教师数据中台</div>
           </div>
         </div>
 
-        {/* 导航 */}
         <nav className="flex-1 space-y-1 px-3 py-4">
           {NAV.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -60,10 +53,8 @@ export default function TeacherShellLayout({ children }: { children: React.React
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${
-                  active
-                    ? 'bg-[#eff6ff] text-[#2563eb]'
-                    : 'text-[#52627b] hover:bg-[#f3f4f6]'
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  active ? 'bg-[#e8f1fb] text-[#0f4c81]' : 'text-[#475569] hover:bg-[#f1f5f9]'
                 }`}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -73,27 +64,18 @@ export default function TeacherShellLayout({ children }: { children: React.React
           })}
         </nav>
 
-        {/* 底部 */}
-        <div className="border-t border-[#e5e7eb] px-3 py-3 space-y-1">
+        <div className="space-y-1 border-t border-[#e5ebf3] px-3 py-3">
           <Link
             href="/screen/index.html"
             target="_blank"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-[#52627b] hover:bg-[#f3f4f6] transition-colors"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#475569] transition-colors hover:bg-[#f1f5f9]"
           >
             <Monitor className="h-4 w-4 shrink-0" />
-            打开大屏
-          </Link>
-          <Link
-            href="/"
-            target="_blank"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-[#52627b] hover:bg-[#f3f4f6] transition-colors"
-          >
-            <BookOpen className="h-4 w-4 shrink-0" />
-            学生端
+            打开关联大屏
           </Link>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-[#52627b] hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#475569] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             退出登录
@@ -101,29 +83,18 @@ export default function TeacherShellLayout({ children }: { children: React.React
         </div>
       </aside>
 
-      {/* 主内容区 */}
-      <main className="ml-[220px] flex-1 min-h-screen">
-        {/* 顶栏 */}
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e5e7eb] bg-white/95 backdrop-blur px-8">
-          <div className="text-sm font-bold text-[#111827]">
-            {NAV.find(n => pathname.startsWith(n.href))?.label ?? '教师工作台'}
-          </div>
+      <main className="ml-[236px] min-h-screen flex-1">
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#dfe6ef] bg-white/95 px-8 backdrop-blur">
+          <div className="text-sm font-bold text-[#0f172a]">{NAV.find((n) => pathname.startsWith(n.href))?.label ?? '教师工作台'}</div>
           <div className="flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#2563eb] text-xs font-bold text-white">
-              师
-            </div>
-            <span className="text-sm font-bold text-[#111827]">教师账号</span>
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#0f4c81] text-xs font-bold text-white">师</div>
+            <span className="text-sm font-semibold text-[#0f172a]">教师账号</span>
           </div>
         </header>
-
-        {/* 页面内容 */}
         <div
           className="min-h-[calc(100vh-56px)] px-8 py-7"
           style={{
-            backgroundImage: 'url(/gongzuotai-bg.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center top',
-            backgroundAttachment: 'fixed',
+            backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(15,76,129,0.08), transparent 50%), radial-gradient(circle at 0% 100%, rgba(16,185,129,0.08), transparent 40%)',
           }}
         >
           <div className="mx-auto max-w-[1360px]">{children}</div>
@@ -132,3 +103,4 @@ export default function TeacherShellLayout({ children }: { children: React.React
     </div>
   )
 }
+
