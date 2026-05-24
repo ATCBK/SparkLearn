@@ -6,13 +6,15 @@ from __future__ import annotations
 
 import json
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..config import settings
-from ..db import fetch_all, fetch_one
+from ..db import fetch_all, fetch_one, get_conn, now_iso
 from ..llm import spark_lite
 from ..schemas import fail, ok
 
@@ -645,3 +647,196 @@ async def ai_daily_report():
         )
 
     return ok({"date": today, "report": report, "active": active, "total": total})
+
+
+def _teacher_material_dir() -> Path:
+    base = settings.data_dir / "users" / settings.single_user_id / "teacher" / "materials"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+class TeacherBroadcastCreateReq(BaseModel):
+    title: str
+    content: str
+    target_type: str = "all"  # all | specific
+    student_ids: list[str] = []
+    material_file_ids: list[int] = []
+
+
+@router.get("/broadcast/recipients")
+async def list_broadcast_recipients():
+    students = _build_students()
+    return ok([{"id": s["id"], "name": s["name"], "grade": s["grade"], "major": s["major"]} for s in students])
+
+
+@router.post("/broadcast/materials")
+async def upload_broadcast_materials(files: list[UploadFile] = File(...)):
+    if not files:
+        raise HTTPException(status_code=400, detail="files are required")
+
+    created = []
+    base_dir = _teacher_material_dir()
+    ts = now_iso()
+    with get_conn() as conn:
+        for file in files:
+            raw_name = (file.filename or "material.bin").replace("\n", "").replace("\r", "").strip()
+            safe_name = "".join(ch if ch not in '\\/:*?"<>|' else "_" for ch in raw_name)[:120] or "material.bin"
+            payload = await file.read()
+            stored_name = f"{ts.replace(':', '').replace('.', '')}_{safe_name}"
+            stored_path = base_dir / stored_name
+            stored_path.write_bytes(payload)
+
+            conn.execute(
+                """
+                INSERT INTO teacher_material_files(user_id, filename, stored_path, mime_type, size_bytes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    settings.single_user_id,
+                    safe_name,
+                    str(stored_path),
+                    file.content_type or "application/octet-stream",
+                    len(payload),
+                    ts,
+                ),
+            )
+            row = conn.execute("SELECT * FROM teacher_material_files WHERE id = last_insert_rowid()").fetchone()
+            created.append(
+                {
+                    "id": int(row["id"]),
+                    "filename": row["filename"],
+                    "mime_type": row["mime_type"],
+                    "size_bytes": int(row["size_bytes"]),
+                    "created_at": row["created_at"],
+                }
+            )
+    return ok(created)
+
+
+@router.get("/broadcast/materials")
+async def list_broadcast_materials():
+    rows = fetch_all(
+        "SELECT id, filename, mime_type, size_bytes, created_at FROM teacher_material_files WHERE user_id = ? ORDER BY id DESC",
+        (settings.single_user_id,),
+    )
+    return ok(
+        [
+            {
+                "id": int(r["id"]),
+                "filename": r["filename"],
+                "mime_type": r["mime_type"],
+                "size_bytes": int(r["size_bytes"]),
+                "created_at": r["created_at"],
+            }
+            for r in rows
+        ]
+    )
+
+
+@router.get("/broadcast/materials/{file_id}/download")
+async def download_broadcast_material(file_id: int):
+    row = fetch_one(
+        "SELECT id, filename, stored_path, mime_type FROM teacher_material_files WHERE id = ? AND user_id = ?",
+        (file_id, settings.single_user_id),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="material not found")
+    path = Path(str(row["stored_path"]))
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="material file missing")
+    return FileResponse(path=str(path), filename=str(row["filename"]), media_type=str(row["mime_type"] or "application/octet-stream"))
+
+
+@router.post("/broadcasts")
+async def create_broadcast(req: TeacherBroadcastCreateReq):
+    title = req.title.strip()
+    content = req.content.strip()
+    target_type = (req.target_type or "all").strip()
+
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+    if not content:
+        raise HTTPException(status_code=400, detail="content is required")
+    if target_type not in {"all", "specific"}:
+        raise HTTPException(status_code=400, detail="invalid target_type")
+    if target_type == "specific" and not req.student_ids:
+        raise HTTPException(status_code=400, detail="student_ids required when target_type is specific")
+
+    all_student_ids = {s["id"] for s in _build_students()}
+    if target_type == "specific":
+        invalid = [sid for sid in req.student_ids if sid not in all_student_ids]
+        if invalid:
+            raise HTTPException(status_code=400, detail=f"invalid student_ids: {', '.join(invalid)}")
+
+    ts = now_iso()
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO teacher_broadcasts(
+                user_id, title, content, target_type, target_student_ids, material_file_ids, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                settings.single_user_id,
+                title,
+                content,
+                target_type,
+                json.dumps(req.student_ids, ensure_ascii=False),
+                json.dumps(req.material_file_ids, ensure_ascii=False),
+                ts,
+            ),
+        )
+        row = conn.execute("SELECT * FROM teacher_broadcasts WHERE id = last_insert_rowid()").fetchone()
+
+    return ok(
+        {
+            "id": int(row["id"]),
+            "title": row["title"],
+            "content": row["content"],
+            "target_type": row["target_type"],
+            "target_student_ids": json.loads(row["target_student_ids"] or "[]"),
+            "material_file_ids": json.loads(row["material_file_ids"] or "[]"),
+            "created_at": row["created_at"],
+        }
+    )
+
+
+@router.get("/broadcasts")
+async def list_broadcasts():
+    rows = fetch_all(
+        "SELECT * FROM teacher_broadcasts WHERE user_id = ? ORDER BY id DESC",
+        (settings.single_user_id,),
+    )
+    items = []
+    for row in rows:
+        mids = json.loads(row["material_file_ids"] or "[]")
+        materials = []
+        if mids:
+            placeholders = ",".join(["?"] * len(mids))
+            m_rows = fetch_all(
+                f"SELECT id, filename, mime_type, size_bytes, created_at FROM teacher_material_files WHERE id IN ({placeholders})",
+                tuple(mids),
+            )
+            materials = [
+                {
+                    "id": int(m["id"]),
+                    "filename": m["filename"],
+                    "mime_type": m["mime_type"],
+                    "size_bytes": int(m["size_bytes"]),
+                    "created_at": m["created_at"],
+                }
+                for m in m_rows
+            ]
+        items.append(
+            {
+                "id": int(row["id"]),
+                "title": row["title"],
+                "content": row["content"],
+                "target_type": row["target_type"],
+                "target_student_ids": json.loads(row["target_student_ids"] or "[]"),
+                "material_file_ids": mids,
+                "materials": materials,
+                "created_at": row["created_at"],
+            }
+        )
+    return ok(items)

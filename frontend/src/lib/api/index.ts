@@ -77,6 +77,11 @@ export const api = {
   getMyLikedPosts: impl.getMyLikedPosts,
   getMyForumHistory: impl.getMyForumHistory,
   getMyForumComments: impl.getMyForumComments,
+  getTeacherRecipients: impl.getTeacherRecipients,
+  uploadTeacherMaterials: impl.uploadTeacherMaterials,
+  getTeacherMaterials: impl.getTeacherMaterials,
+  createTeacherBroadcast: impl.createTeacherBroadcast,
+  getTeacherBroadcasts: impl.getTeacherBroadcasts,
 
   deleteVideoResource: impl.deleteVideoResource,
   downloadVideoArtifact: impl.downloadVideoArtifact,
@@ -111,7 +116,7 @@ export type {
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
-  ForumPost, ForumComment, ForumAttachment,
+  ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
 } from './types'

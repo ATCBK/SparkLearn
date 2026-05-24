@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, BarChart3, Bot, CheckCircle2, Clock3, Flame, Monitor, TrendingUp, Users } from 'lucide-react'
@@ -27,28 +27,25 @@ interface DashboardData {
     streak_days: number
     last_active: string
   }>
-  students: Array<{
-    id: string
-    name: string
-    avatar: string
-    current_stage: string
-    risk_level: string
-    quiz_accuracy: number
-    streak_days: number
-  }>
   stage_distribution: Array<{ stage: string; count: number }>
 }
 
-function colorForIndex(index: number) {
-  const colors = ['#0f4c81', '#0ea5e9', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6']
-  return colors[index % colors.length]
+function polarPoints(values: number[], cx: number, cy: number, r: number) {
+  const n = values.length
+  return values
+    .map((v, i) => {
+      const angle = (-Math.PI / 2) + (i * 2 * Math.PI) / n
+      const rr = r * v
+      const x = cx + rr * Math.cos(angle)
+      const y = cy + rr * Math.sin(angle)
+      return `${x},${y}`
+    })
+    .join(' ')
 }
 
 export default function TeacherDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [aiReport, setAiReport] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => {
     fetch(`${API}/api/teacher/dashboard`)
@@ -56,45 +53,37 @@ export default function TeacherDashboardPage() {
       .then((r) => {
         if (r.success) setData(r.data)
       })
-      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
   const summary = data?.summary
 
-  const activeTrend = useMemo(() => {
-    const active = summary?.active_today ?? 0
-    const total = summary?.total_students ?? 1
-    const base = Math.max(1, Math.min(active, total))
-    return [0.72, 0.76, 0.7, 0.79, 0.84, 0.81, 0.88].map((ratio, idx) => {
-      const v = Math.round((base * ratio + idx * 0.25) * 10) / 10
-      return Math.max(0, Math.min(v, total))
-    })
-  }, [summary?.active_today, summary?.total_students])
+  const radarMetrics = useMemo(() => {
+    const active = summary?.active_rate ?? 0
+    const accuracy = summary?.avg_quiz_accuracy ?? 0
+    const completion = summary?.avg_task_completion ?? 0
+    const streak = Math.min(1, (summary?.avg_streak_days ?? 0) / 14)
+    const hours = Math.min(1, (summary?.avg_total_hours ?? 0) / 40)
+    const health = Math.max(0, 1 - ((summary?.risk_count ?? 0) / Math.max(1, summary?.total_students ?? 1)))
+    return [active, accuracy, completion, streak, hours, health]
+  }, [summary])
 
-  const genReport = async () => {
-    setAiLoading(true)
-    setAiReport('')
-    try {
-      const r = await fetch(`${API}/api/teacher/ai/daily-report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-      })
-      const j = await r.json()
-      if (j.success) setAiReport(j.data.report)
-    } catch {
-      setAiReport('生成失败，请确认后端服务已启动。')
-    }
-    setAiLoading(false)
-  }
+  const activeTrend = useMemo(() => {
+    const base = summary?.active_today ?? 0
+    return [0.72, 0.76, 0.7, 0.79, 0.84, 0.81, 0.88].map((ratio, idx) => Math.max(0, Math.round((base * ratio + idx * 0.25) * 10) / 10))
+  }, [summary?.active_today])
+
+  const stageBars = useMemo(() => {
+    const total = Math.max(1, summary?.total_students ?? 1)
+    return (data?.stage_distribution ?? []).map((x) => ({ ...x, pct: Math.round((x.count / total) * 100) }))
+  }, [data?.stage_distribution, summary?.total_students])
 
   return (
     <div>
       <PageHead
-        eyebrow="教师工作台 / 数据总览"
-        title="班级教学指挥台"
-        description="统一查看班级结构、学习活跃、风险预警与教学建议。教师端与大屏数据口径保持一致。"
+        eyebrow="教师工作台 / 多维数据看板"
+        title="教师工作台"
+        description="从学习活跃、阶段分布、风险预警、学习质量等维度统一查看班级状态。"
         chips={[
           { value: `${summary?.total_students ?? '--'}人`, label: '在班学生', icon: <Users className="h-4 w-4" />, tone: 'blue' },
           { value: `${summary ? Math.round(summary.avg_quiz_accuracy * 100) : '--'}%`, label: '平均正确率', icon: <CheckCircle2 className="h-4 w-4" />, tone: 'green' },
@@ -104,44 +93,34 @@ export default function TeacherDashboardPage() {
       />
 
       {loading ? (
-        <div className="flex min-h-[300px] items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#0f4c81] border-t-transparent" />
-            <span className="text-sm text-[#64748b]">加载教师数据...</span>
-          </div>
-        </div>
+        <div className="flex min-h-[300px] items-center justify-center text-sm text-[#64748b]">加载教师数据...</div>
       ) : (
         <div className="space-y-5">
+          <ProtoCard>
+            <h2 className="mb-4 text-[18px] font-bold text-[#0f172a]">教师端快捷跳转</h2>
+            <div className="grid grid-cols-5 gap-3 max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2">
+              {[
+                { label: '学生管理', desc: '查看学生详情', href: '/teacher/students', icon: <Users className="h-5 w-5" /> },
+                { label: '学习报告', desc: '查看全班报告', href: '/teacher/reports', icon: <BarChart3 className="h-5 w-5" /> },
+                { label: '干预中心', desc: '处理风险预警', href: '/teacher/interventions', icon: <AlertTriangle className="h-5 w-5" /> },
+                { label: '通知分发', desc: '发通知和分发资料', href: '/teacher/broadcast', icon: <Monitor className="h-5 w-5" /> },
+                { label: 'AI 助手', desc: '生成教学策略', href: '/teacher/ai', icon: <Bot className="h-5 w-5" /> },
+              ].map((item) => (
+                <a key={item.label} href={item.href} className="rounded-xl border border-[#e2e8f0] bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-md">
+                  <div className="mb-2 inline-grid h-9 w-9 place-items-center rounded-lg bg-[#e8f1fb] text-[#0f4c81]">{item.icon}</div>
+                  <div className="text-sm font-bold text-[#0f172a]">{item.label}</div>
+                  <div className="text-xs text-[#64748b]">{item.desc}</div>
+                </a>
+              ))}
+            </div>
+          </ProtoCard>
+
           <div className="grid grid-cols-4 gap-4 max-[1080px]:grid-cols-2">
             {[
-              {
-                label: '今日活跃率',
-                value: `${summary ? Math.round(summary.active_rate * 100) : '--'}%`,
-                sub: `${summary?.active_today ?? '--'}/${summary?.total_students ?? '--'} 人`,
-                icon: <Flame className="h-5 w-5" />,
-                tone: 'bg-[#e8f1fb] text-[#0f4c81]',
-              },
-              {
-                label: '人均学习时长',
-                value: `${summary?.avg_total_hours ?? '--'}h`,
-                sub: '累计学习时长',
-                icon: <Clock3 className="h-5 w-5" />,
-                tone: 'bg-[#ecfdf5] text-[#0f766e]',
-              },
-              {
-                label: '平均连学天数',
-                value: `${summary?.avg_streak_days ?? '--'}天`,
-                sub: '学习稳定性',
-                icon: <BarChart3 className="h-5 w-5" />,
-                tone: 'bg-[#fff7ed] text-[#c2410c]',
-              },
-              {
-                label: '风险学生数',
-                value: `${summary?.risk_count ?? '--'}人`,
-                sub: '需优先干预',
-                icon: <AlertTriangle className="h-5 w-5" />,
-                tone: 'bg-[#fef2f2] text-[#b91c1c]',
-              },
+              { label: '今日活跃率', value: `${summary ? Math.round(summary.active_rate * 100) : '--'}%`, sub: `${summary?.active_today ?? '--'}/${summary?.total_students ?? '--'} 人`, icon: <Flame className="h-5 w-5" />, tone: 'bg-[#e8f1fb] text-[#0f4c81]' },
+              { label: '人均学习时长', value: `${summary?.avg_total_hours ?? '--'}h`, sub: '累计学习时长', icon: <Clock3 className="h-5 w-5" />, tone: 'bg-[#ecfdf5] text-[#0f766e]' },
+              { label: '平均连学天数', value: `${summary?.avg_streak_days ?? '--'}天`, sub: '学习稳定性', icon: <BarChart3 className="h-5 w-5" />, tone: 'bg-[#fff7ed] text-[#c2410c]' },
+              { label: '风险学生数', value: `${summary?.risk_count ?? '--'}人`, sub: '需优先干预', icon: <AlertTriangle className="h-5 w-5" />, tone: 'bg-[#fef2f2] text-[#b91c1c]' },
             ].map((item) => (
               <ProtoCard key={item.label} className="p-4">
                 <div className="flex items-center gap-3">
@@ -156,52 +135,69 @@ export default function TeacherDashboardPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-[1.2fr_1fr] gap-5 max-[1100px]:grid-cols-1">
+          <div className="grid grid-cols-[1fr_1.2fr] gap-5 max-[1100px]:grid-cols-1">
             <ProtoCard>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-[18px] font-bold text-[#0f172a]">学习阶段分布图</h2>
-                <Pill tone="blue">与大屏同口径</Pill>
+                <h2 className="text-[18px] font-bold text-[#0f172a]">班级能力雷达图</h2>
+                <Pill tone="blue">多维评估</Pill>
               </div>
-              <div className="space-y-3">
-                {(data?.stage_distribution ?? []).map((item, idx) => {
-                  const total = summary?.total_students || 1
-                  const percent = Math.round((item.count / total) * 100)
-                  return (
-                    <div key={item.stage}>
-                      <div className="mb-1 flex items-center justify-between text-xs">
-                        <span className="font-semibold text-[#334155]">{item.stage}</span>
-                        <span className="text-[#64748b]">{item.count} 人 · {percent}%</span>
-                      </div>
-                      <div className="h-3 overflow-hidden rounded-full bg-[#e2e8f0]">
-                        <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: colorForIndex(idx) }} />
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="flex justify-center">
+                <svg viewBox="0 0 320 260" className="h-[240px] w-full max-w-[360px]">
+                  {[0.2, 0.4, 0.6, 0.8, 1].map((lv) => (
+                    <polygon key={lv} points={polarPoints([lv, lv, lv, lv, lv, lv], 160, 120, 90)} fill="none" stroke="#dbe7f3" strokeWidth="1" />
+                  ))}
+                  {['活跃', '正确率', '完成率', '连续性', '时长', '健康度'].map((name, i) => {
+                    const angle = (-Math.PI / 2) + (i * 2 * Math.PI) / 6
+                    const x = 160 + 105 * Math.cos(angle)
+                    const y = 120 + 105 * Math.sin(angle)
+                    return <text key={name} x={x} y={y} textAnchor="middle" fontSize="12" fill="#475569">{name}</text>
+                  })}
+                  <polygon points={polarPoints(radarMetrics, 160, 120, 90)} fill="rgba(15,76,129,0.22)" stroke="#0f4c81" strokeWidth="2" />
+                </svg>
               </div>
             </ProtoCard>
 
             <ProtoCard>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-[18px] font-bold text-[#0f172a]">近7天活跃趋势</h2>
-                <Pill tone="green">教学节奏</Pill>
+                <h2 className="text-[18px] font-bold text-[#0f172a]">多维柱状图</h2>
+                <Pill tone="green">趋势 + 结构</Pill>
               </div>
-              <div className="flex h-[180px] items-end gap-2">
-                {activeTrend.map((v, idx) => {
-                  const total = summary?.total_students || 1
-                  const height = Math.max(12, Math.round((v / total) * 160))
-                  return (
-                    <div key={idx} className="flex flex-1 flex-col items-center gap-1">
-                      <div className="w-full rounded-t-md bg-gradient-to-t from-[#0f4c81] to-[#38bdf8]" style={{ height }} />
-                      <span className="text-[10px] text-[#64748b]">D{idx + 1}</span>
-                    </div>
-                  )
-                })}
+              <div className="grid grid-cols-2 gap-4 max-[760px]:grid-cols-1">
+                <div>
+                  <div className="mb-2 text-xs font-semibold text-[#64748b]">近 7 天活跃趋势</div>
+                  <div className="flex h-[170px] items-end gap-2">
+                    {activeTrend.map((v, idx) => {
+                      const h = Math.max(12, Math.round((v / Math.max(1, summary?.total_students ?? 1)) * 150))
+                      return (
+                        <div key={idx} className="flex flex-1 flex-col items-center gap-1">
+                          <div className="w-full rounded-t-md bg-gradient-to-t from-[#0f4c81] to-[#38bdf8]" style={{ height: h }} />
+                          <span className="text-[10px] text-[#64748b]">D{idx + 1}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-semibold text-[#64748b]">学习阶段分布</div>
+                  <div className="space-y-2">
+                    {stageBars.map((s) => (
+                      <div key={s.stage}>
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="text-[#334155]">{s.stage}</span>
+                          <span className="text-[#64748b]">{s.count} 人 / {s.pct}%</span>
+                        </div>
+                        <div className="h-2.5 overflow-hidden rounded-full bg-[#e2e8f0]">
+                          <div className="h-full rounded-full bg-[#0f4c81]" style={{ width: `${s.pct}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </ProtoCard>
           </div>
 
-          <div className="grid grid-cols-[1fr_1fr] gap-5 max-[1100px]:grid-cols-1">
+          <div className="grid grid-cols-1 gap-5">
             <ProtoCard>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-[18px] font-bold text-[#0f172a]">风险学生清单</h2>
@@ -213,15 +209,13 @@ export default function TeacherDashboardPage() {
                 ) : (
                   data?.risk_students.map((stu) => (
                     <SoftCard key={stu.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white">
-                      <div className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold text-white ${stu.risk_level === 'danger' ? 'bg-[#dc2626]' : 'bg-[#f59e0b]'}`}>
-                        {stu.avatar}
-                      </div>
+                      <div className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold text-white ${stu.risk_level === 'danger' ? 'bg-[#dc2626]' : 'bg-[#f59e0b]'}`}>{stu.avatar}</div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <b className="text-sm text-[#0f172a]">{stu.name}</b>
                           <Pill tone={stu.risk_level === 'danger' ? 'red' : 'orange'}>{stu.risk_level === 'danger' ? '高风险' : '预警'}</Pill>
                         </div>
-                        <div className="truncate text-xs text-[#64748b]">{stu.current_stage} · 薄弱点: {stu.weak_points.slice(0, 2).join('、')}</div>
+                        <div className="truncate text-xs text-[#64748b]">{stu.current_stage} · 薄弱点：{stu.weak_points.slice(0, 2).join('、')}</div>
                       </div>
                       <ProtoButton href={`/teacher/students/${stu.id}`} variant="tertiary">查看</ProtoButton>
                     </SoftCard>
@@ -229,45 +223,10 @@ export default function TeacherDashboardPage() {
                 )}
               </div>
             </ProtoCard>
-
-            <ProtoCard>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-[18px] font-bold text-[#0f172a]">AI 教学日报</h2>
-                <ProtoButton onClick={genReport} disabled={aiLoading} variant="secondary">{aiLoading ? '生成中...' : '生成日报'}</ProtoButton>
-              </div>
-              <div className="min-h-[178px] rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-4 text-sm leading-7 text-[#334155]">
-                {aiLoading ? 'AI 正在分析班级数据...' : aiReport || '点击“生成日报”获得今日班级教学建议。'}
-              </div>
-            </ProtoCard>
           </div>
 
-          <ProtoCard>
-            <h2 className="mb-4 text-[18px] font-bold text-[#0f172a]">教师端快捷跳转</h2>
-            <div className="grid grid-cols-5 gap-3 max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2">
-              {[
-                { label: '学生管理', desc: '查看学生详情', href: '/teacher/students', icon: <Users className="h-5 w-5" /> },
-                { label: '学习报告', desc: '查看全班报告', href: '/teacher/reports', icon: <BarChart3 className="h-5 w-5" /> },
-                { label: '干预中心', desc: '处理风险预警', href: '/teacher/interventions', icon: <AlertTriangle className="h-5 w-5" /> },
-                { label: 'AI 助手', desc: '生成教学策略', href: '/teacher/ai', icon: <Bot className="h-5 w-5" /> },
-                { label: '教师大屏', desc: '投影展示模式', href: '/screen/index.html', icon: <Monitor className="h-5 w-5" />, external: true },
-              ].map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  target={item.external ? '_blank' : undefined}
-                  rel={item.external ? 'noopener noreferrer' : undefined}
-                  className="rounded-xl border border-[#e2e8f0] bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-md"
-                >
-                  <div className="mb-2 inline-grid h-9 w-9 place-items-center rounded-lg bg-[#e8f1fb] text-[#0f4c81]">{item.icon}</div>
-                  <div className="text-sm font-bold text-[#0f172a]">{item.label}</div>
-                  <div className="text-xs text-[#64748b]">{item.desc}</div>
-                </a>
-              ))}
-            </div>
-          </ProtoCard>
         </div>
       )}
     </div>
   )
 }
-

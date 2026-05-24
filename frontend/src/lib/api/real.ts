@@ -3,7 +3,7 @@ import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -924,6 +924,40 @@ export async function getMyForumHistory(page: number = 1, pageSize: number = 20)
 
 export async function getMyForumComments(page: number = 1, pageSize: number = 20): Promise<{ items: Array<{ id: number; post_id: number; post_title: string; content: string; created_at: string }>; page: number; page_size: number }> {
   return fetchJson(`/api/forum/my/comments?page=${page}&page_size=${pageSize}`)
+}
+
+export async function getTeacherRecipients(): Promise<TeacherRecipient[]> {
+  return fetchJson('/api/teacher/broadcast/recipients')
+}
+
+export async function uploadTeacherMaterials(files: File[]): Promise<TeacherMaterialFile[]> {
+  const form = new FormData()
+  files.forEach(file => form.append('files', file))
+  const res = await fetch(`${API_BASE}/api/teacher/broadcast/materials`, { method: 'POST', body: form })
+  const json = await res.json() as ApiResp<TeacherMaterialFile[]>
+  if (!res.ok || !json.success) throw new Error(json.error || `上传失败: ${res.status}`)
+  return json.data || []
+}
+
+export async function getTeacherMaterials(): Promise<TeacherMaterialFile[]> {
+  return fetchJson('/api/teacher/broadcast/materials')
+}
+
+export async function createTeacherBroadcast(payload: {
+  title: string
+  content: string
+  target_type: 'all' | 'specific'
+  student_ids: string[]
+  material_file_ids: number[]
+}): Promise<TeacherBroadcast> {
+  return fetchJson('/api/teacher/broadcasts', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getTeacherBroadcasts(): Promise<TeacherBroadcast[]> {
+  return fetchJson('/api/teacher/broadcasts')
 }
 
 

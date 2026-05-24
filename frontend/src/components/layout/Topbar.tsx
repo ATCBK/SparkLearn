@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { PanelLeftClose } from 'lucide-react'
 import { PAGE_META } from '@/components/layout/navigation'
 
@@ -13,6 +15,22 @@ interface TopbarProps {
 export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }: TopbarProps) {
   const pathname = usePathname()
   const meta = PAGE_META[pathname] || PAGE_META['/']
+  const [nameChar, setNameChar] = useState('李')
+  const [avatarUrl, setAvatarUrl] = useState('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = localStorage.getItem('sparklearn_user')
+      if (!raw) return
+      const user = JSON.parse(raw) as { name?: string; avatar?: string }
+      const c = (user?.name || '').trim()
+      if (c) setNameChar(c[0])
+      if (user?.avatar) setAvatarUrl(user.avatar)
+    } catch {
+      // keep defaults
+    }
+  }, [])
 
   return (
     <header
@@ -33,7 +51,20 @@ export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }
           {meta.group} / <b className="text-ink">{meta.title}</b>
         </div>
       </div>
-      <div className="flex items-center gap-3" />
+      <div className="flex items-center gap-3">
+        <Link
+          href="/profile/settings"
+          className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-90"
+          title="个人设置"
+        >
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="用户头像" className="h-9 w-9 rounded-full object-cover ring-1 ring-[#e5e7eb]" />
+          ) : (
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-blue text-sm font-bold text-white">{nameChar}</span>
+          )}
+        </Link>
+      </div>
     </header>
   )
 }

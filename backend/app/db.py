@@ -277,6 +277,30 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_forum_history_user_time
             ON forum_browsing_history(user_id, viewed_at DESC);
+
+            CREATE TABLE IF NOT EXISTS teacher_material_files (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              filename TEXT NOT NULL,
+              stored_path TEXT NOT NULL,
+              mime_type TEXT DEFAULT 'application/octet-stream',
+              size_bytes INTEGER NOT NULL,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS teacher_broadcasts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              title TEXT NOT NULL,
+              content TEXT NOT NULL,
+              target_type TEXT NOT NULL DEFAULT 'all',
+              target_student_ids TEXT DEFAULT '[]',
+              material_file_ids TEXT DEFAULT '[]',
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
+            ON teacher_broadcasts(user_id, created_at DESC);
             """
         )
 
@@ -323,6 +347,7 @@ def init_db() -> None:
 
         _seed_mastery(conn)
         _seed_tutor_workspace(conn)
+        _seed_forum_posts(conn)
 
 
 def _ensure_student_columns(conn: sqlite3.Connection) -> None:
@@ -425,6 +450,107 @@ def _seed_tutor_workspace(conn: sqlite3.Connection) -> None:
             VALUES (?, ?, ?, ?, ?)
             """,
             (settings.single_user_id, role_id, '新对话', ts, ts),
+        )
+
+
+def _seed_forum_posts(conn: sqlite3.Connection) -> None:
+    existing_titles = {
+        str(r["title"])
+        for r in conn.execute("SELECT title FROM forum_posts").fetchall()
+    }
+
+    now = now_iso()
+    modules = {
+        "resource_share": [
+            ("Python 函数速查表（可打印版）", "整理了一份函数参数、返回值、作用域的速查表，适合考前快速复习。"),
+            ("期末复习资料包：数据结构基础", "含数组、链表、栈队列的思维导图和常见题型汇总。"),
+            ("线性代数课堂笔记模板分享", "可直接用于课堂记录，包含定理、例题、错题反思区。"),
+            ("英语阅读训练素材合集", "按难度分级的阅读材料，附关键词和阅读问题。"),
+            ("机器学习入门代码模板", "包含数据读取、训练、评估三段基础模板，适合新手。"),
+            ("前端项目答辩 PPT 模板", "简洁版本，含需求、设计、实现、结果和复盘页。"),
+            ("高数错题整理表（Excel）", "按章节、题型、错误原因进行分类追踪。"),
+            ("算法题刷题计划（4 周）", "每周目标和题目列表已排好，适合冲刺阶段。"),
+            ("数据库实验报告范例", "给出规范结构和评分点提醒，避免格式扣分。"),
+            ("学习计划看板 Notion 模板", "含日计划、周回顾、目标拆解和打卡统计。"),
+            ("Java OOP 课堂例题资料", "封装、继承、多态的典型例题和讲解。"),
+        ],
+        "qa": [
+            ("闭包为什么能记住外部变量？", "看了很多例子还是不太理解变量捕获机制，求通俗解释。"),
+            ("递归和循环怎么选？", "做题时总纠结写递归还是循环，有没有判断标准。"),
+            ("线性回归损失函数为什么用 MSE？", "从直觉上怎么理解均方误差更合理？"),
+            ("Python 装饰器执行顺序问题", "多个装饰器叠加时到底先执行哪个？"),
+            ("SQL 多表连接总是写错", "LEFT JOIN 和 INNER JOIN 在什么场景下最稳妥？"),
+            ("背单词总记不住怎么办", "有没有适合每天 30 分钟的复习策略？"),
+            ("二叉树层序遍历模板求优化", "我写的版本太啰嗦，想要更清晰的结构。"),
+            ("项目汇报总被说逻辑不清", "技术汇报应该怎么组织结构才容易被理解？"),
+            ("动态规划状态定义总想不出", "有没有从题目推状态的通用步骤？"),
+            ("高数证明题怎么下手", "碰到证明题就卡住，想知道第一步该做什么。"),
+            ("Git 冲突处理总出错", "多人协作时怎么减少冲突和误删代码？"),
+        ],
+        "team_study": [
+            ("组队冲刺：Python 期末 14 天", "招 3 位同学一起每日打卡，目标 85+。"),
+            ("算法共学小组招募（晚 8 点）", "每天 1 题+讲解，偏 LeetCode 热题。"),
+            ("英语四级晨读搭子", "早上 7:30-8:00 线上语音晨读，互相监督。"),
+            ("数据库实验周末集训", "周六下午一起做实验和报告，欢迎新手。"),
+            ("前端项目结对开发", "做一个小型学习管理系统，React 技术栈。"),
+            ("高数刷题互助群", "每晚 9 点对答案+讲思路，不会的题现场讨论。"),
+            ("考研数学基础共学", "目标 2 个月过完一轮基础，按周计划推进。"),
+            ("Java 面试题每日一练", "每日 5 题，周末集中复盘错题。"),
+            ("机器学习论文精读小组", "每周一篇入门论文，轮流做分享。"),
+            ("运营实习面试共学群", "行为面和案例面互练，互相给反馈。"),
+            ("数据分析项目实战队", "用公开数据做完整分析并产出可展示作品。"),
+        ],
+        "experience_share": [
+            ("我把错题本做成了提分系统", "分享如何用错题分类+复盘提升练习效率。"),
+            ("从 62 分到 86 分的复盘", "核心是减少低级错误和提高审题速度。"),
+            ("我用番茄钟坚持了 100 天", "给出可复制的时间块安排和中断处理方法。"),
+            ("做项目时最容易踩的 5 个坑", "需求不清、边做边改、无版本管理等经验总结。"),
+            ("面试失败 7 次后的改进", "如何从“回答知识点”转成“讲清解决问题能力”。"),
+            ("如何建立个人知识库", "从资料收集到二次加工的一套轻量流程。"),
+            ("我的英语阅读提速方法", "先扫结构再看细节，配合错因记录效果明显。"),
+            ("考前一周的冲刺节奏", "不再盲目刷题，改为专题查漏补缺。"),
+            ("第一次带队做共学活动", "分享组织打卡、分工和复盘的实际经验。"),
+            ("如何把学习成果变成作品集", "从课程作业到可展示项目的整理步骤。"),
+            ("拖延症自救：把任务拆到 20 分钟", "用最小行动单元启动，减少心理阻力。"),
+        ],
+    }
+
+    rows: list[tuple] = []
+    idx = 0
+    for tag, posts in modules.items():
+        for title, content in posts:
+            idx += 1
+            like_count = (idx * 3) % 19 + 1
+            comment_count = (idx * 2) % 11
+            favorite_count = (idx * 5) % 9
+            view_count = 30 + idx * 7
+            if title in existing_titles:
+                continue
+            rows.append(
+                (
+                    settings.single_user_id,
+                    title,
+                    content,
+                    json.dumps([tag], ensure_ascii=False),
+                    "published",
+                    like_count,
+                    comment_count,
+                    favorite_count,
+                    view_count,
+                    now,
+                    now,
+                )
+            )
+
+    if rows:
+        conn.executemany(
+            """
+            INSERT INTO forum_posts(
+                user_id, title, content, tags, status, like_count, comment_count,
+                favorite_count, view_count, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
         )
 
 

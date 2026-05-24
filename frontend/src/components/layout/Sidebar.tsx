@@ -119,13 +119,6 @@ export function Sidebar({ state }: SidebarProps) {
                 <div className="truncate text-micro text-muted">点击进入独立页面</div>
               </div>
             </Link>
-            <Link href="/profile/settings" className="flex items-center gap-3 rounded-[12px] border border-line bg-bg-hover p-3 transition-colors hover:bg-bg-card">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue text-small font-bold text-white">李</span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-small font-bold text-ink">李明</div>
-                <div className="truncate text-micro text-muted">个人设置</div>
-              </div>
-            </Link>
             <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[#52627B] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]">
               <LogOut className="h-4 w-4" />
               <span>退出登录</span>
@@ -141,9 +134,6 @@ export function Sidebar({ state }: SidebarProps) {
               className="grid h-9 w-9 place-items-center rounded-lg text-[#2563EB] transition-colors hover:bg-[#EEF5FF]"
             >
               <MessageSquare className="h-4 w-4" />
-            </Link>
-            <Link href="/profile/settings" title="个人设置" className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white">
-              李
             </Link>
             <button
               onClick={handleLogout}

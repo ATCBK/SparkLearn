@@ -69,6 +69,32 @@ export interface ForumComment {
   updated_at: string
 }
 
+export interface TeacherRecipient {
+  id: string
+  name: string
+  grade: string
+  major: string
+}
+
+export interface TeacherMaterialFile {
+  id: number
+  filename: string
+  mime_type: string
+  size_bytes: number
+  created_at: string
+}
+
+export interface TeacherBroadcast {
+  id: number
+  title: string
+  content: string
+  target_type: 'all' | 'specific'
+  target_student_ids: string[]
+  material_file_ids: number[]
+  materials: TeacherMaterialFile[]
+  created_at: string
+}
+
 export type PptLayout = 'cover' | 'bullets' | 'process' | 'summary'
 
 export interface PptBullet {

@@ -1,14 +1,15 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { AlertTriangle, BarChart3, Bot, GraduationCap, LayoutDashboard, LogOut, Monitor, Users } from 'lucide-react'
+import { AlertTriangle, BarChart3, BellRing, Bot, GraduationCap, LayoutDashboard, LogOut, Monitor, Users } from 'lucide-react'
 
 const NAV = [
   { label: '工作台', href: '/teacher/dashboard', icon: LayoutDashboard },
   { label: '学生管理', href: '/teacher/students', icon: Users },
   { label: '干预中心', href: '/teacher/interventions', icon: AlertTriangle },
+  { label: '通知分发', href: '/teacher/broadcast', icon: BellRing },
   { label: 'AI 助手', href: '/teacher/ai', icon: Bot },
   { label: '学习报告', href: '/teacher/reports', icon: BarChart3 },
 ]
@@ -85,7 +86,10 @@ export default function TeacherShellLayout({ children }: { children: React.React
 
       <main className="ml-[236px] min-h-screen flex-1">
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#dfe6ef] bg-white/95 px-8 backdrop-blur">
-          <div className="text-sm font-bold text-[#0f172a]">{NAV.find((n) => pathname.startsWith(n.href))?.label ?? '教师工作台'}</div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-extrabold text-[#0f4c81]">教师工作台</span>
+            <span className="text-xs font-semibold text-[#64748b]">{NAV.find((n) => pathname.startsWith(n.href))?.label ?? '数据总览'}</span>
+          </div>
           <div className="flex items-center gap-3">
             <div className="grid h-8 w-8 place-items-center rounded-full bg-[#0f4c81] text-xs font-bold text-white">师</div>
             <span className="text-sm font-semibold text-[#0f172a]">教师账号</span>
@@ -103,4 +107,3 @@ export default function TeacherShellLayout({ children }: { children: React.React
     </div>
   )
 }
-
