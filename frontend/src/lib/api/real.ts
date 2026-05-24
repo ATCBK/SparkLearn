@@ -3,7 +3,7 @@ import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -852,6 +852,78 @@ export async function getDailyQuote(): Promise<string> {
 
 export async function getContributionData(): Promise<ContributionDay[]> {
   return fetchJson('/api/contribution')
+}
+
+export async function getForumPosts(params?: {
+  tab?: 'latest' | 'hot' | 'recommended'
+  q?: string
+  tag?: string
+  page?: number
+  pageSize?: number
+}): Promise<{ items: ForumPost[]; page: number; page_size: number }> {
+  const query = new URLSearchParams()
+  if (params?.tab) query.set('tab', params.tab)
+  if (params?.q) query.set('q', params.q)
+  if (params?.tag) query.set('tag', params.tag)
+  if (params?.page) query.set('page', String(params.page))
+  if (params?.pageSize) query.set('page_size', String(params.pageSize))
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return fetchJson(`/api/forum/posts${suffix}`)
+}
+
+export async function createForumPost(payload: { title: string; content: string; tags?: string[] }): Promise<ForumPost> {
+  return fetchJson('/api/forum/posts', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getForumPostDetail(postId: number): Promise<{ post: ForumPost; attachments: ForumAttachment[] }> {
+  return fetchJson(`/api/forum/posts/${postId}`)
+}
+
+export async function deleteForumPost(postId: number): Promise<void> {
+  await fetchJson(`/api/forum/posts/${postId}`, { method: 'DELETE' })
+}
+
+export async function getForumComments(postId: number): Promise<ForumComment[]> {
+  return fetchJson(`/api/forum/posts/${postId}/comments`)
+}
+
+export async function createForumComment(postId: number, content: string): Promise<ForumComment> {
+  return fetchJson(`/api/forum/posts/${postId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })
+}
+
+export async function toggleForumLike(postId: number): Promise<{ liked: boolean; like_count: number }> {
+  return fetchJson(`/api/forum/posts/${postId}/like`, { method: 'POST' })
+}
+
+export async function toggleForumFavorite(postId: number): Promise<{ favorited: boolean; favorite_count: number }> {
+  return fetchJson(`/api/forum/posts/${postId}/favorite`, { method: 'POST' })
+}
+
+export async function uploadForumAttachments(postId: number, files: File[]): Promise<ForumAttachment[]> {
+  const form = new FormData()
+  files.forEach(file => form.append('files', file))
+  const res = await fetch(`${API_BASE}/api/forum/posts/${postId}/attachments`, { method: 'POST', body: form })
+  const json = await res.json() as ApiResp<ForumAttachment[]>
+  if (!res.ok || !json.success) throw new Error(json.error || `上传失败: ${res.status}`)
+  return json.data || []
+}
+
+export async function getMyLikedPosts(page: number = 1, pageSize: number = 20): Promise<{ items: ForumPost[]; page: number; page_size: number }> {
+  return fetchJson(`/api/forum/my/likes?page=${page}&page_size=${pageSize}`)
+}
+
+export async function getMyForumHistory(page: number = 1, pageSize: number = 20): Promise<{ items: (ForumPost & { viewed_at?: string })[]; page: number; page_size: number }> {
+  return fetchJson(`/api/forum/my/history?page=${page}&page_size=${pageSize}`)
+}
+
+export async function getMyForumComments(page: number = 1, pageSize: number = 20): Promise<{ items: Array<{ id: number; post_id: number; post_title: string; content: string; created_at: string }>; page: number; page_size: number }> {
+  return fetchJson(`/api/forum/my/comments?page=${page}&page_size=${pageSize}`)
 }
 
 

@@ -196,6 +196,87 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_agent_task_steps
             ON agent_task_steps(task_id, step_index ASC);
+
+            CREATE TABLE IF NOT EXISTS forum_posts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              title TEXT NOT NULL,
+              content TEXT NOT NULL,
+              tags TEXT DEFAULT '[]',
+              status TEXT NOT NULL DEFAULT 'published',
+              like_count INTEGER NOT NULL DEFAULT 0,
+              comment_count INTEGER NOT NULL DEFAULT 0,
+              favorite_count INTEGER NOT NULL DEFAULT 0,
+              view_count INTEGER NOT NULL DEFAULT 0,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_forum_posts_created_at
+            ON forum_posts(created_at DESC);
+
+            CREATE INDEX IF NOT EXISTS idx_forum_posts_user
+            ON forum_posts(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS forum_comments (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              post_id INTEGER NOT NULL,
+              user_id TEXT NOT NULL,
+              content TEXT NOT NULL,
+              status TEXT NOT NULL DEFAULT 'published',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_forum_comments_post
+            ON forum_comments(post_id, created_at ASC);
+
+            CREATE TABLE IF NOT EXISTS forum_post_likes (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              post_id INTEGER NOT NULL,
+              user_id TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_forum_post_likes_unique
+            ON forum_post_likes(post_id, user_id);
+
+            CREATE TABLE IF NOT EXISTS forum_post_favorites (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              post_id INTEGER NOT NULL,
+              user_id TEXT NOT NULL,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_forum_post_favorites_unique
+            ON forum_post_favorites(post_id, user_id);
+
+            CREATE TABLE IF NOT EXISTS forum_attachments (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              post_id INTEGER NOT NULL,
+              user_id TEXT NOT NULL,
+              filename TEXT NOT NULL,
+              stored_path TEXT NOT NULL,
+              mime_type TEXT DEFAULT 'application/octet-stream',
+              size_bytes INTEGER NOT NULL,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_forum_attachments_post
+            ON forum_attachments(post_id);
+
+            CREATE TABLE IF NOT EXISTS forum_browsing_history (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              post_id INTEGER NOT NULL,
+              viewed_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_forum_history_unique
+            ON forum_browsing_history(user_id, post_id);
+
+            CREATE INDEX IF NOT EXISTS idx_forum_history_user_time
+            ON forum_browsing_history(user_id, viewed_at DESC);
             """
         )
 

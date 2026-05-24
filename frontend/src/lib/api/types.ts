@@ -33,6 +33,42 @@ export interface Resource {
   progress?: number // 0-100
 }
 
+export interface ForumAttachment {
+  id: number
+  post_id: number
+  filename: string
+  mime_type: string
+  size_bytes: number
+  created_at: string
+}
+
+export interface ForumPost {
+  id: number
+  user_id: string
+  title: string
+  content: string
+  tags: string[]
+  status: 'published' | 'hidden' | 'deleted'
+  like_count: number
+  comment_count: number
+  favorite_count: number
+  view_count: number
+  liked?: boolean
+  favorited?: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ForumComment {
+  id: number
+  post_id: number
+  user_id: string
+  content: string
+  status: 'published' | 'deleted'
+  created_at: string
+  updated_at: string
+}
+
 export type PptLayout = 'cover' | 'bullets' | 'process' | 'summary'
 
 export interface PptBullet {

@@ -127,7 +127,7 @@ export default function ProfilePage() {
           <p className="mt-5 text-small leading-6 text-muted">从这里继续上次没学完的内容，不用重新找入口。</p>
           <div className="mt-4 space-y-3">
             {recentResources.length > 0 ? recentResources.map(r => (
-              <Resource key={r.id} id={r.id} title={r.title} meta={`${r.type} · ${r.status === 'completed' ? '已完成' : '进行中'} · ${r.created_at}`} tag={r.status === 'completed' ? '已完成' : '继续学习'} />
+              <Resource key={r.id} id={r.id} title={r.title} meta={`${r.type} · ${r.status === 'completed' ? '已完成' : '进行中'} · ${r.createdAt}`} tag={r.status === 'completed' ? '已完成' : '继续学习'} />
             )) : (
               <>
                 <Resource title="暂无资源" meta="去资源中心生成你的第一份学习资源" tag="去生成" />

@@ -1,5 +1,5 @@
-import type { LucideIcon } from 'lucide-react'
-import { BookOpen, CheckSquare, Home, Map, User } from 'lucide-react'
+﻿import type { LucideIcon } from 'lucide-react'
+import { BookOpen, CheckSquare, Home, Map, MessageSquare, User } from 'lucide-react'
 
 export type PageMeta = {
   group: string
@@ -24,6 +24,9 @@ export const PAGE_META: Record<string, PageMeta> = {
   '/practice/mistakes': { group: '练习评测', title: '错题本' },
   '/practice/favorites': { group: '练习评测', title: '收藏题目' },
   '/practice/records': { group: '练习评测', title: '练习记录' },
+  '/forum': { group: 'SparkLearn', title: '学习论坛' },
+  '/forum/new': { group: '学习论坛', title: '发布帖子' },
+  '/forum/my': { group: '学习论坛', title: '我的帖子' },
   '/report': { group: 'SparkLearn', title: '学习报告' },
   '/agent': { group: 'SparkLearn', title: '学习伙伴' },
   '/tutor': { group: '工具', title: '智能辅导' },
@@ -36,4 +39,5 @@ export const MOBILE_TABS: MobileTabItem[] = [
   { label: '路径', href: '/path', icon: Map },
   { label: '资源', href: '/generate', icon: BookOpen },
   { label: '练习', href: '/practice', icon: CheckSquare },
+  { label: '论坛', href: '/forum', icon: MessageSquare },
 ]

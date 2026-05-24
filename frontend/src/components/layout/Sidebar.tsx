@@ -1,14 +1,15 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart3, BookOpen, Bot, CheckSquare, Database, Home, LogOut, Map, User } from 'lucide-react'
+import { BarChart3, BookOpen, Bot, CheckSquare, Database, Home, LogOut, Map, MessageSquare, User } from 'lucide-react'
 
 interface NavItem {
   label: string
   href: string
   icon: React.ReactNode
   group: string
+  newTab?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -43,7 +44,7 @@ export function Sidebar({ state }: SidebarProps) {
       }
       return acc
     },
-    [] as Array<{ name: string; items: NavItem[] }>
+    [] as Array<{ name: string; items: NavItem[] }>,
   )
 
   const handleLogout = () => {
@@ -84,6 +85,8 @@ export function Sidebar({ state }: SidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    target={item.newTab ? '_blank' : undefined}
+                    rel={item.newTab ? 'noopener noreferrer' : undefined}
                     title={isIcons ? item.label : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${
                       isIcons ? 'justify-center' : ''
@@ -102,6 +105,20 @@ export function Sidebar({ state }: SidebarProps) {
       <div className="absolute bottom-4 left-3 right-3 space-y-3">
         {isExpanded ? (
           <>
+            <Link
+              href="/plaza"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-[12px] border border-line bg-white p-3 transition-colors hover:bg-bg-hover"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#EEF5FF] text-[#2563EB]">
+                <MessageSquare className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-small font-bold text-ink">学习广场</div>
+                <div className="truncate text-micro text-muted">点击进入独立页面</div>
+              </div>
+            </Link>
             <Link href="/profile/settings" className="flex items-center gap-3 rounded-[12px] border border-line bg-bg-hover p-3 transition-colors hover:bg-bg-card">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue text-small font-bold text-white">李</span>
               <div className="min-w-0 flex-1">
@@ -116,6 +133,15 @@ export function Sidebar({ state }: SidebarProps) {
           </>
         ) : isIcons ? (
           <div className="flex flex-col items-center gap-2">
+            <Link
+              href="/plaza"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="学习广场"
+              className="grid h-9 w-9 place-items-center rounded-lg text-[#2563EB] transition-colors hover:bg-[#EEF5FF]"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Link>
             <Link href="/profile/settings" title="个人设置" className="grid h-9 w-9 place-items-center rounded-full bg-blue text-small font-bold text-white">
               李
             </Link>
@@ -132,4 +158,3 @@ export function Sidebar({ state }: SidebarProps) {
     </div>
   )
 }
-
