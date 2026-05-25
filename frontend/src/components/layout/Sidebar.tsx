@@ -65,19 +65,27 @@ export function Sidebar({ state }: SidebarProps) {
       <div className="border-b border-[#E5EAF2] p-4">
         <div className="flex items-center gap-3">
           <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 shrink-0 object-contain" />
-          {isExpanded && (
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold text-[#111827]">学而思 SparkLearn</div>
-              <div className="truncate text-xs text-[#6B7280]">个性化学习闭环</div>
-            </div>
-          )}
+          <div
+            className={`min-w-0 flex-1 overflow-hidden transition-all duration-300 ease-out ${
+              isExpanded ? 'max-w-[180px] opacity-100 translate-x-0' : 'max-w-0 opacity-0 -translate-x-1'
+            }`}
+          >
+            <div className="text-sm font-bold text-[#111827] whitespace-nowrap">学而思 SparkLearn</div>
+            <div className="truncate text-xs text-[#6B7280]">个性化学习闭环</div>
+          </div>
         </div>
       </div>
 
       <nav className="space-y-6 px-3 py-6">
         {groupedItems.map((group) => (
           <div key={group.name}>
-            {isExpanded && <div className="px-3 text-xs font-extrabold uppercase tracking-wider text-[#9CA3AF]">{group.name}</div>}
+            <div
+              className={`px-3 text-xs font-extrabold uppercase tracking-wider text-[#9CA3AF] overflow-hidden whitespace-nowrap transition-all duration-300 ease-out ${
+                isExpanded ? 'max-h-6 opacity-100 mb-0' : 'max-h-0 opacity-0'
+              }`}
+            >
+              {group.name}
+            </div>
             <div className="mt-3 space-y-1">
               {group.items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -93,7 +101,13 @@ export function Sidebar({ state }: SidebarProps) {
                     } ${isActive ? 'bg-[#EEF5FF] text-[#2563EB]' : 'text-[#52627B] hover:bg-[#F3F4F6]'}`}
                   >
                     {item.icon}
-                    {isExpanded && <span>{item.label}</span>}
+                    <span
+                      className={`overflow-hidden whitespace-nowrap transition-all duration-300 ease-out ${
+                        isExpanded ? 'max-w-[140px] opacity-100 translate-x-0' : 'max-w-0 opacity-0 -translate-x-1'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
                   </Link>
                 )
               })}

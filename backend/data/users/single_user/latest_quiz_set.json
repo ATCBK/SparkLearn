@@ -1,21 +1,58 @@
 [
   {
-    "id": "dq_2a416dee_1",
-    "type": "single",
-    "content": "字符串的 isalpha() 方法的作用是什么？",
+    "id": "dq_3d6d5279_1",
+    "type": "multiple",
+    "content": "以下哪些是集合的方法？",
     "options": [
-      "检查是否为数字",
-      "检查是否全为字母",
-      "检查是否为空",
-      "检查长度"
+      "add()",
+      "remove()",
+      "union()",
+      "append()"
     ],
-    "correct_answer": "检查是否全为字母",
-    "explanation": "isalpha() 检查字符串是否全由字母组成。",
-    "knowledge_point_id": "1.4",
-    "knowledge_point_name": "字符串处理"
+    "correct_answer": [
+      "add()",
+      "remove()",
+      "union()"
+    ],
+    "explanation": "add()、remove()、union() 是集合方法，append() 是列表方法。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_2a416dee_2",
+    "id": "dq_3d6d5279_2",
+    "type": "multiple",
+    "content": "以下哪些是不可变数据类型？",
+    "options": [
+      "list",
+      "tuple",
+      "string",
+      "dict"
+    ],
+    "correct_answer": [
+      "tuple",
+      "string"
+    ],
+    "explanation": "tuple 和 string 是不可变的。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
+  },
+  {
+    "id": "dq_3d6d5279_3",
+    "type": "single",
+    "content": "while 循环和 for 循环的主要区别是什么？",
+    "options": [
+      "while 更快",
+      "for 用于已知次数，while 用于条件判断",
+      "没有区别",
+      "while 只能用于列表"
+    ],
+    "correct_answer": "for 用于已知次数，while 用于条件判断",
+    "explanation": "for 循环通常用于遍历序列，while 循环用于条件判断。",
+    "knowledge_point_id": "2.1",
+    "knowledge_point_name": "循环语句"
+  },
+  {
+    "id": "dq_3d6d5279_4",
     "type": "single",
     "content": "函数中 *args 的作用是什么？",
     "options": [
@@ -26,40 +63,6 @@
     ],
     "correct_answer": "接收可变数量的位置参数",
     "explanation": "*args 用于接收任意数量的位置参数，作为元组存储。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
-  },
-  {
-    "id": "dq_2a416dee_3",
-    "type": "single",
-    "content": "字符串的 center() 方法的作用是什么？",
-    "options": [
-      "左对齐",
-      "右对齐",
-      "居中对齐",
-      "删除空格"
-    ],
-    "correct_answer": "居中对齐",
-    "explanation": "center() 将字符串居中对齐，用指定字符填充。",
-    "knowledge_point_id": "1.4",
-    "knowledge_point_name": "字符串处理"
-  },
-  {
-    "id": "dq_2a416dee_4",
-    "type": "multiple",
-    "content": "以下哪些是函数的特点？",
-    "options": [
-      "可重用",
-      "可接收参数",
-      "必须有返回值",
-      "可以嵌套"
-    ],
-    "correct_answer": [
-      "可重用",
-      "可接收参数",
-      "可以嵌套"
-    ],
-    "explanation": "函数可重用、可接收参数、可嵌套，但不一定有返回值。",
     "knowledge_point_id": "3.1",
     "knowledge_point_name": "函数定义"
   }

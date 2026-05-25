@@ -658,7 +658,7 @@ export default function PracticePage() {
             </div>
 
             <ProtoButton className="mt-3 w-full" onClick={generateQuestions} disabled={generating || !topic.trim()}>
-              {generating ? <TypewriterLoader size="sm" /> : '生成练习题'}
+              {generating ? <TypewriterLoader size="sm" /> : '继续生成'}
             </ProtoButton>
           </ProtoCard>
 

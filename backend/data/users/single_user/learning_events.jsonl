@@ -958,3 +958,5 @@
 {"ts": "2026-05-24T13:21:37.393563Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "589a3c3d", "use_llm": false}
 {"ts": "2026-05-24T13:21:40.722510Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d6ea10bf", "use_llm": false}
 {"ts": "2026-05-24T13:21:40.728509Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2a416dee", "use_llm": false}
+{"ts": "2026-05-24T14:46:22.168029Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "062f2677", "use_llm": false}
+{"ts": "2026-05-24T14:46:22.175029Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3d6d5279", "use_llm": false}
