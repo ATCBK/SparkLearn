@@ -225,5 +225,5 @@ npm run dev
 ---
 
 <p align="center">
-  <sub>学而思 SparkLearn 团队</sub>
+  <sub>学而思 SparkLearn 团队 第15届软件杯参赛作品</sub>
 </p>
