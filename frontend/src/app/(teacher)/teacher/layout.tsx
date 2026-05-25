@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, BarChart3, BellRing, Bot, GraduationCap, LayoutDashboard, LogOut, Monitor, Users } from 'lucide-react'
 
 const NAV = [
@@ -17,19 +17,28 @@ const NAV = [
 export default function TeacherShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const hasToken = typeof window !== 'undefined' && !!window.localStorage.getItem('teacher_token')
+  const [isReady, setIsReady] = useState(false)
+  const [hasToken, setHasToken] = useState(false)
 
   useEffect(() => {
+    setHasToken(!!window.localStorage.getItem('teacher_token'))
+    setIsReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isReady) return
     if (!hasToken && pathname !== '/teacher/login') {
       router.replace('/teacher/login')
     }
-  }, [hasToken, pathname, router])
+  }, [hasToken, isReady, pathname, router])
 
   if (pathname === '/teacher/login') return <>{children}</>
+  if (!isReady) return null
   if (!hasToken) return null
 
   const handleLogout = () => {
     localStorage.removeItem('teacher_token')
+    setHasToken(false)
     router.push('/teacher/login')
   }
 
@@ -41,7 +50,7 @@ export default function TeacherShellLayout({ children }: { children: React.React
             <GraduationCap className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-[#0f172a]">学而思 SparkLearn</div>
+            <div className="text-sm font-bold text-[#0f172a]">SparkLearn</div>
             <div className="text-xs text-[#64748b]">教师数据中台</div>
           </div>
         </div>
