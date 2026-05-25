@@ -109,66 +109,9 @@
       <div class="mrbox_top">
           <div class="mrbox_top_midd">
               <div class="mrboxtm-mbox"><h2 class="tith2 pt1">区域学习进度分布图</h2>
-                <div class="mrboxtm-map" style=" ">
-                   <ul>
-                     <li class="bluer" style="top:28%;left:12%">15</li>
-                     <li class="redr" style="top:31%;left:18%">13</li>
-                      <!--  基础语法-->
-                     <li class="bluer" style="top:31%;left:33%">15</li>
-                      <li class="redr" style="top:34%;left:36%">13</li>
-                       <!--  -->
-                      <li class="bluer" style="top:12%;left:43%">15</li>
-                      <li class="redr" style="top:15%;left:47%">13</li>
-                       <!--  -->
-                      <li class="bluer" style="top:22%;left:36%">15</li>
-                     <li class="redr" style="top:25%;left:41%">13</li>
-                      <!--  -->
-                     <li class="bluer" style="top:23%;left:57%">15</li>
-                    <li class="redr" style="top:16%;left:53%">13</li>
-                     <!--  -->
-                    <li class="bluer" style="top:26%;left:64%">15</li>
-                   <li class="redr" style="top:22%;left:67%">13</li>
-                   <!--  -->
-                   <li class="bluer" style="top:7%;left:68%">15</li>
-                  <li class="redr" style="top:15%;left:69%">13</li>
-                  <!--  条件循环-->
-                  <li class="bluer" style="top:32%;left:77%">15</li>
-                 <li class="redr" style="top:35%;left:80%">13</li>
-                 <!--  高级特性-->
-                 <li class="bluer" style="top:28%;left:81%">15</li>
-                <li class="redr" style="top:27%;left:84%">13</li>
-                <!--  函数模块-->
-                <li class="bluer" style="top:34%;left:69%">15</li>
-               <li class="redr" style="top:37%;left:73%">13</li>
-               <!--  推荐对象-->
-               <li class="bluer" style="top:48%;left:87%">15</li>
-              <li class="redr" style="top:47%;left:83%">13</li>
-              <!--  文件处理-->
-              <li class="bluer" style="top:48%;left:60%">15</li>
-             <li class="redr" style="top:56%;left:62%">13</li>
-             <!--  闭包-->
-             <li class="bluer" style="top:68%;left:60%">15</li>
-            <li class="redr" style="top:70%;left:63%">13</li>
-            <!--  生成器-->
-            <li class="bluer" style="top:67%;left:67%">15</li>
-           <li class="redr" style="top:67%;left:71%">13</li>
-           <!--  异步编程-->
-           <li class="bluer" style="top:82%;left:70%">15</li>
-          <li class="redr" style="top:84%;left:73%">13</li>
-          <!--  变量类型-->
-          <li class="bluer" style="top:68%;left:60%">15</li>
-         <li class="redr" style="top:70%;left:63%">13</li>
-         <!--  生成器-->
-         <li class="bluer" style="top:71%;left:78%">15</li>
-        <li class="redr" style="top:74%;left:81%">13</li>
-        <!--  装饰器-->
-
-                    <li class="bluer" style="top:31%;left:57%">15</li>
-                    <li class="redr" style="top:33%;left:53%">13</li>
-                    <li class="bluer" style="top:44%;left:47%">15</li>
-                    <li class="redr" style="top:48%;left:52%">13</li>
-                   </ul>
-                 </div>
+                <div class="mrboxtm-map" style="background:none;">
+                  <div id="regionProgressHeatmap" style="width:100%;height:100%;"></div>
+                </div>
               </div>
 <!--  map end-->
                 <div class="pmrboxbottom"><h2 class="tith2 pt1">学习风险分布</h2>
@@ -234,7 +177,7 @@
 
 
       <div class="mrbox_bottom">
-          <div class="rbottom_box1"><h2 class="tith2">风险学生年级分布</h2>
+          <div class="rbottom_box1"><h2 class="tith2">风险学习阶段分布</h2>
           <div id="prbottom_box1" class="prbottom_box1cont"></div></div>
           <div class="rbottom_box2"><h2 class="tith2">风险类型统计</h2>
           <div id="prbottom_box2" class="prbottom_box1cont" ></div></div>
@@ -243,6 +186,76 @@
 
       </div>
 </div>
+<script type="text/javascript">
+        (function () {
+          var chartDom = document.getElementById('regionProgressHeatmap');
+          if (!chartDom) return;
+          var progressChart = echarts.init(chartDom);
+
+          var days = ['周一','周二','周三','周四','周五','周六','周日'];
+          var moduleSeries = [
+            { name: '基础语法', data: [14, 15, 16, 15, 14, 13, 12], color: '#35d2f6' },
+            { name: '变量类型', data: [12, 13, 14, 13, 12, 11, 10], color: '#1ea2d6' },
+            { name: '流程控制', data: [11, 12, 13, 12, 11, 10, 9], color: '#2f7fe2' },
+            { name: '函数与模块', data: [10, 11, 12, 11, 10, 9, 8], color: '#7fe7ff' },
+            { name: '面向对象', data: [9, 10, 11, 10, 9, 8, 7], color: '#4f9bff' },
+            { name: '文件操作', data: [8, 9, 10, 9, 8, 7, 6], color: '#38bdf8' },
+            { name: '数据处理', data: [7, 8, 9, 8, 7, 6, 5], color: '#60a5fa' }
+          ];
+
+          progressChart.setOption({
+            backgroundColor: 'rgba(1,202,217,.2)',
+            grid: { left: 46, right: 24, top: 42, bottom: 30 },
+            legend: {
+              top: 8,
+              textStyle: { color: 'rgba(255,255,255,.75)', fontSize: 10 },
+              itemWidth: 10,
+              itemHeight: 6,
+              data: moduleSeries.map(function (s) { return s.name; })
+            },
+            xAxis: {
+              type: 'category',
+              data: days,
+              axisLine: { lineStyle: { color: 'rgba(255,255,255,.2)' } },
+              axisTick: { show: false },
+              axisLabel: { color: 'rgba(255,255,255,.78)' },
+              splitLine: { show: false }
+            },
+            yAxis: {
+              type: 'value',
+              name: '进度占比(%)',
+              nameTextStyle: { color: 'rgba(255,255,255,.65)', fontSize: 10, padding: [0, 0, 0, 8] },
+              min: 0,
+              max: 100,
+              axisLine: { lineStyle: { color: 'rgba(255,255,255,.2)' } },
+              axisTick: { show: false },
+              axisLabel: { color: 'rgba(255,255,255,.78)' },
+              splitLine: { show: true, lineStyle: { color: 'rgba(255,255,255,.1)' } }
+            },
+            tooltip: {
+              trigger: 'axis',
+              axisPointer: { type: 'shadow' }
+            },
+            series: moduleSeries.map(function (m) {
+              return {
+                name: m.name,
+                type: 'bar',
+                stack: 'total',
+                barWidth: 28,
+                data: m.data,
+                itemStyle: {
+                  color: m.color,
+                  borderColor: 'rgba(255,255,255,.08)',
+                  borderWidth: 0.5
+                }
+              };
+            })
+          });
+
+          window.addEventListener('resize', function () { progressChart.resize(); });
+        })();
+</script>
+
 <script type="text/javascript">
         var myChart = echarts.init(document.getElementById('lpeftmidbot'));
         option = {
@@ -747,7 +760,7 @@
                                         axisLabel:{
                                             color:"rgba(255,255,255,.7)"
                                         },
-                                        data: ['小学低段','小学高段','初中','高中','大学']
+                                        data: ['入门期','夯实期','进阶期','提升期','冲刺期']
                                     },
                                     yAxis: {
                                         type: 'value',
@@ -1053,6 +1066,7 @@
 
 </body>
 </html>
+
 
 
 

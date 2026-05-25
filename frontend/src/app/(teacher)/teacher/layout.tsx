@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { AlertTriangle, BarChart3, BellRing, Bot, GraduationCap, LayoutDashboard, LogOut, Monitor, Users } from 'lucide-react'
+import { AlertTriangle, BarChart3, BellRing, Bot, GraduationCap, LayoutDashboard, LogOut, MessageSquare, Monitor, Users } from 'lucide-react'
 
 const NAV = [
   { label: '工作台', href: '/teacher/dashboard', icon: LayoutDashboard },
@@ -43,15 +43,15 @@ export default function TeacherShellLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f4f7fb]">
-      <aside className="fixed left-0 top-0 z-20 flex h-screen w-[236px] flex-col border-r border-[#dfe6ef] bg-white">
-        <div className="flex items-center gap-3 border-b border-[#e5ebf3] px-5 py-4">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#0f4c81] text-white">
+    <div className="flex min-h-screen bg-bg">
+      <aside className="fixed left-0 top-0 z-20 flex h-screen w-[236px] flex-col border-r border-[#e8edf5] bg-white">
+        <div className="flex items-center gap-3 border-b border-[#edf2f8] px-5 py-4">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#eaf2ff] text-[#2563eb]">
             <GraduationCap className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-bold text-[#0f172a]">SparkLearn</div>
-            <div className="text-xs text-[#64748b]">教师数据中台</div>
+            <div className="text-sm font-bold text-ink">SparkLearn</div>
+            <div className="text-xs text-ink-secondary">教师数据中台</div>
           </div>
         </div>
 
@@ -63,53 +63,65 @@ export default function TeacherShellLayout({ children }: { children: React.React
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                  active ? 'bg-[#e8f1fb] text-[#0f4c81]' : 'text-[#475569] hover:bg-[#f1f5f9]'
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${
+                  active ? 'bg-[#EEF5FF] text-[#2563EB]' : 'text-[#52627B] hover:bg-[#F3F4F6]'
                 }`}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-5 w-5 shrink-0" />
                 {item.label}
               </Link>
             )
           })}
         </nav>
 
-        <div className="space-y-1 border-t border-[#e5ebf3] px-3 py-3">
+        <div className="space-y-1 border-t border-[#edf2f8] px-3 py-3">
+          <Link
+            href="/plaza"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-[#52627B] transition-colors hover:bg-[#F3F4F6]"
+          >
+            <MessageSquare className="h-5 w-5 shrink-0" />
+            学习广场
+          </Link>
           <Link
             href="/screen/index.html"
             target="_blank"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#475569] transition-colors hover:bg-[#f1f5f9]"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-[#52627B] transition-colors hover:bg-[#F3F4F6]"
           >
-            <Monitor className="h-4 w-4 shrink-0" />
+            <Monitor className="h-5 w-5 shrink-0" />
             打开关联大屏
           </Link>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-[#475569] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-[#52627B] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]"
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            <LogOut className="h-5 w-5 shrink-0" />
             退出登录
           </button>
         </div>
       </aside>
 
-      <main className="ml-[236px] min-h-screen flex-1">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#dfe6ef] bg-white/95 px-8 backdrop-blur">
+      <main
+        className="ml-[236px] min-h-screen flex-1"
+        style={{
+          backgroundImage: 'url(/gongzuotai-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center top',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e8edf5] bg-white/96 px-8 backdrop-blur">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-extrabold text-[#0f4c81]">教师工作台</span>
+            <span className="text-sm font-extrabold text-[#2563eb]">教师工作台</span>
             <span className="text-xs font-semibold text-[#64748b]">{NAV.find((n) => pathname.startsWith(n.href))?.label ?? '数据总览'}</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#0f4c81] text-xs font-bold text-white">师</div>
-            <span className="text-sm font-semibold text-[#0f172a]">教师账号</span>
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-[#eaf2ff] text-xs font-bold text-[#2563eb]">师</div>
+            <span className="text-sm font-semibold text-ink">教师账号</span>
           </div>
         </header>
-        <div
-          className="min-h-[calc(100vh-56px)] px-8 py-7"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(15,76,129,0.08), transparent 50%), radial-gradient(circle at 0% 100%, rgba(16,185,129,0.08), transparent 40%)',
-          }}
-        >
+        <div className="min-h-[calc(100vh-56px)] px-8 py-7">
           <div className="mx-auto max-w-[1360px]">{children}</div>
         </div>
       </main>

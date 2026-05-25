@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db import init_db
 from .routes.learning import router as learning_router
+from .routes.memory import router as memory_router
 from .routes.knowledge import router as knowledge_router
 from .routes.path_planning import router as path_planning_router
 from .routes.ppt import router as ppt_router
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
         return {"ok": True}
 
     app.include_router(profile_router)
+    app.include_router(memory_router)
     app.include_router(learning_router)
     app.include_router(knowledge_router)
     app.include_router(path_planning_router)

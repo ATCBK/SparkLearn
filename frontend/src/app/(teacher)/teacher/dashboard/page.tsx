@@ -100,14 +100,14 @@ export default function TeacherDashboardPage() {
             <h2 className="mb-4 text-[18px] font-bold text-[#0f172a]">教师端快捷跳转</h2>
             <div className="grid grid-cols-5 gap-3 max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2">
               {[
-                { label: '学生管理', desc: '查看学生详情', href: '/teacher/students', icon: <Users className="h-5 w-5" /> },
-                { label: '学习报告', desc: '查看全班报告', href: '/teacher/reports', icon: <BarChart3 className="h-5 w-5" /> },
-                { label: '干预中心', desc: '处理风险预警', href: '/teacher/interventions', icon: <AlertTriangle className="h-5 w-5" /> },
-                { label: '通知分发', desc: '发通知和分发资料', href: '/teacher/broadcast', icon: <Monitor className="h-5 w-5" /> },
-                { label: 'AI 助手', desc: '生成教学策略', href: '/teacher/ai', icon: <Bot className="h-5 w-5" /> },
+                { label: '学生管理', desc: '查看学生详情', href: '/teacher/students', icon: <Users className="h-5 w-5" />, tone: 'bg-[#eaf2ff] text-[#2563eb]' },
+                { label: '学习报告', desc: '查看全班报告', href: '/teacher/reports', icon: <BarChart3 className="h-5 w-5" />, tone: 'bg-[#ecfdf5] text-[#059669]' },
+                { label: '干预中心', desc: '处理风险预警', href: '/teacher/interventions', icon: <AlertTriangle className="h-5 w-5" />, tone: 'bg-[#fff7ed] text-[#d97706]' },
+                { label: '通知分发', desc: '发通知和分发资料', href: '/teacher/broadcast', icon: <Monitor className="h-5 w-5" />, tone: 'bg-[#f3e8ff] text-[#7c3aed]' },
+                { label: 'AI 助手', desc: '生成教学策略', href: '/teacher/ai', icon: <Bot className="h-5 w-5" />, tone: 'bg-[#ecfeff] text-[#0891b2]' },
               ].map((item) => (
                 <a key={item.label} href={item.href} className="rounded-xl border border-[#e2e8f0] bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-md">
-                  <div className="mb-2 inline-grid h-9 w-9 place-items-center rounded-lg bg-[#e8f1fb] text-[#0f4c81]">{item.icon}</div>
+                  <div className={`mb-2 inline-grid h-9 w-9 place-items-center rounded-lg ${item.tone}`}>{item.icon}</div>
                   <div className="text-sm font-bold text-[#0f172a]">{item.label}</div>
                   <div className="text-xs text-[#64748b]">{item.desc}</div>
                 </a>
@@ -144,15 +144,15 @@ export default function TeacherDashboardPage() {
               <div className="flex justify-center">
                 <svg viewBox="0 0 320 260" className="h-[240px] w-full max-w-[360px]">
                   {[0.2, 0.4, 0.6, 0.8, 1].map((lv) => (
-                    <polygon key={lv} points={polarPoints([lv, lv, lv, lv, lv, lv], 160, 120, 90)} fill="none" stroke="#dbe7f3" strokeWidth="1" />
+                    <polygon key={lv} points={polarPoints([lv, lv, lv, lv, lv, lv], 160, 120, 90)} fill="none" stroke="#bfdbfe" strokeWidth="1" />
                   ))}
                   {['活跃', '正确率', '完成率', '连续性', '时长', '健康度'].map((name, i) => {
                     const angle = (-Math.PI / 2) + (i * 2 * Math.PI) / 6
                     const x = 160 + 105 * Math.cos(angle)
                     const y = 120 + 105 * Math.sin(angle)
-                    return <text key={name} x={x} y={y} textAnchor="middle" fontSize="12" fill="#475569">{name}</text>
+                    return <text key={name} x={x} y={y} textAnchor="middle" fontSize="12" fill="#1e40af">{name}</text>
                   })}
-                  <polygon points={polarPoints(radarMetrics, 160, 120, 90)} fill="rgba(15,76,129,0.22)" stroke="#0f4c81" strokeWidth="2" />
+                  <polygon points={polarPoints(radarMetrics, 160, 120, 90)} fill="rgba(59,130,246,0.24)" stroke="#3b82f6" strokeWidth="2" />
                 </svg>
               </div>
             </ProtoCard>
@@ -170,8 +170,8 @@ export default function TeacherDashboardPage() {
                       const h = Math.max(12, Math.round((v / Math.max(1, summary?.total_students ?? 1)) * 150))
                       return (
                         <div key={idx} className="flex flex-1 flex-col items-center gap-1">
-                          <div className="w-full rounded-t-md bg-gradient-to-t from-[#0f4c81] to-[#38bdf8]" style={{ height: h }} />
-                          <span className="text-[10px] text-[#64748b]">D{idx + 1}</span>
+                          <div className="w-full rounded-t-md bg-gradient-to-t from-[#3b82f6] to-[#93c5fd]" style={{ height: h }} />
+                          <span className="text-[10px] font-semibold text-[#1e40af]">D{idx + 1}</span>
                         </div>
                       )
                     })}
@@ -183,11 +183,11 @@ export default function TeacherDashboardPage() {
                     {stageBars.map((s) => (
                       <div key={s.stage}>
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="text-[#334155]">{s.stage}</span>
-                          <span className="text-[#64748b]">{s.count} 人 / {s.pct}%</span>
+                          <span className="text-[#1e3a8a]">{s.stage}</span>
+                          <span className="text-[#1d4ed8]">{s.count} 人 / {s.pct}%</span>
                         </div>
-                        <div className="h-2.5 overflow-hidden rounded-full bg-[#e2e8f0]">
-                          <div className="h-full rounded-full bg-[#0f4c81]" style={{ width: `${s.pct}%` }} />
+                        <div className="h-2.5 overflow-hidden rounded-full bg-[#dbeafe]">
+                          <div className="h-full rounded-full bg-gradient-to-r from-[#60a5fa] to-[#2563eb]" style={{ width: `${s.pct}%` }} />
                         </div>
                       </div>
                     ))}

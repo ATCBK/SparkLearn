@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { PageHead, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
@@ -18,6 +18,9 @@ export default function TeacherBroadcastPage() {
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
 
+  const [viewFilter, setViewFilter] = useState<'all' | 'viewed' | 'unviewed'>('all')
+  const [viewedMap, setViewedMap] = useState<Record<number, boolean>>({})
+
   const selectedCount = useMemo(() => {
     return targetType === 'all' ? recipients.length : selectedIds.length
   }, [targetType, recipients.length, selectedIds.length])
@@ -36,6 +39,34 @@ export default function TeacherBroadcastPage() {
   useEffect(() => {
     void refreshAll()
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const raw = window.localStorage.getItem('teacher_broadcast_viewed_map')
+      if (!raw) return
+      const parsed = JSON.parse(raw) as Record<string, boolean>
+      const next: Record<number, boolean> = {}
+      for (const [k, v] of Object.entries(parsed)) next[Number(k)] = !!v
+      setViewedMap(next)
+    } catch {
+      setViewedMap({})
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('teacher_broadcast_viewed_map', JSON.stringify(viewedMap))
+  }, [viewedMap])
+
+  const viewedCount = useMemo(() => broadcasts.filter((b) => !!viewedMap[b.id]).length, [broadcasts, viewedMap])
+  const unviewedCount = useMemo(() => Math.max(0, broadcasts.length - viewedCount), [broadcasts.length, viewedCount])
+
+  const filteredBroadcasts = useMemo(() => {
+    if (viewFilter === 'viewed') return broadcasts.filter((b) => !!viewedMap[b.id])
+    if (viewFilter === 'unviewed') return broadcasts.filter((b) => !viewedMap[b.id])
+    return broadcasts
+  }, [broadcasts, viewFilter, viewedMap])
 
   async function uploadFiles(files: File[]) {
     if (!files.length) return
@@ -152,14 +183,27 @@ export default function TeacherBroadcastPage() {
         <ProtoCard>
           <h2 className="mb-3 text-[18px] font-bold text-[#0f172a]">发送记录</h2>
           <div className="space-y-2">
-            {broadcasts.map((b) => (
+            {filteredBroadcasts.map((b) => (
               <SoftCard key={b.id} className="bg-white">
                 <div className="flex items-center justify-between gap-2">
                   <b className="text-sm text-[#0f172a]">{b.title}</b>
-                  <span className="text-[10px] text-[#64748b]">{b.target_type === 'all' ? '全体学生' : `指定 ${b.target_student_ids.length} 人`}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-[#64748b]">{b.target_type === 'all' ? '全体学生' : `指定 ${b.target_student_ids.length} 人`}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${viewedMap[b.id] ? 'bg-[#ecfdf5] text-[#059669]' : 'bg-[#fff7ed] text-[#d97706]'}`}>
+                      {viewedMap[b.id] ? '已查看' : '未查看'}
+                    </span>
+                  </div>
                 </div>
                 <p className="mt-1 text-xs text-[#475569]">{b.content}</p>
                 <div className="mt-1 text-[10px] text-[#94a3b8]">{b.created_at}</div>
+                <div className="mt-2">
+                  <button
+                    onClick={() => setViewedMap((prev) => ({ ...prev, [b.id]: !prev[b.id] }))}
+                    className="rounded-md bg-[#f3f4f6] px-2 py-1 text-[10px] font-bold text-[#52627B] hover:bg-[#e5e7eb]"
+                  >
+                    {viewedMap[b.id] ? '标记为未查看' : '标记为已查看'}
+                  </button>
+                </div>
                 {b.materials?.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {b.materials.map((m) => (
@@ -177,10 +221,29 @@ export default function TeacherBroadcastPage() {
                 )}
               </SoftCard>
             ))}
-            {!broadcasts.length && <div className="text-sm text-[#64748b]">暂无发送记录</div>}
+            {!filteredBroadcasts.length && <div className="text-sm text-[#64748b]">当前筛选下暂无记录</div>}
           </div>
         </ProtoCard>
       </div>
+
+      <ProtoCard className="mt-5">
+        <h3 className="mb-3 text-base font-bold text-[#0f172a]">查看状态</h3>
+        <div className="mb-3 grid grid-cols-2 gap-2 max-[760px]:grid-cols-1">
+          <SoftCard className="bg-white">
+            <div className="text-xs text-[#64748b]">已查看</div>
+            <div className="mt-1 text-lg font-extrabold text-[#059669]">{viewedCount}</div>
+          </SoftCard>
+          <SoftCard className="bg-white">
+            <div className="text-xs text-[#64748b]">未查看</div>
+            <div className="mt-1 text-lg font-extrabold text-[#d97706]">{unviewedCount}</div>
+          </SoftCard>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setViewFilter('all')} className={`rounded-md px-2.5 py-1 text-xs font-bold ${viewFilter === 'all' ? 'bg-[#2563eb] text-white' : 'bg-[#f3f4f6] text-[#52627B]'}`}>全部</button>
+          <button onClick={() => setViewFilter('viewed')} className={`rounded-md px-2.5 py-1 text-xs font-bold ${viewFilter === 'viewed' ? 'bg-[#2563eb] text-white' : 'bg-[#f3f4f6] text-[#52627B]'}`}>仅看已查看</button>
+          <button onClick={() => setViewFilter('unviewed')} className={`rounded-md px-2.5 py-1 text-xs font-bold ${viewFilter === 'unviewed' ? 'bg-[#2563eb] text-white' : 'bg-[#f3f4f6] text-[#52627B]'}`}>仅看未查看</button>
+        </div>
+      </ProtoCard>
     </div>
   )
 }

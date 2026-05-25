@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..llm import spark_lite
+from ..memory_engine import build_injected_context, update_memory_from_turn
 from ..schemas import fail, ok
 from ..storage import append_jsonl
 from .common import sse_wrap
@@ -463,7 +464,8 @@ async def tutor_chat(req: TutorReq):
         )
 
         page_prompt = _build_page_context_prompt(req.page_context)
-        merged_system_prompt = "\n\n".join(p for p in [role_prompt, page_prompt] if p)
+        memory_prompt = build_injected_context(settings.single_user_id, req.message, top_k=8)
+        merged_system_prompt = "\n\n".join(p for p in [role_prompt, page_prompt, memory_prompt] if p)
         history_for_model = [{'role': 'system', 'content': merged_system_prompt}] if merged_system_prompt else []
         for row in reversed(rows):
             model_role = 'assistant' if row['sender_role'] == 'assistant' else 'user'
@@ -601,6 +603,22 @@ async def tutor_chat(req: TutorReq):
                 'question': req.message,
             },
         )
+        memory_update = update_memory_from_turn(
+            user_id=settings.single_user_id,
+            user_message=req.message,
+            assistant_message=answer,
+            page_context=req.page_context,
+        )
+        append_jsonl(
+            settings.single_user_id,
+            'learning_events.jsonl',
+            {
+                'type': 'memory_updated',
+                'conversation_id': conversation_id,
+                'changed': memory_update.get('changed', 0),
+                'version': memory_update.get('version', 0),
+            },
+        )
 
         yield (
             'done',
@@ -611,7 +629,12 @@ async def tutor_chat(req: TutorReq):
                     'role': 'assistant',
                     'content': answer,
                     'timestamp': now_iso(),
-                }
+                },
+                'memory': {
+                    'updated': True,
+                    'changed': memory_update.get('changed', 0),
+                    'version': memory_update.get('version', 0),
+                },
             },
         )
 

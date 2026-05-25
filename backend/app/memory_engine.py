@@ -8,181 +8,376 @@ from typing import Any
 from .db import now_iso
 from .storage import read_json, write_json
 
-
-MEMORY_FILENAME = "user_memory_profile.json"
+MEMORY_FILENAME = "memory_store.json"
+WORKING_LIMIT = 80
+EPISODIC_LIMIT = 500
+PERCEPTUAL_LIMIT = 300
 
 
 def _default_memory() -> dict[str, Any]:
     return {
         "version": 1,
         "updated_at": now_iso(),
-        "long_term": {
+        "working": [],
+        "episodic": [],
+        "semantic": {
             "goals": [],
             "preferences": [],
             "constraints": [],
             "facts": [],
+            "skills": [],
+            "weak_points": [],
+            "learning_stage": "",
         },
-        "episodic": [],
+        "perceptual": [],
     }
 
 
-def _sanitize_list(items: Any) -> list[str]:
-    if not isinstance(items, list):
+def _sanitize_text(value: Any, max_len: int) -> str:
+    return str(value or "").strip()[:max_len]
+
+
+def _sanitize_tags(tags: Any) -> list[str]:
+    if not isinstance(tags, list):
         return []
     out: list[str] = []
     seen: set[str] = set()
-    for raw in items:
-        text = str(raw or "").strip()
-        if not text:
+    for t in tags:
+        txt = _sanitize_text(t, 40)
+        if not txt:
             continue
-        key = text.lower()
-        if key in seen:
+        k = txt.lower()
+        if k in seen:
             continue
-        seen.add(key)
-        out.append(text[:120])
-    return out
+        seen.add(k)
+        out.append(txt)
+    return out[:8]
+
+
+def _tokenize(text: str) -> set[str]:
+    s = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fff]+", " ", (text or "").lower())
+    return {x for x in s.split() if x}
+
+
+def _append_unique(lst: list[str], item: str, limit: int = 30) -> bool:
+    v = _sanitize_text(item, 120)
+    if not v:
+        return False
+    low = v.lower()
+    if any(x.lower() == low for x in lst):
+        return False
+    lst.append(v)
+    if len(lst) > limit:
+        del lst[0 : len(lst) - limit]
+    return True
 
 
 def load_user_memory(user_id: str) -> dict[str, Any]:
     raw = read_json(user_id, MEMORY_FILENAME, _default_memory())
     if not isinstance(raw, dict):
         raw = _default_memory()
-    long_term = raw.get("long_term") if isinstance(raw.get("long_term"), dict) else {}
-    episodic = raw.get("episodic") if isinstance(raw.get("episodic"), list) else []
-    mem = {
+
+    sem = raw.get("semantic") if isinstance(raw.get("semantic"), dict) else {}
+    out = {
         "version": int(raw.get("version", 1) or 1),
         "updated_at": str(raw.get("updated_at") or now_iso()),
-        "long_term": {
-            "goals": _sanitize_list(long_term.get("goals")),
-            "preferences": _sanitize_list(long_term.get("preferences")),
-            "constraints": _sanitize_list(long_term.get("constraints")),
-            "facts": _sanitize_list(long_term.get("facts")),
-        },
+        "working": [],
         "episodic": [],
+        "semantic": {
+            "goals": [_sanitize_text(x, 120) for x in sem.get("goals", []) if _sanitize_text(x, 120)],
+            "preferences": [_sanitize_text(x, 120) for x in sem.get("preferences", []) if _sanitize_text(x, 120)],
+            "constraints": [_sanitize_text(x, 120) for x in sem.get("constraints", []) if _sanitize_text(x, 120)],
+            "facts": [_sanitize_text(x, 120) for x in sem.get("facts", []) if _sanitize_text(x, 120)],
+            "skills": [_sanitize_text(x, 120) for x in sem.get("skills", []) if _sanitize_text(x, 120)],
+            "weak_points": [_sanitize_text(x, 120) for x in sem.get("weak_points", []) if _sanitize_text(x, 120)],
+            "learning_stage": _sanitize_text(sem.get("learning_stage"), 60),
+        },
+        "perceptual": [],
     }
-    clean_ep: list[dict[str, Any]] = []
-    for item in episodic[-120:]:
+
+    def _normalize_item(item: Any, default_type: str) -> dict[str, Any] | None:
         if not isinstance(item, dict):
-            continue
-        text = str(item.get("text") or "").strip()
-        if not text:
-            continue
-        clean_ep.append(
-            {
-                "id": str(item.get("id") or uuid.uuid4().hex[:10]),
-                "ts": str(item.get("ts") or now_iso()),
-                "type": str(item.get("type") or "note"),
-                "text": text[:240],
-                "tags": _sanitize_list(item.get("tags"))[:6],
-                "source": str(item.get("source") or "unknown"),
-                "pinned": bool(item.get("pinned", False)),
-            }
-        )
-    mem["episodic"] = clean_ep
-    return mem
+            return None
+        content = _sanitize_text(item.get("content"), 500)
+        if not content:
+            return None
+        return {
+            "id": _sanitize_text(item.get("id"), 24) or uuid.uuid4().hex[:12],
+            "type": _sanitize_text(item.get("type"), 30) or default_type,
+            "content": content,
+            "source": _sanitize_text(item.get("source"), 40) or "unknown",
+            "tags": _sanitize_tags(item.get("tags")),
+            "importance": float(item.get("importance", 0.5) or 0.5),
+            "confidence": float(item.get("confidence", 0.7) or 0.7),
+            "created_at": _sanitize_text(item.get("created_at"), 40) or now_iso(),
+            "last_accessed_at": _sanitize_text(item.get("last_accessed_at"), 40) or "",
+            "access_count": int(item.get("access_count", 0) or 0),
+            "pinned": bool(item.get("pinned", False)),
+            "expires_at": _sanitize_text(item.get("expires_at"), 40) or "",
+        }
+
+    for x in (raw.get("working") if isinstance(raw.get("working"), list) else [])[-WORKING_LIMIT:]:
+        it = _normalize_item(x, "context")
+        if it:
+            out["working"].append(it)
+
+    for x in (raw.get("episodic") if isinstance(raw.get("episodic"), list) else [])[-EPISODIC_LIMIT:]:
+        it = _normalize_item(x, "learning_event")
+        if it:
+            out["episodic"].append(it)
+
+    for x in (raw.get("perceptual") if isinstance(raw.get("perceptual"), list) else [])[-PERCEPTUAL_LIMIT:]:
+        it = _normalize_item(x, "asset_summary")
+        if it:
+            out["perceptual"].append(it)
+
+    return out
 
 
 def save_user_memory(user_id: str, memory: dict[str, Any]) -> dict[str, Any]:
-    mem = load_user_memory(user_id)
-    mem["version"] = int(memory.get("version", mem["version"]) or mem["version"])
-    mem["long_term"] = {
-        "goals": _sanitize_list(memory.get("long_term", {}).get("goals", mem["long_term"]["goals"])),
-        "preferences": _sanitize_list(memory.get("long_term", {}).get("preferences", mem["long_term"]["preferences"])),
-        "constraints": _sanitize_list(memory.get("long_term", {}).get("constraints", mem["long_term"]["constraints"])),
-        "facts": _sanitize_list(memory.get("long_term", {}).get("facts", mem["long_term"]["facts"])),
+    base = load_user_memory(user_id)
+    merged = {
+        "version": int(memory.get("version", base["version"]) if isinstance(memory, dict) else base["version"]),
+        "updated_at": now_iso(),
+        "working": memory.get("working", base["working"]) if isinstance(memory, dict) else base["working"],
+        "episodic": memory.get("episodic", base["episodic"]) if isinstance(memory, dict) else base["episodic"],
+        "semantic": memory.get("semantic", base["semantic"]) if isinstance(memory, dict) else base["semantic"],
+        "perceptual": memory.get("perceptual", base["perceptual"]) if isinstance(memory, dict) else base["perceptual"],
     }
-    incoming_ep = memory.get("episodic", mem.get("episodic", []))
-    mem["episodic"] = load_user_memory(user_id={"x": "y"} if False else user_id)["episodic"]  # type: ignore[arg-type]
-    if isinstance(incoming_ep, list):
-        merged: list[dict[str, Any]] = []
-        for item in incoming_ep[-120:]:
-            if not isinstance(item, dict):
-                continue
-            text = str(item.get("text") or "").strip()
-            if not text:
-                continue
-            merged.append(
-                {
-                    "id": str(item.get("id") or uuid.uuid4().hex[:10]),
-                    "ts": str(item.get("ts") or now_iso()),
-                    "type": str(item.get("type") or "note"),
-                    "text": text[:240],
-                    "tags": _sanitize_list(item.get("tags"))[:6],
-                    "source": str(item.get("source") or "unknown"),
-                    "pinned": bool(item.get("pinned", False)),
-                }
-            )
-        mem["episodic"] = merged
+    write_json(user_id, MEMORY_FILENAME, merged)
+    mem = load_user_memory(user_id)
     mem["updated_at"] = now_iso()
     write_json(user_id, MEMORY_FILENAME, mem)
     return mem
 
 
-def _tokenize(text: str) -> set[str]:
-    s = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fff]+", " ", text.lower())
-    parts = [p for p in s.split() if p]
-    return set(parts)
+def add_memory_item(
+    user_id: str,
+    memory_type: str,
+    content: str,
+    tags: list[str] | None = None,
+    source: str = "manual",
+    importance: float = 0.5,
+    confidence: float = 0.8,
+    pinned: bool = False,
+    expires_at: str = "",
+) -> dict[str, Any]:
+    mem = load_user_memory(user_id)
+    item = {
+        "id": uuid.uuid4().hex[:12],
+        "type": _sanitize_text(memory_type, 30) or "note",
+        "content": _sanitize_text(content, 500),
+        "source": _sanitize_text(source, 40) or "manual",
+        "tags": _sanitize_tags(tags or []),
+        "importance": max(0.0, min(float(importance), 1.0)),
+        "confidence": max(0.0, min(float(confidence), 1.0)),
+        "created_at": now_iso(),
+        "last_accessed_at": "",
+        "access_count": 0,
+        "pinned": bool(pinned),
+        "expires_at": _sanitize_text(expires_at, 40),
+    }
+    if not item["content"]:
+        raise ValueError("content is required")
+
+    if memory_type in {"working", "context", "task_state"}:
+        mem["working"].append(item)
+        mem["working"] = mem["working"][-WORKING_LIMIT:]
+    elif memory_type in {"perceptual", "asset", "document"}:
+        mem["perceptual"].append(item)
+        mem["perceptual"] = mem["perceptual"][-PERCEPTUAL_LIMIT:]
+    else:
+        mem["episodic"].append(item)
+        mem["episodic"] = mem["episodic"][-EPISODIC_LIMIT:]
+
+    mem["updated_at"] = now_iso()
+    write_json(user_id, MEMORY_FILENAME, mem)
+    return item
 
 
-def _relevance_score(question_tokens: set[str], item_text: str, item_tags: list[str]) -> int:
-    item_tokens = _tokenize(item_text + " " + " ".join(item_tags))
-    if not item_tokens:
-        return 0
-    overlap = len(question_tokens.intersection(item_tokens))
-    return overlap
+def _time_recency_score(created_at: str) -> float:
+    if not created_at:
+        return 0.3
+    try:
+        # rough recency without datetime parsing dependency
+        days_hint = 0 if created_at[:10] == now_iso()[:10] else 3
+        return 1.0 / (1.0 + days_hint)
+    except Exception:
+        return 0.3
 
 
-def build_memory_prompt(memory: dict[str, Any], question: str, max_items: int = 6) -> str:
-    long_term = memory.get("long_term", {})
-    goals = _sanitize_list(long_term.get("goals"))
-    prefs = _sanitize_list(long_term.get("preferences"))
-    constraints = _sanitize_list(long_term.get("constraints"))
-    facts = _sanitize_list(long_term.get("facts"))
-    episodic = memory.get("episodic", []) if isinstance(memory.get("episodic"), list) else []
+def _semantic_score(query_tokens: set[str], text: str, tags: list[str]) -> float:
+    item_tokens = _tokenize(text + " " + " ".join(tags))
+    token_score = 0.0
+    if item_tokens and query_tokens:
+        inter = len(query_tokens.intersection(item_tokens))
+        union = len(query_tokens.union(item_tokens)) or 1
+        token_score = inter / union
 
-    q_tokens = _tokenize(question)
-    scored: list[tuple[int, dict[str, Any]]] = []
-    for item in episodic:
-        if not isinstance(item, dict):
+    q = (next(iter(query_tokens)) if len(query_tokens) == 1 else "").strip()
+    raw_text = (text or "").lower()
+    raw_tags = " ".join(tags).lower()
+    substring_boost = 0.0
+    if q and (q in raw_text or q in raw_tags):
+        substring_boost = 0.65
+
+    # Chinese fallback: character overlap for short/continuous Chinese text.
+    cjk_chars_q = {ch for ch in q if "\u4e00" <= ch <= "\u9fff"}
+    cjk_chars_t = {ch for ch in raw_text if "\u4e00" <= ch <= "\u9fff"}
+    char_score = 0.0
+    if cjk_chars_q and cjk_chars_t:
+        char_score = len(cjk_chars_q.intersection(cjk_chars_t)) / (len(cjk_chars_q.union(cjk_chars_t)) or 1)
+
+    return max(token_score, substring_boost, char_score)
+
+
+def search_memory(
+    user_id: str,
+    query: str,
+    types: list[str] | None = None,
+    top_k: int = 12,
+) -> list[dict[str, Any]]:
+    mem = load_user_memory(user_id)
+    pools: list[tuple[str, list[dict[str, Any]]]] = [
+        ("working", mem["working"]),
+        ("episodic", mem["episodic"]),
+        ("perceptual", mem["perceptual"]),
+    ]
+    allowed = {t.strip().lower() for t in (types or []) if t.strip()} if types else set()
+    q_tokens = _tokenize(query)
+    results: list[dict[str, Any]] = []
+
+    for pool_name, items in pools:
+        if allowed and pool_name not in allowed:
             continue
-        score = _relevance_score(q_tokens, str(item.get("text") or ""), _sanitize_list(item.get("tags")))
-        if bool(item.get("pinned", False)):
-            score += 100
-        scored.append((score, item))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    chosen = [it for score, it in scored if score > 0][:max_items]
-    if not chosen:
-        chosen = [it for _, it in scored[: min(max_items, 3)] if isinstance(it, dict)]
+        for item in items:
+            semantic = _semantic_score(q_tokens, item["content"], item["tags"])
+            recency = _time_recency_score(item.get("created_at", ""))
+            importance = max(0.0, min(float(item.get("importance", 0.5)), 1.0))
+            score = (semantic * 0.6) + (recency * 0.2) + (importance * 0.15) + (0.05 if item.get("pinned") else 0.0)
+            if allowed or semantic > 0.0 or item.get("pinned"):
+                results.append({"memory_bucket": pool_name, "score": round(score, 6), **item})
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    top = results[: max(1, min(top_k, 50))]
+
+    if top:
+        now = now_iso()
+        update_ids = {x["id"] for x in top}
+        for bucket in ("working", "episodic", "perceptual"):
+            for item in mem[bucket]:
+                if item["id"] in update_ids:
+                    item["access_count"] = int(item.get("access_count", 0)) + 1
+                    item["last_accessed_at"] = now
+        mem["updated_at"] = now
+        write_json(user_id, MEMORY_FILENAME, mem)
+
+    return top
+
+
+def consolidate_memory(user_id: str, threshold: float = 0.7) -> dict[str, Any]:
+    mem = load_user_memory(user_id)
+    semantic = mem["semantic"]
+    promoted = 0
+
+    for item in mem["working"]:
+        if float(item.get("importance", 0.5)) >= threshold:
+            mem["episodic"].append({**item, "type": "promoted_working"})
+            promoted += 1
+
+    mem["working"] = [x for x in mem["working"] if float(x.get("importance", 0.5)) < threshold]
+    mem["episodic"] = mem["episodic"][-EPISODIC_LIMIT:]
+
+    ep_sorted = sorted(
+        mem["episodic"],
+        key=lambda x: (float(x.get("importance", 0.5)), float(x.get("confidence", 0.5))),
+        reverse=True,
+    )
+    for item in ep_sorted[:30]:
+        txt = str(item.get("content", ""))
+        tags = [t.lower() for t in item.get("tags", [])]
+        if any(k in txt for k in ["目标", "计划", "打算"]) or "goal" in tags:
+            _append_unique(semantic["goals"], txt, 30)
+        if any(k in txt for k in ["喜欢", "偏好", "希望"]) or "preference" in tags:
+            _append_unique(semantic["preferences"], txt, 30)
+        if any(k in txt for k in ["时间", "约束", "限制"]) or "constraint" in tags:
+            _append_unique(semantic["constraints"], txt, 30)
+        if any(k in txt for k in ["薄弱", "错题", "不会"]) or "weak_point" in tags:
+            _append_unique(semantic["weak_points"], txt, 30)
+        if any(k in txt for k in ["掌握", "能力"]) or "skill" in tags:
+            _append_unique(semantic["skills"], txt, 30)
+
+    mem["version"] = int(mem.get("version", 1)) + 1
+    mem["updated_at"] = now_iso()
+    write_json(user_id, MEMORY_FILENAME, mem)
+    return {"promoted": promoted, "version": mem["version"], "semantic": mem["semantic"]}
+
+
+def forget_memory(
+    user_id: str,
+    max_age_days: int = 30,
+    importance_below: float = 0.35,
+    clear_working: bool = False,
+) -> dict[str, Any]:
+    mem = load_user_memory(user_id)
+    removed = 0
+    keep_ep: list[dict[str, Any]] = []
+    for item in mem["episodic"]:
+        imp = float(item.get("importance", 0.5))
+        pinned = bool(item.get("pinned", False))
+        # lightweight age proxy: keep all recent date strings same day/month, otherwise rely on importance
+        oldish = False
+        created = str(item.get("created_at", ""))
+        if created and created[:7] != now_iso()[:7]:
+            oldish = True
+        if pinned or imp >= importance_below or not oldish:
+            keep_ep.append(item)
+        else:
+            removed += 1
+    mem["episodic"] = keep_ep[-EPISODIC_LIMIT:]
+
+    keep_per: list[dict[str, Any]] = []
+    for item in mem["perceptual"]:
+        if bool(item.get("pinned", False)) or float(item.get("importance", 0.5)) >= importance_below:
+            keep_per.append(item)
+        else:
+            removed += 1
+    mem["perceptual"] = keep_per[-PERCEPTUAL_LIMIT:]
+
+    if clear_working:
+        removed += len(mem["working"])
+        mem["working"] = []
+
+    mem["version"] = int(mem.get("version", 1)) + 1
+    mem["updated_at"] = now_iso()
+    write_json(user_id, MEMORY_FILENAME, mem)
+    return {"removed": removed, "version": mem["version"]}
+
+
+def build_injected_context(user_id: str, question: str, top_k: int = 8) -> str:
+    mem = load_user_memory(user_id)
+    sem = mem["semantic"]
+    recalls = search_memory(user_id, question, types=["working", "episodic", "perceptual"], top_k=top_k)
 
     lines: list[str] = []
-    lines.append("你必须优先遵循以下用户长期记忆，回答时显式对齐。")
-    if goals:
-        lines.append(f"长期目标: {json.dumps(goals, ensure_ascii=False)}")
-    if prefs:
-        lines.append(f"表达偏好: {json.dumps(prefs, ensure_ascii=False)}")
-    if constraints:
-        lines.append(f"约束条件: {json.dumps(constraints, ensure_ascii=False)}")
-    if facts:
-        lines.append(f"稳定事实: {json.dumps(facts, ensure_ascii=False)}")
-    if chosen:
-        recalls = [str(x.get("text") or "") for x in chosen if str(x.get("text") or "").strip()]
-        if recalls:
-            lines.append(f"相关历史观点: {json.dumps(recalls, ensure_ascii=False)}")
-    lines.append("如果用户当前说法与历史冲突，以当前说法为准，并在回答中按最新意图执行。")
+    lines.append("你必须基于以下用户记忆进行个性化回答，并优先遵循当前用户最新意图。")
+    if sem.get("goals"):
+        lines.append(f"长期目标: {json.dumps(sem['goals'][:8], ensure_ascii=False)}")
+    if sem.get("preferences"):
+        lines.append(f"学习偏好: {json.dumps(sem['preferences'][:8], ensure_ascii=False)}")
+    if sem.get("constraints"):
+        lines.append(f"约束条件: {json.dumps(sem['constraints'][:8], ensure_ascii=False)}")
+    if sem.get("weak_points"):
+        lines.append(f"薄弱点: {json.dumps(sem['weak_points'][:8], ensure_ascii=False)}")
+    if sem.get("skills"):
+        lines.append(f"能力标签: {json.dumps(sem['skills'][:8], ensure_ascii=False)}")
+    if sem.get("learning_stage"):
+        lines.append(f"当前学习阶段: {sem['learning_stage']}")
+    if recalls:
+        recall_lines = [f"[{x['memory_bucket']}|{x.get('type','note')}] {x['content']}" for x in recalls[:top_k]]
+        lines.append(f"相关历史记忆: {json.dumps(recall_lines, ensure_ascii=False)}")
+    lines.append("若历史记忆与当前问题冲突，以当前问题为准，并在回答中体现调整。")
     return "\n".join(lines)
-
-
-def _append_unique(target: list[str], value: str, limit: int = 20) -> bool:
-    v = value.strip()
-    if not v:
-        return False
-    lower = v.lower()
-    if any(x.lower() == lower for x in target):
-        return False
-    target.append(v[:120])
-    if len(target) > limit:
-        del target[0 : len(target) - limit]
-    return True
 
 
 def update_memory_from_turn(
@@ -192,61 +387,50 @@ def update_memory_from_turn(
     page_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     mem = load_user_memory(user_id)
-    lt = mem["long_term"]
+    sem = mem["semantic"]
+    text = _sanitize_text(user_message, 500)
+    page = _sanitize_text((page_context or {}).get("page"), 40)
+    module = _sanitize_text((page_context or {}).get("module"), 40)
+    tags = [x for x in [page, module] if x]
     changed = 0
-    text = (user_message or "").strip()
 
-    goal_patterns = [
-        r"(?:目标|想要|希望|计划|打算)(?:是|为|:)?(.{2,30})",
-        r"(?:我要|我想)(.{2,30})",
-    ]
-    pref_patterns = [
-        r"(?:我喜欢|偏好)(.{2,30})",
-        r"(?:请你|希望你)(?:用|以)?(.{2,30})(?:讲|解释|回答)",
-    ]
-    constraint_patterns = [
-        r"(?:每天|每周).{0,10}(?:分钟|小时)",
-        r"(?:时间不多|没时间|尽量简短|不要太长|直接给结论)",
-    ]
+    add_memory_item(
+        user_id=user_id,
+        memory_type="working",
+        content=f"用户当前问题: {text}",
+        tags=tags + ["current_turn"],
+        source="tutor_chat",
+        importance=0.6,
+        confidence=0.9,
+        pinned=False,
+    )
+    add_memory_item(
+        user_id=user_id,
+        memory_type="episodic",
+        content=f"用户问题: {text} | 助手回答摘要: {_sanitize_text(assistant_message, 200)}",
+        tags=tags + ["qa_event"],
+        source="tutor_chat",
+        importance=0.65,
+        confidence=0.8,
+        pinned=False,
+    )
 
-    for pat in goal_patterns:
-        m = re.search(pat, text)
-        if m and _append_unique(lt["goals"], m.group(1)):
-            changed += 1
-            break
-    for pat in pref_patterns:
-        m = re.search(pat, text)
-        if m and _append_unique(lt["preferences"], m.group(1)):
-            changed += 1
-            break
-    for pat in constraint_patterns:
-        m = re.search(pat, text)
-        if m and _append_unique(lt["constraints"], m.group(0)):
-            changed += 1
+    goal_m = re.search(r"(?:目标|想要|希望|计划|打算)(?:是|为|:)?(.{2,50})", text)
+    if goal_m and _append_unique(sem["goals"], goal_m.group(1), 30):
+        changed += 1
+    pref_m = re.search(r"(?:我喜欢|偏好|更希望)(.{2,50})", text)
+    if pref_m and _append_unique(sem["preferences"], pref_m.group(1), 30):
+        changed += 1
+    cons_m = re.search(r"(?:每天|每周).{0,12}(?:分钟|小时)", text)
+    if cons_m and _append_unique(sem["constraints"], cons_m.group(0), 30):
+        changed += 1
+    rem_m = re.search(r"(?:记住|请记住|帮我记住)(.{2,80})", text)
+    if rem_m and _append_unique(sem["facts"], rem_m.group(1), 30):
+        changed += 1
 
-    remember_m = re.search(r"(?:记住|请记住|帮我记住)(.{2,60})", text)
-    if remember_m:
-        if _append_unique(lt["facts"], remember_m.group(1)):
-            changed += 1
-
-    ep_item = {
-        "id": uuid.uuid4().hex[:10],
-        "ts": now_iso(),
-        "type": "dialogue",
-        "text": f"用户: {text[:120]}",
-        "tags": _sanitize_list(
-            [
-                str((page_context or {}).get("page", "")),
-                str((page_context or {}).get("module", "")),
-            ]
-        ),
-        "source": "tutor_chat",
-        "pinned": "记住" in text,
-    }
-    mem["episodic"].append(ep_item)
-    mem["episodic"] = mem["episodic"][-120:]
-    mem["version"] = int(mem.get("version", 1)) + (1 if changed > 0 else 0)
+    mem = load_user_memory(user_id)
+    mem["semantic"] = sem
+    mem["version"] = int(mem.get("version", 1)) + (1 if changed else 0)
     mem["updated_at"] = now_iso()
     write_json(user_id, MEMORY_FILENAME, mem)
-    return {"changed": changed, "memory": mem, "assistant_preview": assistant_message[:120]}
-
+    return {"changed": changed, "version": mem["version"]}

@@ -107,67 +107,10 @@
 <div class="mrbox prbox">
       <div class="hdmrbox_top">
           <div class="mrbox_top_midd">
-                <div class="hdmrboxtm-mbox"><h2 class="tith2 pt1">班级进度总览</h2>
-                  <div class="lefttoday_tit font14" style=" height:13%"><p class="fl"><i class="ricontop redr">12</i>民事活动</p><p class="fr" ><i class="ricontop bluer">12</i>视频学习</p></div>
-                <div class="mrboxtm-map hdmrboxtm-map">
-                   <ul>
-                     <li class="bluer" style="top:28%;left:12%">15</li>
-                     <li class="redr" style="top:31%;left:18%">13</li>
-                      <!--  基础语法-->
-                     <li class="bluer" style="top:31%;left:33%">15</li>
-                      <li class="redr" style="top:34%;left:36%">13</li>
-                       <!--  -->
-                      <li class="bluer" style="top:12%;left:43%">15</li>
-                      <li class="redr" style="top:15%;left:47%">13</li>
-                       <!--  -->
-                      <li class="bluer" style="top:22%;left:36%">15</li>
-                     <li class="redr" style="top:25%;left:41%">13</li>
-                      <!--  -->
-                     <li class="bluer" style="top:23%;left:57%">15</li>
-                    <li class="redr" style="top:16%;left:53%">13</li>
-                     <!--  -->
-                    <li class="bluer" style="top:26%;left:64%">15</li>
-                   <li class="redr" style="top:22%;left:67%">13</li>
-                   <!--  -->
-                   <li class="bluer" style="top:7%;left:68%">15</li>
-                  <li class="redr" style="top:15%;left:69%">13</li>
-                  <!--  条件循环-->
-                  <li class="bluer" style="top:32%;left:77%">15</li>
-                 <li class="redr" style="top:35%;left:80%">13</li>
-                 <!--  高级特性-->
-                 <li class="bluer" style="top:28%;left:81%">15</li>
-                <li class="redr" style="top:27%;left:84%">13</li>
-                <!--  函数模块-->
-                <li class="bluer" style="top:34%;left:69%">15</li>
-               <li class="redr" style="top:37%;left:73%">13</li>
-               <!--  面向对象-->
-               <li class="bluer" style="top:48%;left:87%">15</li>
-              <li class="redr" style="top:47%;left:83%">13</li>
-              <!--  文件处理-->
-              <li class="bluer" style="top:48%;left:60%">15</li>
-             <li class="redr" style="top:56%;left:62%">13</li>
-             <!--  闭包-->
-             <li class="bluer" style="top:68%;left:60%">15</li>
-            <li class="redr" style="top:70%;left:63%">13</li>
-            <!--  生成器-->
-            <li class="bluer" style="top:67%;left:67%">15</li>
-           <li class="redr" style="top:67%;left:71%">13</li>
-           <!--  异步编程-->
-           <li class="bluer" style="top:82%;left:70%">15</li>
-          <li class="redr" style="top:84%;left:73%">13</li>
-          <!--  变量类型-->
-          <li class="bluer" style="top:68%;left:60%">15</li>
-         <li class="redr" style="top:70%;left:63%">13</li>
-         <!--  生成器-->
-         <li class="bluer" style="top:71%;left:78%">15</li>
-        <li class="redr" style="top:74%;left:81%">13</li>
-        <!--  装饰器-->
-
-                    <li class="bluer" style="top:31%;left:57%">15</li>
-                    <li class="redr" style="top:33%;left:53%">13</li>
-                    <li class="bluer" style="top:44%;left:47%">15</li>
-                    <li class="redr" style="top:48%;left:52%">13</li>
-                   </ul>
+                <div class="hdmrboxtm-mbox"><h2 class="tith2 pt1">学习行为漏斗 + 14天活跃趋势</h2>
+                <div class="mrboxtm-map hdmrboxtm-map" style="background:none;padding:0;box-sizing:border-box;width:100%;margin:0;height:calc(100% - 38px);display:flex;flex-direction:column;">
+                  <div id="activityFunnelChart" style="width:100%;flex:1 1 0;"></div>
+                  <div id="activityTrendChart" style="width:100%;flex:1 1 0;"></div>
                  </div>
               </div>
 <!--  map end-->
@@ -253,6 +196,132 @@
 
       </div> -->
 </div>
+<script type="text/javascript">
+        (function () {
+          function initActivityCharts() {
+            var funnelDom = document.getElementById('activityFunnelChart');
+            var trendDom = document.getElementById('activityTrendChart');
+            if (!funnelDom || !trendDom || typeof echarts === 'undefined') return;
+
+            var funnelChart = echarts.init(funnelDom);
+            var trendChart = echarts.init(trendDom);
+
+            var stages = ['访问', '开始学习', '完成练习', '复盘'];
+            var values = [320, 248, 176, 121];
+
+            funnelChart.setOption({
+              backgroundColor: 'rgba(1,202,217,.2)',
+              grid: { left: 90, right: 24, top: 12, bottom: 8 },
+              tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: function (params) {
+                  var p = params[0];
+                  return p.name + '<br/>人数：' + p.value;
+                }
+              },
+              xAxis: {
+                type: 'value',
+                axisLine: { lineStyle: { color: 'rgba(255,255,255,.2)' } },
+                axisLabel: { color: 'rgba(255,255,255,.7)' },
+                splitLine: { lineStyle: { color: 'rgba(255,255,255,.08)' } }
+              },
+              yAxis: {
+                type: 'category',
+                inverse: true,
+                data: stages,
+                axisLine: { lineStyle: { color: 'rgba(255,255,255,.2)' } },
+                axisTick: { show: false },
+                axisLabel: { color: 'rgba(255,255,255,.82)' }
+              },
+              series: [{
+                name: '学习行为漏斗',
+                type: 'bar',
+                data: values,
+                barWidth: 14,
+                itemStyle: {
+                  color: function (p) {
+                    var colors = ['#6fe8ff','#39c5f6','#2d9de6','#1f73d2'];
+                    return colors[p.dataIndex];
+                  },
+                  borderColor: 'rgba(255,255,255,.15)',
+                  borderWidth: 1
+                },
+                label: {
+                  show: true,
+                  position: 'right',
+                  color: 'rgba(255,255,255,.88)'
+                }
+              }]
+            });
+
+            var days14 = ['05-08','05-09','05-10','05-11','05-12','05-13','05-14','05-15','05-16','05-17','05-18','05-19','05-20','05-21'];
+            trendChart.setOption({
+              backgroundColor: 'rgba(1,202,217,.2)',
+              grid: { left: 48, right: 20, top: 22, bottom: 28 },
+              legend: {
+                top: 0,
+                textStyle: { color: 'rgba(255,255,255,.72)', fontSize: 10 },
+                data: ['活跃人数','完成练习人数']
+              },
+              tooltip: { trigger: 'axis' },
+              xAxis: {
+                type: 'category',
+                data: days14,
+                axisLine: { lineStyle: { color: 'rgba(255,255,255,.2)' } },
+                axisLabel: { color: 'rgba(255,255,255,.7)' },
+                splitLine: { show: false }
+              },
+              yAxis: {
+                type: 'value',
+                axisLine: { lineStyle: { color: 'rgba(255,255,255,.25)' } },
+                axisLabel: { color: 'rgba(255,255,255,.7)' },
+                splitLine: { lineStyle: { color: 'rgba(255,255,255,.08)' } }
+              },
+              series: [
+                {
+                  name: '活跃人数',
+                  type: 'line',
+                  smooth: true,
+                  symbol: 'circle',
+                  symbolSize: 5,
+                  lineStyle: { width: 2, color: '#43d4ff' },
+                  itemStyle: { color: '#43d4ff' },
+                  areaStyle: { color: 'rgba(67,212,255,.18)' },
+                  data: [66, 71, 69, 74, 78, 83, 80, 86, 91, 88, 92, 95, 97, 101]
+                },
+                {
+                  name: '完成练习人数',
+                  type: 'line',
+                  smooth: true,
+                  symbol: 'circle',
+                  symbolSize: 5,
+                  lineStyle: { width: 2, color: '#f5e58a' },
+                  itemStyle: { color: '#f5e58a' },
+                  areaStyle: { color: 'rgba(245,229,138,.12)' },
+                  data: [34, 38, 37, 41, 45, 49, 47, 52, 56, 54, 59, 61, 64, 68]
+                }
+              ]
+            });
+
+            window.addEventListener('resize', function () {
+              funnelChart.resize();
+              trendChart.resize();
+            });
+            setTimeout(function () {
+              funnelChart.resize();
+              trendChart.resize();
+            }, 50);
+          }
+
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initActivityCharts);
+          } else {
+            initActivityCharts();
+          }
+        })();
+</script>
+
 <script type="text/javascript">
         var myChart = echarts.init(document.getElementById('lpeftmidbot'));
         option = {
@@ -1051,6 +1120,7 @@
 
 </body>
 </html>
+
 
 
 
