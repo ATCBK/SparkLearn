@@ -12,6 +12,7 @@ import {
   Paperclip,
   Pencil,
   Plus,
+  Puzzle,
   Save,
   Search,
   Sparkles,
@@ -151,6 +152,9 @@ export default function RolesPage() {
           <div className="my-3 border-t border-[#e2e8f0]" />
           <button onClick={() => router.push('/tutor/knowledge')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
             <Database className="w-4 h-4" /> 知识库
+          </button>
+          <button onClick={() => router.push('/tutor/mcp-store')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+            <Puzzle className="w-4 h-4" /> MCP 插件商店
           </button>
           <button className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
             <Paperclip className="w-4 h-4" /> 我的文件
