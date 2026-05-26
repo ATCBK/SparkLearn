@@ -179,10 +179,15 @@ async def knowledge_chunks(file_id: int):
     return ok([dict(r) for r in rows])
 
 
-async def load_knowledge_context_async(file_ids: list[int], query: str | None = None, max_chars: int = 5000) -> str:
+async def retrieve_knowledge_context_async(
+    file_ids: list[int],
+    query: str | None = None,
+    max_chars: int = 5000,
+    top_k: int = 10,
+) -> tuple[str, list[dict[str, Any]]]:
     ids = [int(x) for x in file_ids if int(x) > 0]
     if not ids:
-        return ""
+        return ("", [])
     try:
         query_vec = await xfyun_embedding.embed_query(query or "") if (query or "").strip() else []
     except Exception:
@@ -200,9 +205,9 @@ async def load_knowledge_context_async(file_ids: list[int], query: str | None = 
         (settings.single_user_id, *ids),
     )
     if not rows:
-        return ""
+        return ("", [])
 
-    scored: list[tuple[float, str]] = []
+    scored: list[tuple[float, str, str, int]] = []
     for row in rows:
         content = str(row["content"] or "").strip()
         if not content:
@@ -215,22 +220,36 @@ async def load_knowledge_context_async(file_ids: list[int], query: str | None = 
             score = _cosine_similarity(query_vec, chunk_vec) if chunk_vec else 0.0
         else:
             score = 0.0
-        scored.append((score, text_piece))
+        scored.append((score, text_piece, file_label, idx))
 
     if query_vec:
         scored.sort(key=lambda x: x[0], reverse=True)
-        candidates = [s[1] for s in scored[:10]]
+        candidates = scored[:top_k]
     else:
-        candidates = [s[1] for s in scored[:10]]
+        candidates = scored[:top_k]
 
     selected: list[str] = []
+    sources: list[dict[str, Any]] = []
     total = 0
-    for piece in candidates:
+    for score, piece, filename, chunk_index in candidates:
         if total + len(piece) > max_chars:
             break
         selected.append(piece)
+        sources.append(
+            {
+                "filename": filename,
+                "chunk_index": chunk_index,
+                "score": round(float(score), 6),
+                "snippet": piece[:260],
+            }
+        )
         total += len(piece)
-    return "\n\n".join(selected)
+    return ("\n\n".join(selected), sources)
+
+
+async def load_knowledge_context_async(file_ids: list[int], query: str | None = None, max_chars: int = 5000) -> str:
+    context, _sources = await retrieve_knowledge_context_async(file_ids, query=query, max_chars=max_chars, top_k=10)
+    return context
 
 
 def load_knowledge_context(file_ids: list[int], query: str | None = None, max_chars: int = 5000) -> str:

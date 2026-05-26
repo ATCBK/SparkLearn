@@ -2511,5 +2511,28 @@
       "knowledge_point_name": "数据类型"
     },
     "at": "2026-05-19"
+  },
+  {
+    "quiz_id": "dq_a21834a0_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": "无序且不可重复",
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_a21834a0_1",
+      "type": "single",
+      "content": "集合（set）中的元素有什么特点？",
+      "options": [
+        "有序且可重复",
+        "无序且不可重复",
+        "有序且不可重复",
+        "无序且可重复"
+      ],
+      "explanation": "集合中的元素是无序的，且不允许重复。",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型"
+    },
+    "at": "2026-05-26"
   }
 ]

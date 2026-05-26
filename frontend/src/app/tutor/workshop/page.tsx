@@ -10,6 +10,7 @@ import {
   FileText,
   Paperclip,
   Plus,
+  Puzzle,
   Send,
   Sparkles,
   UserCog,
@@ -27,6 +28,7 @@ export default function WorkshopPage() {
   const [streaming, setStreaming] = useState(false)
   const [hubMessages, setHubMessages] = useState<WorkshopHubEvent[]>([])
   const [conclusion, setConclusion] = useState<{ core: string; actions: string[]; followUps: string[] } | null>(null)
+  const [assistantDraft, setAssistantDraft] = useState('')
   const [started, setStarted] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -61,6 +63,7 @@ export default function WorkshopPage() {
     setStreaming(true)
     setHubMessages([])
     setConclusion(null)
+    setAssistantDraft('')
 
     try {
       // 先创建一个会话
@@ -76,32 +79,27 @@ export default function WorkshopPage() {
           workshopRoleIds: selectedRoleIds,
         },
         {
-          onText: (chunk) => { fullContent += chunk },
-          onHub: (evt) => { setHubMessages((prev) => [...prev, evt]) },
+          onText: (chunk) => {
+            fullContent += chunk
+            setAssistantDraft((prev) => prev + chunk)
+          },
+          onHub: (evt) => {
+            setHubMessages((prev) => {
+              const isDelta = (evt as unknown as { delta?: boolean }).delta === true
+              if (!isDelta) return [...prev, evt]
+              const idx = prev.findIndex((x) => x.agentId === evt.agentId && x.round === evt.round)
+              if (idx < 0) return [...prev, evt]
+              const next = [...prev]
+              next[idx] = { ...next[idx], content: evt.content, timestamp: evt.timestamp }
+              return next
+            })
+          },
           onWorkshopPhase: () => {},
         },
       )
 
-      // 解析结论
-      if (fullContent) {
-        const lines = fullContent.split('\n').filter(Boolean)
-        const actions: string[] = []
-        const followUps: string[] = []
-        let core = ''
-        let section = ''
-        for (const line of lines) {
-          if (line.includes('核心结论')) { section = 'core'; continue }
-          if (line.includes('行动清单') || line.includes('分步行动')) { section = 'actions'; continue }
-          if (line.includes('追问') || line.includes('可追问')) { section = 'followups'; continue }
-          const clean = line.replace(/^[\d\-\*\.]+\s*/, '').trim()
-          if (!clean) continue
-          if (section === 'core') core += (core ? '\n' : '') + clean
-          else if (section === 'actions') actions.push(clean)
-          else if (section === 'followups') followUps.push(clean)
-        }
-        if (core || actions.length || followUps.length) {
-          setConclusion({ core, actions, followUps })
-        }
+      if (fullContent.trim()) {
+        setConclusion(parseWorkshopConclusion(fullContent))
       }
     } catch { /* ignore */ }
     setStreaming(false)
@@ -131,6 +129,9 @@ export default function WorkshopPage() {
           <div className="my-3 border-t border-[#e2e8f0]" />
           <button onClick={() => router.push('/tutor/knowledge')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
             <Database className="w-4 h-4" /> 知识库
+          </button>
+          <button onClick={() => router.push('/tutor/mcp-store')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+            <Puzzle className="w-4 h-4" /> MCP 插件商店
           </button>
           <button className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
             <Paperclip className="w-4 h-4" /> 我的文件
@@ -260,6 +261,14 @@ export default function WorkshopPage() {
                   <span className="text-xs text-[#94a3b8]">讨论进行中...</span>
                 </div>
               )}
+              {assistantDraft && (
+                <div className="mt-4 border-t border-[#eef1f5] pt-4">
+                  <p className="text-xs text-[#94a3b8] mb-3 text-center">最终结论（流式输出）</p>
+                  <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+                    <p className="text-[15px] leading-[1.8] text-[#475569] whitespace-pre-wrap">{assistantDraft}</p>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
           )}
@@ -368,4 +377,27 @@ export default function WorkshopPage() {
       </aside>
     </div>
   )
+}
+
+function parseWorkshopConclusion(fullContent: string): { core: string; actions: string[]; followUps: string[] } {
+  const lines = fullContent.split('\n').map(x => x.trim()).filter(Boolean)
+  const actions: string[] = []
+  const followUps: string[] = []
+  const coreLines: string[] = []
+  let section: 'core' | 'actions' | 'followups' = 'core'
+
+  for (const line of lines) {
+    if (/核心结论|结论/i.test(line)) { section = 'core'; continue }
+    if (/行动清单|分步行动|行动建议/i.test(line)) { section = 'actions'; continue }
+    if (/追问|可追问|后续问题|后续建议/i.test(line)) { section = 'followups'; continue }
+    const clean = line.replace(/^[\d\-\*\.\)\(、\s]+/, '').trim()
+    if (!clean) continue
+    if (section === 'actions') actions.push(clean)
+    else if (section === 'followups') followUps.push(clean)
+    else coreLines.push(clean)
+  }
+
+  const core = coreLines.join('\n').trim()
+  if (core || actions.length || followUps.length) return { core, actions, followUps }
+  return { core: fullContent.trim(), actions: [], followUps: [] }
 }

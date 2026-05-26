@@ -3,7 +3,7 @@ import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -318,6 +318,7 @@ export async function sendMessage(
         agentKind: String(evt.payload.agent_kind || 'system'),
         content: String(evt.payload.content || ''),
         timestamp: String(evt.payload.timestamp || new Date().toISOString()),
+        delta: Boolean(evt.payload.delta),
       })
       return
     }
@@ -1152,4 +1153,50 @@ export async function synthesizeSpeech(text: string, options?: { voice?: string;
 
 export async function getTtsStatus(): Promise<{ provider: string; configured: boolean; default_voice: string; text_limit: number }> {
   return fetchJson('/api/voice/tts/status')
+}
+
+export async function getMcpServices(scope: 'all' | 'system' | 'user' = 'all'): Promise<McpService[]> {
+  const data = await fetchJson<{ items: McpService[] }>(`/api/mcp/services?scope=${scope}`)
+  return data.items || []
+}
+
+export async function createMcpService(payload: McpServicePayload): Promise<McpService> {
+  return fetchJson('/api/mcp/services', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateMcpService(serviceId: string, payload: McpServicePayload): Promise<McpService> {
+  return fetchJson(`/api/mcp/services/${serviceId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteMcpService(serviceId: string): Promise<void> {
+  await fetchJson(`/api/mcp/services/${serviceId}`, { method: 'DELETE' })
+}
+
+export async function testMcpService(serviceId: string): Promise<{ ok: boolean; status: string; duration_ms: number; tool_count: number; error: string }> {
+  return fetchJson(`/api/mcp/services/${serviceId}/test`, { method: 'POST' })
+}
+
+export async function toggleMcpService(serviceId: string, enabled: boolean): Promise<McpService> {
+  return fetchJson(`/api/mcp/services/${serviceId}/toggle`, {
+    method: 'POST',
+    body: JSON.stringify({ enabled }),
+  })
+}
+
+export async function getMcpTools(serviceId: string): Promise<Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }>> {
+  const data = await fetchJson<{ items: Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }> }>(`/api/mcp/services/${serviceId}/tools`)
+  return data.items || []
+}
+
+export async function callMcpTool(serviceId: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
+  return fetchJson(`/api/mcp/services/${serviceId}/call`, {
+    method: 'POST',
+    body: JSON.stringify({ tool_name: toolName, args }),
+  })
 }

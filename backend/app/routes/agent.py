@@ -13,6 +13,7 @@ from pydantic import BaseModel, field_validator
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
 from ..llm import spark_lite
+from ..pet_nanobot import NanobotPetError, nanobot_pet_client
 from ..schemas import fail, ok
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -212,6 +213,10 @@ def _add_step(task_id: str, step_index: int, action: str, description: str):
     )
 
 
+def _should_use_nanobot_pet() -> bool:
+    return bool(settings.nanobot_pet_enabled)
+
+
 # --- Task Execution (Background) ---
 
 async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: str, personality: str):
@@ -225,7 +230,9 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
 
         persona_prompt = PERSONA_PROMPTS.get(personality, PERSONA_PROMPTS["encouraging"])
 
-        if task_type == "search":
+        if _should_use_nanobot_pet():
+            result = await _do_task_via_nanobot(task_id, task_type, input_text, personality)
+        elif task_type == "search":
             result = await _do_search(task_id, input_text, persona_prompt)
         elif task_type == "summarize":
             result = await _do_summarize(task_id, input_text, persona_prompt)
@@ -256,6 +263,36 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
             (error_msg, now_iso(), task_id),
         )
         _add_step(task_id, 99, "error", f"任务失败: {error_msg[:100]}")
+
+
+async def _do_task_via_nanobot(task_id: str, task_type: str, input_text: str, personality: str) -> dict[str, Any]:
+    _add_step(task_id, 1, "navigate", "已切换到学习宠物新内核...")
+    _add_step(task_id, 2, "search", "正在调用 nanobot 处理任务...")
+    try:
+        result = await nanobot_pet_client.run_task(
+            task_type=task_type,
+            input_text=input_text,
+            user_id=settings.single_user_id,
+            personality=personality,
+        )
+    except NanobotPetError as ex:
+        _add_step(task_id, 3, "error", f"nanobot 调用失败，已回退旧链路: {str(ex)[:120]}")
+        return await _do_task_via_legacy_backend(task_id, task_type, input_text, personality)
+    _add_step(task_id, 3, "extract", "nanobot 已返回结果，正在整理输出...")
+    return result
+
+
+async def _do_task_via_legacy_backend(task_id: str, task_type: str, input_text: str, personality: str) -> dict[str, Any]:
+    persona_prompt = PERSONA_PROMPTS.get(personality, PERSONA_PROMPTS["encouraging"])
+    if task_type == "search":
+        return await _do_search(task_id, input_text, persona_prompt)
+    if task_type == "summarize":
+        return await _do_summarize(task_id, input_text, persona_prompt)
+    if task_type == "compare":
+        return await _do_compare(task_id, input_text, persona_prompt)
+    if task_type == "recommend":
+        return await _do_recommend(task_id, input_text, persona_prompt)
+    return {"error": "Unknown task type"}
 
 
 async def _do_search(task_id: str, query: str, persona: str) -> dict:

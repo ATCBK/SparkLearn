@@ -1,69 +1,65 @@
 [
   {
-    "id": "dq_3d6d5279_1",
-    "type": "multiple",
-    "content": "以下哪些是集合的方法？",
+    "id": "dq_a21834a0_1",
+    "type": "single",
+    "content": "集合（set）中的元素有什么特点？",
     "options": [
-      "add()",
-      "remove()",
-      "union()",
-      "append()"
+      "有序且可重复",
+      "无序且不可重复",
+      "有序且不可重复",
+      "无序且可重复"
     ],
-    "correct_answer": [
-      "add()",
-      "remove()",
-      "union()"
-    ],
-    "explanation": "add()、remove()、union() 是集合方法，append() 是列表方法。",
+    "correct_answer": "无序且不可重复",
+    "explanation": "集合中的元素是无序的，且不允许重复。",
     "knowledge_point_id": "1.2",
     "knowledge_point_name": "数据类型"
   },
   {
-    "id": "dq_3d6d5279_2",
+    "id": "dq_a21834a0_2",
+    "type": "single",
+    "content": "字符串的 count() 方法的作用是什么？",
+    "options": [
+      "获取长度",
+      "计算子字符串出现次数",
+      "查找位置",
+      "替换字符"
+    ],
+    "correct_answer": "计算子字符串出现次数",
+    "explanation": "count() 返回子字符串在字符串中出现的次数。",
+    "knowledge_point_id": "1.4",
+    "knowledge_point_name": "字符串处理"
+  },
+  {
+    "id": "dq_a21834a0_3",
+    "type": "single",
+    "content": "以下哪个是自定义异常的正确方式？",
+    "options": [
+      "class MyError(Exception):",
+      "class MyError(Error):",
+      "class MyError(BaseException):",
+      "class MyError(object):"
+    ],
+    "correct_answer": "class MyError(Exception):",
+    "explanation": "自定义异常应该继承 Exception 类。",
+    "knowledge_point_id": "4.1",
+    "knowledge_point_name": "异常处理"
+  },
+  {
+    "id": "dq_a21834a0_4",
     "type": "multiple",
-    "content": "以下哪些是不可变数据类型？",
+    "content": "以下哪些是可变数据类型？",
     "options": [
       "list",
       "tuple",
-      "string",
-      "dict"
-    ],
-    "correct_answer": [
-      "tuple",
+      "dict",
       "string"
     ],
-    "explanation": "tuple 和 string 是不可变的。",
+    "correct_answer": [
+      "list",
+      "dict"
+    ],
+    "explanation": "list 和 dict 是可变的，tuple 和 string 是不可变的。",
     "knowledge_point_id": "1.2",
     "knowledge_point_name": "数据类型"
-  },
-  {
-    "id": "dq_3d6d5279_3",
-    "type": "single",
-    "content": "while 循环和 for 循环的主要区别是什么？",
-    "options": [
-      "while 更快",
-      "for 用于已知次数，while 用于条件判断",
-      "没有区别",
-      "while 只能用于列表"
-    ],
-    "correct_answer": "for 用于已知次数，while 用于条件判断",
-    "explanation": "for 循环通常用于遍历序列，while 循环用于条件判断。",
-    "knowledge_point_id": "2.1",
-    "knowledge_point_name": "循环语句"
-  },
-  {
-    "id": "dq_3d6d5279_4",
-    "type": "single",
-    "content": "函数中 *args 的作用是什么？",
-    "options": [
-      "接收关键字参数",
-      "接收可变数量的位置参数",
-      "接收单个参数",
-      "接收列表参数"
-    ],
-    "correct_answer": "接收可变数量的位置参数",
-    "explanation": "*args 用于接收任意数量的位置参数，作为元组存储。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
   }
 ]

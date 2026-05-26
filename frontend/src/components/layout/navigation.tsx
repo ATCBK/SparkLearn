@@ -30,6 +30,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   '/report': { group: 'SparkLearn', title: '学习报告' },
   '/agent': { group: 'SparkLearn', title: '学习伙伴' },
   '/tutor': { group: '工具', title: '智能辅导' },
+  '/tutor/mcp-store': { group: '工具', title: 'MCP 插件商店' },
   '/video': { group: 'SparkLearn', title: '视频资源' },
 }
 

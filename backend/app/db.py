@@ -119,6 +119,15 @@ def init_db() -> None:
               created_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS tutor_file_chunks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              file_id INTEGER NOT NULL,
+              chunk_index INTEGER NOT NULL,
+              content TEXT NOT NULL,
+              embedding_json TEXT DEFAULT '',
+              created_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS knowledge_files (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id TEXT NOT NULL,
@@ -301,6 +310,34 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
             ON teacher_broadcasts(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS mcp_services (
+              id TEXT PRIMARY KEY,
+              owner_id TEXT NOT NULL,
+              name TEXT NOT NULL,
+              description TEXT DEFAULT '',
+              source TEXT NOT NULL DEFAULT 'user',
+              transport TEXT NOT NULL,
+              endpoint TEXT DEFAULT '',
+              command TEXT DEFAULT '',
+              args_json TEXT DEFAULT '[]',
+              env_json TEXT DEFAULT '{}',
+              enabled INTEGER NOT NULL DEFAULT 0,
+              last_status TEXT NOT NULL DEFAULT 'unknown',
+              last_error TEXT DEFAULT '',
+              last_tested_at TEXT DEFAULT '',
+              startup_timeout_ms INTEGER NOT NULL DEFAULT 60000,
+              tool_timeout_ms INTEGER NOT NULL DEFAULT 30000,
+              long_task_timeout_ms INTEGER NOT NULL DEFAULT 120000,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_mcp_services_owner_source
+            ON mcp_services(owner_id, source);
+
+            CREATE INDEX IF NOT EXISTS idx_mcp_services_owner_enabled
+            ON mcp_services(owner_id, enabled);
             """
         )
 

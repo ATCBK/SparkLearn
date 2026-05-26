@@ -82,6 +82,14 @@ export const api = {
   getTeacherMaterials: impl.getTeacherMaterials,
   createTeacherBroadcast: impl.createTeacherBroadcast,
   getTeacherBroadcasts: impl.getTeacherBroadcasts,
+  getMcpServices: impl.getMcpServices,
+  createMcpService: impl.createMcpService,
+  updateMcpService: impl.updateMcpService,
+  deleteMcpService: impl.deleteMcpService,
+  testMcpService: impl.testMcpService,
+  toggleMcpService: impl.toggleMcpService,
+  getMcpTools: impl.getMcpTools,
+  callMcpTool: impl.callMcpTool,
 
   deleteVideoResource: impl.deleteVideoResource,
   downloadVideoArtifact: impl.downloadVideoArtifact,
@@ -117,6 +125,7 @@ export type {
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
   ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
+  McpService, McpServicePayload,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
 } from './types'

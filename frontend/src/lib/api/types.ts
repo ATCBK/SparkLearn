@@ -95,6 +95,41 @@ export interface TeacherBroadcast {
   created_at: string
 }
 
+export interface McpService {
+  id: string
+  name: string
+  description: string
+  source: 'system' | 'user'
+  transport: 'stdio' | 'http'
+  endpoint: string
+  command: string
+  args_json: string[]
+  env_json: Record<string, string>
+  enabled: boolean
+  last_status: 'unknown' | 'online' | 'offline'
+  last_error: string
+  last_tested_at: string
+  startup_timeout_ms: number
+  tool_timeout_ms: number
+  long_task_timeout_ms: number
+  created_at: string
+  updated_at: string
+}
+
+export interface McpServicePayload {
+  name: string
+  description?: string
+  transport: 'stdio' | 'http'
+  endpoint?: string
+  command?: string
+  args_json?: string[]
+  env_json?: Record<string, string>
+  enabled?: boolean
+  startup_timeout_ms?: number
+  tool_timeout_ms?: number
+  long_task_timeout_ms?: number
+}
+
 export type PptLayout = 'cover' | 'bullets' | 'process' | 'summary'
 
 export interface PptBullet {
@@ -181,6 +216,7 @@ export interface WorkshopHubEvent {
   agentKind: 'system' | 'custom' | string
   content: string
   timestamp: string
+  delta?: boolean
 }
 
 export interface TutorRole {

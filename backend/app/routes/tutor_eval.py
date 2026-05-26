@@ -1,16 +1,18 @@
 ﻿import json
+import math
 import re
 import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, now_iso
+from ..embeddings import xfyun_embedding
 from ..llm import spark_lite
 from ..memory_engine import build_injected_context, update_memory_from_turn
 from ..schemas import fail, ok
@@ -368,6 +370,10 @@ async def upload_tutor_file(files: list[UploadFile] = File(...)):
         stored_path.write_bytes(raw)
 
         execute('UPDATE tutor_files SET stored_path = ? WHERE id = ?', (str(stored_path), file_id))
+        try:
+            await _index_tutor_file(file_id=file_id, stored_path=stored_path, filename=f.filename or stored_name, mime_type=f.content_type or '')
+        except Exception:
+            pass
         saved.append(
             {
                 'id': file_id,
@@ -399,6 +405,7 @@ async def delete_tutor_file(file_id: int):
     stored = Path(row['stored_path'])
     if stored.exists():
         stored.unlink()
+    execute('DELETE FROM tutor_file_chunks WHERE file_id = ?', (file_id,))
     execute('DELETE FROM tutor_files WHERE id = ?', (file_id,))
     return ok({'deleted': True})
 
@@ -465,7 +472,14 @@ async def tutor_chat(req: TutorReq):
 
         page_prompt = _build_page_context_prompt(req.page_context)
         memory_prompt = build_injected_context(settings.single_user_id, req.message, top_k=8)
+        file_context, file_sources = await _retrieve_tutor_file_context(req.file_ids or [], req.message)
+        file_prompt = ''
+        if file_context:
+            file_prompt = f"以下是用户上传文件检索到的相关片段，请优先基于这些证据回答：\n{file_context}"
+            yield ('sources', {'items': file_sources})
         merged_system_prompt = "\n\n".join(p for p in [role_prompt, page_prompt, memory_prompt] if p)
+        if file_prompt:
+            merged_system_prompt = "\n\n".join(p for p in [merged_system_prompt, file_prompt] if p)
         history_for_model = [{'role': 'system', 'content': merged_system_prompt}] if merged_system_prompt else []
         for row in reversed(rows):
             model_role = 'assistant' if row['sender_role'] == 'assistant' else 'user'
@@ -521,7 +535,8 @@ async def tutor_chat(req: TutorReq):
             for round_no in range(1, rounds + 1):
                 yield ('workshop_phase', {'phase': 'discussion', 'round': round_no, 'status': 'running'})
                 for participant in participants:
-                    participant_reply = await _workshop_agent_reply(
+                    partial_text = ''
+                    async for chunk in _workshop_agent_reply_stream(
                         question=req.message,
                         profile_summary=profile_summary,
                         participant=participant,
@@ -529,7 +544,22 @@ async def tutor_chat(req: TutorReq):
                         total_rounds=rounds,
                         hub_log=hub_log,
                         mode=req.mode,
-                    )
+                    ):
+                        partial_text += chunk
+                        delta_msg = _hub_message(
+                            phase='discussion',
+                            round_no=round_no,
+                            agent_id=participant['id'],
+                            agent_name=participant['name'],
+                            agent_kind=participant['kind'],
+                            content=partial_text,
+                        )
+                        delta_msg['delta'] = True
+                        yield ('hub', delta_msg)
+
+                    participant_reply = partial_text.strip()
+                    if not participant_reply:
+                        participant_reply = _fallback_agent_reply(participant, round_no)
                     msg = _hub_message(
                         phase='discussion',
                         round_no=round_no,
@@ -539,6 +569,7 @@ async def tutor_chat(req: TutorReq):
                         content=participant_reply,
                     )
                     hub_log.append(msg)
+                    msg['delta'] = False
                     yield ('hub', msg)
                 yield ('workshop_phase', {'phase': 'discussion', 'round': round_no, 'status': 'done'})
 
@@ -635,10 +666,15 @@ async def tutor_chat(req: TutorReq):
                     'changed': memory_update.get('changed', 0),
                     'version': memory_update.get('version', 0),
                 },
+                'sources': file_sources,
             },
         )
 
-    return StreamingResponse(sse_wrap(gen()), media_type='text/event-stream')
+    return StreamingResponse(
+        sse_wrap(gen()),
+        media_type='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
+    )
 
 
 @router.get('/tutor/history')
@@ -1049,7 +1085,7 @@ def _hub_message(
     }
 
 
-async def _workshop_agent_reply(
+async def _workshop_agent_reply_stream(
     *,
     question: str,
     profile_summary: str,
@@ -1058,7 +1094,7 @@ async def _workshop_agent_reply(
     total_rounds: int,
     hub_log: list[dict[str, Any]],
     mode: str,
-) -> str:
+) -> AsyncGenerator[str, None]:
     recent_log = hub_log[-10:]
     recent_text = '\n'.join([_hub_line(x) for x in recent_log])
     last_round_points = _last_round_points(hub_log, round_no - 1)
@@ -1075,20 +1111,16 @@ async def _workshop_agent_reply(
         f"禁止重复内容:\n{banned}\n"
         "请给出自然、直接的短发言，补充你认为最有价值的观点。"
     )
-    text = (await _model_complete(prompt=prompt, mode=mode, history=[])).strip()
+    parts: list[str] = []
+    async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode=mode, history=[]):
+        if evt_type == 'text':
+            chunk = str(payload.get('content', ''))
+            if chunk:
+                parts.append(chunk)
+                yield chunk
+    text = ''.join(parts).strip()
     if not text:
-        return _fallback_agent_reply(participant, round_no)
-
-    if _is_redundant_reply(text, hub_log):
-        rewrite_prompt = (
-            f"你上一版发言与他人重复，原文：{text}\n"
-            "请换一个角度重新表达，保持自然，不要复述已有内容。"
-        )
-        revised = (await _model_complete(prompt=rewrite_prompt, mode=mode, history=[])).strip()
-        if revised and not _is_redundant_reply(revised, hub_log):
-            return revised
-        return _fallback_agent_reply(participant, round_no)
-    return text
+        yield _fallback_agent_reply(participant, round_no)
 
 
 async def _workshop_synthesize_answer(
@@ -1313,6 +1345,130 @@ async def _generate_conversation_title(message: str) -> str:
         return title[:30]
     except Exception:
         return fallback
+
+
+def _extract_text_for_tutor(path: Path, mime_type: str, filename: str) -> str:
+    suffix = path.suffix.lower() or Path(filename).suffix.lower()
+    if suffix == '.pdf' or 'pdf' in mime_type:
+        import fitz
+
+        doc = fitz.open(path)
+        try:
+            return '\n'.join(page.get_text('text') for page in doc).strip()
+        finally:
+            doc.close()
+    if suffix in {'.txt', '.md'} or mime_type.startswith('text/'):
+        return path.read_text(encoding='utf-8', errors='ignore').strip()
+    raise RuntimeError(f'unsupported format: {suffix or mime_type}')
+
+
+def _chunk_text_for_tutor(text: str, size: int = 700, overlap: int = 120) -> list[str]:
+    cleaned = text.replace('\r\n', '\n').replace('\r', '\n').strip()
+    if not cleaned:
+        return []
+    paras = [p.strip() for p in re.split(r'\n{2,}', cleaned) if p.strip()]
+    out: list[str] = []
+    buf = ''
+    for p in paras:
+        p = re.sub(r'\s+', ' ', p).strip()
+        if len(buf) + len(p) + 2 <= size:
+            buf = f'{buf}\n\n{p}'.strip()
+        else:
+            if buf:
+                out.append(buf)
+            head = buf[-overlap:] if buf else ''
+            buf = f'{head}\n\n{p}'.strip()
+    if buf:
+        out.append(buf)
+    return out
+
+
+async def _index_tutor_file(*, file_id: int, stored_path: Path, filename: str, mime_type: str) -> None:
+    text = _extract_text_for_tutor(stored_path, mime_type, filename)
+    chunks = _chunk_text_for_tutor(text, size=700, overlap=120)
+    execute('DELETE FROM tutor_file_chunks WHERE file_id = ?', (file_id,))
+    ts = now_iso()
+    for idx, chunk in enumerate(chunks):
+        emb = await xfyun_embedding.embed_para(chunk)
+        execute(
+            'INSERT INTO tutor_file_chunks(file_id, chunk_index, content, embedding_json, created_at) VALUES (?, ?, ?, ?, ?)',
+            (file_id, idx, chunk, json.dumps(emb, ensure_ascii=False), ts),
+        )
+
+
+def _safe_json_floats(raw: str | None) -> list[float]:
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            return [float(x) for x in data]
+    except Exception:
+        return []
+    return []
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    if na == 0.0 or nb == 0.0:
+        return 0.0
+    return dot / (na * nb)
+
+
+async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_chars: int = 3500, top_k: int = 8) -> tuple[str, list[dict[str, Any]]]:
+    ids = [int(x) for x in file_ids if int(x) > 0]
+    if not ids or not query.strip():
+        return ('', [])
+    placeholders = ','.join('?' for _ in ids)
+    rows = fetch_all(
+        f"""
+        SELECT c.chunk_index, c.content, c.embedding_json, f.filename
+        FROM tutor_file_chunks c
+        JOIN tutor_files f ON f.id = c.file_id
+        WHERE f.user_id = ? AND c.file_id IN ({placeholders})
+        ORDER BY c.file_id ASC, c.chunk_index ASC
+        """,
+        (settings.single_user_id, *ids),
+    )
+    if not rows:
+        return ('', [])
+    try:
+        qvec = await xfyun_embedding.embed_query(query)
+    except Exception:
+        qvec = []
+    scored: list[tuple[float, str, str, int]] = []
+    for r in rows:
+        content = str(r['content'] or '').strip()
+        if not content:
+            continue
+        filename = str(r['filename'] or '')
+        chunk_index = int(r['chunk_index'] or 0)
+        piece = f'[{filename}#{chunk_index + 1}] {content}'
+        cvec = _safe_json_floats(r['embedding_json'])
+        score = _cosine_similarity(qvec, cvec) if qvec and cvec else 0.0
+        scored.append((score, piece, filename, chunk_index))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    selected: list[str] = []
+    sources: list[dict[str, Any]] = []
+    total = 0
+    for score, piece, filename, chunk_index in scored[:top_k]:
+        if total + len(piece) > max_chars:
+            break
+        selected.append(piece)
+        sources.append(
+            {
+                'filename': filename,
+                'chunk_index': chunk_index,
+                'score': round(float(score), 6),
+                'snippet': piece[:260],
+            }
+        )
+        total += len(piece)
+    return ('\n\n'.join(selected), sources)
 
 
 def _execute_returning_id(query: str, params: tuple[Any, ...]) -> int:

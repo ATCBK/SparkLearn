@@ -119,3 +119,64 @@ async def test_tutor_workspace_closed_loop(client):
     after = next((c for c in convs_after.json()["data"] if int(c["id"]) == conv_id), None)
     assert after is not None
     assert int(after["message_count"]) == before_count - 1
+
+
+@pytest.mark.asyncio
+async def test_agent_task_can_use_nanobot_backend(client, monkeypatch):
+    from app.config import settings
+    from app.routes import agent as agent_route
+
+    async def fake_run_task(*, task_type: str, input_text: str, user_id: str, personality: str):
+        assert task_type == "search"
+        assert input_text == "Python 闭包"
+        assert user_id == settings.single_user_id
+        assert personality == "encouraging"
+        return {
+            "items": [
+                {
+                    "title": "闭包入门",
+                    "summary": "解释闭包概念与使用场景",
+                    "url": "https://example.com/closure",
+                    "source": "example.com",
+                }
+            ]
+        }
+
+    original_enabled = settings.nanobot_pet_enabled
+    settings.nanobot_pet_enabled = True
+    monkeypatch.setattr(agent_route.nanobot_pet_client, "run_task", fake_run_task)
+
+    try:
+        pet_resp = await client.post(
+            "/api/agent/pet",
+            json={"name": "小星", "avatar": "fox", "personality": "encouraging"},
+        )
+        assert pet_resp.status_code == 200
+        if pet_resp.json()["success"] is False:
+            current_pet = await client.get("/api/agent/pet")
+            assert current_pet.status_code == 200
+            assert current_pet.json()["success"] is True
+        else:
+            assert pet_resp.json()["success"] is True
+
+        create = await client.post(
+            "/api/agent/task",
+            json={"task_type": "search", "input_text": "Python 闭包"},
+        )
+        assert create.status_code == 200
+        task_id = create.json()["data"]["task_id"]
+
+        task_resp = None
+        for _ in range(10):
+            task_resp = await client.get(f"/api/agent/task/{task_id}")
+            assert task_resp.status_code == 200
+            if task_resp.json()["data"]["status"] == "completed":
+                break
+
+        assert task_resp is not None
+        data = task_resp.json()["data"]
+        assert data["status"] == "completed"
+        assert data["result"]["items"][0]["title"] == "闭包入门"
+        assert any(step["description"].startswith("已切换到学习宠物新内核") for step in data["steps"])
+    finally:
+        settings.nanobot_pet_enabled = original_enabled

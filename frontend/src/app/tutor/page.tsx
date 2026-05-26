@@ -16,6 +16,7 @@ import {
   Pause,
   Pencil,
   Plus,
+  Puzzle,
   Save,
   Send,
   Trash2,
@@ -509,7 +510,15 @@ export default function TutorPage() {
             setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: `${m.content}${chunk}` } : m)))
           },
           onHub: (evt) => {
-            setHubMessages((prev) => [...prev, evt])
+            setHubMessages((prev) => {
+              const isDelta = (evt as unknown as { delta?: boolean }).delta === true
+              if (!isDelta) return [...prev, evt]
+              const idx = prev.findIndex((x) => x.agentId === evt.agentId && x.round === evt.round)
+              if (idx < 0) return [...prev, evt]
+              const next = [...prev]
+              next[idx] = { ...next[idx], content: evt.content, timestamp: evt.timestamp }
+              return next
+            })
           },
           onWorkshopPhase: (evt) => {
             setWorkshopPhase(evt)
@@ -569,6 +578,9 @@ export default function TutorPage() {
 
             <button onClick={() => router.push('/tutor/knowledge')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <Bot className="w-4 h-4" /> 知识库
+            </button>
+            <button onClick={() => router.push('/tutor/mcp-store')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+              <Puzzle className="w-4 h-4" /> MCP 插件商店
             </button>
             <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <Paperclip className="w-4 h-4" /> 我的文件

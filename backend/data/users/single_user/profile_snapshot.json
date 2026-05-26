@@ -1,19 +1,18 @@
 {
   "goal": [
-    "掌握核心技能"
+    "期末提分"
   ],
-  "knowledge_level": "零基础",
+  "knowledge_level": "有一些基础",
   "weak_points": [
-    "编程语言实践",
-    "高级设计能力"
+    "函数"
   ],
   "learning_preference": [
-    "我喜欢学习动手学习"
+    "实践型"
   ],
   "cognitive_style": "归纳型",
-  "daily_time": 30,
+  "daily_time": 45,
   "practical_ability": "能独立完成小项目",
   "current_stage": "函数与模块",
   "version": 1,
-  "updated_at": "2026-05-19T07:59:43.117694Z"
+  "updated_at": "2026-05-26T09:31:08.886807Z"
 }
