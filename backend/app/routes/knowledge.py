@@ -1,4 +1,5 @@
 import json
+import math
 import re
 import uuid
 from pathlib import Path
@@ -8,6 +9,7 @@ from fastapi import APIRouter, File, UploadFile
 
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
+from ..embeddings import xfyun_embedding
 from ..llm import spark_lite
 from ..schemas import fail, ok
 
@@ -25,7 +27,6 @@ async def list_knowledge_files(status: str | None = None, search: str | None = N
         clauses.append("(filename LIKE ? OR tags LIKE ? OR summary LIKE ?)")
         q = f"%{search}%"
         params.extend([q, q, q])
-
     rows = fetch_all(
         f"""
         SELECT *
@@ -49,7 +50,6 @@ async def upload_knowledge_file(files: list[UploadFile] = File(...)):
         raw = await f.read()
         if not raw:
             continue
-
         filename = f.filename or "knowledge-file"
         file_id = _execute_returning_id(
             """
@@ -60,15 +60,61 @@ async def upload_knowledge_file(files: list[UploadFile] = File(...)):
             """,
             (settings.single_user_id, filename, f.content_type or "application/octet-stream", len(raw), ts, ts),
         )
-
         ext = Path(filename).suffix
         stored_path = upload_dir / f"{file_id}_{uuid.uuid4().hex[:8]}{ext}"
         stored_path.write_bytes(raw)
         execute("UPDATE knowledge_files SET stored_path = ? WHERE id = ?", (str(stored_path), file_id))
         row = fetch_one("SELECT * FROM knowledge_files WHERE id = ?", (file_id,))
         saved.append(_file_row_to_dict(row))
-
     return ok(saved)
+
+
+@router.put("/files/{file_id}/index")
+async def index_knowledge_file(file_id: int):
+    row = _get_owned_file(file_id)
+    if not row:
+        return fail("knowledge file not found")
+
+    execute("UPDATE knowledge_files SET status = 'processing', updated_at = ? WHERE id = ?", (now_iso(), file_id))
+    try:
+        text = _extract_text(Path(str(row["stored_path"])), str(row["mime_type"] or ""), str(row["filename"] or ""))
+        chunks = _chunk_text_by_structure(text, max_chars=700, overlap=120)
+        if not chunks:
+            raise ValueError("no content extracted from file")
+
+        execute("DELETE FROM knowledge_chunks WHERE file_id = ?", (file_id,))
+        ts = now_iso()
+        rows_to_insert: list[tuple[Any, ...]] = []
+        for idx, chunk in enumerate(chunks):
+            emb = await xfyun_embedding.embed_para(chunk)
+            rows_to_insert.append((file_id, idx, chunk, json.dumps(emb, ensure_ascii=False), ts))
+
+        with get_conn() as conn:
+            conn.executemany(
+                """
+                INSERT INTO knowledge_chunks(file_id, chunk_index, content, embedding_json, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                rows_to_insert,
+            )
+
+        summary, tags = await _summarize_and_tag(text)
+        execute(
+            """
+            UPDATE knowledge_files
+            SET status = 'indexed', summary = ?, tags = ?, chunk_count = ?, updated_at = ?
+            WHERE id = ? AND user_id = ?
+            """,
+            (summary, json.dumps(tags, ensure_ascii=False), len(chunks), now_iso(), file_id, settings.single_user_id),
+        )
+        updated = _get_owned_file(file_id)
+        return ok(_file_row_to_dict(updated))
+    except Exception as ex:
+        execute(
+            "UPDATE knowledge_files SET status = 'failed', summary = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+            (f"index failed: {ex}", now_iso(), file_id, settings.single_user_id),
+        )
+        return fail(f"index failed: {ex}")
 
 
 @router.get("/files/{file_id}")
@@ -90,56 +136,6 @@ async def delete_knowledge_file(file_id: int):
     execute("DELETE FROM knowledge_chunks WHERE file_id = ?", (file_id,))
     execute("DELETE FROM knowledge_files WHERE id = ? AND user_id = ?", (file_id, settings.single_user_id))
     return ok({"deleted": True, "id": file_id})
-
-
-@router.put("/files/{file_id}/index")
-async def index_knowledge_file(file_id: int):
-    row = _get_owned_file(file_id)
-    if not row:
-        return fail("knowledge file not found")
-
-    execute(
-        "UPDATE knowledge_files SET status = 'processing', updated_at = ? WHERE id = ?",
-        (now_iso(), file_id),
-    )
-    try:
-        text = _extract_text(Path(str(row["stored_path"])), str(row["mime_type"] or ""), str(row["filename"] or ""))
-        chunks = _chunk_text(text, size=800)
-        if not chunks:
-            raise ValueError("未提取到可整理文本")
-
-        execute("DELETE FROM knowledge_chunks WHERE file_id = ?", (file_id,))
-        ts = now_iso()
-        with get_conn() as conn:
-            conn.executemany(
-                """
-                INSERT INTO knowledge_chunks(file_id, chunk_index, content, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                [(file_id, idx, chunk, ts) for idx, chunk in enumerate(chunks)],
-            )
-
-        summary, tags = await _summarize_and_tag(text)
-        execute(
-            """
-            UPDATE knowledge_files
-            SET status = 'indexed', summary = ?, tags = ?, chunk_count = ?, updated_at = ?
-            WHERE id = ? AND user_id = ?
-            """,
-            (summary, json.dumps(tags, ensure_ascii=False), len(chunks), now_iso(), file_id, settings.single_user_id),
-        )
-        updated = _get_owned_file(file_id)
-        return ok(_file_row_to_dict(updated))
-    except Exception as ex:
-        execute(
-            """
-            UPDATE knowledge_files
-            SET status = 'failed', summary = ?, updated_at = ?
-            WHERE id = ? AND user_id = ?
-            """,
-            (f"整理失败：{ex}", now_iso(), file_id, settings.single_user_id),
-        )
-        return fail(f"整理失败：{ex}")
 
 
 @router.get("/stats")
@@ -183,14 +179,19 @@ async def knowledge_chunks(file_id: int):
     return ok([dict(r) for r in rows])
 
 
-def load_knowledge_context(file_ids: list[int], max_chars: int = 5000) -> str:
+async def load_knowledge_context_async(file_ids: list[int], query: str | None = None, max_chars: int = 5000) -> str:
     ids = [int(x) for x in file_ids if int(x) > 0]
     if not ids:
         return ""
+    try:
+        query_vec = await xfyun_embedding.embed_query(query or "") if (query or "").strip() else []
+    except Exception:
+        query_vec = []
+
     placeholders = ",".join("?" for _ in ids)
     rows = fetch_all(
         f"""
-        SELECT c.content, f.filename
+        SELECT c.content, c.chunk_index, c.embedding_json, f.filename
         FROM knowledge_chunks c
         JOIN knowledge_files f ON f.id = c.file_id
         WHERE f.user_id = ? AND f.status = 'indexed' AND c.file_id IN ({placeholders})
@@ -198,21 +199,116 @@ def load_knowledge_context(file_ids: list[int], max_chars: int = 5000) -> str:
         """,
         (settings.single_user_id, *ids),
     )
-    parts: list[str] = []
-    total = 0
+    if not rows:
+        return ""
+
+    scored: list[tuple[float, str]] = []
     for row in rows:
-        piece = f"【{row['filename']}】{row['content']}"
+        content = str(row["content"] or "").strip()
+        if not content:
+            continue
+        file_label = str(row["filename"] or "")
+        idx = int(row["chunk_index"] or 0)
+        text_piece = f"[{file_label}#{idx + 1}] {content}"
+        if query_vec:
+            chunk_vec = _safe_json_floats(row["embedding_json"])
+            score = _cosine_similarity(query_vec, chunk_vec) if chunk_vec else 0.0
+        else:
+            score = 0.0
+        scored.append((score, text_piece))
+
+    if query_vec:
+        scored.sort(key=lambda x: x[0], reverse=True)
+        candidates = [s[1] for s in scored[:10]]
+    else:
+        candidates = [s[1] for s in scored[:10]]
+
+    selected: list[str] = []
+    total = 0
+    for piece in candidates:
         if total + len(piece) > max_chars:
             break
-        parts.append(piece)
+        selected.append(piece)
         total += len(piece)
-    if not parts:
-        return ""
-    return "\n\n".join(parts)
+    return "\n\n".join(selected)
 
 
-def _get_owned_file(file_id: int):
-    return fetch_one("SELECT * FROM knowledge_files WHERE id = ? AND user_id = ?", (file_id, settings.single_user_id))
+def load_knowledge_context(file_ids: list[int], query: str | None = None, max_chars: int = 5000) -> str:
+    import asyncio
+
+    try:
+        loop = asyncio.get_running_loop()
+        if loop.is_running():
+            return ""
+    except RuntimeError:
+        pass
+    return asyncio.run(load_knowledge_context_async(file_ids, query=query, max_chars=max_chars))
+
+
+def _extract_text(path: Path, mime_type: str, filename: str) -> str:
+    suffix = path.suffix.lower() or Path(filename).suffix.lower()
+    if suffix == ".pdf" or "pdf" in mime_type:
+        try:
+            import fitz
+        except Exception as ex:
+            raise RuntimeError("PyMuPDF is required for PDF parsing") from ex
+        doc = fitz.open(path)
+        try:
+            return "\n".join(page.get_text("text") for page in doc).strip()
+        finally:
+            doc.close()
+    if suffix in {".txt", ".md"} or mime_type.startswith("text/"):
+        return path.read_text(encoding="utf-8", errors="ignore").strip()
+    raise RuntimeError(f"unsupported format: {suffix or mime_type}; only txt/md/pdf are enabled now")
+
+
+def _chunk_text_by_structure(text: str, max_chars: int = 700, overlap: int = 120) -> list[str]:
+    source = text.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not source:
+        return []
+    paras = [p.strip() for p in re.split(r"\n{2,}", source) if p.strip()]
+    chunks: list[str] = []
+    buf = ""
+    for para in paras:
+        block = re.sub(r"\s+", " ", para).strip()
+        if len(block) > max_chars * 1.5:
+            sentences = re.split(r"(?<=[。！？.!?])\s+", block)
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if not sentence:
+                    continue
+                if len(buf) + len(sentence) + 1 <= max_chars:
+                    buf = f"{buf} {sentence}".strip()
+                else:
+                    if buf:
+                        chunks.append(buf)
+                    head = buf[-overlap:] if overlap > 0 and buf else ""
+                    buf = f"{head} {sentence}".strip()
+            continue
+        if len(buf) + len(block) + 2 <= max_chars:
+            buf = f"{buf}\n\n{block}".strip()
+        else:
+            if buf:
+                chunks.append(buf)
+            head = buf[-overlap:] if overlap > 0 and buf else ""
+            buf = f"{head}\n\n{block}".strip()
+    if buf:
+        chunks.append(buf)
+    return [c for c in chunks if c.strip()]
+
+
+async def _summarize_and_tag(text: str) -> tuple[str, list[str]]:
+    sample = text[:2200]
+    try:
+        raw = await spark_lite.summarize("请总结并提取标签：\n" + sample)
+    except Exception:
+        raw = ""
+    raw = (raw or "").strip()
+    if not raw:
+        return ("已整理为可检索知识片段，可用于问答和资源生成。", ["学习资料", "用户上传", "可检索"])
+    parts = re.split(r"[，,、\s]+", raw)
+    tags = [p[:12] for p in parts if 1 < len(p) <= 12][:5]
+    return (raw[:240], tags or ["学习资料", "用户上传", "可检索"])
 
 
 def _file_row_to_dict(row) -> dict[str, Any]:
@@ -233,123 +329,8 @@ def _file_row_to_dict(row) -> dict[str, Any]:
     }
 
 
-def _extract_text(path: Path, mime_type: str, filename: str) -> str:
-    suffix = path.suffix.lower() or Path(filename).suffix.lower()
-
-    # PDF
-    if suffix == ".pdf" or "pdf" in mime_type:
-        try:
-            import fitz
-        except Exception as ex:
-            raise RuntimeError("缺少 PyMuPDF，无法提取 PDF") from ex
-        doc = fitz.open(path)
-        try:
-            return "\n".join(page.get_text("text") for page in doc).strip()
-        finally:
-            doc.close()
-
-    # DOCX (new Word format)
-    if suffix == ".docx" or "officedocument.wordprocessingml" in mime_type:
-        try:
-            from docx import Document
-        except Exception as ex:
-            raise RuntimeError("缺少 python-docx，无法提取 DOCX") from ex
-        document = Document(str(path))
-        return "\n".join(p.text for p in document.paragraphs).strip()
-
-    # DOC (old Word format) - try PyMuPDF first, then fallback to raw text extraction
-    if suffix == ".doc" or "msword" in mime_type:
-        # PyMuPDF can sometimes handle .doc files
-        try:
-            import fitz
-            doc = fitz.open(path)
-            text = "\n".join(page.get_text("text") for page in doc).strip()
-            doc.close()
-            if text and len(text) > 50:
-                return text
-        except Exception:
-            pass
-        # Fallback: try to extract readable text from binary .doc
-        try:
-            raw_bytes = path.read_bytes()
-            # Extract ASCII/UTF-8 text segments from the binary
-            text = _extract_text_from_binary(raw_bytes)
-            if text and len(text) > 50:
-                return text
-        except Exception:
-            pass
-        raise RuntimeError(
-            f"无法提取 .doc 格式文件内容。建议将文件另存为 .docx 格式后重新上传。"
-        )
-
-    # Plain text formats
-    if suffix in {".txt", ".md", ".csv", ".json"} or mime_type.startswith("text/"):
-        return path.read_text(encoding="utf-8", errors="ignore").strip()
-
-    # Unknown format - try as text, fail gracefully
-    try:
-        text = path.read_text(encoding="utf-8", errors="ignore").strip()
-        # Check if it looks like actual text (not binary garbage)
-        if text and len(text) > 20:
-            printable_ratio = sum(1 for c in text[:500] if c.isprintable() or c in '\n\r\t') / min(len(text), 500)
-            if printable_ratio > 0.8:
-                return text
-    except Exception:
-        pass
-    raise RuntimeError(f"不支持的文件格式：{suffix or mime_type}。支持 PDF、DOCX、TXT、MD。")
-
-
-def _extract_text_from_binary(raw_bytes: bytes) -> str:
-    """Extract readable text segments from binary file (e.g., .doc)."""
-    # Try to decode as UTF-16 LE (common in .doc files)
-    segments: list[str] = []
-    # Look for Unicode text in the binary
-    try:
-        # .doc files often contain UTF-16LE encoded text
-        text_utf16 = raw_bytes.decode("utf-16-le", errors="ignore")
-        # Filter to only printable Chinese/ASCII characters
-        cleaned = []
-        for ch in text_utf16:
-            if ch.isprintable() or ch in '\n\r\t':
-                cleaned.append(ch)
-            else:
-                if cleaned and cleaned[-1] != '\n':
-                    cleaned.append('\n')
-        result = ''.join(cleaned).strip()
-        # Remove very short lines (likely garbage)
-        lines = [line.strip() for line in result.split('\n') if len(line.strip()) > 2]
-        if lines:
-            return '\n'.join(lines)
-    except Exception:
-        pass
-    return ""
-
-
-def _chunk_text(text: str, size: int) -> list[str]:
-    cleaned = re.sub(r"\s+", " ", text or "").strip()
-    return [cleaned[i : i + size] for i in range(0, len(cleaned), size) if cleaned[i : i + size].strip()]
-
-
-async def _summarize_and_tag(text: str) -> tuple[str, list[str]]:
-    sample = text[:2600]
-    try:
-        raw = await spark_lite.summarize(
-            "请阅读下面学习资料，输出一段80字以内摘要，最后一行用“标签：”列出3到5个中文标签。\n\n"
-            + sample
-        )
-    except Exception:
-        raw = ""
-    raw = raw.strip()
-    if not raw:
-        return ("已整理为可检索知识片段，可用于资源生成和 AI 问答。", ["学习资料", "用户上传", "可检索"])
-    tag_match = re.search(r"标签[:：]\s*(.+)$", raw)
-    if tag_match:
-        tags = [x.strip(" ，,、;；") for x in re.split(r"[，,、;；\s]+", tag_match.group(1)) if x.strip()]
-        summary = raw[: tag_match.start()].strip()
-    else:
-        tags = ["学习资料", "用户上传", "可检索"]
-        summary = raw
-    return (summary[:240] or "已整理为可检索知识片段。", tags[:5])
+def _get_owned_file(file_id: int):
+    return fetch_one("SELECT * FROM knowledge_files WHERE id = ? AND user_id = ?", (file_id, settings.single_user_id))
 
 
 def _safe_json_list(raw: Any) -> list[str]:
@@ -360,6 +341,27 @@ def _safe_json_list(raw: Any) -> list[str]:
     except Exception:
         pass
     return []
+
+
+def _safe_json_floats(raw: Any) -> list[float]:
+    try:
+        value = json.loads(raw or "[]")
+        if isinstance(value, list):
+            return [float(x) for x in value]
+    except Exception:
+        pass
+    return []
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(y * y for y in b))
+    if na == 0.0 or nb == 0.0:
+        return 0.0
+    return dot / (na * nb)
 
 
 def _execute_returning_id(query: str, params: tuple[Any, ...]) -> int:

@@ -96,7 +96,7 @@ export default function TeacherDashboardPage() {
         <div className="flex min-h-[300px] items-center justify-center text-sm text-[#64748b]">加载教师数据...</div>
       ) : (
         <div className="space-y-5">
-          <ProtoCard>
+          <div className="px-1">
             <h2 className="mb-4 text-[18px] font-bold text-[#0f172a]">教师端快捷跳转</h2>
             <div className="grid grid-cols-5 gap-3 max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2">
               {[
@@ -106,14 +106,24 @@ export default function TeacherDashboardPage() {
                 { label: '通知分发', desc: '发通知和分发资料', href: '/teacher/broadcast', icon: <Monitor className="h-5 w-5" />, tone: 'bg-[#f3e8ff] text-[#7c3aed]' },
                 { label: 'AI 助手', desc: '生成教学策略', href: '/teacher/ai', icon: <Bot className="h-5 w-5" />, tone: 'bg-[#ecfeff] text-[#0891b2]' },
               ].map((item) => (
-                <a key={item.label} href={item.href} className="rounded-xl border border-[#e2e8f0] bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-md">
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="rounded-xl border border-[#dbe7f5] p-4 transition-all hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:shadow-md"
+                  style={{
+                    backgroundImage: "linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), url('/teacher-jump-card-bg.png')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                >
                   <div className={`mb-2 inline-grid h-9 w-9 place-items-center rounded-lg ${item.tone}`}>{item.icon}</div>
                   <div className="text-sm font-bold text-[#0f172a]">{item.label}</div>
                   <div className="text-xs text-[#64748b]">{item.desc}</div>
                 </a>
               ))}
             </div>
-          </ProtoCard>
+          </div>
 
           <div className="grid grid-cols-4 gap-4 max-[1080px]:grid-cols-2">
             {[

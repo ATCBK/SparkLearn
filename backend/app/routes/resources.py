@@ -19,7 +19,7 @@ from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
 from ..xfyun_ppt import XfyunPptError, xfyun_ppt_client
 from .common import sse_wrap
-from .knowledge import load_knowledge_context
+from .knowledge import load_knowledge_context_async
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 
@@ -109,7 +109,7 @@ async def generate_resource(req: GenerateReq):
             chunks: list[str] = []
             progress = 10
 
-            knowledge_context = load_knowledge_context(req.knowledge_file_ids or [])
+            knowledge_context = await load_knowledge_context_async(req.knowledge_file_ids or [], query=req.prompt)
             user_prompt = req.prompt
             if knowledge_context:
                 user_prompt = (
@@ -148,7 +148,7 @@ async def generate_resource(req: GenerateReq):
             explicit_source_url = ""
             progress = 10
 
-            knowledge_context = load_knowledge_context(req.knowledge_file_ids or [])
+            knowledge_context = await load_knowledge_context_async(req.knowledge_file_ids or [], query=req.prompt)
             user_prompt = req.prompt
             if knowledge_context:
                 user_prompt = (

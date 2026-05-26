@@ -54,6 +54,13 @@ class Settings(BaseSettings):
     xf_tts_timeout_ms: int = 15000
     xf_tts_text_limit: int = 1000
 
+    # iFlytek Embedding (HTTP)
+    xfyun_emb_base_url: str = "https://emb-cn-huabei-1.xf-yun.com/"
+    xfyun_emb_app_id: str = ""
+    xfyun_emb_api_key: str = ""
+    xfyun_emb_api_secret: str = ""
+    xfyun_emb_timeout_sec: int = 20
+
     # Video creator
     video_creator_enabled: bool = True
     video_default_provider: str = "html_ppt"
