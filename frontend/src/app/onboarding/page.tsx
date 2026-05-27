@@ -119,6 +119,7 @@ export default function OnboardingPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const finishingRef = useRef(false)
 
   // 初始化第一步的消息
   useEffect(() => {
@@ -241,12 +242,14 @@ export default function OnboardingPage() {
   }
 
   async function finishOnboarding() {
+    if (finishingRef.current) return
+    finishingRef.current = true
     setIsTyping(true)
     setTimeout(() => {
       setMessages(prev => [
         ...prev,
         {
-          id: 'finish',
+          id: `finish-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           role: 'assistant',
           content: '太棒了！我已经了解你的学习情况了 🎊\n正在为你生成个性化学习方案...',
           type: 'text',
@@ -326,8 +329,8 @@ export default function OnboardingPage() {
       <div className="w-full max-w-[680px] h-[calc(100vh-160px)] rounded-2xl border border-[#e8ecf2] bg-white shadow-lg shadow-black/[0.03] flex flex-col overflow-hidden">
         {/* 对话内容区 */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
+          {messages.map((msg, idx) => (
+            <MessageBubble key={`${msg.id}-${idx}`} message={msg} />
           ))}
 
           {/* 打字指示器 */}

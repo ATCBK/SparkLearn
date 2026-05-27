@@ -1,18 +1,18 @@
 {
   "goal": [
-    "期末提分"
+    "兴趣探索"
   ],
-  "knowledge_level": "有一些基础",
+  "knowledge_level": "有一定基础",
   "weak_points": [
-    "函数"
+    "高级设计能力"
   ],
   "learning_preference": [
-    "实践型"
+    "互动交流，共同进步"
   ],
   "cognitive_style": "归纳型",
-  "daily_time": 45,
+  "daily_time": 30,
   "practical_ability": "能独立完成小项目",
   "current_stage": "函数与模块",
   "version": 1,
-  "updated_at": "2026-05-26T09:31:08.886807Z"
+  "updated_at": "2026-05-27T00:50:05.685283Z"
 }
