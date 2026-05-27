@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, Message, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
+import { api, CitationItem, ConfidenceInfo, Message, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -29,6 +29,8 @@ import {
   ArrowLeft,
   Sparkles,
   Loader2,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import ReactMarkdown from 'react-markdown'
@@ -135,6 +137,7 @@ export default function TutorPage() {
   const [roleEditingId, setRoleEditingId] = useState<number | null>(null)
   const [roleDraft, setRoleDraft] = useState<RoleDraft>(EMPTY_ROLE_DRAFT)
   const [savingRole, setSavingRole] = useState(false)
+  const [trustPanelOpenByMsg, setTrustPanelOpenByMsg] = useState<Record<string, boolean>>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -509,6 +512,15 @@ export default function TutorPage() {
           onText: (chunk) => {
             setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: `${m.content}${chunk}` } : m)))
           },
+          onConfidence: (confidence: ConfidenceInfo) => {
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, confidence } : m)))
+          },
+          onCitations: (citations: CitationItem[]) => {
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, citations } : m)))
+          },
+          onTrustMeta: (trustMeta: Record<string, unknown>) => {
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, trustMeta } : m)))
+          },
           onHub: (evt) => {
             setHubMessages((prev) => {
               const isDelta = (evt as unknown as { delta?: boolean }).delta === true
@@ -537,6 +549,10 @@ export default function TutorPage() {
 
   function applySuggestion(text: string) {
     setInput(text)
+  }
+
+  function toggleTrustPanel(messageId: string) {
+    setTrustPanelOpenByMsg((prev) => ({ ...prev, [messageId]: !prev[messageId] }))
   }
 
   if (loading) {
@@ -704,6 +720,56 @@ export default function TutorPage() {
                               </div>
                             )}
                             {/* TTS 播报按钮 */}
+                            {(msg.confidence || (msg.citations && msg.citations.length > 0)) && (
+                              <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-white">
+                                <button
+                                  type="button"
+                                  className="w-full flex items-center justify-between px-3 py-2 text-left"
+                                  onClick={() => toggleTrustPanel(msg.id)}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    {msg.confidence && (
+                                      <span
+                                        className={cn(
+                                          'inline-block h-2.5 w-2.5 rounded-full',
+                                          msg.confidence.color === 'green' && 'bg-emerald-500',
+                                          msg.confidence.color === 'yellow' && 'bg-amber-400',
+                                          msg.confidence.color === 'red' && 'bg-rose-500',
+                                        )}
+                                      />
+                                    )}
+                                    <span className="text-xs font-medium text-[#334155]">置信度与引用来源</span>
+                                  </div>
+                                  {trustPanelOpenByMsg[msg.id] ? <ChevronDown className="w-4 h-4 text-[#64748b]" /> : <ChevronRight className="w-4 h-4 text-[#64748b]" />}
+                                </button>
+                                {trustPanelOpenByMsg[msg.id] && (
+                                  <div className="px-3 pb-3">
+                                    {msg.confidence && (
+                                      <div className="rounded-lg bg-[#f8fafc] px-2.5 py-2 border border-[#eef2f7]">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs font-medium text-[#334155]">{msg.confidence.label}</span>
+                                          <span className="text-xs text-[#64748b]">({Math.round((msg.confidence.score || 0) * 100)}%)</span>
+                                        </div>
+                                        <p className="mt-1 text-xs text-[#64748b]">{msg.confidence.message}</p>
+                                      </div>
+                                    )}
+                                    {msg.citations && msg.citations.length > 0 && (
+                                      <div className="mt-2 space-y-2">
+                                        {msg.citations.slice(0, 6).map((c) => (
+                                          <div key={c.id} className="rounded-lg bg-[#f8fafc] px-2.5 py-2 border border-[#eef2f7]">
+                                            <p className="text-xs font-medium text-[#334155]">{c.label}</p>
+                                            <p className="mt-1 text-xs text-[#64748b] line-clamp-3">{c.snippet}</p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {(!msg.citations || msg.citations.length === 0) && (
+                                      <p className="mt-2 text-xs text-[#94a3b8]">引用来源：无</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             <button
                               onClick={() => void playTts(msg.id, msg.content)}
                               disabled={ttsLoading === msg.id}

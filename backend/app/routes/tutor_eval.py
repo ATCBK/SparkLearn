@@ -17,9 +17,13 @@ from ..llm import spark_lite
 from ..memory_engine import build_injected_context, update_memory_from_turn
 from ..schemas import fail, ok
 from ..storage import append_jsonl
+from ..trust_answer_controller import TrustAnswerController
+from ..trust_citation import render_confidence
+from ..trust_schemas import TrustAnswerRequest
 from .common import sse_wrap
 
 router = APIRouter(prefix='/api', tags=['tutor-evaluation'])
+trust_answer_controller = TrustAnswerController()
 
 
 class TutorReq(BaseModel):
@@ -31,6 +35,7 @@ class TutorReq(BaseModel):
     page_context: dict[str, Any] | None = None
     workshop_enabled: bool = False
     workshop_role_ids: list[int] = []
+    knowledge_file_ids: list[int] = []
 
 
 class EvalRefreshReq(BaseModel):
@@ -485,6 +490,10 @@ async def tutor_chat(req: TutorReq):
             model_role = 'assistant' if row['sender_role'] == 'assistant' else 'user'
             history_for_model.append({'role': model_role, 'content': row['content']})
 
+        confidence_payload: dict[str, Any] = {}
+        citations_payload: list[dict[str, Any]] = []
+        trust_meta_payload: dict[str, Any] = {}
+
         if req.workshop_enabled:
             profile = _load_profile_snapshot()
             profile_summary = _profile_summary_text(profile)
@@ -596,21 +605,45 @@ async def tutor_chat(req: TutorReq):
                 yield ('text', {'content': chunk})
             yield ('workshop_phase', {'phase': 'synthesis', 'status': 'done'})
         else:
-            assistant_parts: list[str] = []
-            async for evt_type, payload in spark_lite.stream_chat_events(
-                req.message,
-                mode=req.mode,
-                history=history_for_model,
-            ):
+            trust_plan = await trust_answer_controller.plan(
+                TrustAnswerRequest(
+                    scene='tutor',
+                    query=req.message,
+                    mode=req.mode,
+                    role_prompt=role_prompt,
+                    page_prompt=page_prompt,
+                    memory_prompt=memory_prompt,
+                    conversation_id=conversation_id,
+                    file_ids=req.file_ids or [],
+                    knowledge_file_ids=req.knowledge_file_ids or [],
+                    user_file_sources=file_sources,
+                    use_profile=True,
+                )
+            )
+            confidence_payload = render_confidence(
+                float(trust_plan['confidence_score']),
+                str(trust_plan['confidence_level']),
+                list(dict(trust_plan['trust_meta']).get('reason_codes', [])),
+            )
+            citations_payload = list(trust_plan['citations'])
+            trust_meta_payload = dict(trust_plan['trust_meta'])
+            yield ('confidence', confidence_payload)
+            yield ('trust_meta', trust_meta_payload)
+            yield ('citations', {'items': citations_payload})
+            answer_parts: list[str] = []
+            async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=req.mode, history=[]):
                 if evt_type == 'text':
                     chunk = str(payload.get('content', ''))
                     if chunk:
-                        assistant_parts.append(chunk)
-                        yield ('text', {'content': chunk})
+                        answer_parts.append(chunk)
+                        for sub in _chunk_text(chunk, 24):
+                            yield ('text', {'content': sub})
                 elif evt_type == 'error':
                     yield ('error', payload)
-
-            answer = ''.join(assistant_parts)
+            answer = ''.join(answer_parts).strip()
+            if not answer:
+                answer = '当前证据不足，我先给出一个方向性建议：请补充题目或课程资料后我再给你更准确的结论。'
+                yield ('text', {'content': answer})
         assistant_id = _execute_returning_id(
             """
             INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, created_at)
@@ -667,6 +700,9 @@ async def tutor_chat(req: TutorReq):
                     'version': memory_update.get('version', 0),
                 },
                 'sources': file_sources,
+                'confidence': confidence_payload,
+                'citations': citations_payload,
+                'trust_meta': trust_meta_payload,
             },
         )
 

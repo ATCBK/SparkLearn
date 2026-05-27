@@ -1,0 +1,81 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "~/.nanobot/workspace",
+      "model": "deepseek-ai/DeepSeek-V3",
+      "maxTokens": 8192,
+      "temperature": 0.7,
+      "maxToolIterations": 20,
+      "provider": "openai"
+    }
+  },
+  "channels": {
+    "whatsapp": {
+      "enabled": false,
+      "bridgeUrl": "ws://localhost:3001",
+      "allowFrom": [
+        "8616692815920",
+        "8613569792462"
+      ]
+    },
+    "telegram": {
+      "enabled": false,
+      "token": "",
+      "allowFrom": []
+    },
+    "discord": {
+      "enabled": true,
+      "token": "MTQ2OTI2MDUxNTc4MzA4MjE5OQ.GZwFSo.k_jRk6OjNLnXRhkmxCFWbZLfX2oqkTUpdQIUMs",
+      "allowFrom": [
+        "1469258176515018869"
+      ],
+      "proxy": "http://127.0.0.1:7897"
+    }
+  },
+  "providers": {
+    "anthropic": {
+      "apiKey": "",
+      "apiBase": null
+    },
+    "openai": {
+      "apiKey": "sk-jhxuzjtuoyuodtvbecudrqfzyeivneumsojdkkxlxbwlpgfx",
+      "apiBase": "https://api.siliconflow.cn/v1"
+    },
+    "openrouter": {
+      "apiKey": "",
+      "apiBase": null
+    },
+    "groq": {
+      "apiKey": "",
+      "apiBase": null
+    },
+    "zhipu": {
+      "apiKey": "",
+      "apiBase": null
+    },
+    "vllm": {
+      "apiKey": "",
+      "apiBase": null
+    },
+    "gemini": {
+      "apiKey": "",
+      "apiBase": null
+    }
+  },
+  "gateway": {
+    "host": "0.0.0.0",
+    "port": 18790
+  },
+  "tools": {
+    "web": {
+      "search": {
+        "apiKey": "",
+        "maxResults": 5
+      }
+    },
+    "exec": {
+      "timeout": 60,
+      "restrictToWorkspace": false
+    }
+  }
+}

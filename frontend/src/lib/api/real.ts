@@ -3,6 +3,7 @@ import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
+  ConfidenceInfo, CitationItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
 } from './types'
 
@@ -280,10 +281,16 @@ export async function sendMessage(
     onError?: (error: { code?: number; message?: string; sid?: string }) => void
     onHub?: (evt: WorkshopHubEvent) => void
     onWorkshopPhase?: (evt: { phase: string; round?: number; status: string }) => void
+    onConfidence?: (confidence: ConfidenceInfo) => void
+    onCitations?: (citations: CitationItem[]) => void
+    onTrustMeta?: (trustMeta: Record<string, unknown>) => void
     onDone?: () => void
   },
 ): Promise<Message> {
   let lastError: string | undefined
+  let latestConfidence: ConfidenceInfo | undefined
+  let latestCitations: CitationItem[] | undefined
+  let latestTrustMeta: Record<string, unknown> | undefined
   const events = await readSSE('/api/tutor/chat', {
     message: content,
     mode: options?.mode || 'knowledge_qa',
@@ -330,6 +337,37 @@ export async function sendMessage(
       })
       return
     }
+    if (evt.type === 'confidence') {
+      const confidence: ConfidenceInfo = {
+        score: Number(evt.payload.score ?? 0),
+        level: String(evt.payload.level || 'low'),
+        color: String(evt.payload.color || 'red'),
+        label: String(evt.payload.label || 'Low confidence'),
+        message: String(evt.payload.message || ''),
+        reasonCodes: Array.isArray(evt.payload.reason_codes) ? evt.payload.reason_codes.map((x) => String(x)) : [],
+      }
+      latestConfidence = confidence
+      handlers?.onConfidence?.(confidence)
+      return
+    }
+    if (evt.type === 'citations') {
+      const itemsRaw = Array.isArray(evt.payload.items) ? evt.payload.items : []
+      const citations: CitationItem[] = itemsRaw.map((x: any) => ({
+        id: String(x.id || ''),
+        label: String(x.label || ''),
+        sourceType: String(x.source_type || ''),
+        snippet: String(x.snippet || ''),
+        score: x.score !== undefined ? Number(x.score) : undefined,
+      }))
+      latestCitations = citations
+      handlers?.onCitations?.(citations)
+      return
+    }
+    if (evt.type === 'trust_meta') {
+      latestTrustMeta = evt.payload
+      handlers?.onTrustMeta?.(evt.payload)
+      return
+    }
     if (evt.type === 'done') handlers?.onDone?.()
   })
   const text = events.filter(e => e.type === 'text').map(e => String(e.payload.content || '')).join('')
@@ -339,6 +377,9 @@ export async function sendMessage(
     role: 'assistant',
     content: text || '我已收到你的问题，我们继续一起拆解。',
     timestamp: new Date().toISOString(),
+    confidence: latestConfidence,
+    citations: latestCitations,
+    trustMeta: latestTrustMeta,
   }
 }
 

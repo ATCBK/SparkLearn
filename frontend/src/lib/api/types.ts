@@ -206,6 +206,26 @@ export interface Message {
   timestamp: string
   conversationId?: number
   fileNames?: string[]
+  confidence?: ConfidenceInfo
+  citations?: CitationItem[]
+  trustMeta?: Record<string, unknown>
+}
+
+export interface ConfidenceInfo {
+  score: number
+  level: 'high' | 'medium' | 'low' | string
+  color: 'green' | 'yellow' | 'red' | string
+  label: string
+  message: string
+  reasonCodes?: string[]
+}
+
+export interface CitationItem {
+  id: string
+  label: string
+  sourceType: string
+  snippet: string
+  score?: number
 }
 
 export interface WorkshopHubEvent {
