@@ -1,5 +1,5 @@
 ﻿import json
-import math
+import logging
 import re
 import uuid
 from collections.abc import AsyncGenerator
@@ -12,7 +12,6 @@ from pydantic import BaseModel
 
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, now_iso
-from ..embeddings import xfyun_embedding
 from ..llm import spark_lite
 from ..memory_engine import build_injected_context, update_memory_from_turn
 from ..schemas import fail, ok
@@ -25,6 +24,7 @@ from .common import sse_wrap
 
 router = APIRouter(prefix='/api', tags=['tutor-evaluation'])
 trust_answer_controller = TrustAnswerController()
+logger = logging.getLogger("tutor-eval")
 
 
 class TutorReq(BaseModel):
@@ -42,6 +42,40 @@ class TutorReq(BaseModel):
 
 def _is_image_mode(mode: str) -> bool:
     return (mode or '').strip().lower() == 'image_gen'
+
+
+def _resolve_effective_file_ids(conversation_id: int, requested_file_ids: list[int]) -> list[int]:
+    explicit = [int(x) for x in (requested_file_ids or []) if int(x) > 0]
+    if explicit:
+        return explicit
+    row = fetch_one(
+        """
+        SELECT file_ids
+        FROM tutor_messages
+        WHERE user_id = ? AND conversation_id = ? AND sender_role = 'user' AND file_ids IS NOT NULL AND file_ids <> '[]'
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (settings.single_user_id, conversation_id),
+    )
+    if row:
+        ids = _parse_json_list(row['file_ids'])
+        if ids:
+            return ids
+    # Global fallback: use latest user message with non-empty file_ids across conversations.
+    row2 = fetch_one(
+        """
+        SELECT file_ids
+        FROM tutor_messages
+        WHERE user_id = ? AND sender_role = 'user' AND file_ids IS NOT NULL AND file_ids <> '[]'
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (settings.single_user_id,),
+    )
+    if not row2:
+        return []
+    return _parse_json_list(row2['file_ids'])
 
 
 class EvalRefreshReq(BaseModel):
@@ -383,8 +417,8 @@ async def upload_tutor_file(files: list[UploadFile] = File(...)):
         execute('UPDATE tutor_files SET stored_path = ? WHERE id = ?', (str(stored_path), file_id))
         try:
             await _index_tutor_file(file_id=file_id, stored_path=stored_path, filename=f.filename or stored_name, mime_type=f.content_type or '')
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("index tutor file failed: file_id=%s filename=%s err=%s", file_id, f.filename or stored_name, exc)
         saved.append(
             {
                 'id': file_id,
@@ -442,6 +476,8 @@ async def tutor_chat(req: TutorReq):
         )
         before_user_count = int(before_count_row['cnt']) if before_count_row else 0
 
+        effective_file_ids = _resolve_effective_file_ids(conversation_id, req.file_ids or [])
+
         user_msg_id = _execute_returning_id(
             """
             INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, created_at)
@@ -451,7 +487,7 @@ async def tutor_chat(req: TutorReq):
                 conversation_id,
                 settings.single_user_id,
                 req.message,
-                json.dumps(req.file_ids or [], ensure_ascii=False),
+                json.dumps(effective_file_ids, ensure_ascii=False),
                 now_iso(),
             ),
         )
@@ -483,7 +519,7 @@ async def tutor_chat(req: TutorReq):
 
         page_prompt = _build_page_context_prompt(req.page_context)
         memory_prompt = build_injected_context(settings.single_user_id, req.message, top_k=8)
-        file_context, file_sources = await _retrieve_tutor_file_context(req.file_ids or [], req.message)
+        file_context, file_sources = await _retrieve_tutor_file_context(effective_file_ids, req.message)
         file_prompt = ''
         if file_context:
             file_prompt = f"以下是用户上传文件检索到的相关片段，请优先基于这些证据回答：\n{file_context}"
@@ -621,23 +657,42 @@ async def tutor_chat(req: TutorReq):
                 answer = f"![AI生成图](data:image/png;base64,{image_b64})"
                 yield ('text', {'content': answer})
             elif req.open_mode:
-                assistant_parts: list[str] = []
-                async for evt_type, payload in spark_lite.stream_chat_events(
-                    req.message,
-                    mode=req.mode,
-                    history=history_for_model,
-                ):
-                    if evt_type == 'text':
-                        chunk = str(payload.get('content', ''))
-                        if chunk:
-                            assistant_parts.append(chunk)
-                            yield ('text', {'content': chunk})
-                    elif evt_type == 'error':
-                        yield ('error', payload)
-                answer = ''.join(assistant_parts).strip()
-                if not answer:
-                    answer = '我先给你一个直觉性回答：可以补充更多上下文让我继续细化。'
+                if file_context and re.search(r'(文件|文档|上传|总结|要点|讲了什么|内容)', req.message):
+                    answer = _fallback_answer_from_file_context(req.message, file_context, file_sources)
                     yield ('text', {'content': answer})
+                    assistant_parts = [answer]
+                    # skip model call for file-summary style questions
+                    # to avoid model fallback like "无法访问文件"
+                    pass
+                else:
+                    direct_prompt = req.message
+                    if file_context:
+                        direct_prompt = (
+                            "你可以直接读取下面的文件片段并基于其内容回答。"
+                            "不要说你无法访问文件。\n\n"
+                            f"{file_context}\n\n"
+                            f"用户问题：{req.message}"
+                        )
+                    assistant_parts: list[str] = []
+                    async for evt_type, payload in spark_lite.stream_chat_events(
+                        direct_prompt,
+                        mode=req.mode,
+                        history=history_for_model,
+                    ):
+                        if evt_type == 'text':
+                            chunk = str(payload.get('content', ''))
+                            if chunk:
+                                assistant_parts.append(chunk)
+                                yield ('text', {'content': chunk})
+                        elif evt_type == 'error':
+                            yield ('error', payload)
+                    answer = ''.join(assistant_parts).strip()
+                    if file_context and any(x in answer for x in ['无法直接访问', '无法访问文件', '未提供文件', '提供文件的详细信息']):
+                        answer = _fallback_answer_from_file_context(req.message, file_context, file_sources)
+                        yield ('text', {'content': '\n\n' + answer})
+                    if not answer:
+                        answer = '我先给你一个直觉性回答：可以补充更多上下文让我继续细化。'
+                        yield ('text', {'content': answer})
             else:
                 trust_plan = await trust_answer_controller.plan(
                     TrustAnswerRequest(
@@ -648,7 +703,7 @@ async def tutor_chat(req: TutorReq):
                         page_prompt=page_prompt,
                         memory_prompt=memory_prompt,
                         conversation_id=conversation_id,
-                        file_ids=req.file_ids or [],
+                        file_ids=effective_file_ids,
                         knowledge_file_ids=req.knowledge_file_ids or [],
                         user_file_sources=file_sources,
                         use_profile=True,
@@ -664,6 +719,19 @@ async def tutor_chat(req: TutorReq):
                 yield ('confidence', confidence_payload)
                 yield ('trust_meta', trust_meta_payload)
                 yield ('citations', {'items': citations_payload})
+                mcp_calls = trust_meta_payload.get('mcp_calls')
+                if isinstance(mcp_calls, list):
+                    for item in mcp_calls:
+                        if not isinstance(item, dict):
+                            continue
+                        yield (
+                            'mcp_call',
+                            {
+                                'service_id': str(item.get('service_id', '')),
+                                'service_name': str(item.get('service_name', '')),
+                                'tool_name': str(item.get('tool_name', '')),
+                            },
+                        )
                 answer_parts: list[str] = []
                 async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=req.mode, history=[]):
                     if evt_type == 'text':
@@ -1492,44 +1560,20 @@ async def _index_tutor_file(*, file_id: int, stored_path: Path, filename: str, m
     execute('DELETE FROM tutor_file_chunks WHERE file_id = ?', (file_id,))
     ts = now_iso()
     for idx, chunk in enumerate(chunks):
-        emb = await xfyun_embedding.embed_para(chunk)
         execute(
             'INSERT INTO tutor_file_chunks(file_id, chunk_index, content, embedding_json, created_at) VALUES (?, ?, ?, ?, ?)',
-            (file_id, idx, chunk, json.dumps(emb, ensure_ascii=False), ts),
+            (file_id, idx, chunk, '', ts),
         )
-
-
-def _safe_json_floats(raw: str | None) -> list[float]:
-    if not raw:
-        return []
-    try:
-        data = json.loads(raw)
-        if isinstance(data, list):
-            return [float(x) for x in data]
-    except Exception:
-        return []
-    return []
-
-
-def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    if not a or not b or len(a) != len(b):
-        return 0.0
-    dot = sum(x * y for x, y in zip(a, b))
-    na = math.sqrt(sum(x * x for x in a))
-    nb = math.sqrt(sum(y * y for y in b))
-    if na == 0.0 or nb == 0.0:
-        return 0.0
-    return dot / (na * nb)
 
 
 async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_chars: int = 3500, top_k: int = 8) -> tuple[str, list[dict[str, Any]]]:
     ids = [int(x) for x in file_ids if int(x) > 0]
-    if not ids or not query.strip():
+    if not ids:
         return ('', [])
     placeholders = ','.join('?' for _ in ids)
     rows = fetch_all(
         f"""
-        SELECT c.chunk_index, c.content, c.embedding_json, f.filename
+        SELECT c.chunk_index, c.content, f.filename
         FROM tutor_file_chunks c
         JOIN tutor_files f ON f.id = c.file_id
         WHERE f.user_id = ? AND c.file_id IN ({placeholders})
@@ -1538,12 +1582,54 @@ async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_char
         (settings.single_user_id, *ids),
     )
     if not rows:
-        return ('', [])
-    try:
-        qvec = await xfyun_embedding.embed_query(query)
-    except Exception:
-        qvec = []
-    scored: list[tuple[float, str, str, int]] = []
+        # Fallback: if chunk table is empty, read original uploaded files directly.
+        file_rows = fetch_all(
+            f"""
+            SELECT id, filename, stored_path, mime_type
+            FROM tutor_files
+            WHERE user_id = ? AND id IN ({placeholders})
+            ORDER BY id ASC
+            """,
+            (settings.single_user_id, *ids),
+        )
+        selected: list[str] = []
+        sources: list[dict[str, Any]] = []
+        total = 0
+        count = 0
+        for fr in file_rows:
+            filename = str(fr['filename'] or '')
+            stored_path = Path(str(fr['stored_path'] or ''))
+            mime_type = str(fr['mime_type'] or '')
+            if not stored_path.exists():
+                continue
+            text = _extract_text_for_tutor(stored_path, mime_type, filename).strip()
+            if not text:
+                continue
+            chunks = _chunk_text_for_tutor(text, size=700, overlap=120)
+            for chunk_index, content in enumerate(chunks):
+                piece = f'[{filename}#{chunk_index + 1}] {content}'
+                if total + len(piece) > max_chars:
+                    break
+                selected.append(piece)
+                sources.append(
+                    {
+                        'filename': filename,
+                        'chunk_index': chunk_index,
+                        'score': None,
+                        'snippet': piece[:260],
+                    }
+                )
+                total += len(piece)
+                count += 1
+                if count >= top_k:
+                    break
+            if count >= top_k or total >= max_chars:
+                break
+        return ('\n\n'.join(selected), sources)
+    selected: list[str] = []
+    sources: list[dict[str, Any]] = []
+    total = 0
+    count = 0
     for r in rows:
         content = str(r['content'] or '').strip()
         if not content:
@@ -1551,14 +1637,6 @@ async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_char
         filename = str(r['filename'] or '')
         chunk_index = int(r['chunk_index'] or 0)
         piece = f'[{filename}#{chunk_index + 1}] {content}'
-        cvec = _safe_json_floats(r['embedding_json'])
-        score = _cosine_similarity(qvec, cvec) if qvec and cvec else 0.0
-        scored.append((score, piece, filename, chunk_index))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    selected: list[str] = []
-    sources: list[dict[str, Any]] = []
-    total = 0
-    for score, piece, filename, chunk_index in scored[:top_k]:
         if total + len(piece) > max_chars:
             break
         selected.append(piece)
@@ -1566,12 +1644,38 @@ async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_char
             {
                 'filename': filename,
                 'chunk_index': chunk_index,
-                'score': round(float(score), 6),
+                'score': None,
                 'snippet': piece[:260],
             }
         )
         total += len(piece)
+        count += 1
+        if count >= top_k:
+            break
     return ('\n\n'.join(selected), sources)
+
+
+def _fallback_answer_from_file_context(question: str, file_context: str, file_sources: list[dict[str, Any]]) -> str:
+    lines = [x.strip() for x in file_context.splitlines() if x.strip()]
+    points: list[str] = []
+    for line in lines:
+        cleaned = re.sub(r'^\[[^\]]+\]\s*', '', line).strip()
+        if not cleaned:
+            continue
+        points.append(cleaned[:120])
+        if len(points) >= 3:
+            break
+    if not points:
+        return '我已读取到文件，但未提取到可用文本内容。请确认文件是可解析文本（如 txt/md/pdf）。'
+    refs = []
+    for s in file_sources[:3]:
+        refs.append(f"{s.get('filename', '')}#{int(s.get('chunk_index', 0)) + 1}")
+    ref_text = '，'.join([r for r in refs if r]) or '上传文件片段'
+    out = ['我已读取上传文件内容，基于文件片段给出要点：']
+    for i, p in enumerate(points, 1):
+        out.append(f'{i}. {p}')
+    out.append(f'引用片段：{ref_text}')
+    return '\n'.join(out)
 
 
 def _execute_returning_id(query: str, params: tuple[Any, ...]) -> int:
@@ -1580,5 +1684,7 @@ def _execute_returning_id(query: str, params: tuple[Any, ...]) -> int:
     with get_conn() as conn:
         cur = conn.execute(query, params)
         return int(cur.lastrowid)
+
+
 
 

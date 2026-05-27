@@ -9,7 +9,6 @@ import {
   Circle,
   Database,
   FileText,
-  Link2,
   Lock,
   Paperclip,
   Plus,
@@ -27,7 +26,7 @@ type TabKey = 'auth' | 'headers' | 'config'
 const EMPTY_FORM: McpServicePayload = {
   name: '',
   description: '',
-  transport: 'http',
+  transport: 'stdio',
   endpoint: '',
   command: 'npx',
   args_json: ['-y', '@modelcontextprotocol/server-filesystem', 'D:/Project_building/SparkLearn'],
@@ -104,11 +103,19 @@ export default function TutorMcpStorePage() {
     setError('')
   }
 
-  async function submitForm(event: FormEvent<HTMLFormElement>) {
+async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setFeedback('')
     try {
+      if (form.transport === 'http' && !(form.endpoint || '').trim()) {
+        setError('HTTP 服务必须填写服务端点 URL')
+        return
+      }
+      if (form.transport === 'stdio' && !(form.command || '').trim()) {
+        setError('stdio 服务必须填写 Command')
+        return
+      }
       if (editingId) {
         await api.updateMcpService(editingId, form)
         setFeedback('服务配置已更新')
@@ -256,47 +263,61 @@ export default function TutorMcpStorePage() {
                 <form id="mcp-service-form" onSubmit={submitForm} className="min-h-0 flex-1 overflow-auto p-6 pb-24">
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
-                      <p className="text-xs text-[#8d99ae] mb-2">MCP 服务管理 / 添加 MCP 服务 ({form.transport.toUpperCase()})</p>
-                      <h1 className="text-3xl font-semibold text-[#111827]">添加 MCP 服务 ({form.transport.toUpperCase()})</h1>
-                      <p className="text-sm text-[#7d889f] mt-2">通过 HTTP 协议连接外部 MCP 服务器</p>
+                      <p className="text-xs text-[#8d99ae] mb-2">MCP 服务管理 / 添加 MCP 服务</p>
+                      <h1 className="text-3xl font-semibold text-[#111827]">添加 MCP 服务（{form.transport === 'http' ? '远程 HTTP' : '本地 stdio'}）</h1>
+                      <p className="text-sm text-[#7d889f] mt-2">{form.transport === 'http' ? 'HTTP 只需要 URL/认证/请求头' : 'stdio 只需要 command/args/env'}</p>
                     </div>
                     <button type="button" onClick={() => router.push('/tutor/mcp-store/docs')} className="text-sm text-[#2563eb] whitespace-nowrap">查看文档</button>
                   </div>
 
                   <div className="mt-6 space-y-4">
-                    <StepField index={1} title="服务端点 URL" required>
-                      <input
-                        value={form.endpoint || ''}
-                        onChange={(e) => setForm((p) => ({ ...p, endpoint: e.target.value }))}
-                        placeholder="https://example.com/mcp"
-                        className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
-                        required={form.transport === 'http'}
-                      />
-                      <p className="mt-2 text-xs text-[#8b96ab] inline-flex items-center gap-1"><Lock className="h-3.5 w-3.5" /> 支持 http:// 或 https:// 协议</p>
-                    </StepField>
-
-                    <StepField index={2} title="名称和图标" required>
-                      <div className="grid grid-cols-[1fr_72px] gap-3">
-                        <input
-                          value={form.name || ''}
-                          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                          placeholder="例如：我的 MCP 服务"
-                          className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
-                          required
-                        />
-                        <button type="button" className="h-10 rounded-lg bg-gradient-to-r from-[#4c6bff] to-[#7055f8] text-white inline-flex items-center justify-center"><Link2 className="h-4 w-4" /></button>
+                    <StepField index={1} title="连接方式" required>
+                      <div className="grid grid-cols-2 gap-3 max-[1280px]:grid-cols-1">
+                        <button type="button" onClick={() => setForm((p) => ({ ...p, transport: 'http' }))} className={`h-10 rounded-lg border text-sm ${form.transport === 'http' ? 'border-[#5d78f5] bg-[#eef3ff] text-[#1e40af]' : 'border-[#ced7ea] bg-white text-[#334155]'}`}>远程 HTTP MCP</button>
+                        <button type="button" onClick={() => setForm((p) => ({ ...p, transport: 'stdio' }))} className={`h-10 rounded-lg border text-sm ${form.transport === 'stdio' ? 'border-[#5d78f5] bg-[#eef3ff] text-[#1e40af]' : 'border-[#ced7ea] bg-white text-[#334155]'}`}>本地 stdio MCP</button>
                       </div>
                     </StepField>
 
-                    <StepField index={3} title="服务器标识符" required>
-                      <input
-                        value={form.description || ''}
-                        onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                        placeholder="例如：sparklearn-mcp-server"
-                        className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
-                      />
-                      <p className="mt-2 text-xs text-[#8b96ab]">这是客户端连接到该服务时使用的唯一标识，请确保和服务端配置一致</p>
+                    <StepField index={2} title="服务基本信息" required>
+                      <div className="grid grid-cols-1 gap-3">
+                        <input
+                          value={form.name || ''}
+                          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                          placeholder="显示名称，例如：Tavily Web Search / Filesystem MCP"
+                          className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
+                          required
+                        />
+                        <input
+                          value={form.description || ''}
+                          onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                          placeholder="服务标识符（小写英文/数字/连字符），例如：tavily-web-search"
+                          className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
+                        />
+                      </div>
                     </StepField>
+
+                    {form.transport === 'http' ? (
+                      <StepField index={3} title="服务端点 URL" required>
+                        <input
+                          value={form.endpoint || ''}
+                          onChange={(e) => setForm((p) => ({ ...p, endpoint: e.target.value }))}
+                          placeholder="https://example.com/mcp"
+                          className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
+                          required
+                        />
+                        <p className="mt-2 text-xs text-[#8b96ab] inline-flex items-center gap-1"><Lock className="h-3.5 w-3.5" /> HTTP 必填 URL；stdio 不需要 URL。</p>
+                      </StepField>
+                    ) : (
+                      <StepField index={3} title="本地启动参数" required>
+                        <PlainField label="Command（必填）">
+                          <input value={form.command || ''} onChange={(e) => setForm((p) => ({ ...p, command: e.target.value }))} className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm" required />
+                        </PlainField>
+                        <div className="mt-3" />
+                        <PlainField label="Args（JSON 数组）"><textarea value={JSON.stringify(form.args_json || [])} onChange={(e) => setForm((p) => ({ ...p, args_json: parseArray(e.target.value) }))} className="min-h-[90px] w-full rounded-lg border border-[#d5ddef] bg-white px-3 py-2 text-sm" /></PlainField>
+                        <div className="mt-3" />
+                        <PlainField label="Env（JSON 对象）"><textarea value={JSON.stringify(form.env_json || {})} onChange={(e) => setForm((p) => ({ ...p, env_json: parseObject(e.target.value) }))} className="min-h-[90px] w-full rounded-lg border border-[#d5ddef] bg-white px-3 py-2 text-sm" /></PlainField>
+                      </StepField>
+                    )}
                   </div>
 
                   <div className="mt-6 border-b border-[#e8edf7] grid grid-cols-3">
@@ -345,9 +366,15 @@ export default function TutorMcpStorePage() {
 
                     {activeTab === 'config' ? (
                       <div className="rounded-xl border border-[#e8edf7] bg-[#fafcff] p-4 space-y-3">
-                        <PlainField label="Command（stdio）"><input value={form.command || ''} onChange={(e) => setForm((p) => ({ ...p, command: e.target.value }))} className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm" /></PlainField>
-                        <PlainField label="Args（JSON 数组）"><textarea value={JSON.stringify(form.args_json || [])} onChange={(e) => setForm((p) => ({ ...p, args_json: parseArray(e.target.value) }))} className="min-h-[90px] w-full rounded-lg border border-[#d5ddef] bg-white px-3 py-2 text-sm" /></PlainField>
-                        <PlainField label="Env（JSON 对象）"><textarea value={JSON.stringify(form.env_json || {})} onChange={(e) => setForm((p) => ({ ...p, env_json: parseObject(e.target.value) }))} className="min-h-[90px] w-full rounded-lg border border-[#d5ddef] bg-white px-3 py-2 text-sm" /></PlainField>
+                        <PlainField label="启动超时（ms）">
+                          <input type="number" value={form.startup_timeout_ms ?? 60000} onChange={(e) => setForm((p) => ({ ...p, startup_timeout_ms: Number(e.target.value || 0) }))} className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm" />
+                        </PlainField>
+                        <PlainField label="工具调用超时（ms）">
+                          <input type="number" value={form.tool_timeout_ms ?? 30000} onChange={(e) => setForm((p) => ({ ...p, tool_timeout_ms: Number(e.target.value || 0) }))} className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm" />
+                        </PlainField>
+                        <PlainField label="长任务超时（ms）">
+                          <input type="number" value={form.long_task_timeout_ms ?? 120000} onChange={(e) => setForm((p) => ({ ...p, long_task_timeout_ms: Number(e.target.value || 0) }))} className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm" />
+                        </PlainField>
                       </div>
                     ) : null}
                   </div>

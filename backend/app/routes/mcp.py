@@ -348,7 +348,29 @@ async def toggle_service(service_id: str, payload: McpTogglePayload):
     if not row:
         return fail("service not found")
     if payload.enabled and row["last_status"] != "online":
-        return fail("service must pass test before enabled")
+        try:
+            result = await _mcp_test(row)
+            now = now_iso()
+            execute(
+                """
+                UPDATE mcp_services
+                SET last_status = 'online', last_error = '', last_tested_at = ?, updated_at = ?
+                WHERE id = ? AND owner_id = ?
+                """,
+                (now, now, service_id, settings.single_user_id),
+            )
+        except Exception as exc:
+            err = str(exc)
+            now = now_iso()
+            execute(
+                """
+                UPDATE mcp_services
+                SET last_status = 'offline', last_error = ?, last_tested_at = ?, updated_at = ?
+                WHERE id = ? AND owner_id = ?
+                """,
+                (err[:500], now, now, service_id, settings.single_user_id),
+            )
+            return fail(f"enable failed: {err}")
     execute(
         "UPDATE mcp_services SET enabled = ?, updated_at = ? WHERE id = ? AND owner_id = ?",
         (1 if payload.enabled else 0, now_iso(), service_id, settings.single_user_id),

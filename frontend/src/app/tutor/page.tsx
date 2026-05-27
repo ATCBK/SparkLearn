@@ -140,6 +140,7 @@ export default function TutorPage() {
   const [roleDraft, setRoleDraft] = useState<RoleDraft>(EMPTY_ROLE_DRAFT)
   const [savingRole, setSavingRole] = useState(false)
   const [trustPanelOpenByMsg, setTrustPanelOpenByMsg] = useState<Record<string, boolean>>({})
+  const [mcpCallsByMsg, setMcpCallsByMsg] = useState<Record<string, Array<{ serviceName: string; toolName: string }>>>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -492,6 +493,7 @@ export default function TutorPage() {
       userMsg,
       { id: assistantId, role: 'assistant', content: '', timestamp: new Date().toISOString(), conversationId: convId },
     ])
+    setMcpCallsByMsg((prev) => ({ ...prev, [assistantId]: [] }))
 
     setInput('')
     setStreaming(true)
@@ -524,6 +526,13 @@ export default function TutorPage() {
           },
           onTrustMeta: (trustMeta: Record<string, unknown>) => {
             setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, trustMeta } : m)))
+          },
+          onMcpCall: (call) => {
+            setMcpCallsByMsg((prev) => {
+              const list = prev[assistantId] || []
+              const next = [...list, { serviceName: call.serviceName || call.serviceId, toolName: call.toolName }]
+              return { ...prev, [assistantId]: next }
+            })
           },
           onHub: (evt) => {
             setHubMessages((prev) => {
@@ -615,7 +624,7 @@ export default function TutorPage() {
             <div className="flex items-center gap-2.5 px-3 py-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center text-xs font-bold text-white">李</div>
               <div>
-                <p className="text-sm font-medium text-[#1e293b]">鏉庢槑</p>
+                <p className="text-sm font-medium text-[#1e293b]">李明</p>
                 <p className="text-[11px] text-[#94a3b8]">学习平台</p>
               </div>
             </div>
@@ -761,6 +770,18 @@ export default function TutorPage() {
                               {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                               <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
                             </button>
+                            {!!mcpCallsByMsg[msg.id]?.length && (
+                              <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2">
+                                <p className="text-xs font-medium text-[#334155]">MCP 调用</p>
+                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                  {mcpCallsByMsg[msg.id].map((c, i) => (
+                                    <span key={`${c.serviceName}-${c.toolName}-${i}`} className="inline-flex items-center rounded-md border border-[#dbe4f0] bg-white px-2 py-0.5 text-xs text-[#475569]">
+                                      {c.serviceName} / {c.toolName}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             {!imageDataMatch && (msg.confidence || (msg.citations && msg.citations.length > 0)) && (
                               <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-white">
                                 <button
@@ -826,7 +847,20 @@ export default function TutorPage() {
           {/* 搴曢儴杈撳叆鍖?*/}
           <div className="shrink-0 px-6 pb-4 pt-2">
             <div className="max-w-[800px] mx-auto">
-              {pendingFiles.length > 0 && (<div className="flex flex-wrap gap-2 mb-2">{pendingFiles.map((f) => (<span key={f.id} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-[#f8fafc] border border-[#e2e8f0]"><FileText className="w-3 h-3" />{f.filename}<button onClick={() => removePendingFile(f.id)}><X className="w-3 h-3" /></button></span>))}</div>)}
+              {pendingFiles.length > 0 && (
+                <div className="mb-2 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2">
+                  <p className="mb-2 text-xs font-medium text-[#334155]">已上传文件（本次提问将携带）{pendingFiles.length} 个</p>
+                  <div className="flex flex-wrap gap-2">
+                    {pendingFiles.map((f) => (
+                      <span key={f.id} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-white border border-[#dbe3ef] text-[#334155]">
+                        <FileText className="w-3 h-3" />
+                        {f.filename}
+                        <button onClick={() => removePendingFile(f.id)} className="text-[#94a3b8] hover:text-[#ef4444]"><X className="w-3 h-3" /></button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm px-4 py-3">
                 <div className="flex items-center gap-3">
                   <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，提任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />

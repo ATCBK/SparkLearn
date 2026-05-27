@@ -285,6 +285,7 @@ export async function sendMessage(
     onConfidence?: (confidence: ConfidenceInfo) => void
     onCitations?: (citations: CitationItem[]) => void
     onTrustMeta?: (trustMeta: Record<string, unknown>) => void
+    onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string }) => void
     onDone?: () => void
   },
 ): Promise<Message> {
@@ -368,6 +369,14 @@ export async function sendMessage(
     if (evt.type === 'trust_meta') {
       latestTrustMeta = evt.payload
       handlers?.onTrustMeta?.(evt.payload)
+      return
+    }
+    if (evt.type === 'mcp_call') {
+      handlers?.onMcpCall?.({
+        serviceId: String(evt.payload.service_id || ''),
+        serviceName: String(evt.payload.service_name || ''),
+        toolName: String(evt.payload.tool_name || ''),
+      })
       return
     }
     if (evt.type === 'done') handlers?.onDone?.()
