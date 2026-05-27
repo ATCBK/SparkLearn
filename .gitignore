@@ -23,3 +23,7 @@ Thumbs.db
 # Temp browser profiles
 .tmp-chrome-profile/
 
+# Local-only runtimes
+.venv-nanobot/
+nanobot-main/
+

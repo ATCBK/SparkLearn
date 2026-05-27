@@ -1,5 +1,4 @@
 from pathlib import Path
-from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -87,31 +86,8 @@ class Settings(BaseSettings):
     cors_origin: str = "http://localhost:3000"
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
-    # Nanobot pet integration
-    nanobot_pet_enabled: bool = False
-    nanobot_auto_start: bool = True
-    nanobot_api_base_url: str = "http://127.0.0.1:8900"
-    nanobot_api_chat_path: str = "/v1/chat/completions"
-    nanobot_api_model: str = "nanobot"
-    nanobot_api_timeout_sec: int = 45
-    nanobot_pet_session_prefix: str = "sparklearn-pet"
-    nanobot_project_dir: Path = ROOT_DIR / "nanobot-main"
-    nanobot_python_exe: Path | None = ROOT_DIR / ".venv-nanobot" / "Scripts" / "python.exe"
-    nanobot_config_path: Path | None = None
-    nanobot_workspace: Path | None = None
-
     data_dir: Path = ROOT_DIR / "backend" / "data"
     db_path: Path = ROOT_DIR / "backend" / "data" / "db" / "sparklearn.db"
-
-    @property
-    def nanobot_api_host(self) -> str:
-        parsed = urlparse(self.nanobot_api_base_url)
-        return parsed.hostname or "127.0.0.1"
-
-    @property
-    def nanobot_api_port(self) -> int:
-        parsed = urlparse(self.nanobot_api_base_url)
-        return parsed.port or 8900
 
 
 settings = Settings()

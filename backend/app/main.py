@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import init_db
-from .nanobot_runtime import ensure_nanobot_runtime, stop_nanobot_runtime
 from .routes.learning import router as learning_router
 from .routes.memory import router as memory_router
 from .routes.knowledge import router as knowledge_router
@@ -52,11 +51,6 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup() -> None:
         init_db()
-        app.state.nanobot_runtime = await ensure_nanobot_runtime()
-
-    @app.on_event("shutdown")
-    async def on_shutdown() -> None:
-        await stop_nanobot_runtime(getattr(app.state, "nanobot_runtime", None))
 
     @app.get("/health")
     async def health():

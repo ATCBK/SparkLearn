@@ -2,7 +2,6 @@
 import math
 import re
 import uuid
-import asyncio
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
@@ -637,9 +636,11 @@ async def tutor_chat(req: TutorReq):
                     chunk = str(payload.get('content', ''))
                     if chunk:
                         answer_parts.append(chunk)
-                        for sub in _chunk_text(chunk, 24):
-                            yield ('text', {'content': sub})
-                            await asyncio.sleep(0.015)
+                        if len(chunk) <= 64:
+                            yield ('text', {'content': chunk})
+                        else:
+                            for sub in _chunk_text(chunk, 64):
+                                yield ('text', {'content': sub})
                 elif evt_type == 'error':
                     yield ('error', payload)
             answer = ''.join(answer_parts).strip()

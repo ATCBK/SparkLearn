@@ -991,3 +991,15 @@
 {"ts": "2026-05-27T00:30:23.691880Z", "type": "memory_updated", "conversation_id": 14, "changed": 0, "version": 1}
 {"ts": "2026-05-27T00:30:34.281295Z", "type": "tutor_chat", "conversation_id": 14, "role_id": 1, "question": "你是谁？"}
 {"ts": "2026-05-27T00:30:34.293826Z", "type": "memory_updated", "conversation_id": 14, "changed": 0, "version": 1}
+{"ts": "2026-05-27T00:37:23.494879Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7361ea2e", "use_llm": false}
+{"ts": "2026-05-27T00:37:23.528725Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1bc960aa", "use_llm": false}
+{"ts": "2026-05-27T00:37:23.550543Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "fe3449f2", "use_llm": false}
+{"ts": "2026-05-27T00:37:23.563560Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8885bcae", "use_llm": false}
+{"ts": "2026-05-27T00:37:23.577739Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1e3ac350", "use_llm": false}
+{"ts": "2026-05-27T00:37:23.589740Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "733b946b", "use_llm": false}
+{"ts": "2026-05-27T00:37:40.651902Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "76c0e676", "use_llm": false}
+{"ts": "2026-05-27T00:37:40.659365Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d1e52f92", "use_llm": false}
+{"ts": "2026-05-27T00:38:45.012556Z", "type": "quiz_generated", "count": 4, "chapter": "test", "batch_id": "61ec4379", "use_llm": false}
+{"ts": "2026-05-27T00:39:58.469655Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "5666e83b", "use_llm": false}
+{"ts": "2026-05-27T00:40:20.338236Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "489f4621", "use_llm": false}
+{"ts": "2026-05-27T00:40:31.246516Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "017e0905", "use_llm": false}
