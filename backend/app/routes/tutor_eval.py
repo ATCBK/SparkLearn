@@ -36,6 +36,7 @@ class TutorReq(BaseModel):
     workshop_enabled: bool = False
     workshop_role_ids: list[int] = []
     knowledge_file_ids: list[int] = []
+    open_mode: bool = False
 
 
 class EvalRefreshReq(BaseModel):
@@ -605,57 +606,85 @@ async def tutor_chat(req: TutorReq):
                 yield ('text', {'content': chunk})
             yield ('workshop_phase', {'phase': 'synthesis', 'status': 'done'})
         else:
-            trust_plan = await trust_answer_controller.plan(
-                TrustAnswerRequest(
-                    scene='tutor',
-                    query=req.message,
+            if req.open_mode:
+                assistant_parts: list[str] = []
+                async for evt_type, payload in spark_lite.stream_chat_events(
+                    req.message,
                     mode=req.mode,
-                    role_prompt=role_prompt,
-                    page_prompt=page_prompt,
-                    memory_prompt=memory_prompt,
-                    conversation_id=conversation_id,
-                    file_ids=req.file_ids or [],
-                    knowledge_file_ids=req.knowledge_file_ids or [],
-                    user_file_sources=file_sources,
-                    use_profile=True,
-                )
-            )
-            confidence_payload = render_confidence(
-                float(trust_plan['confidence_score']),
-                str(trust_plan['confidence_level']),
-                list(dict(trust_plan['trust_meta']).get('reason_codes', [])),
-            )
-            citations_payload = list(trust_plan['citations'])
-            trust_meta_payload = dict(trust_plan['trust_meta'])
-            yield ('confidence', confidence_payload)
-            yield ('trust_meta', trust_meta_payload)
-            yield ('citations', {'items': citations_payload})
-            answer_parts: list[str] = []
-            async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=req.mode, history=[]):
-                if evt_type == 'text':
-                    chunk = str(payload.get('content', ''))
-                    if chunk:
-                        answer_parts.append(chunk)
-                        if len(chunk) <= 64:
+                    history=history_for_model,
+                ):
+                    if evt_type == 'text':
+                        chunk = str(payload.get('content', ''))
+                        if chunk:
+                            assistant_parts.append(chunk)
                             yield ('text', {'content': chunk})
-                        else:
-                            for sub in _chunk_text(chunk, 64):
-                                yield ('text', {'content': sub})
-                elif evt_type == 'error':
-                    yield ('error', payload)
-            answer = ''.join(answer_parts).strip()
-            if not answer:
-                answer = '当前证据不足，我先给出一个方向性建议：请补充题目或课程资料后我再给你更准确的结论。'
-                yield ('text', {'content': answer})
+                    elif evt_type == 'error':
+                        yield ('error', payload)
+                answer = ''.join(assistant_parts).strip()
+                if not answer:
+                    answer = '我先给你一个直觉性回答：可以补充更多上下文让我继续细化。'
+                    yield ('text', {'content': answer})
+            else:
+                trust_plan = await trust_answer_controller.plan(
+                    TrustAnswerRequest(
+                        scene='tutor',
+                        query=req.message,
+                        mode=req.mode,
+                        role_prompt=role_prompt,
+                        page_prompt=page_prompt,
+                        memory_prompt=memory_prompt,
+                        conversation_id=conversation_id,
+                        file_ids=req.file_ids or [],
+                        knowledge_file_ids=req.knowledge_file_ids or [],
+                        user_file_sources=file_sources,
+                        use_profile=True,
+                    )
+                )
+                confidence_payload = render_confidence(
+                    float(trust_plan['confidence_score']),
+                    str(trust_plan['confidence_level']),
+                    list(dict(trust_plan['trust_meta']).get('reason_codes', [])),
+                )
+                citations_payload = list(trust_plan['citations'])
+                trust_meta_payload = dict(trust_plan['trust_meta'])
+                yield ('confidence', confidence_payload)
+                yield ('trust_meta', trust_meta_payload)
+                yield ('citations', {'items': citations_payload})
+                answer_parts: list[str] = []
+                async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=req.mode, history=[]):
+                    if evt_type == 'text':
+                        chunk = str(payload.get('content', ''))
+                        if chunk:
+                            answer_parts.append(chunk)
+                            if len(chunk) <= 64:
+                                yield ('text', {'content': chunk})
+                            else:
+                                for sub in _chunk_text(chunk, 64):
+                                    yield ('text', {'content': sub})
+                    elif evt_type == 'error':
+                        yield ('error', payload)
+                answer = ''.join(answer_parts).strip()
+                if not answer:
+                    answer = '当前证据不足，我先给出一个方向性建议：请补充题目或课程资料后我再给你更准确的结论。'
+                    yield ('text', {'content': answer})
         assistant_id = _execute_returning_id(
             """
-            INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, created_at)
-            VALUES (?, ?, 'assistant', ?, '[]', ?)
+            INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, meta_json, created_at)
+            VALUES (?, ?, 'assistant', ?, '[]', ?, ?)
             """,
             (
                 conversation_id,
                 settings.single_user_id,
                 answer,
+                json.dumps(
+                    {
+                        'confidence': confidence_payload,
+                        'citations': citations_payload,
+                        'trust_meta': trust_meta_payload,
+                        'open_mode': bool(req.open_mode),
+                    },
+                    ensure_ascii=False,
+                ),
                 now_iso(),
             ),
         )
@@ -723,7 +752,7 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
 
     rows = fetch_all(
         """
-        SELECT id, sender_role, content, created_at, conversation_id, file_ids
+        SELECT id, sender_role, content, created_at, conversation_id, file_ids, meta_json
         FROM tutor_messages
         WHERE user_id = ? AND conversation_id = ?
         ORDER BY id DESC
@@ -735,6 +764,7 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
     data = []
     for row in reversed(rows):
         files = _resolve_file_names(_parse_json_list(row['file_ids']))
+        meta = _parse_json_dict(row['meta_json']) if 'meta_json' in row.keys() else {}
         data.append(
             {
                 'id': row['id'],
@@ -743,6 +773,10 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
                 'timestamp': row['created_at'],
                 'conversation_id': row['conversation_id'],
                 'file_names': files,
+                'confidence': meta.get('confidence') if isinstance(meta.get('confidence'), dict) else None,
+                'citations': meta.get('citations') if isinstance(meta.get('citations'), list) else [],
+                'trust_meta': meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {},
+                'open_mode': bool(meta.get('open_mode', False)),
             }
         )
 
@@ -858,6 +892,7 @@ def _build_page_context_prompt(page_context: dict[str, Any] | None) -> str:
 
 def _message_row_to_dict(row) -> dict[str, Any]:
     file_ids = _parse_json_list(row['file_ids'])
+    meta = _parse_json_dict(row['meta_json']) if 'meta_json' in row.keys() else {}
     return {
         'id': row['id'],
         'conversation_id': row['conversation_id'],
@@ -865,6 +900,10 @@ def _message_row_to_dict(row) -> dict[str, Any]:
         'content': row['content'],
         'file_ids': file_ids,
         'file_names': _resolve_file_names(file_ids),
+        'confidence': meta.get('confidence') if isinstance(meta.get('confidence'), dict) else None,
+        'citations': meta.get('citations') if isinstance(meta.get('citations'), list) else [],
+        'trust_meta': meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {},
+        'open_mode': bool(meta.get('open_mode', False)),
         'created_at': row['created_at'],
     }
 
@@ -1420,6 +1459,16 @@ def _chunk_text_for_tutor(text: str, size: int = 700, overlap: int = 120) -> lis
     if buf:
         out.append(buf)
     return out
+
+
+def _parse_json_dict(raw: str | None) -> dict[str, Any]:
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 async def _index_tutor_file(*, file_id: int, stored_path: Path, filename: str, mime_type: str) -> None:

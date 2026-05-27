@@ -274,6 +274,7 @@ export async function sendMessage(
     mode?: string
     workshopEnabled?: boolean
     workshopRoleIds?: number[]
+    openMode?: boolean
     pageContext?: Record<string, unknown>
   },
   handlers?: {
@@ -299,6 +300,7 @@ export async function sendMessage(
     file_ids: options?.fileIds || [],
     workshop_enabled: Boolean(options?.workshopEnabled),
     workshop_role_ids: options?.workshopRoleIds || [],
+    open_mode: Boolean(options?.openMode),
     page_context: options?.pageContext || undefined,
   }, (evt) => {
     if (evt.type === 'text') {
@@ -393,6 +395,22 @@ export async function getChatHistory(conversationId?: number): Promise<Message[]
     timestamp: m.timestamp,
     conversationId: m.conversation_id,
     fileNames: Array.isArray(m.file_names) ? m.file_names : [],
+    confidence: m.confidence && typeof m.confidence === 'object' ? {
+      score: Number(m.confidence.score ?? 0),
+      level: String(m.confidence.level || 'low'),
+      color: String(m.confidence.color || 'red'),
+      label: String(m.confidence.label || 'Low confidence'),
+      message: String(m.confidence.message || ''),
+      reasonCodes: Array.isArray(m.confidence.reason_codes) ? m.confidence.reason_codes.map((x: unknown) => String(x)) : [],
+    } : undefined,
+    citations: Array.isArray(m.citations) ? m.citations.map((x: any) => ({
+      id: String(x.id || ''),
+      label: String(x.label || ''),
+      sourceType: String(x.source_type || ''),
+      snippet: String(x.snippet || ''),
+      score: x.score !== undefined ? Number(x.score) : undefined,
+    })) : [],
+    trustMeta: m.trust_meta && typeof m.trust_meta === 'object' ? m.trust_meta : undefined,
   }))
 }
 

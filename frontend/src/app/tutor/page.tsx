@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -84,20 +84,20 @@ function parseWorkshopSummary(content: string): WorkshopSummary | null {
   const optimizedQuestion = headIdx.q >= 0 ? getSection(headIdx.q, qEnd, '优化后问题') : ''
   const coreConclusion = getSection(headIdx.c, headIdx.s, '核心结论')
   const stepsRaw = getSection(headIdx.s, headIdx.f, '分步行动清单')
-  const followRaw = full.slice(headIdx.f + '可追问问题'.length).replace(/^\(\d+条\)/, '').replace(/^[:：\-\s]+/, '').trim()
+  const followRaw = full.slice(headIdx.f + '可追问问题'.length).replace(/^\(\d+条\)/, '').replace(/^[:：-\s]+/, '').trim()
 
   const splitToItems = (raw: string) => {
     if (!raw) return []
     const byLine = raw.split('\n').map((x) => x.trim()).filter(Boolean)
     if (byLine.length > 1) {
       return byLine
-        .map((x) => x.replace(/^[\-\*\d]+\s*[\.\)\、]?\s*/, '').trim())
+        .map((x) => x.replace(/^[\-*\d]+\s*[.)、]?\s*/, '').trim())
         .filter(Boolean)
     }
     const oneLine = byLine[0] || raw.trim()
     return oneLine
-      .split(/\s+(?=[a-zA-Z]\.)|\s+(?=\d+[\.\)\、])/g)
-      .map((x) => x.replace(/^[\-\*\dA-Za-z]+\s*[\.\)\、]?\s*/, '').trim())
+      .split(/\s+(?=[a-zA-Z]\.)|\s+(?=\d+[.)、])/g)
+      .map((x) => x.replace(/^[\-\*\dA-Za-z]+\s*[\.\)、]?\s*/, '').trim())
       .filter(Boolean)
   }
 
@@ -128,6 +128,7 @@ export default function TutorPage() {
 
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [workshopEnabled, setWorkshopEnabled] = useState(false)
+  const [openMode, setOpenMode] = useState(false)
   const [workshopRoleIds, setWorkshopRoleIds] = useState<number[]>([])
   const [hubMessages, setHubMessages] = useState<WorkshopHubEvent[]>([])
   const [workshopPhase, setWorkshopPhase] = useState<{ phase: string; round?: number; status: string } | null>(null)
@@ -271,7 +272,7 @@ export default function TutorPage() {
   }, [])
 
   useEffect(() => {
-    // 使用 requestAnimationFrame 确保 DOM 已更新后再滚动
+    // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
     requestAnimationFrame(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     })
@@ -507,6 +508,7 @@ export default function TutorPage() {
           fileIds: pendingFiles.map((f) => f.id),
           workshopEnabled,
           workshopRoleIds,
+          openMode,
         },
         {
           onText: (chunk) => {
@@ -567,18 +569,18 @@ export default function TutorPage() {
   return (
     <>
       <div className="h-screen flex bg-[#f5f7fa]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-        {/* ═══ 左侧导航栏（浅色） ═══ */}
+        {/* 左侧导航栏 */}
         <nav className="w-[200px] shrink-0 bg-[#f0f4ff] border-r border-[#e2e8f0] flex flex-col">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="p-3 border-b border-[#e2e8f0]"><div className="flex items-center gap-2.5"><img src="/sparklearn-logo-official.png" alt="" className="h-8 w-8 object-contain" /><div><div className="text-xs font-bold text-[#1e293b]">学而思 SparkLearn</div><div className="text-[10px] text-[#94a3b8]">个性化学习闭环</div></div></div></div>
-          {/* 新建对话按钮 */}
+          <div className="p-3 border-b border-[#e2e8f0]"><div className="flex items-center gap-2.5"><img src="/sparklearn-logo-official.png" alt="" className="h-8 w-8 object-contain" /><div><div className="text-xs font-bold text-[#1e293b]">SparkLearn</div><div className="text-[10px] text-[#94a3b8]">个性化学习闭环</div></div></div></div>
+          {/* 鏂板缓瀵硅瘽鎸夐挳 */}
           <div className="p-3">
             <button onClick={() => void handleCreateConversation()} className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-sm font-semibold transition-colors shadow-sm">
               <Plus className="w-4 h-4" /> 新建对话
             </button>
           </div>
 
-          {/* 导航菜单 */}
+          {/* 瀵艰埅鑿滃崟 */}
           <div className="px-3 space-y-0.5 flex-1">
             <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#2563eb] text-white text-sm font-medium shadow-sm">
               <Sparkles className="w-4 h-4" /> 学习空间
@@ -603,7 +605,7 @@ export default function TutorPage() {
             </button>
           </div>
 
-          {/* 底部 */}
+          {/* 搴曢儴 */}
           <div className="p-3 border-t border-[#e2e8f0] space-y-2">
             <button onClick={() => router.push('/')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <ArrowLeft className="w-4 h-4" /> 返回主平台
@@ -611,14 +613,14 @@ export default function TutorPage() {
             <div className="flex items-center gap-2.5 px-3 py-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center text-xs font-bold text-white">李</div>
               <div>
-                <p className="text-sm font-medium text-[#1e293b]">李明</p>
+                <p className="text-sm font-medium text-[#1e293b]">鏉庢槑</p>
                 <p className="text-[11px] text-[#94a3b8]">学习平台</p>
               </div>
             </div>
           </div>
         </nav>
 
-        {/* ═══ 中间对话列表栏 ═══ */}
+        {/* 中间对话列表栏 */}
         <div className="w-[280px] shrink-0 bg-white border-r border-[#eef1f5] flex flex-col">
           {/* 搜索 */}
           <div className="p-3 border-b border-[#eef1f5]">
@@ -641,7 +643,7 @@ export default function TutorPage() {
             </div>
           )}
 
-          {/* 对话列表 */}
+          {/* 瀵硅瘽鍒楄〃 */}
           <div className="flex-1 min-h-0 overflow-y-auto">
             {conversations.map((conv) => (
               <div key={conv.id} onClick={() => void switchConversation(conv)} className={cn('group px-4 py-3 border-b border-[#f5f7fa] cursor-pointer transition-colors', currentConversationId === conv.id ? 'bg-[#eff6ff]' : 'hover:bg-[#f8fafc]')}>
@@ -666,11 +668,11 @@ export default function TutorPage() {
           </div>
         </div>
 
-        {/* ═══ 主对话区 ═══ */}
+        {/* 主对话区 */}
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
           {actionError && <div className="px-6 pt-3"><p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{actionError}</p></div>}
 
-          {/* 对话标题栏 */}
+          {/* 瀵硅瘽鏍囬鏍?*/}
           {currentConversation && (
             <div className="px-6 py-3 border-b border-[#eef1f5] flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#1e293b]">{currentConversation.title}</h2>
@@ -678,14 +680,14 @@ export default function TutorPage() {
             </div>
           )}
 
-          {/* 消息区域 */}
+          {/* 娑堟伅鍖哄煙 */}
           <div className="flex-1 min-h-0 overflow-y-auto">
             {!hasInteracted ? (
               <div className="h-full flex flex-col items-center justify-center px-6">
                 <div className="max-w-[560px] w-full text-center">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] shadow-lg mb-4"><Sparkles className="w-8 h-8 text-white" /></div>
                   <h2 className="text-2xl font-semibold text-[#1e293b] mb-2">有什么可以帮你的？</h2>
-                  <p className="text-[#64748b] text-sm mb-6">和 AI 对话，问任何学习问题</p>
+                  <p className="text-[#64748b] text-sm mb-6">和 AI 对话，提任何学习问题</p>
                 </div>
               </div>
             ) : (
@@ -720,6 +722,15 @@ export default function TutorPage() {
                               </div>
                             )}
                             {/* TTS 播报按钮 */}
+                            <button
+                              onClick={() => void playTts(msg.id, msg.content)}
+                              disabled={ttsLoading === msg.id}
+                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
+                              title="语音播报"
+                            >
+                              {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                              <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
+                            </button>
                             {(msg.confidence || (msg.citations && msg.citations.length > 0)) && (
                               <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-white">
                                 <button
@@ -770,15 +781,6 @@ export default function TutorPage() {
                                 )}
                               </div>
                             )}
-                            <button
-                              onClick={() => void playTts(msg.id, msg.content)}
-                              disabled={ttsLoading === msg.id}
-                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
-                              title="语音播报"
-                            >
-                              {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                              <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
-                            </button>
                           </div>
                         </div>
                       )}
@@ -791,29 +793,48 @@ export default function TutorPage() {
             )}
           </div>
 
-          {/* 底部输入区 */}
+          {/* 搴曢儴杈撳叆鍖?*/}
           <div className="shrink-0 px-6 pb-4 pt-2">
             <div className="max-w-[800px] mx-auto">
               {pendingFiles.length > 0 && (<div className="flex flex-wrap gap-2 mb-2">{pendingFiles.map((f) => (<span key={f.id} className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-[#f8fafc] border border-[#e2e8f0]"><FileText className="w-3 h-3" />{f.filename}<button onClick={() => removePendingFile(f.id)}><X className="w-3 h-3" /></button></span>))}</div>)}
               <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，问任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
+                  <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，提任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
                   <button onClick={toggleVoiceInput} className={cn('w-10 h-10 rounded-full flex items-center justify-center transition-colors', recording ? 'bg-red-500 text-white animate-pulse' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#1e293b]')} title={recording ? '停止录音' : '语音输入'}>{recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</button>
                   <button onClick={() => void handleSend()} disabled={(!input.trim() && pendingFiles.length === 0) || streaming} className="w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center hover:bg-[#1d4ed8] disabled:opacity-30 transition-colors"><Send className="w-4 h-4" /></button>
                 </div>
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#f1f5f9]">
                   <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handlePickFiles(e.target.files)} />
-                  <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors"><Paperclip className="w-3.5 h-3.5" /> 上传文件</button>
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors" onClick={() => applySuggestion('帮我讲解这道题')}><Sparkles className="w-3.5 h-3.5" /> 讲题</button>
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors" onClick={() => applySuggestion('给我出几道练习题')}><FileText className="w-3.5 h-3.5" /> 出题</button>
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors" onClick={() => applySuggestion('请总结这份文档的要点')}><FileText className="w-3.5 h-3.5" /> 文档总结</button>
+                  <div className="inline-flex rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setOpenMode(false)}
+                      className={cn(
+                        'px-3 py-1 text-xs rounded-md transition-colors',
+                        !openMode ? 'bg-white text-[#1e293b] shadow-sm' : 'text-[#64748b]',
+                      )}
+                    >
+                      可信模式
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOpenMode(true)}
+                      className={cn(
+                        'px-3 py-1 text-xs rounded-md transition-colors',
+                        openMode ? 'bg-white text-[#1e293b] shadow-sm' : 'text-[#64748b]',
+                      )}
+                    >
+                      开放模式
+                    </button>
+                  </div>
+                  <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors"><Paperclip className="w-3.5 h-3.5" /> 上传文档</button>
                 </div>
               </div>
             </div>
           </div>
         </main>
 
-        {/* ═══ 右侧面板 ═══ */}
+        {/* 右侧面板 */}
         <aside className="w-[280px] shrink-0 bg-white border-l border-[#eef1f5] overflow-y-auto p-4 space-y-5 max-[1200px]:hidden">
           {/* 快捷功能 */}
           <section>
@@ -873,7 +894,7 @@ export default function TutorPage() {
             <div className="space-y-3">
               <div><label className="text-xs text-[#64748b] mb-1 block">角色名称</label><input className="w-full border border-[#e2e8f0] rounded-xl px-3 py-2.5 text-sm focus:border-[#2563eb] focus:outline-none" placeholder="例如：严谨算法导师" value={roleDraft.name} onChange={(e) => setRoleDraft((p) => ({ ...p, name: e.target.value }))} /></div>
               <div><label className="text-xs text-[#64748b] mb-1 block">Persona</label><textarea className="w-full border border-[#e2e8f0] rounded-xl px-3 py-2.5 text-sm min-h-[60px] focus:border-[#2563eb] focus:outline-none" placeholder="角色个性与能力定位" value={roleDraft.persona} onChange={(e) => setRoleDraft((p) => ({ ...p, persona: e.target.value }))} /></div>
-              <div><label className="text-xs text-[#64748b] mb-1 block">背景设定</label><textarea className="w-full border border-[#e2e8f0] rounded-xl px-3 py-2.5 text-sm min-h-[60px] focus:border-[#2563eb] focus:outline-none" placeholder="适用人群、场景" value={roleDraft.background} onChange={(e) => setRoleDraft((p) => ({ ...p, background: e.target.value }))} /></div>
+              <div><label className="text-xs text-[#64748b] mb-1 block">背景设定</label><textarea className="w-full border border-[#e2e8f0] rounded-xl px-3 py-2.5 text-sm min-h-[60px] focus:border-[#2563eb] focus:outline-none" placeholder="适用人群、教学场景" value={roleDraft.background} onChange={(e) => setRoleDraft((p) => ({ ...p, background: e.target.value }))} /></div>
               <div><label className="text-xs text-[#64748b] mb-1 block">风格指南</label><textarea className="w-full border border-[#e2e8f0] rounded-xl px-3 py-2.5 text-sm min-h-[60px] focus:border-[#2563eb] focus:outline-none" placeholder="回答风格、结构偏好" value={roleDraft.styleGuide} onChange={(e) => setRoleDraft((p) => ({ ...p, styleGuide: e.target.value }))} /></div>
               <div><label className="text-xs text-[#64748b] mb-1 block">规则约束</label><textarea className="w-full border border-[#e2e8f0] rounded-xl px-3 py-2.5 text-sm min-h-[60px] focus:border-[#2563eb] focus:outline-none" placeholder="不可做什么，必须做什么" value={roleDraft.rules} onChange={(e) => setRoleDraft((p) => ({ ...p, rules: e.target.value }))} /></div>
             </div>
