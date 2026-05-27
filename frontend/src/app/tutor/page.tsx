@@ -128,7 +128,8 @@ export default function TutorPage() {
 
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [workshopEnabled, setWorkshopEnabled] = useState(false)
-  const [openMode, setOpenMode] = useState(false)
+  const [openMode, setOpenMode] = useState(true)
+  const [imageMode, setImageMode] = useState(false)
   const [workshopRoleIds, setWorkshopRoleIds] = useState<number[]>([])
   const [hubMessages, setHubMessages] = useState<WorkshopHubEvent[]>([])
   const [workshopPhase, setWorkshopPhase] = useState<{ phase: string; round?: number; status: string } | null>(null)
@@ -505,10 +506,11 @@ export default function TutorPage() {
         {
           conversationId: convId,
           roleId: currentRoleId || undefined,
+          mode: imageMode ? 'image_gen' : 'knowledge_qa',
           fileIds: pendingFiles.map((f) => f.id),
           workshopEnabled,
           workshopRoleIds,
-          openMode,
+          openMode: imageMode ? true : openMode,
         },
         {
           onText: (chunk) => {
@@ -697,6 +699,10 @@ export default function TutorPage() {
                 {messages.map((msg) => {
                   if (streaming && msg.role === 'assistant' && !msg.content.trim()) return null
                   const summary = msg.role === 'assistant' ? parseWorkshopSummary(msg.content) : null
+                  const imageDataMatch =
+                    msg.role === 'assistant'
+                      ? msg.content.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/)
+                      : null
                   return (
                     <div key={msg.id}>
                       {msg.role === 'user' ? (
@@ -718,7 +724,31 @@ export default function TutorPage() {
                               </div>
                             ) : (
                               <div className="prose prose-base max-w-none text-[#1e293b] prose-p:leading-[1.8] prose-p:my-3 prose-p:text-[15px] prose-headings:text-[#1e293b] prose-headings:font-semibold prose-code:text-[#e11d48] prose-code:bg-[#f5f5f5] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-pre:bg-[#1e1e1e] prose-pre:text-[#d4d4d4] prose-pre:rounded-xl prose-pre:text-[13px] prose-li:text-[15px] prose-li:leading-[1.8]">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                                {imageDataMatch ? (
+                                  <img
+                                    src={imageDataMatch[0]}
+                                    alt="generated image"
+                                    className="max-w-full h-auto rounded-lg border border-[#e2e8f0]"
+                                  />
+                                ) : (
+                                  <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  urlTransform={(url) => {
+                                    const u = String(url || '').trim()
+                                    if (u.startsWith('data:image/')) return u
+                                    return u
+                                  }}
+                                  components={{
+                                    img: ({ src, alt }) => {
+                                      const safeSrc = typeof src === 'string' ? src.trim() : ''
+                                      if (!safeSrc) return null
+                                      return <img src={safeSrc} alt={alt || 'generated image'} className="max-w-full h-auto rounded-lg border border-[#e2e8f0]" />
+                                    },
+                                  }}
+                                >
+                                  {msg.content}
+                                  </ReactMarkdown>
+                                )}
                               </div>
                             )}
                             {/* TTS 播报按钮 */}
@@ -731,7 +761,7 @@ export default function TutorPage() {
                               {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                               <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
                             </button>
-                            {(msg.confidence || (msg.citations && msg.citations.length > 0)) && (
+                            {!imageDataMatch && (msg.confidence || (msg.citations && msg.citations.length > 0)) && (
                               <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-white">
                                 <button
                                   type="button"
@@ -805,28 +835,28 @@ export default function TutorPage() {
                 </div>
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#f1f5f9]">
                   <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handlePickFiles(e.target.files)} />
-                  <div className="inline-flex rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setImageMode((v) => !v)}
+                    className={cn(
+                      'inline-flex items-center px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                      imageMode ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                    )}
+                  >
+                    图片模式
+                  </button>
+                  {!imageMode && (
                     <button
                       type="button"
-                      onClick={() => setOpenMode(false)}
+                      onClick={() => setOpenMode((v) => !v)}
                       className={cn(
-                        'px-3 py-1 text-xs rounded-md transition-colors',
-                        !openMode ? 'bg-white text-[#1e293b] shadow-sm' : 'text-[#64748b]',
+                        'inline-flex items-center px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                        !openMode ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
                       )}
                     >
                       可信模式
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setOpenMode(true)}
-                      className={cn(
-                        'px-3 py-1 text-xs rounded-md transition-colors',
-                        openMode ? 'bg-white text-[#1e293b] shadow-sm' : 'text-[#64748b]',
-                      )}
-                    >
-                      开放模式
-                    </button>
-                  </div>
+                  )}
                   <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors"><Paperclip className="w-3.5 h-3.5" /> 上传文档</button>
                 </div>
               </div>
@@ -834,53 +864,6 @@ export default function TutorPage() {
           </div>
         </main>
 
-        {/* 右侧面板 */}
-        <aside className="w-[280px] shrink-0 bg-white border-l border-[#eef1f5] overflow-y-auto p-4 space-y-5 max-[1200px]:hidden">
-          {/* 快捷功能 */}
-          <section>
-            <h3 className="text-sm font-semibold text-[#1e293b] mb-3">快捷功能</h3>
-            <div className="space-y-2">
-              <button onClick={() => applySuggestion('帮我讲解二分查找并给一个例题')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#eef1f5] hover:border-[#93c5fd] hover:bg-[#f8fafc] transition-colors text-left">
-                <div className="w-9 h-9 rounded-lg bg-[#eff6ff] flex items-center justify-center"><Sparkles className="w-4 h-4 text-[#2563eb]" /></div>
-                <div><p className="text-sm font-medium text-[#1e293b]">讲题</p><p className="text-[11px] text-[#94a3b8]">上传题目，AI 详细讲解</p></div>
-              </button>
-              <button onClick={() => applySuggestion('给我出3道Python基础选择题并附答案')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#eef1f5] hover:border-[#93c5fd] hover:bg-[#f8fafc] transition-colors text-left">
-                <div className="w-9 h-9 rounded-lg bg-[#fef3c7] flex items-center justify-center"><FileText className="w-4 h-4 text-[#d97706]" /></div>
-                <div><p className="text-sm font-medium text-[#1e293b]">出题</p><p className="text-[11px] text-[#94a3b8]">根据知识点生成题目</p></div>
-              </button>
-              <button onClick={() => applySuggestion('请根据我上传的资料做一个要点总结')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#eef1f5] hover:border-[#93c5fd] hover:bg-[#f8fafc] transition-colors text-left">
-                <div className="w-9 h-9 rounded-lg bg-[#ecfdf5] flex items-center justify-center"><FileText className="w-4 h-4 text-[#059669]" /></div>
-                <div><p className="text-sm font-medium text-[#1e293b]">文档总结</p><p className="text-[11px] text-[#94a3b8]">上传文档，AI 归纳要点</p></div>
-              </button>
-            </div>
-          </section>
-
-          {/* 文件上传 */}
-          <section>
-            <h3 className="text-sm font-semibold text-[#1e293b] mb-3">文件上传</h3>
-            <div className="rounded-xl border-2 border-dashed border-[#e2e8f0] p-4 text-center hover:border-[#93c5fd] transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <Paperclip className="w-6 h-6 text-[#94a3b8] mx-auto mb-2" />
-              <p className="text-xs text-[#64748b]">点击或拖拽文件到这里上传</p>
-              <p className="text-[11px] text-[#94a3b8] mt-1">支持 PDF、Word、PPT、图片等</p>
-            </div>
-          </section>
-
-          {/* 最近上传 */}
-          {pendingFiles.length > 0 && (
-            <section>
-              <h3 className="text-sm font-semibold text-[#1e293b] mb-3">最近上传</h3>
-              <div className="space-y-2">
-                {pendingFiles.map((f) => (
-                  <div key={f.id} className="flex items-center gap-2 p-2 rounded-lg bg-[#f8fafc] border border-[#eef1f5]">
-                    <FileText className="w-4 h-4 text-[#2563eb] shrink-0" />
-                    <span className="text-xs text-[#475569] truncate flex-1">{f.filename}</span>
-                    <button onClick={() => removePendingFile(f.id)} className="text-[#94a3b8] hover:text-red-500"><X className="w-3 h-3" /></button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </aside>
       </div>
 
       {/* 角色编辑弹窗 */}

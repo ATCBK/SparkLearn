@@ -20,6 +20,7 @@ from ..storage import append_jsonl
 from ..trust_answer_controller import TrustAnswerController
 from ..trust_citation import render_confidence
 from ..trust_schemas import TrustAnswerRequest
+from ..xfyun_tti import generate_image_base64
 from .common import sse_wrap
 
 router = APIRouter(prefix='/api', tags=['tutor-evaluation'])
@@ -37,6 +38,10 @@ class TutorReq(BaseModel):
     workshop_role_ids: list[int] = []
     knowledge_file_ids: list[int] = []
     open_mode: bool = False
+
+
+def _is_image_mode(mode: str) -> bool:
+    return (mode or '').strip().lower() == 'image_gen'
 
 
 class EvalRefreshReq(BaseModel):
@@ -606,7 +611,16 @@ async def tutor_chat(req: TutorReq):
                 yield ('text', {'content': chunk})
             yield ('workshop_phase', {'phase': 'synthesis', 'status': 'done'})
         else:
-            if req.open_mode:
+            if _is_image_mode(req.mode):
+                image_b64 = await generate_image_base64(
+                    prompt=req.message,
+                    width=512,
+                    height=512,
+                    uid=settings.single_user_id,
+                )
+                answer = f"![AI生成图](data:image/png;base64,{image_b64})"
+                yield ('text', {'content': answer})
+            elif req.open_mode:
                 assistant_parts: list[str] = []
                 async for evt_type, payload in spark_lite.stream_chat_events(
                     req.message,
@@ -682,6 +696,7 @@ async def tutor_chat(req: TutorReq):
                         'citations': citations_payload,
                         'trust_meta': trust_meta_payload,
                         'open_mode': bool(req.open_mode),
+                        'mode': req.mode,
                     },
                     ensure_ascii=False,
                 ),
