@@ -987,3 +987,7 @@
 {"ts": "2026-05-27T00:26:48.962171Z", "type": "memory_updated", "conversation_id": 14, "changed": 0, "version": 1}
 {"ts": "2026-05-27T00:27:17.287576Z", "type": "tutor_chat", "conversation_id": 14, "role_id": 1, "question": "怎么学习Python"}
 {"ts": "2026-05-27T00:27:17.297577Z", "type": "memory_updated", "conversation_id": 14, "changed": 0, "version": 1}
+{"ts": "2026-05-27T00:30:23.678795Z", "type": "tutor_chat", "conversation_id": 14, "role_id": 1, "question": "你好"}
+{"ts": "2026-05-27T00:30:23.691880Z", "type": "memory_updated", "conversation_id": 14, "changed": 0, "version": 1}
+{"ts": "2026-05-27T00:30:34.281295Z", "type": "tutor_chat", "conversation_id": 14, "role_id": 1, "question": "你是谁？"}
+{"ts": "2026-05-27T00:30:34.293826Z", "type": "memory_updated", "conversation_id": 14, "changed": 0, "version": 1}

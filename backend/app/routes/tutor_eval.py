@@ -2,6 +2,7 @@
 import math
 import re
 import uuid
+import asyncio
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
@@ -638,6 +639,7 @@ async def tutor_chat(req: TutorReq):
                         answer_parts.append(chunk)
                         for sub in _chunk_text(chunk, 24):
                             yield ('text', {'content': sub})
+                            await asyncio.sleep(0.015)
                 elif evt_type == 'error':
                     yield ('error', payload)
             answer = ''.join(answer_parts).strip()
@@ -1513,4 +1515,5 @@ def _execute_returning_id(query: str, params: tuple[Any, ...]) -> int:
     with get_conn() as conn:
         cur = conn.execute(query, params)
         return int(cur.lastrowid)
+
 

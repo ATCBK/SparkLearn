@@ -13,7 +13,9 @@ from .trust_schemas import EvidenceBundle, EvidenceItem, RoutedQuery, TrustAnswe
 async def retrieve_evidence(req: TrustAnswerRequest, routed: RoutedQuery) -> EvidenceBundle:
     bundle = EvidenceBundle()
     if routed.need_knowledge:
-        knowledge_ids = req.knowledge_file_ids or _list_indexed_knowledge_file_ids(limit=30)
+        knowledge_ids = [int(x) for x in (req.knowledge_file_ids or []) if int(x) > 0]
+        if not knowledge_ids:
+            return bundle
         _ctx, sources = await retrieve_knowledge_context_async(knowledge_ids, query=req.query, max_chars=5000, top_k=8)
         for s in sources:
             file_name = str(s.get("filename") or "knowledge")
