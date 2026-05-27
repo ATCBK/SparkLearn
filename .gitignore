@@ -1,0 +1,26 @@
+.venv/
+.env
+.env.*
+!.env.example
+
+node_modules/
+.next/
+out/
+dist/
+build/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+backend/data/db/*.db
+backend/data/users/
+backend/data/artifacts/
+
+*.log
+.DS_Store
+Thumbs.db
+
+# Temp browser profiles
+.tmp-chrome-profile/
+
