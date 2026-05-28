@@ -536,3 +536,26 @@ export interface BookmarkPayload {
   url: string
   summary: string
 }
+
+// ─── Digital Human Types ────────────────────────────────────────────────────────
+
+export interface DigitalHumanMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface MemoryLoadResult {
+  memory_id: string
+  video_title: string
+  segment_count: number
+  greeting: string
+}
+
+export interface MemoryInfo {
+  memory_id: string
+  video_id: string
+  video_title: string
+  segment_count: number
+  created_at: string
+  ttl_sec: number
+}

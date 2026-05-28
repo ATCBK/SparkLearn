@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     video_ai_temperature: float = 0.7
     video_ai_fallback_enabled: bool = False
 
+    # Embedding model for NumPerson RAG (same API base as video_ai)
+    video_ai_embedding_model: str = ""
+
     # Video style presets for multi-style AI generation
     video_styles: dict = {
         "apple-minimal": {
@@ -162,6 +165,17 @@ class Settings(BaseSettings):
 
     data_dir: Path = ROOT_DIR / "backend" / "data"
     db_path: Path = ROOT_DIR / "backend" / "data" / "db" / "sparklearn.db"
+
+    # 数据库类型选择: "sqlite" 或 "postgresql"
+    db_type: str = "sqlite"
+
+    # PostgreSQL/PolarDB 配置
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "sparklearn"
+    db_user: str = ""
+    db_password: str = ""
+    db_ssl_mode: str = "prefer"
 
 
 settings = Settings()

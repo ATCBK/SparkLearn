@@ -1,0 +1,72 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - img "SparkLearn Logo" [ref=e6]
+      - generic [ref=e7]:
+        - generic [ref=e8]: 学而思 SparkLearn
+        - generic [ref=e9]: 个性化学习闭环
+    - navigation [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: 学习中心
+        - generic [ref=e13]:
+          - link "学习工作台" [ref=e14] [cursor=pointer]:
+            - /url: /
+            - img [ref=e15]
+            - generic [ref=e18]: 学习工作台
+          - link "学习画像" [ref=e19] [cursor=pointer]:
+            - /url: /profile
+            - img [ref=e20]
+            - generic [ref=e23]: 学习画像
+          - link "个性化路径" [ref=e24] [cursor=pointer]:
+            - /url: /path
+            - img [ref=e25]
+            - generic [ref=e27]: 个性化路径
+          - link "知识库" [ref=e28] [cursor=pointer]:
+            - /url: /knowledge
+            - img [ref=e29]
+            - generic [ref=e33]: 知识库
+      - generic [ref=e34]:
+        - generic [ref=e35]: 资源与练习
+        - generic [ref=e36]:
+          - link "资源中心" [ref=e37] [cursor=pointer]:
+            - /url: /generate
+            - img [ref=e38]
+            - generic [ref=e40]: 资源中心
+          - link "练习评测" [ref=e41] [cursor=pointer]:
+            - /url: /practice
+            - img [ref=e42]
+            - generic [ref=e45]: 练习评测
+          - link "学习伙伴" [ref=e46] [cursor=pointer]:
+            - /url: /agent
+            - img [ref=e47]
+            - generic [ref=e50]: 学习伙伴
+      - generic [ref=e51]:
+        - generic [ref=e52]: 分析与反馈
+        - link "学习报告" [ref=e54] [cursor=pointer]:
+          - /url: /report
+          - img [ref=e55]
+          - generic [ref=e57]: 学习报告
+    - generic [ref=e58]:
+      - link "学习广场 点击进入独立页面" [ref=e59] [cursor=pointer]:
+        - /url: /plaza
+        - img [ref=e61]
+        - generic [ref=e63]:
+          - generic [ref=e64]: 学习广场
+          - generic [ref=e65]: 点击进入独立页面
+      - button "退出登录" [ref=e66] [cursor=pointer]:
+        - img [ref=e67]
+        - generic [ref=e70]: 退出登录
+  - banner [ref=e71]:
+    - generic [ref=e72]:
+      - button "折叠侧栏" [ref=e73] [cursor=pointer]:
+        - img [ref=e74]
+      - generic [ref=e77]: SparkLearn / 视频资源
+    - link "李" [ref=e79] [cursor=pointer]:
+      - /url: /profile/settings
+      - generic [ref=e80]: 李
+  - main [ref=e81]
+  - generic [ref=e90]:
+    - checkbox [ref=e91]
+    - generic [ref=e95]:
+      - img [ref=e96]
+      - img [ref=e98]

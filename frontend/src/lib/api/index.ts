@@ -109,6 +109,12 @@ export const api = {
   // Voice TTS
   synthesizeSpeech: impl.synthesizeSpeech,
   getTtsStatus: impl.getTtsStatus,
+
+  // Digital Human
+  loadMemory: impl.loadMemory,
+  getMemory: impl.getMemory,
+  deleteMemory: impl.deleteMemory,
+  chatWithDigitalHuman: impl.chatWithDigitalHuman,
 }
 
 export type {
@@ -119,4 +125,5 @@ export type {
   ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
+  DigitalHumanMessage, MemoryLoadResult, MemoryInfo,
 } from './types'

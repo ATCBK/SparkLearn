@@ -1,0 +1,1068 @@
+{
+  "agent_messages": [
+    {
+      "id": 1,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "user_id": "single_user",
+      "sender": "user",
+      "content": "帮我找数据结构的资料",
+      "created_at": "2026-05-28T07:14:36.697240Z"
+    }
+  ],
+  "agent_pets": [
+    {
+      "id": "aecac46e-7d47-41fc-bf5d-b585a21a2581",
+      "user_id": "single_user",
+      "name": "hh",
+      "avatar": "cat",
+      "personality": "encouraging",
+      "level": 1,
+      "xp": 10,
+      "created_at": "2026-05-28T07:14:15.455272Z",
+      "updated_at": "2026-05-28T07:15:25.609645Z"
+    }
+  ],
+  "agent_task_steps": [
+    {
+      "id": 1,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 0,
+      "action": "start",
+      "description": "开始处理任务...",
+      "created_at": "2026-05-28T07:14:37.444382Z"
+    },
+    {
+      "id": 2,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 1,
+      "action": "start",
+      "description": "正在启动浏览器...",
+      "created_at": "2026-05-28T07:14:43.889035Z"
+    },
+    {
+      "id": 3,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 2,
+      "action": "navigate",
+      "description": "正在打开 Bing 搜索引擎...",
+      "created_at": "2026-05-28T07:15:01.362381Z"
+    },
+    {
+      "id": 4,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 3,
+      "action": "input",
+      "description": "输入搜索关键词: \"帮我找数据结构的资料\"",
+      "created_at": "2026-05-28T07:15:08.651473Z"
+    },
+    {
+      "id": 5,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 4,
+      "action": "click",
+      "description": "点击搜索按钮...",
+      "created_at": "2026-05-28T07:15:13.153290Z"
+    },
+    {
+      "id": 6,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 5,
+      "action": "scroll",
+      "description": "浏览搜索结果列表...",
+      "created_at": "2026-05-28T07:15:17.974787Z"
+    },
+    {
+      "id": 7,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 6,
+      "action": "extract",
+      "description": "识别搜索结果...",
+      "created_at": "2026-05-28T07:15:21.050872Z"
+    },
+    {
+      "id": 8,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 7,
+      "action": "click",
+      "description": "点击第 1 条结果: 「数据结构知识点汇总（超全面） - 知乎」...",
+      "created_at": "2026-05-28T07:15:22.885759Z"
+    },
+    {
+      "id": 9,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 9,
+      "action": "extract",
+      "description": "浏览器搜索超时，使用 AI 补充...",
+      "created_at": "2026-05-28T07:15:23.643799Z"
+    },
+    {
+      "id": 10,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 99,
+      "action": "done",
+      "description": "任务完成！",
+      "created_at": "2026-05-28T07:15:25.111455Z"
+    },
+    {
+      "id": 11,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 8,
+      "action": "click",
+      "description": "点击第 2 条结果: 「数据结构与算法 | 菜鸟教程」...",
+      "created_at": "2026-05-28T07:16:02.413516Z"
+    },
+    {
+      "id": 12,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 9,
+      "action": "click",
+      "description": "点击第 3 条结果: 「数据结构入门学习（非常详细）从零基础入门到精通，看」...",
+      "created_at": "2026-05-28T07:16:03.007006Z"
+    },
+    {
+      "id": 13,
+      "task_id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "step_index": 30,
+      "action": "done",
+      "description": "搜索完成！共找到 5 条相关资源",
+      "created_at": "2026-05-28T07:16:03.454634Z"
+    }
+  ],
+  "agent_tasks": [
+    {
+      "id": "fe94f3ee-1f35-4ec9-be05-75046b071244",
+      "user_id": "single_user",
+      "pet_id": "aecac46e-7d47-41fc-bf5d-b585a21a2581",
+      "task_type": "search",
+      "input_text": "帮我找数据结构的资料",
+      "result_json": "{\"items\": [{\"title\": \"资源标题\", \"summary\": \"50字以内的摘要描述\", \"url\": \"资源链接\", \"source\": \"来源网站\"}]}",
+      "error_message": null,
+      "feedback": null,
+      "status": "completed",
+      "created_at": "2026-05-28T07:14:36.697240Z",
+      "updated_at": "2026-05-28T07:15:24.884335Z"
+    }
+  ],
+  "contribution_days": [],
+  "forum_attachments": [
+    {
+      "id": 1,
+      "post_id": 45,
+      "user_id": "single_user",
+      "filename": "notes.pdf",
+      "stored_path": "D:\\Office_File\\other\\SparkLearn\\SparkLearn-main\\backend\\data\\users\\single_user\\forum\\attachments\\post_45\\2026-05-27T161947339164Z_notes.pdf",
+      "mime_type": "application/pdf",
+      "size_bytes": 16,
+      "created_at": "2026-05-27T16:19:47.339164Z"
+    }
+  ],
+  "forum_browsing_history": [
+    {
+      "id": 1,
+      "user_id": "single_user",
+      "post_id": 45,
+      "viewed_at": "2026-05-27T16:19:47.358160Z"
+    }
+  ],
+  "forum_comments": [
+    {
+      "id": 1,
+      "post_id": 45,
+      "user_id": "single_user",
+      "content": "感谢分享",
+      "status": "deleted",
+      "created_at": "2026-05-27T16:19:47.366155Z",
+      "updated_at": "2026-05-27T16:19:47.407009Z"
+    }
+  ],
+  "forum_post_favorites": [
+    {
+      "id": 1,
+      "post_id": 45,
+      "user_id": "single_user",
+      "created_at": "2026-05-27T16:19:47.391014Z"
+    }
+  ],
+  "forum_post_likes": [
+    {
+      "id": 1,
+      "post_id": 45,
+      "user_id": "single_user",
+      "created_at": "2026-05-27T16:19:47.378264Z"
+    }
+  ],
+  "forum_posts": [
+    {
+      "id": 1,
+      "user_id": "single_user",
+      "title": "Python 函数速查表（可打印版）",
+      "content": "整理了一份函数参数、返回值、作用域的速查表，适合考前快速复习。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 4,
+      "comment_count": 2,
+      "favorite_count": 5,
+      "view_count": 37,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 2,
+      "user_id": "single_user",
+      "title": "期末复习资料包：数据结构基础",
+      "content": "含数组、链表、栈队列的思维导图和常见题型汇总。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 7,
+      "comment_count": 4,
+      "favorite_count": 1,
+      "view_count": 44,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 3,
+      "user_id": "single_user",
+      "title": "线性代数课堂笔记模板分享",
+      "content": "可直接用于课堂记录，包含定理、例题、错题反思区。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 10,
+      "comment_count": 6,
+      "favorite_count": 6,
+      "view_count": 51,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 4,
+      "user_id": "single_user",
+      "title": "英语阅读训练素材合集",
+      "content": "按难度分级的阅读材料，附关键词和阅读问题。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 13,
+      "comment_count": 8,
+      "favorite_count": 2,
+      "view_count": 58,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 5,
+      "user_id": "single_user",
+      "title": "机器学习入门代码模板",
+      "content": "包含数据读取、训练、评估三段基础模板，适合新手。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 16,
+      "comment_count": 10,
+      "favorite_count": 7,
+      "view_count": 65,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 6,
+      "user_id": "single_user",
+      "title": "前端项目答辩 PPT 模板",
+      "content": "简洁版本，含需求、设计、实现、结果和复盘页。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 19,
+      "comment_count": 1,
+      "favorite_count": 3,
+      "view_count": 72,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 7,
+      "user_id": "single_user",
+      "title": "高数错题整理表（Excel）",
+      "content": "按章节、题型、错误原因进行分类追踪。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 3,
+      "comment_count": 3,
+      "favorite_count": 8,
+      "view_count": 79,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 8,
+      "user_id": "single_user",
+      "title": "算法题刷题计划（4 周）",
+      "content": "每周目标和题目列表已排好，适合冲刺阶段。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 6,
+      "comment_count": 5,
+      "favorite_count": 4,
+      "view_count": 86,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 9,
+      "user_id": "single_user",
+      "title": "数据库实验报告范例",
+      "content": "给出规范结构和评分点提醒，避免格式扣分。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 9,
+      "comment_count": 7,
+      "favorite_count": 0,
+      "view_count": 93,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 10,
+      "user_id": "single_user",
+      "title": "学习计划看板 Notion 模板",
+      "content": "含日计划、周回顾、目标拆解和打卡统计。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 12,
+      "comment_count": 9,
+      "favorite_count": 5,
+      "view_count": 100,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 11,
+      "user_id": "single_user",
+      "title": "Java OOP 课堂例题资料",
+      "content": "封装、继承、多态的典型例题和讲解。",
+      "tags": "[\"resource_share\"]",
+      "status": "published",
+      "like_count": 15,
+      "comment_count": 0,
+      "favorite_count": 1,
+      "view_count": 107,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 12,
+      "user_id": "single_user",
+      "title": "闭包为什么能记住外部变量？",
+      "content": "看了很多例子还是不太理解变量捕获机制，求通俗解释。",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 18,
+      "comment_count": 2,
+      "favorite_count": 6,
+      "view_count": 114,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 13,
+      "user_id": "single_user",
+      "title": "递归和循环怎么选？",
+      "content": "做题时总纠结写递归还是循环，有没有判断标准。",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 2,
+      "comment_count": 4,
+      "favorite_count": 2,
+      "view_count": 121,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 14,
+      "user_id": "single_user",
+      "title": "线性回归损失函数为什么用 MSE？",
+      "content": "从直觉上怎么理解均方误差更合理？",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 5,
+      "comment_count": 6,
+      "favorite_count": 7,
+      "view_count": 128,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 15,
+      "user_id": "single_user",
+      "title": "Python 装饰器执行顺序问题",
+      "content": "多个装饰器叠加时到底先执行哪个？",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 8,
+      "comment_count": 8,
+      "favorite_count": 3,
+      "view_count": 135,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 16,
+      "user_id": "single_user",
+      "title": "SQL 多表连接总是写错",
+      "content": "LEFT JOIN 和 INNER JOIN 在什么场景下最稳妥？",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 11,
+      "comment_count": 10,
+      "favorite_count": 8,
+      "view_count": 142,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 17,
+      "user_id": "single_user",
+      "title": "背单词总记不住怎么办",
+      "content": "有没有适合每天 30 分钟的复习策略？",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 14,
+      "comment_count": 1,
+      "favorite_count": 4,
+      "view_count": 149,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 18,
+      "user_id": "single_user",
+      "title": "二叉树层序遍历模板求优化",
+      "content": "我写的版本太啰嗦，想要更清晰的结构。",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 17,
+      "comment_count": 3,
+      "favorite_count": 0,
+      "view_count": 156,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 19,
+      "user_id": "single_user",
+      "title": "项目汇报总被说逻辑不清",
+      "content": "技术汇报应该怎么组织结构才容易被理解？",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 1,
+      "comment_count": 5,
+      "favorite_count": 5,
+      "view_count": 163,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 20,
+      "user_id": "single_user",
+      "title": "动态规划状态定义总想不出",
+      "content": "有没有从题目推状态的通用步骤？",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 4,
+      "comment_count": 7,
+      "favorite_count": 1,
+      "view_count": 170,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 21,
+      "user_id": "single_user",
+      "title": "高数证明题怎么下手",
+      "content": "碰到证明题就卡住，想知道第一步该做什么。",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 7,
+      "comment_count": 9,
+      "favorite_count": 6,
+      "view_count": 177,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 22,
+      "user_id": "single_user",
+      "title": "Git 冲突处理总出错",
+      "content": "多人协作时怎么减少冲突和误删代码？",
+      "tags": "[\"qa\"]",
+      "status": "published",
+      "like_count": 10,
+      "comment_count": 0,
+      "favorite_count": 2,
+      "view_count": 184,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 23,
+      "user_id": "single_user",
+      "title": "组队冲刺：Python 期末 14 天",
+      "content": "招 3 位同学一起每日打卡，目标 85+。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 13,
+      "comment_count": 2,
+      "favorite_count": 7,
+      "view_count": 191,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 24,
+      "user_id": "single_user",
+      "title": "算法共学小组招募（晚 8 点）",
+      "content": "每天 1 题+讲解，偏 LeetCode 热题。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 16,
+      "comment_count": 4,
+      "favorite_count": 3,
+      "view_count": 198,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 25,
+      "user_id": "single_user",
+      "title": "英语四级晨读搭子",
+      "content": "早上 7:30-8:00 线上语音晨读，互相监督。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 19,
+      "comment_count": 6,
+      "favorite_count": 8,
+      "view_count": 205,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 26,
+      "user_id": "single_user",
+      "title": "数据库实验周末集训",
+      "content": "周六下午一起做实验和报告，欢迎新手。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 3,
+      "comment_count": 8,
+      "favorite_count": 4,
+      "view_count": 212,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 27,
+      "user_id": "single_user",
+      "title": "前端项目结对开发",
+      "content": "做一个小型学习管理系统，React 技术栈。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 6,
+      "comment_count": 10,
+      "favorite_count": 0,
+      "view_count": 219,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 28,
+      "user_id": "single_user",
+      "title": "高数刷题互助群",
+      "content": "每晚 9 点对答案+讲思路，不会的题现场讨论。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 9,
+      "comment_count": 1,
+      "favorite_count": 5,
+      "view_count": 226,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 29,
+      "user_id": "single_user",
+      "title": "考研数学基础共学",
+      "content": "目标 2 个月过完一轮基础，按周计划推进。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 12,
+      "comment_count": 3,
+      "favorite_count": 1,
+      "view_count": 233,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 30,
+      "user_id": "single_user",
+      "title": "Java 面试题每日一练",
+      "content": "每日 5 题，周末集中复盘错题。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 15,
+      "comment_count": 5,
+      "favorite_count": 6,
+      "view_count": 240,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 31,
+      "user_id": "single_user",
+      "title": "机器学习论文精读小组",
+      "content": "每周一篇入门论文，轮流做分享。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 18,
+      "comment_count": 7,
+      "favorite_count": 2,
+      "view_count": 247,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 32,
+      "user_id": "single_user",
+      "title": "运营实习面试共学群",
+      "content": "行为面和案例面互练，互相给反馈。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 2,
+      "comment_count": 9,
+      "favorite_count": 7,
+      "view_count": 254,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 33,
+      "user_id": "single_user",
+      "title": "数据分析项目实战队",
+      "content": "用公开数据做完整分析并产出可展示作品。",
+      "tags": "[\"team_study\"]",
+      "status": "published",
+      "like_count": 5,
+      "comment_count": 0,
+      "favorite_count": 3,
+      "view_count": 261,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 34,
+      "user_id": "single_user",
+      "title": "我把错题本做成了提分系统",
+      "content": "分享如何用错题分类+复盘提升练习效率。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 8,
+      "comment_count": 2,
+      "favorite_count": 8,
+      "view_count": 268,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 35,
+      "user_id": "single_user",
+      "title": "从 62 分到 86 分的复盘",
+      "content": "核心是减少低级错误和提高审题速度。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 11,
+      "comment_count": 4,
+      "favorite_count": 4,
+      "view_count": 275,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 36,
+      "user_id": "single_user",
+      "title": "我用番茄钟坚持了 100 天",
+      "content": "给出可复制的时间块安排和中断处理方法。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 14,
+      "comment_count": 6,
+      "favorite_count": 0,
+      "view_count": 282,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 37,
+      "user_id": "single_user",
+      "title": "做项目时最容易踩的 5 个坑",
+      "content": "需求不清、边做边改、无版本管理等经验总结。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 17,
+      "comment_count": 8,
+      "favorite_count": 5,
+      "view_count": 289,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 38,
+      "user_id": "single_user",
+      "title": "面试失败 7 次后的改进",
+      "content": "如何从“回答知识点”转成“讲清解决问题能力”。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 1,
+      "comment_count": 10,
+      "favorite_count": 1,
+      "view_count": 296,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 39,
+      "user_id": "single_user",
+      "title": "如何建立个人知识库",
+      "content": "从资料收集到二次加工的一套轻量流程。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 4,
+      "comment_count": 1,
+      "favorite_count": 6,
+      "view_count": 303,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 40,
+      "user_id": "single_user",
+      "title": "我的英语阅读提速方法",
+      "content": "先扫结构再看细节，配合错因记录效果明显。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 7,
+      "comment_count": 3,
+      "favorite_count": 2,
+      "view_count": 310,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 41,
+      "user_id": "single_user",
+      "title": "考前一周的冲刺节奏",
+      "content": "不再盲目刷题，改为专题查漏补缺。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 10,
+      "comment_count": 5,
+      "favorite_count": 7,
+      "view_count": 317,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 42,
+      "user_id": "single_user",
+      "title": "第一次带队做共学活动",
+      "content": "分享组织打卡、分工和复盘的实际经验。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 13,
+      "comment_count": 7,
+      "favorite_count": 3,
+      "view_count": 324,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 43,
+      "user_id": "single_user",
+      "title": "如何把学习成果变成作品集",
+      "content": "从课程作业到可展示项目的整理步骤。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 16,
+      "comment_count": 9,
+      "favorite_count": 8,
+      "view_count": 331,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 44,
+      "user_id": "single_user",
+      "title": "拖延症自救：把任务拆到 20 分钟",
+      "content": "用最小行动单元启动，减少心理阻力。",
+      "tags": "[\"experience_share\"]",
+      "status": "published",
+      "like_count": 19,
+      "comment_count": 0,
+      "favorite_count": 4,
+      "view_count": 338,
+      "created_at": "2026-05-27T15:29:19.466226Z",
+      "updated_at": "2026-05-27T15:29:19.466226Z"
+    },
+    {
+      "id": 45,
+      "user_id": "single_user",
+      "title": "Python 函数闭包资料分享",
+      "content": "这里有闭包学习笔记与示例代码",
+      "tags": "[\"Python\", \"闭包\"]",
+      "status": "deleted",
+      "like_count": 1,
+      "comment_count": 0,
+      "favorite_count": 1,
+      "view_count": 1,
+      "created_at": "2026-05-27T16:19:47.326152Z",
+      "updated_at": "2026-05-27T16:19:47.414015Z"
+    }
+  ],
+  "knowledge_chunks": [],
+  "knowledge_files": [],
+  "mastery_records": [
+    {
+      "id": 1,
+      "user_id": "single_user",
+      "knowledge_point_id": "1.1",
+      "knowledge_point_name": "变量定义",
+      "score": 0.9,
+      "chapter": "基础语法",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 2,
+      "user_id": "single_user",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型",
+      "score": 0.85,
+      "chapter": "基础语法",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 3,
+      "user_id": "single_user",
+      "knowledge_point_id": "2.1",
+      "knowledge_point_name": "条件语句",
+      "score": 0.75,
+      "chapter": "控制流",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 4,
+      "user_id": "single_user",
+      "knowledge_point_id": "2.2",
+      "knowledge_point_name": "循环",
+      "score": 0.7,
+      "chapter": "控制流",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 5,
+      "user_id": "single_user",
+      "knowledge_point_id": "3.1",
+      "knowledge_point_name": "函数定义",
+      "score": 0.62,
+      "chapter": "函数",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 6,
+      "user_id": "single_user",
+      "knowledge_point_id": "3.2",
+      "knowledge_point_name": "参数传递",
+      "score": 0.55,
+      "chapter": "函数",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 7,
+      "user_id": "single_user",
+      "knowledge_point_id": "3.3",
+      "knowledge_point_name": "闭包",
+      "score": 0.45,
+      "chapter": "函数",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 8,
+      "user_id": "single_user",
+      "knowledge_point_id": "4.1",
+      "knowledge_point_name": "类与对象",
+      "score": 0.3,
+      "chapter": "面向对象",
+      "last_updated": "2026-05-27T15:29:19.465219Z"
+    }
+  ],
+  "profiles": [
+    {
+      "user_id": "single_user",
+      "goal": "[\"期末提分\"]",
+      "knowledge_level": "有一些基础",
+      "weak_points": "[\"函数\", \"面向对象\"]",
+      "learning_preference": "[\"实践型\", \"视觉型\"]",
+      "cognitive_style": "归纳型",
+      "daily_time": 60,
+      "practical_ability": "能独立完成小项目",
+      "current_stage": "函数与模块",
+      "version": 1,
+      "updated_at": "2026-05-27T16:19:47.438016Z"
+    }
+  ],
+  "sqlite_sequence": [
+    {
+      "name": "mastery_records",
+      "seq": 8
+    },
+    {
+      "name": "tutor_roles",
+      "seq": 2
+    },
+    {
+      "name": "tutor_conversations",
+      "seq": 2
+    },
+    {
+      "name": "forum_posts",
+      "seq": 45
+    },
+    {
+      "name": "tutor_messages",
+      "seq": 4
+    },
+    {
+      "name": "tutor_files",
+      "seq": 1
+    },
+    {
+      "name": "forum_attachments",
+      "seq": 1
+    },
+    {
+      "name": "forum_browsing_history",
+      "seq": 1
+    },
+    {
+      "name": "forum_comments",
+      "seq": 1
+    },
+    {
+      "name": "forum_post_likes",
+      "seq": 1
+    },
+    {
+      "name": "forum_post_favorites",
+      "seq": 1
+    },
+    {
+      "name": "agent_messages",
+      "seq": 1
+    },
+    {
+      "name": "agent_task_steps",
+      "seq": 13
+    }
+  ],
+  "students": [
+    {
+      "user_id": "single_user",
+      "name": "张同学",
+      "email": "student@sparklearn.ai",
+      "major": "计算机科学",
+      "grade": "大二",
+      "created_at": "2026-05-27T15:29:19.464081Z",
+      "updated_at": "2026-05-27T15:29:19.464081Z"
+    }
+  ],
+  "teacher_broadcasts": [],
+  "teacher_material_files": [],
+  "tutor_conversations": [
+    {
+      "id": 1,
+      "user_id": "single_user",
+      "role_id": 1,
+      "title": "关于请用不超过120字总结将下面用户问题提炼成8到14个字的",
+      "created_at": "2026-05-27T15:29:19.465219Z",
+      "updated_at": "2026-05-27T16:19:47.132394Z"
+    },
+    {
+      "id": 2,
+      "user_id": "single_user",
+      "role_id": 2,
+      "title": "闭环测试会话",
+      "created_at": "2026-05-27T16:19:47.239474Z",
+      "updated_at": "2026-05-27T16:19:47.300157Z"
+    }
+  ],
+  "tutor_files": [
+    {
+      "id": 1,
+      "user_id": "single_user",
+      "filename": "sample.txt",
+      "stored_path": "D:\\Office_File\\other\\SparkLearn\\SparkLearn-main\\backend\\data\\users\\single_user\\uploads\\1_84e44301.txt",
+      "mime_type": "text/plain",
+      "size_bytes": 15,
+      "created_at": "2026-05-27T16:19:47.249465Z"
+    }
+  ],
+  "tutor_messages": [
+    {
+      "id": 1,
+      "conversation_id": 1,
+      "user_id": "single_user",
+      "sender_role": "user",
+      "content": "什么是闭包",
+      "file_ids": "[]",
+      "created_at": "2026-05-27T16:19:47.127392Z"
+    },
+    {
+      "id": 2,
+      "conversation_id": 1,
+      "user_id": "single_user",
+      "sender_role": "assistant",
+      "content": "关于“什么是闭包”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+      "file_ids": "[]",
+      "created_at": "2026-05-27T16:19:47.145503Z"
+    },
+    {
+      "id": 4,
+      "conversation_id": 2,
+      "user_id": "single_user",
+      "sender_role": "assistant",
+      "content": "关于“请解释闭包”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。",
+      "file_ids": "[]",
+      "created_at": "2026-05-27T16:19:47.277426Z"
+    }
+  ],
+  "tutor_roles": [
+    {
+      "id": 1,
+      "user_id": "single_user",
+      "name": "小星同学-通用导师",
+      "persona": "你是一位全能型学习导师\"小星同学\"，擅长根据学生的学习画像和当前阶段，灵活切换教学策略。你既能严谨地讲解数学推导，也能用生活化的例子解释编程概念，还能帮助学生制定学习计划、管理时间、缓解压力。\n\n你的风格是温和而专业的，善于用启发式提问引导学生思考，同时给出具体可执行的建议。你会根据学生的反馈动态调整讲解深度和节奏。",
+      "background": "适用人群：所有学习者\n教学场景：概念讲解、题目辅导、学习规划、代码实战、情绪支持\n知识边界：数学、物理、编程、学习方法、时间管理",
+      "style_guide": "根据问题类型灵活切换风格\n先理解学生的困惑点再给建议\n用简洁清晰的语言，避免过度专业术语\n给出可执行的下一步行动",
+      "rules": "必须做：\n- 回答要具体、有针对性\n- 代码示例必须可运行\n- 数学推导要分步骤\n- 关注学生的情绪状态\n\n不可做：\n- 不给出模糊的建议\n- 不忽略学生的实际水平\n- 不一次性给太多信息",
+      "enabled": 1,
+      "created_at": "2026-05-27T15:29:19.465219Z",
+      "updated_at": "2026-05-27T15:29:19.465219Z"
+    },
+    {
+      "id": 2,
+      "user_id": "single_user",
+      "name": "测试角色",
+      "persona": "你是测试导师",
+      "background": "",
+      "style_guide": "",
+      "rules": "",
+      "enabled": 1,
+      "created_at": "2026-05-27T16:19:47.226476Z",
+      "updated_at": "2026-05-27T16:19:47.226476Z"
+    }
+  ]
+}

@@ -1200,3 +1200,50 @@ export async function synthesizeSpeech(text: string, options?: { voice?: string;
 export async function getTtsStatus(): Promise<{ provider: string; configured: boolean; default_voice: string; text_limit: number }> {
   return fetchJson('/api/voice/tts/status')
 }
+
+// ─── Digital Human (NumPerson) API ──────────────────────────────────────────────
+
+export async function loadMemory(videoId: string): Promise<import('./types').MemoryLoadResult> {
+  return fetchJson('/api/num-person/memory/load', {
+    method: 'POST',
+    body: JSON.stringify({ video_id: videoId, user_id: 'single_user' }),
+  })
+}
+
+export async function getMemory(memoryId: string): Promise<import('./types').MemoryInfo> {
+  return fetchJson(`/api/num-person/memory/${memoryId}`)
+}
+
+export async function deleteMemory(memoryId: string): Promise<{ cleared: boolean }> {
+  return fetchJson(`/api/num-person/memory/${memoryId}`, { method: 'DELETE' })
+}
+
+export async function chatWithDigitalHuman(
+  memoryId: string,
+  message: string,
+  history: Array<{ role: string; content: string }>,
+  onEvent?: (evt: SseEvent) => void,
+): Promise<string> {
+  let fullText = ''
+  let lastError: string | undefined
+
+  await readSSE('/api/num-person/chat', {
+    memory_id: memoryId,
+    message,
+    user_id: 'single_user',
+    history,
+  }, (evt) => {
+    if (evt.type === 'token') {
+      const text = String(evt.payload.text || '')
+      if (text) {
+        fullText += text
+      }
+    } else if (evt.type === 'error') {
+      lastError = String(evt.payload.message || '对话失败')
+    }
+    onEvent?.(evt)
+  })
+
+  if (!fullText && lastError) throw new Error(lastError)
+  return fullText || '抱歉，我暂时无法回答这个问题。'
+}
