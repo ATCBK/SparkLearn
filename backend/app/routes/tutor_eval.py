@@ -16,6 +16,7 @@ from ..llm import spark_lite
 from ..memory_engine import build_injected_context, update_memory_from_turn
 from ..schemas import fail, ok
 from ..storage import append_jsonl
+from ..tavily_search import format_search_results, search_web
 from ..trust_answer_controller import TrustAnswerController
 from ..trust_citation import render_confidence
 from ..trust_schemas import TrustAnswerRequest
@@ -38,6 +39,7 @@ class TutorReq(BaseModel):
     workshop_role_ids: list[int] = []
     knowledge_file_ids: list[int] = []
     open_mode: bool = False
+    web_search: bool = False
 
 
 def _is_image_mode(mode: str) -> bool:
@@ -532,6 +534,18 @@ async def tutor_chat(req: TutorReq):
             model_role = 'assistant' if row['sender_role'] == 'assistant' else 'user'
             history_for_model.append({'role': model_role, 'content': row['content']})
 
+        # 联网搜索：在调用 LLM 之前执行 Tavily 搜索并将结果注入 system prompt
+        search_results: list[dict[str, Any]] = []
+        if req.web_search and req.message.strip():
+            search_results = search_web(req.message.strip())
+            if search_results:
+                yield ('search_results', {'items': search_results})
+                search_prompt = format_search_results(search_results)
+                if history_for_model and history_for_model[0]['role'] == 'system':
+                    history_for_model[0]['content'] = search_prompt + "\n\n" + history_for_model[0]['content']
+                else:
+                    history_for_model.insert(0, {'role': 'system', 'content': search_prompt})
+
         confidence_payload: dict[str, Any] = {}
         citations_payload: list[dict[str, Any]] = []
         trust_meta_payload: dict[str, Any] = {}
@@ -764,6 +778,7 @@ async def tutor_chat(req: TutorReq):
                         'citations': citations_payload,
                         'trust_meta': trust_meta_payload,
                         'open_mode': bool(req.open_mode),
+                        'web_search': bool(req.web_search),
                         'mode': req.mode,
                     },
                     ensure_ascii=False,
@@ -815,6 +830,7 @@ async def tutor_chat(req: TutorReq):
                     'version': memory_update.get('version', 0),
                 },
                 'sources': file_sources,
+                'search_results': search_results,
                 'confidence': confidence_payload,
                 'citations': citations_payload,
                 'trust_meta': trust_meta_payload,

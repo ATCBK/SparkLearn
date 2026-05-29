@@ -3,7 +3,7 @@ import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
-  ConfidenceInfo, CitationItem,
+  ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
 } from './types'
 
@@ -275,6 +275,7 @@ export async function sendMessage(
     workshopEnabled?: boolean
     workshopRoleIds?: number[]
     openMode?: boolean
+    webSearch?: boolean
     pageContext?: Record<string, unknown>
   },
   handlers?: {
@@ -286,6 +287,7 @@ export async function sendMessage(
     onCitations?: (citations: CitationItem[]) => void
     onTrustMeta?: (trustMeta: Record<string, unknown>) => void
     onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string }) => void
+    onSearchResults?: (results: SearchResultItem[]) => void
     onDone?: () => void
   },
 ): Promise<Message> {
@@ -302,6 +304,7 @@ export async function sendMessage(
     workshop_enabled: Boolean(options?.workshopEnabled),
     workshop_role_ids: options?.workshopRoleIds || [],
     open_mode: Boolean(options?.openMode),
+    web_search: Boolean(options?.webSearch),
     page_context: options?.pageContext || undefined,
   }, (evt) => {
     if (evt.type === 'text') {
@@ -377,6 +380,18 @@ export async function sendMessage(
         serviceName: String(evt.payload.service_name || ''),
         toolName: String(evt.payload.tool_name || ''),
       })
+      return
+    }
+    if (evt.type === 'search_results') {
+      const items: SearchResultItem[] = Array.isArray(evt.payload.items)
+        ? evt.payload.items.map((x: any) => ({
+            title: String(x.title || ''),
+            url: String(x.url || ''),
+            content: String(x.content || ''),
+            score: Number(x.score || 0),
+          }))
+        : []
+      handlers?.onSearchResults?.(items)
       return
     }
     if (evt.type === 'done') handlers?.onDone?.()

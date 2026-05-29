@@ -220,6 +220,13 @@ export interface ConfidenceInfo {
   reasonCodes?: string[]
 }
 
+export interface SearchResultItem {
+  title: string
+  url: string
+  content: string
+  score: number
+}
+
 export interface CitationItem {
   id: string
   label: string

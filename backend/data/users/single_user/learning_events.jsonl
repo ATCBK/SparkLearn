@@ -1131,3 +1131,7 @@
 {"ts": "2026-05-28T11:35:03.109142Z", "type": "memory_updated", "conversation_id": 30, "changed": 0, "version": 1}
 {"ts": "2026-05-28T11:37:14.862009Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "98149240", "use_llm": false}
 {"ts": "2026-05-28T11:37:14.868011Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e9c7de70", "use_llm": false}
+{"ts": "2026-05-29T08:50:30.751212Z", "type": "tutor_chat", "conversation_id": 33, "role_id": 1, "question": "谁是孙悟空？"}
+{"ts": "2026-05-29T08:50:30.776219Z", "type": "memory_updated", "conversation_id": 33, "changed": 0, "version": 1}
+{"ts": "2026-05-29T08:51:19.599438Z", "type": "tutor_chat", "conversation_id": 34, "role_id": 1, "question": "你好"}
+{"ts": "2026-05-29T08:51:19.618433Z", "type": "memory_updated", "conversation_id": 34, "changed": 0, "version": 1}

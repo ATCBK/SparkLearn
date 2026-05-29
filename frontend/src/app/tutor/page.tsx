@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, CitationItem, ConfidenceInfo, Message, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
+import { api, CitationItem, ConfidenceInfo, Message, SearchResultItem, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -31,6 +31,7 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
+  Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import ReactMarkdown from 'react-markdown'
@@ -130,6 +131,7 @@ export default function TutorPage() {
   const [workshopEnabled, setWorkshopEnabled] = useState(false)
   const [openMode, setOpenMode] = useState(true)
   const [imageMode, setImageMode] = useState(false)
+  const [webSearch, setWebSearch] = useState(false)
   const [workshopRoleIds, setWorkshopRoleIds] = useState<number[]>([])
   const [hubMessages, setHubMessages] = useState<WorkshopHubEvent[]>([])
   const [workshopPhase, setWorkshopPhase] = useState<{ phase: string; round?: number; status: string } | null>(null)
@@ -141,6 +143,7 @@ export default function TutorPage() {
   const [savingRole, setSavingRole] = useState(false)
   const [trustPanelOpenByMsg, setTrustPanelOpenByMsg] = useState<Record<string, boolean>>({})
   const [mcpCallsByMsg, setMcpCallsByMsg] = useState<Record<string, Array<{ serviceName: string; toolName: string }>>>({})
+  const [searchResultsByMsg, setSearchResultsByMsg] = useState<Record<string, SearchResultItem[]>>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -494,6 +497,7 @@ export default function TutorPage() {
       { id: assistantId, role: 'assistant', content: '', timestamp: new Date().toISOString(), conversationId: convId },
     ])
     setMcpCallsByMsg((prev) => ({ ...prev, [assistantId]: [] }))
+    setSearchResultsByMsg((prev) => ({ ...prev, [assistantId]: [] }))
 
     setInput('')
     setStreaming(true)
@@ -513,6 +517,7 @@ export default function TutorPage() {
           workshopEnabled,
           workshopRoleIds,
           openMode: imageMode ? true : openMode,
+          webSearch,
         },
         {
           onText: (chunk) => {
@@ -533,6 +538,9 @@ export default function TutorPage() {
               const next = [...list, { serviceName: call.serviceName || call.serviceId, toolName: call.toolName }]
               return { ...prev, [assistantId]: next }
             })
+          },
+          onSearchResults: (results) => {
+            setSearchResultsByMsg((prev) => ({ ...prev, [assistantId]: results }))
           },
           onHub: (evt) => {
             setHubMessages((prev) => {
@@ -782,6 +790,28 @@ export default function TutorPage() {
                                 </div>
                               </div>
                             )}
+                            {!!searchResultsByMsg[msg.id]?.length && (
+                              <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <Globe className="w-3.5 h-3.5 text-[#2563eb]" />
+                                  <span className="text-xs font-medium text-[#334155]">联网搜索结果</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  {searchResultsByMsg[msg.id].map((r, i) => (
+                                    <a
+                                      key={`${r.url}-${i}`}
+                                      href={r.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block rounded-md bg-white border border-[#eef2f7] px-2.5 py-1.5 hover:border-[#2563eb] transition-colors"
+                                    >
+                                      <div className="text-xs font-medium text-[#1e293b] truncate">{r.title}</div>
+                                      <div className="text-xs text-[#64748b] truncate mt-0.5">{r.content.slice(0, 100)}</div>
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             {!imageDataMatch && (msg.confidence || (msg.citations && msg.citations.length > 0)) && (
                               <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-white">
                                 <button
@@ -869,6 +899,16 @@ export default function TutorPage() {
                 </div>
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#f1f5f9]">
                   <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handlePickFiles(e.target.files)} />
+                  <button
+                    type="button"
+                    onClick={() => setWebSearch((v) => !v)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                      webSearch ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                    )}
+                  >
+                    <Globe className="w-3.5 h-3.5" />联网搜索
+                  </button>
                   <button
                     type="button"
                     onClick={() => setImageMode((v) => !v)}
