@@ -2534,5 +2534,129 @@
       "knowledge_point_name": "数据类型"
     },
     "at": "2026-05-26"
+  },
+  {
+    "quiz_id": "dq_b4ece72c_1",
+    "answer": "索引超出范围",
+    "correct": false,
+    "correct_answer": "属性不存在",
+    "knowledge_point_id": "4.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_b4ece72c_1",
+      "type": "single",
+      "content": "AttributeError 异常表示什么？",
+      "options": [
+        "值错误",
+        "属性不存在",
+        "索引超出范围",
+        "类型错误"
+      ],
+      "explanation": "AttributeError 表示对象没有指定的属性。",
+      "knowledge_point_id": "4.1",
+      "knowledge_point_name": "异常处理"
+    },
+    "at": "2026-05-27"
+  },
+  {
+    "quiz_id": "dq_b4ece72c_2",
+    "answer": "二进制",
+    "correct": false,
+    "correct_answer": "读取",
+    "knowledge_point_id": "5.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_b4ece72c_2",
+      "type": "single",
+      "content": "文件打开模式 \"r\" 表示什么？",
+      "options": [
+        "写入",
+        "读取",
+        "追加",
+        "二进制"
+      ],
+      "explanation": "\"r\" 模式表示以读取模式打开文件。",
+      "knowledge_point_id": "5.1",
+      "knowledge_point_name": "文件操作"
+    },
+    "at": "2026-05-27"
+  },
+  {
+    "quiz_id": "dq_b4ece72c_3",
+    "answer": [
+      "==",
+      ">",
+      "!="
+    ],
+    "correct": false,
+    "correct_answer": [
+      "==",
+      "!=",
+      ">",
+      "<"
+    ],
+    "knowledge_point_id": "2.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_b4ece72c_3",
+      "type": "multiple",
+      "content": "以下哪些是比较运算符？",
+      "options": [
+        "==",
+        "!=",
+        ">",
+        "<"
+      ],
+      "explanation": "这些都是比较运算符。",
+      "knowledge_point_id": "2.2",
+      "knowledge_point_name": "条件判断"
+    },
+    "at": "2026-05-27"
+  },
+  {
+    "quiz_id": "dq_329c100d_1",
+    "answer": "抛出异常",
+    "correct": true,
+    "correct_answer": "抛出异常",
+    "knowledge_point_id": "4.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_329c100d_1",
+      "type": "single",
+      "content": "raise 语句的作用是什么？",
+      "options": [
+        "捕获异常",
+        "抛出异常",
+        "处理异常",
+        "忽略异常"
+      ],
+      "explanation": "raise 语句用于主动抛出异常。",
+      "knowledge_point_id": "4.1",
+      "knowledge_point_name": "异常处理"
+    },
+    "at": "2026-05-28"
+  },
+  {
+    "quiz_id": "dq_329c100d_2",
+    "answer": "读取",
+    "correct": false,
+    "correct_answer": "写入",
+    "knowledge_point_id": "5.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_329c100d_2",
+      "type": "single",
+      "content": "文件打开模式 \"w\" 表示什么？",
+      "options": [
+        "读取",
+        "写入",
+        "追加",
+        "二进制"
+      ],
+      "explanation": "\"w\" 模式表示以写入模式打开文件，会覆盖原内容。",
+      "knowledge_point_id": "5.1",
+      "knowledge_point_name": "文件操作"
+    },
+    "at": "2026-05-28"
   }
 ]

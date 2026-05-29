@@ -1,62 +1,50 @@
 [
   {
-    "id": "dq_017e0905_1",
+    "id": "dq_e9c7de70_1",
     "type": "single",
-    "content": "break 语句的作用是什么？",
+    "content": "三元表达式的语法是什么？",
     "options": [
-      "跳过当前迭代",
-      "退出循环",
-      "暂停循环",
-      "重新开始循环"
+      "a if b else c",
+      "if b then a else c",
+      "b ? a : c",
+      "a unless b else c"
     ],
-    "correct_answer": "退出循环",
-    "explanation": "break 语句用于立即退出循环。",
-    "knowledge_point_id": "2.1",
-    "knowledge_point_name": "循环语句"
-  },
-  {
-    "id": "dq_017e0905_2",
-    "type": "single",
-    "content": "字符串的 center() 方法的作用是什么？",
-    "options": [
-      "左对齐",
-      "右对齐",
-      "居中对齐",
-      "删除空格"
-    ],
-    "correct_answer": "居中对齐",
-    "explanation": "center() 将字符串居中对齐，用指定字符填充。",
-    "knowledge_point_id": "1.4",
-    "knowledge_point_name": "字符串处理"
-  },
-  {
-    "id": "dq_017e0905_3",
-    "type": "single",
-    "content": "以下哪个是 Python 中的逻辑运算符？",
-    "options": [
-      "&",
-      "|",
-      "and",
-      "&&"
-    ],
-    "correct_answer": "and",
-    "explanation": "Python 使用 and、or、not 作为逻辑运算符。",
+    "correct_answer": "a if b else c",
+    "explanation": "Python 的三元表达式格式为 a if condition else b。",
     "knowledge_point_id": "2.2",
     "knowledge_point_name": "条件判断"
   },
   {
-    "id": "dq_017e0905_4",
+    "id": "dq_e9c7de70_2",
+    "type": "fill_blank",
+    "content": "字符串的 ______ 方法可以将字符串转换为大写。",
+    "correct_answer": "upper",
+    "explanation": "upper() 方法将字符串转换为大写。",
+    "knowledge_point_id": "1.4",
+    "knowledge_point_name": "字符串处理"
+  },
+  {
+    "id": "dq_e9c7de70_3",
+    "type": "fill_blank",
+    "content": "列表的 ______ 方法可以反转列表。",
+    "correct_answer": "reverse",
+    "explanation": "reverse() 方法反转列表中的元素顺序。",
+    "knowledge_point_id": "1.3",
+    "knowledge_point_name": "列表操作"
+  },
+  {
+    "id": "dq_e9c7de70_4",
     "type": "single",
-    "content": "函数中 return 语句的作用是什么？",
+    "content": "if 语句中 elif 的作用是什么？",
     "options": [
-      "结束程序",
-      "返回值并退出函数",
-      "打印结果",
-      "声明变量"
+      "结束条件",
+      "否则",
+      "否则如果",
+      "重复条件"
     ],
-    "correct_answer": "返回值并退出函数",
-    "explanation": "return 语句用于返回函数的结果值并退出函数。",
-    "knowledge_point_id": "3.1",
-    "knowledge_point_name": "函数定义"
+    "correct_answer": "否则如果",
+    "explanation": "elif 用于检查多个条件。",
+    "knowledge_point_id": "2.2",
+    "knowledge_point_name": "条件判断"
   }
 ]
