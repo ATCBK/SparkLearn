@@ -1,0 +1,152 @@
+import { expect, test } from '@playwright/test'
+
+const pet = {
+  id: 'pet-1',
+  name: '小星',
+  avatar: 'fox',
+  personality: 'encouraging',
+  level: 3,
+  xp: 260,
+  next_level_xp: 300,
+  unlocked_abilities: ['search', 'summarize', 'compare'],
+  created_at: '2026-05-30T00:00:00Z',
+  updated_at: '2026-05-30T00:00:00Z',
+}
+
+async function mockAgentApis(page: import('@playwright/test').Page, options?: { nanobotHealthy?: boolean }) {
+  let pollCount = 0
+  const healthy = options?.nanobotHealthy ?? true
+
+  await page.route('**/api/agent/pet', async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ json: { success: true, data: pet } })
+      return
+    }
+    await route.fulfill({ json: { success: true, data: pet } })
+  })
+
+  await page.route('**/api/agent/nanobot/status', async route => {
+    await route.fulfill({
+      json: {
+        success: true,
+        data: healthy
+          ? { enabled: true, healthy: true, url: 'http://127.0.0.1:8900' }
+          : { enabled: true, healthy: false, url: 'http://127.0.0.1:8900', reason: 'connection refused' },
+      },
+    })
+  })
+
+  await page.route('**/api/agent/task', async route => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON() as { task_type: string; input_text: string }
+      expect(body.input_text).toContain('Python')
+      await route.fulfill({
+        json: { success: true, data: { task_id: 'task-1', task_type: body.task_type, status: 'pending', created_at: new Date().toISOString() } },
+      })
+      return
+    }
+    await route.fallback()
+  })
+
+  await page.route('**/api/agent/task/task-1', async route => {
+    pollCount += 1
+    const completed = pollCount >= 2
+    await route.fulfill({
+      json: {
+        success: true,
+        data: {
+          task_id: 'task-1',
+          task_type: 'search',
+          input_text: 'Python 装饰器学习资料',
+          status: completed ? 'completed' : 'running',
+          result: completed
+            ? {
+                items: [
+                  {
+                    title: 'Python 装饰器入门',
+                    summary: '从函数闭包过渡到装饰器语法，适合初学者。',
+                    url: 'https://example.com/python-decorator',
+                    source: 'example.com',
+                  },
+                ],
+              }
+            : null,
+          error_message: null,
+          feedback: null,
+          steps: healthy
+            ? [
+                { step: 1, action: 'nanobot', description: '已切换到学习宠物新内核：正在调用本机 Nanobot...', time: new Date().toISOString() },
+                { step: 2, action: 'extract', description: 'Nanobot 已返回结构化学习结果', time: new Date().toISOString() },
+              ]
+            : [
+                { step: 1, action: 'nanobot', description: '已切换到学习宠物新内核：正在调用本机 Nanobot...', time: new Date().toISOString() },
+                { step: 2, action: 'fallback', description: 'Nanobot 暂不可用，切换到 SparkLearn 备用能力...', time: new Date().toISOString() },
+              ],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      },
+    })
+  })
+
+  await page.route('**/api/agent/task/task-1/feedback', async route => {
+    await route.fulfill({ json: { success: true, data: { task_id: 'task-1', feedback: 'useful' } } })
+  })
+
+  await page.route('**/api/agent/bookmark', async route => {
+    await route.fulfill({ json: { success: true, data: { title: 'Python 装饰器入门', tags: ['Python'], url: 'https://example.com/python-decorator' } } })
+  })
+
+  await page.route('**/api/voice/tts', async route => {
+    await route.fulfill({ status: 200, body: Buffer.from(''), contentType: 'audio/mpeg' })
+  })
+}
+
+test.describe('AI 学伴本机 Nanobot 链路', () => {
+  test('正常流程：输入复杂学习任务，等待任务完成，收藏结果并反馈', async ({ page }) => {
+    await mockAgentApis(page, { nanobotHealthy: true })
+    await page.goto('/agent')
+
+    await expect(page.getByText('Nanobot 在线')).toBeVisible()
+    await page.getByPlaceholder(/Python 装饰器/).fill('Python 装饰器学习资料：请按初学者路径推荐，并说明阅读顺序')
+    await page.getByRole('button', { name: '发送任务' }).click()
+
+    await expect(page.getByText('正在处理任务')).toBeVisible()
+    await expect(page.getByText('找到 1 条可用学习资料。')).toBeVisible()
+    await expect(page.getByText('Python 装饰器入门')).toBeVisible()
+
+    await page.getByRole('button', { name: '收藏结果' }).click()
+    await expect(page.getByText('已收藏')).toBeVisible()
+    await page.getByRole('button', { name: '结果有帮助' }).click()
+    await expect(page.getByText('反馈已记录')).toBeVisible()
+  })
+
+  test('边界情况：任务过短时前端拦截，不创建后端任务', async ({ page }) => {
+    let createCalled = false
+    await mockAgentApis(page)
+    await page.route('**/api/agent/task', async route => {
+      if (route.request().method() === 'POST') createCalled = true
+      await route.fallback()
+    })
+
+    await page.goto('/agent')
+    await page.getByPlaceholder(/Python 装饰器/).fill('闭包')
+    await page.getByRole('button', { name: '发送任务' }).click()
+
+    await expect(page.getByText('任务描述太短')).toBeVisible()
+    expect(createCalled).toBe(false)
+  })
+
+  test('边界情况：Nanobot 离线时显示备用模式并完成同一用户流程', async ({ page }) => {
+    await mockAgentApis(page, { nanobotHealthy: false })
+    await page.goto('/agent')
+
+    await expect(page.getByText('备用模式')).toBeVisible()
+    await page.getByPlaceholder(/Python 装饰器/).fill('Python 装饰器学习资料：Nanobot 离线时也要给出备用结果')
+    await page.getByRole('button', { name: '发送任务' }).click()
+
+    await expect(page.locator('.text-micro', { hasText: 'Nanobot 暂不可用，切换到 SparkLearn 备用能力' })).toBeVisible()
+    await expect(page.getByText('本机 Nanobot 未在线，桌面端会使用 SparkLearn 备用能力继续处理当前任务。')).toBeVisible()
+    await expect(page.getByText('Python 装饰器入门')).toBeVisible()
+  })
+})

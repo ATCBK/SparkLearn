@@ -1,17 +1,52 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { api, AgentPet, AgentTask, AgentTaskStep } from '@/lib/api'
-import { ProtoCard, ProtoButton, Pill, SoftCard } from '@/components/proto'
-import { Send, Search, FileText, GitCompare, Bookmark, ThumbsUp, ThumbsDown, Loader2, ExternalLink, Volume2, Mic, MicOff, Pause } from 'lucide-react'
-import { PetAvatar, PetType, PetState, taskStatusToPetState } from './PetAvatar'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AgentPet, AgentTask, AgentTaskStep, NanobotStatus, api } from '@/lib/api'
+import { ProtoCard, SoftCard } from '@/components/proto'
+import { Bookmark, ExternalLink, FileText, GitCompare, Loader2, Mic, MicOff, Pause, Search, Send, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
+import { PetAvatar, PetState, PetType, taskStatusToPetState } from './PetAvatar'
 
-const AVATAR_EMOJI: Record<string, string> = { fox: '🦊', owl: '🦉', robot: '🤖', cat: '🐱', dragon: '🐲', penguin: '🐧', bunny: '🐰', panda: '🐼' }
+type SpeechRecognitionConstructor = new () => {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>
+}
+
+type AgentResultItem = {
+  title?: string
+  summary?: string
+  url?: string
+  source?: string
+  reason?: string
+  explanation?: string
+}
+
+type AgentResultPayload = {
+  items?: AgentResultItem[]
+  topic?: string
+  key_points?: string[]
+  conclusion?: string
+  comparison?: string
+}
+
+type BrowserWithSpeech = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
+}
 
 const TASK_TYPE_OPTIONS = [
-  { id: 'search', label: '搜索资料', icon: <Search className="h-3.5 w-3.5" />, placeholder: '帮我找 Python 装饰器的入门教程' },
-  { id: 'summarize', label: '文章摘要', icon: <FileText className="h-3.5 w-3.5" />, placeholder: '帮我总结这篇文章的要点...' },
-  { id: 'compare', label: '对比搜索', icon: <GitCompare className="h-3.5 w-3.5" />, placeholder: 'for 和 while 的区别' },
+  { id: 'search', label: '资料检索', icon: <Search className="h-3.5 w-3.5" />, placeholder: '例如：帮我找适合初学者理解 Python 装饰器的资料，并说明先看哪一个' },
+  { id: 'summarize', label: '内容摘要', icon: <FileText className="h-3.5 w-3.5" />, placeholder: '粘贴一段文章、笔记或链接，让学伴提炼要点和下一步建议' },
+  { id: 'compare', label: '概念对比', icon: <GitCompare className="h-3.5 w-3.5" />, placeholder: '例如：对比 Python 生成器和列表推导式，说明适用场景' },
 ]
 
 interface ChatMessage {
@@ -22,44 +57,52 @@ interface ChatMessage {
   timestamp: string
 }
 
-interface Props {
+export function AgentChat({
+  pet,
+  nanobot,
+  onXpChange,
+  onStateChange,
+}: {
   pet: AgentPet
+  nanobot?: NanobotStatus | null
   onXpChange: () => void
   onStateChange?: (state: PetState, statusText?: string) => void
-}
-
-export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       sender: 'agent',
-      content: `你好！我是${pet.name}，你的学习伙伴。有什么我能帮你的吗？`,
+      content: `我是 ${pet.name}。请给我一个具体学习任务，例如检索资料、总结内容或对比概念。`,
       timestamp: new Date().toISOString(),
     },
   ])
   const [input, setInput] = useState('')
   const [taskType, setTaskType] = useState('search')
-  const [currentTask, setCurrentTask] = useState<string | null>(null)
   const [polling, setPolling] = useState(false)
   const [steps, setSteps] = useState<AgentTaskStep[]>([])
+  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null)
+  const [ttsLoading, setTtsLoading] = useState<string | null>(null)
+  const [recording, setRecording] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
   const msgCounter = useRef(0)
-
-  // TTS playback state
-  const [playingMsgId, setPlayingMsgId] = useState<string | null>(null)
-  const [ttsLoading, setTtsLoading] = useState<string | null>(null)
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
   const ttsBlobUrlRef = useRef<string | null>(null)
+  const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null)
+  const voiceBaseRef = useRef('')
 
-  // Voice input state
-  const [recording, setRecording] = useState(false)
-  const recognitionRef = useRef<any>(null)
-  const voiceBaseRef = useRef<string>('')
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, steps])
 
-  // TTS: play agent message
+  useEffect(() => () => {
+    if (pollingRef.current) clearInterval(pollingRef.current)
+    if (ttsAudioRef.current) ttsAudioRef.current.pause()
+    if (ttsBlobUrlRef.current) URL.revokeObjectURL(ttsBlobUrlRef.current)
+    recognitionRef.current?.stop()
+  }, [])
+
   const playTts = useCallback(async (msgId: string, text: string) => {
-    // Stop current playback
     if (ttsAudioRef.current) {
       ttsAudioRef.current.pause()
       ttsAudioRef.current = null
@@ -68,7 +111,6 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
       URL.revokeObjectURL(ttsBlobUrlRef.current)
       ttsBlobUrlRef.current = null
     }
-
     if (playingMsgId === msgId) {
       setPlayingMsgId(null)
       return
@@ -76,24 +118,19 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
 
     setTtsLoading(msgId)
     try {
-      const blob = await api.synthesizeSpeech(text.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000))
+      const blob = await api.synthesizeSpeech(text.replace(/[#*`>\-|[\]()]/g, '').slice(0, 1600))
       const url = URL.createObjectURL(blob)
       ttsBlobUrlRef.current = url
       const audio = new Audio(url)
       ttsAudioRef.current = audio
-      audio.addEventListener('ended', () => {
-        setPlayingMsgId(null)
-      })
+      audio.addEventListener('ended', () => setPlayingMsgId(null))
       await audio.play()
       setPlayingMsgId(msgId)
-    } catch {
-      // TTS failed silently
     } finally {
       setTtsLoading(null)
     }
   }, [playingMsgId])
 
-  // Voice input: start/stop recording using Web Speech API
   const toggleVoiceInput = useCallback(() => {
     if (recording) {
       recognitionRef.current?.stop()
@@ -101,9 +138,15 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
       return
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const browserWindow = window as BrowserWithSpeech
+    const SpeechRecognition = browserWindow.SpeechRecognition || browserWindow.webkitSpeechRecognition
     if (!SpeechRecognition) {
-      alert('当前浏览器不支持语音识别，请使用 Chrome 浏览器。')
+      setMessages(prev => [...prev, {
+        id: `voice-${++msgCounter.current}`,
+        sender: 'agent',
+        content: '当前环境不支持语音输入，请使用文本输入继续。',
+        timestamp: new Date().toISOString(),
+      }])
       return
     }
 
@@ -111,250 +154,183 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
     recognition.lang = 'zh-CN'
     recognition.continuous = false
     recognition.interimResults = true
-
     voiceBaseRef.current = input
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEventLike) => {
       let transcript = ''
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript
       }
-      setInput(voiceBaseRef.current ? voiceBaseRef.current + transcript : transcript)
+      setInput(voiceBaseRef.current ? `${voiceBaseRef.current}${transcript}` : transcript)
     }
-
-    recognition.onend = () => {
-      setRecording(false)
-    }
-
-    recognition.onerror = () => {
-      setRecording(false)
-    }
-
+    recognition.onend = () => setRecording(false)
+    recognition.onerror = () => setRecording(false)
     recognitionRef.current = recognition
     recognition.start()
     setRecording(true)
-  }, [recording, input])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (ttsAudioRef.current) ttsAudioRef.current.pause()
-      if (ttsBlobUrlRef.current) URL.revokeObjectURL(ttsBlobUrlRef.current)
-      recognitionRef.current?.stop()
-    }
-  }, [])
-
-  // Auto-scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, steps])
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current)
-    }
-  }, [])
+  }, [input, recording])
 
   async function handleSend() {
     const text = input.trim()
     if (!text || polling) return
 
-    // Check ability
-    if (!pet.unlocked_abilities.includes(taskType)) {
-      msgCounter.current++
+    if (text.length < 6) {
       setMessages(prev => [...prev, {
-        id: `err-${msgCounter.current}`,
+        id: `guard-${++msgCounter.current}`,
         sender: 'agent',
-        content: `抱歉，${taskType === 'summarize' ? '文章摘要' : taskType === 'compare' ? '对比搜索' : '该'}能力需要更高等级才能解锁哦~`,
+        content: '任务描述太短。请补充学习目标、当前基础或希望得到的结果。',
         timestamp: new Date().toISOString(),
       }])
       return
     }
 
-    // Add user message
-    const userMsg: ChatMessage = {
+    if (!pet.unlocked_abilities.includes(taskType)) {
+      setMessages(prev => [...prev, {
+        id: `locked-${++msgCounter.current}`,
+        sender: 'agent',
+        content: '该能力尚未解锁。先完成当前等级可用任务，升级后再使用。',
+        timestamp: new Date().toISOString(),
+      }])
+      return
+    }
+
+    setMessages(prev => [...prev, {
       id: `user-${++msgCounter.current}`,
       sender: 'user',
       content: text,
       timestamp: new Date().toISOString(),
-    }
-    setMessages(prev => [...prev, userMsg])
+    }])
     setInput('')
+    setPolling(true)
+    setSteps([])
+    onStateChange?.('thinking', nanobot?.healthy ? '正在调用本机 Nanobot 学伴内核。' : 'Nanobot 不在线，准备使用备用能力。')
 
-    // Create task
     try {
       const result = await api.createAgentTask({ task_type: taskType, input_text: text })
-      setCurrentTask(result.task_id)
-      setPolling(true)
-      setSteps([])
-
-      // Start polling with guard against duplicate completion handling
       let handled = false
       pollingRef.current = setInterval(async () => {
         if (handled) return
         try {
           const task = await api.getAgentTask(result.task_id)
           setSteps(task.steps || [])
+          onStateChange?.(taskStatusToPetState(task.status, task.task_type), latestStepText(task.steps))
 
           if (task.status === 'completed' || task.status === 'failed') {
-            if (handled) return
             handled = true
-
-            // Stop polling
             if (pollingRef.current) clearInterval(pollingRef.current)
             pollingRef.current = null
             setPolling(false)
-            setCurrentTask(null)
-
-            // Add agent response
-            const agentMsg: ChatMessage = {
+            setSteps([])
+            setMessages(prev => [...prev, {
               id: `agent-${++msgCounter.current}`,
               sender: 'agent',
-              content: task.status === 'completed'
-                ? formatResult(task)
-                : `😔 ${task.error_message || '任务执行失败，请稍后重试'}`,
+              content: task.status === 'completed' ? formatResult(task) : task.error_message || '任务执行失败，请稍后重试。',
               task: task.status === 'completed' ? task : undefined,
               timestamp: new Date().toISOString(),
-            }
-            setMessages(prev => [...prev, agentMsg])
-            setSteps([])
-
-            if (task.status === 'completed') {
-              onXpChange()
-            }
+            }])
+            onStateChange?.(task.status === 'completed' ? 'success' : 'failed')
+            if (task.status === 'completed') onXpChange()
           }
         } catch {
-          // Polling error, continue
+          // Keep polling; transient backend errors are common during startup.
         }
-      }, 2000)
-    } catch (e: any) {
+      }, 1600)
+    } catch (error: unknown) {
+      setPolling(false)
+      onStateChange?.('failed', '任务未能创建。')
       setMessages(prev => [...prev, {
         id: `err-${++msgCounter.current}`,
         sender: 'agent',
-        content: `😅 ${e.message || '创建任务失败'}`,
+        content: error instanceof Error ? error.message : '任务创建失败，请确认后端服务可用。',
         timestamp: new Date().toISOString(),
       }])
     }
-  }
-
-  function formatResult(task: AgentTask): string {
-    if (!task.result) return '任务完成，但没有返回结果。'
-    if (task.task_type === 'search' && 'items' in task.result) {
-      const items = (task.result as any).items || []
-      if (items.length === 0) return '没有找到相关资源，试试换个关键词？'
-      return `找到了 ${items.length} 条相关资源：`
-    }
-    if (task.task_type === 'summarize' && 'topic' in task.result) {
-      return '文章摘要已生成：'
-    }
-    if (task.task_type === 'compare' && 'items' in task.result) {
-      return '对比分析完成：'
-    }
-    return '任务完成！'
   }
 
   async function handleFeedback(taskId: string, feedback: 'useful' | 'not_useful') {
-    try {
-      await api.submitAgentFeedback(taskId, feedback)
-      setMessages(prev => prev.map(m =>
-        m.task?.task_id === taskId
-          ? { ...m, task: { ...m.task!, feedback } }
-          : m
-      ))
-    } catch { /* ignore */ }
+    await api.submitAgentFeedback(taskId, feedback)
+    setMessages(prev => prev.map(m => m.task?.task_id === taskId ? { ...m, task: { ...m.task, feedback } } : m))
   }
 
-  async function handleBookmark(task: AgentTask, item: any, index: number) {
-    try {
-      await api.bookmarkAgentResult({
-        task_id: task.task_id,
-        item_index: index,
-        title: item.title,
-        url: item.url || '',
-        summary: item.summary || item.explanation || '',
-      })
-      setMessages(prev => [...prev, {
-        id: `bookmark-${++msgCounter.current}`,
-        sender: 'agent',
-        content: `✅ 已将「${item.title}」收藏到知识库！`,
-        timestamp: new Date().toISOString(),
-      }])
-    } catch (e: any) {
-      setMessages(prev => [...prev, {
-        id: `bookmark-err-${++msgCounter.current}`,
-        sender: 'agent',
-        content: `收藏失败：${e.message}`,
-        timestamp: new Date().toISOString(),
-      }])
-    }
+  async function handleBookmark(task: AgentTask, item: AgentResultItem, index: number) {
+    await api.bookmarkAgentResult({
+      task_id: task.task_id,
+      item_index: index,
+      title: item.title || item.source || '学伴结果',
+      url: item.url || '',
+      summary: item.summary || item.explanation || item.reason || '',
+    })
+    setMessages(prev => [...prev, {
+      id: `bookmark-${++msgCounter.current}`,
+      sender: 'agent',
+      content: `已收藏「${item.title || item.source || '学伴结果'}」到知识库。`,
+      timestamp: new Date().toISOString(),
+    }])
   }
 
   return (
-    <ProtoCard className="flex flex-col h-[calc(100vh-220px)] min-h-[500px]">
-      {/* Messages area - fills available space, scrolls internally */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-1">
+    <ProtoCard className="flex h-[calc(100vh-220px)] min-h-[560px] flex-col p-0">
+      <div className="border-b border-line px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-ink">任务对话</h2>
+            <p className="mt-1 text-small text-muted">一次只处理一个明确任务，结果会沉淀到任务记录。</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {TASK_TYPE_OPTIONS.map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setTaskType(opt.id)}
+                disabled={!pet.unlocked_abilities.includes(opt.id)}
+                className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] px-3 text-micro font-bold transition-colors ${
+                  taskType === opt.id ? 'bg-blue text-white' : 'bg-[#f2f6fb] text-muted hover:bg-[#e9f0f8]'
+                } disabled:cursor-not-allowed disabled:opacity-40`}
+              >
+                {opt.icon}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {messages.map(msg => (
           <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] ${msg.sender === 'user' ? 'order-1' : ''}`}>
+            <div className="max-w-[86%]">
               {msg.sender === 'agent' && (
-                <div className="flex items-center gap-1.5 mb-1">
+                <div className="mb-1.5 flex items-center gap-2">
                   <PetAvatar type={pet.avatar as PetType} state="idle" size="sm" />
-                  <span className="text-xs font-medium text-[#6b7280]">{pet.name}</span>
+                  <span className="text-micro font-bold text-muted">{pet.name}</span>
                 </div>
               )}
-              <div className={`rounded-xl px-3.5 py-2.5 text-sm ${
-                msg.sender === 'user'
-                  ? 'bg-[#2563eb] text-white'
-                  : 'bg-[#f1f5f9] text-[#111827]'
+              <div className={`rounded-[12px] px-4 py-3 text-small leading-6 ${
+                msg.sender === 'user' ? 'bg-blue text-white' : 'bg-[#f3f7fb] text-ink'
               }`}>
                 {msg.content}
               </div>
 
-              {/* TTS play button for agent messages */}
-              {msg.sender === 'agent' && msg.content && (
+              {msg.sender === 'agent' && (
                 <button
                   onClick={() => void playTts(msg.id, msg.content)}
                   disabled={ttsLoading === msg.id}
-                  className="mt-1 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] text-[#6b7280] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
-                  title="语音播报"
+                  className="mt-1.5 inline-flex items-center gap-1 rounded-[7px] px-2 py-1 text-micro font-bold text-muted hover:bg-blue-light hover:text-blue disabled:opacity-50"
                 >
-                  {ttsLoading === msg.id ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : playingMsgId === msg.id ? (
-                    <Pause className="h-3 w-3" />
-                  ) : (
-                    <Volume2 className="h-3 w-3" />
-                  )}
-                  <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
+                  {ttsLoading === msg.id ? <Loader2 className="h-3 w-3 animate-spin" /> : playingMsgId === msg.id ? <Pause className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                  {playingMsgId === msg.id ? '暂停' : '朗读'}
                 </button>
               )}
 
-              {/* Render task results */}
-              {msg.task && msg.task.result && (
+              {msg.task?.result && (
                 <div className="mt-2 space-y-2">
                   <TaskResultView task={msg.task} onBookmark={handleBookmark} />
-                  {/* Feedback buttons */}
-                  {!msg.task.feedback && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-[#9ca3af]">有帮助吗？</span>
-                      <button
-                        onClick={() => handleFeedback(msg.task!.task_id, 'useful')}
-                        className="p-1 rounded hover:bg-[#ecfdf5] text-[#6b7280] hover:text-[#059669]"
-                      >
-                        <ThumbsUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleFeedback(msg.task!.task_id, 'not_useful')}
-                        className="p-1 rounded hover:bg-[#fef2f2] text-[#6b7280] hover:text-[#dc2626]"
-                      >
-                        <ThumbsDown className="h-3.5 w-3.5" />
-                      </button>
+                  {!msg.task.feedback ? (
+                    <div className="flex items-center gap-2 text-micro text-muted">
+                      <span>结果是否有帮助</span>
+                      <button aria-label="结果有帮助" onClick={() => void handleFeedback(msg.task!.task_id, 'useful')} className="rounded p-1 hover:bg-green-light hover:text-green"><ThumbsUp className="h-3.5 w-3.5" /></button>
+                      <button aria-label="结果没有帮助" onClick={() => void handleFeedback(msg.task!.task_id, 'not_useful')} className="rounded p-1 hover:bg-red-light hover:text-red"><ThumbsDown className="h-3.5 w-3.5" /></button>
                     </div>
-                  )}
-                  {msg.task.feedback && (
-                    <div className="text-xs text-[#9ca3af] mt-1">
-                      {msg.task.feedback === 'useful' ? '👍 感谢反馈！' : '已记录，下次会做得更好'}
-                    </div>
+                  ) : (
+                    <div className="text-micro text-muted">反馈已记录</div>
                   )}
                 </div>
               )}
@@ -362,25 +338,23 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
           </div>
         ))}
 
-        {/* Polling status / steps */}
         {polling && (
           <div className="flex justify-start">
-            <div className="max-w-[85%]">
-              <div className="flex items-center gap-1.5 mb-1">
+            <div className="max-w-[86%]">
+              <div className="mb-1.5 flex items-center gap-2">
                 <PetAvatar type={pet.avatar as PetType} state="searching" size="sm" />
-                <span className="text-xs font-medium text-[#6b7280]">{pet.name}</span>
+                <span className="text-micro font-bold text-muted">{pet.name}</span>
               </div>
-              <div className="bg-[#f1f5f9] rounded-xl px-3.5 py-2.5">
-                <div className="flex items-center gap-2 text-sm text-[#374151]">
-                  <Loader2 className="h-4 w-4 animate-spin text-[#2563eb]" />
-                  <span>正在工作中...</span>
+              <div className="rounded-[12px] bg-[#f3f7fb] px-4 py-3">
+                <div className="flex items-center gap-2 text-small font-bold text-ink">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue" />
+                  正在处理任务
                 </div>
                 {steps.length > 0 && (
                   <div className="mt-2 space-y-1">
-                    {steps.slice(-3).map((s, i) => (
-                      <div key={i} className="text-xs text-[#6b7280] flex items-center gap-1.5">
-                        <StepIcon action={s.action} />
-                        <span>{s.description}</span>
+                    {steps.slice(-4).map(step => (
+                      <div key={`${step.step}-${step.action}`} className="text-micro leading-5 text-muted">
+                        {step.description}
                       </div>
                     ))}
                   </div>
@@ -389,108 +363,74 @@ export function AgentChat({ pet, onXpChange, onStateChange }: Props) {
             </div>
           </div>
         )}
-
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Task type selector */}
-      <div className="flex gap-1.5 mb-3 mt-4 shrink-0">
-        {TASK_TYPE_OPTIONS.map(opt => (
+      <form onSubmit={e => { e.preventDefault(); void handleSend() }} className="border-t border-line p-4">
+        <div className="flex gap-2">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder={TASK_TYPE_OPTIONS.find(o => o.id === taskType)?.placeholder}
+            disabled={polling}
+            maxLength={240}
+            className="h-11 min-w-0 flex-1 rounded-[10px] border border-line px-4 text-small text-ink outline-none transition focus:border-blue focus:ring-2 focus:ring-[#bfdbfe] disabled:bg-[#f8fafc]"
+          />
           <button
-            key={opt.id}
-            onClick={() => setTaskType(opt.id)}
-            disabled={!pet.unlocked_abilities.includes(opt.id)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              taskType === opt.id
-                ? 'bg-[#2563eb] text-white'
-                : pet.unlocked_abilities.includes(opt.id)
-                  ? 'bg-[#f1f5f9] text-[#374151] hover:bg-[#e2e8f0]'
-                  : 'bg-[#f9fafb] text-[#d1d5db] cursor-not-allowed'
-            }`}
+            type="button"
+            onClick={toggleVoiceInput}
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-[10px] transition-colors ${recording ? 'bg-red text-white' : 'bg-[#f2f6fb] text-muted hover:bg-[#e9f0f8] hover:text-ink'}`}
+            aria-label={recording ? '停止语音输入' : '语音输入'}
           >
-            {opt.icon}
-            {opt.label}
-            {!pet.unlocked_abilities.includes(opt.id) && <span className="text-[10px]">🔒</span>}
+            {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
           </button>
-        ))}
-      </div>
-
-      {/* Input */}
-      <form
-        onSubmit={e => { e.preventDefault(); void handleSend() }}
-        className="flex gap-2 shrink-0"
-      >
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder={TASK_TYPE_OPTIONS.find(o => o.id === taskType)?.placeholder || '输入你的问题...'}
-          disabled={polling}
-          className="flex-1 h-10 rounded-xl border border-[#e2e8f0] px-4 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#bfdbfe] disabled:bg-[#f9fafb]"
-          maxLength={200}
-        />
-        <button
-          type="button"
-          onClick={toggleVoiceInput}
-          className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${
-            recording
-              ? 'bg-[#dc2626] text-white animate-pulse'
-              : 'bg-[#f1f5f9] text-[#6b7280] hover:bg-[#e2e8f0] hover:text-[#111827]'
-          }`}
-          title={recording ? '停止录音' : '语音输入'}
-        >
-          {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-        </button>
-        <button
-          type="submit"
-          disabled={!input.trim() || polling}
-          className="h-10 w-10 rounded-xl bg-[#2563eb] text-white flex items-center justify-center hover:bg-[#1d4ed8] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Send className="h-4 w-4" />
-        </button>
+          <button
+            type="submit"
+            disabled={!input.trim() || polling}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] bg-blue text-white transition-colors hover:bg-blue-dark disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="发送任务"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
       </form>
     </ProtoCard>
   )
 }
 
-function StepIcon({ action }: { action: string }) {
-  const icons: Record<string, string> = {
-    start: '🚀',
-    navigate: '🌐',
-    input: '⌨️',
-    search: '🔍',
-    click: '🖱️',
-    extract: '📖',
-    done: '✅',
-    error: '❌',
-  }
-  return <span>{icons[action] || '⚡'}</span>
+function latestStepText(steps?: AgentTaskStep[]) {
+  if (!steps || steps.length === 0) return undefined
+  return steps[steps.length - 1].description
 }
 
-function TaskResultView({ task, onBookmark }: { task: AgentTask; onBookmark: (task: AgentTask, item: any, index: number) => void }) {
-  const result = task.result as any
+function formatResult(task: AgentTask): string {
+  if (!task.result) return '任务完成，但没有返回可展示的结果。'
+  if (task.task_type === 'search' && 'items' in task.result) return `找到 ${task.result.items?.length || 0} 条可用学习资料。`
+  if (task.task_type === 'summarize' && 'topic' in task.result) return '摘要已生成，请查看要点和建议。'
+  if (task.task_type === 'compare' && 'items' in task.result) return '对比分析已完成，请查看不同视角。'
+  return '任务已完成。'
+}
+
+function TaskResultView({ task, onBookmark }: { task: AgentTask; onBookmark: (task: AgentTask, item: AgentResultItem, index: number) => void }) {
+  const result = task.result as AgentResultPayload | null
   if (!result) return null
 
-  // Search results
-  if (task.task_type === 'search' && result.items) {
+  if ((task.task_type === 'search' || task.task_type === 'recommend') && result.items) {
     return (
       <div className="space-y-2">
-        {result.items.map((item: any, i: number) => (
-          <SoftCard key={i} className="bg-white">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-sm text-[#111827] truncate">{item.title}</div>
-                <p className="text-xs text-[#6b7280] mt-1 line-clamp-2">{item.summary}</p>
+        {result.items.map((item, index) => (
+          <SoftCard key={index} className="bg-white">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="truncate text-small font-bold text-ink">{item.title}</div>
+                <p className="mt-1 line-clamp-2 text-micro leading-5 text-muted">{item.summary || item.reason}</p>
                 {item.url && (
-                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#2563eb] mt-1 hover:underline">
-                    <ExternalLink className="h-3 w-3" />{item.source || '查看原文'}
+                  <a href={item.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-micro font-bold text-blue hover:underline">
+                    <ExternalLink className="h-3 w-3" />查看来源
                   </a>
                 )}
               </div>
-              <button
-                onClick={() => onBookmark(task, item, i)}
-                className="shrink-0 p-1.5 rounded-lg hover:bg-[#eff6ff] text-[#6b7280] hover:text-[#2563eb]"
-                title="收藏到知识库"
-              >
+              <button onClick={() => void onBookmark(task, item, index)} className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] text-muted hover:bg-blue-light hover:text-blue" aria-label="收藏结果">
                 <Bookmark className="h-4 w-4" />
               </button>
             </div>
@@ -500,43 +440,30 @@ function TaskResultView({ task, onBookmark }: { task: AgentTask; onBookmark: (ta
     )
   }
 
-  // Summary results
   if (task.task_type === 'summarize' && result.topic) {
     return (
       <SoftCard className="bg-white">
-        <div className="text-sm font-medium text-[#111827] mb-2">📌 {result.topic}</div>
-        <ul className="space-y-1 mb-2">
-          {(result.key_points || []).map((point: string, i: number) => (
-            <li key={i} className="text-xs text-[#374151] flex items-start gap-1.5">
-              <span className="text-[#2563eb] mt-0.5">•</span>
-              <span>{point}</span>
-            </li>
+        <div className="text-small font-bold text-ink">{result.topic}</div>
+        <ul className="mt-2 space-y-1">
+          {(result.key_points || []).map((point: string, index: number) => (
+            <li key={index} className="text-micro leading-5 text-muted">• {point}</li>
           ))}
         </ul>
-        {result.conclusion && (
-          <div className="text-xs text-[#6b7280] pt-2 border-t border-[#f1f5f9]">
-            💡 {result.conclusion}
-          </div>
-        )}
+        {result.conclusion && <div className="mt-2 border-t border-line pt-2 text-micro leading-5 text-muted">{result.conclusion}</div>}
       </SoftCard>
     )
   }
 
-  // Compare results
   if (task.task_type === 'compare' && result.items) {
     return (
       <div className="space-y-2">
-        {result.items.map((item: any, i: number) => (
-          <SoftCard key={i} className="bg-white">
-            <div className="text-xs font-bold text-[#2563eb] mb-1">视角 {i + 1}: {item.source}</div>
-            <p className="text-xs text-[#374151]">{item.explanation}</p>
+        {result.items.map((item, index) => (
+          <SoftCard key={index} className="bg-white">
+            <div className="text-micro font-bold text-blue">{item.source || `视角 ${index + 1}`}</div>
+            <p className="mt-1 text-micro leading-5 text-muted">{item.explanation}</p>
           </SoftCard>
         ))}
-        {result.comparison && (
-          <div className="text-xs text-[#6b7280] bg-[#fffbeb] rounded-lg p-2.5">
-            ⚖️ <strong>对比总结：</strong>{result.comparison}
-          </div>
-        )}
+        {result.comparison && <div className="rounded-[8px] bg-orange-light p-3 text-micro leading-5 text-orange">{result.comparison}</div>}
       </div>
     )
   }

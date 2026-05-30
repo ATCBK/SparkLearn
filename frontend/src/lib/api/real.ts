@@ -4,7 +4,7 @@ import type {
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
 } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -972,6 +972,32 @@ export async function deleteForumPost(postId: number): Promise<void> {
   await fetchJson(`/api/forum/posts/${postId}`, { method: 'DELETE' })
 }
 
+export async function getAdminForumPosts(params?: {
+  status?: 'all' | ForumPost['status']
+  q?: string
+  page?: number
+  pageSize?: number
+}): Promise<ForumModerationList> {
+  const query = new URLSearchParams()
+  if (params?.status) query.set('status', params.status)
+  if (params?.q) query.set('q', params.q)
+  if (params?.page) query.set('page', String(params.page))
+  if (params?.pageSize) query.set('page_size', String(params.pageSize))
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return fetchJson(`/api/forum/admin/posts${suffix}`)
+}
+
+export async function updateAdminForumPostStatus(
+  postId: number,
+  status: ForumPost['status'],
+  reason: string = '',
+): Promise<{ post: ForumPost; reason: string }> {
+  return fetchJson(`/api/forum/admin/posts/${postId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, reason }),
+  })
+}
+
 export async function getForumComments(postId: number): Promise<ForumComment[]> {
   return fetchJson(`/api/forum/posts/${postId}/comments`)
 }
@@ -1161,11 +1187,15 @@ export async function generateVideo(
 // ─── Agent Pet API ─────────────────────────────────────────────────────────────
 
 import type {
-  AgentPet, AgentTask, AgentTaskList, AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
+  AgentPet, AgentTask, AgentTaskList, AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload, NanobotStatus,
 } from './types'
 
 export async function getAgentPet(): Promise<AgentPet | null> {
   return fetchJson('/api/agent/pet')
+}
+
+export async function getNanobotStatus(): Promise<NanobotStatus> {
+  return fetchJson('/api/agent/nanobot/status')
 }
 
 export async function adoptAgentPet(payload: AdoptPetPayload): Promise<AgentPet> {

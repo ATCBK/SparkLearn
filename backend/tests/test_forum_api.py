@@ -48,6 +48,28 @@ async def test_forum_end_to_end_and_fuzzy_search(client):
     assert favorite.status_code == 200
     assert favorite.json()["data"]["favorited"] is True
 
+    admin_all = await client.get("/api/forum/admin/posts?status=all")
+    assert admin_all.status_code == 200
+    assert any(int(x["id"]) == post_id for x in admin_all.json()["data"]["items"])
+
+    mark_pending = await client.patch(
+        f"/api/forum/admin/posts/{post_id}/status",
+        json={"status": "pending", "reason": "manual review"},
+    )
+    assert mark_pending.status_code == 200
+    assert mark_pending.json()["data"]["post"]["status"] == "pending"
+
+    pending_list = await client.get("/api/forum/admin/posts?status=pending")
+    assert pending_list.status_code == 200
+    assert any(int(x["id"]) == post_id for x in pending_list.json()["data"]["items"])
+
+    approve = await client.patch(
+        f"/api/forum/admin/posts/{post_id}/status",
+        json={"status": "published", "reason": "approved"},
+    )
+    assert approve.status_code == 200
+    assert approve.json()["data"]["post"]["status"] == "published"
+
     download = await client.get(f"/api/forum/attachments/{attachment_id}/download")
     assert download.status_code == 200
 

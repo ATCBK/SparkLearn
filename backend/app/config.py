@@ -99,6 +99,16 @@ class Settings(BaseSettings):
     agent_browser_headless: bool = False   # False = 演示模式，浏览器窗口可见
     agent_browser_slow_mo: int = 800       # 毫秒，让操作慢一点方便观看
 
+    # Nanobot learning companion integration
+    nanobot_pet_enabled: bool = True
+    nanobot_auto_start: bool = False
+    nanobot_api_base_url: str = "http://127.0.0.1:8900"
+    nanobot_api_model: str = "deepseek-chat"
+    nanobot_api_timeout_sec: int = 120
+    nanobot_project_dir: str = ""
+    nanobot_config_path: str = ""
+    nanobot_workspace: str = ""
+
     single_user_id: str = "single_user"
     use_mock_data: bool = True
     cors_origin: str = "http://localhost:3000"

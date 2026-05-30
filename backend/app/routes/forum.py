@@ -29,6 +29,11 @@ class CommentCreateReq(BaseModel):
     content: str
 
 
+class ForumModerationReq(BaseModel):
+    status: str
+    reason: str = ""
+
+
 def _forum_user_dir() -> Path:
     base = settings.data_dir / "users" / settings.single_user_id / "forum" / "attachments"
     base.mkdir(parents=True, exist_ok=True)
@@ -70,6 +75,65 @@ def _attachment_row_to_dict(row) -> dict:
         "size_bytes": int(row["size_bytes"]),
         "created_at": row["created_at"],
     }
+
+
+@router.get("/admin/posts")
+async def admin_list_posts(status: str = "pending", q: str = "", page: int = 1, page_size: int = 20):
+    page = max(1, page)
+    page_size = min(100, max(1, page_size))
+    normalized_status = status.strip().lower()
+    allowed_statuses = {"all", "pending", "published", "rejected", "deleted", "hidden"}
+    if normalized_status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail="invalid status")
+
+    where: list[str] = []
+    params: list = []
+    if normalized_status != "all":
+        where.append("status = ?")
+        params.append(normalized_status)
+    if q.strip():
+        keyword = f"%{q.strip()}%"
+        where.append("(title LIKE ? OR content LIKE ? OR tags LIKE ? OR user_id LIKE ?)")
+        params.extend([keyword, keyword, keyword, keyword])
+
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    rows = fetch_all(
+        f"""
+        SELECT * FROM forum_posts
+        {where_sql}
+        ORDER BY updated_at DESC, created_at DESC
+        LIMIT ? OFFSET ?
+        """,
+        tuple(params + [page_size, (page - 1) * page_size]),
+    )
+    stats_rows = fetch_all(
+        """
+        SELECT status, COUNT(1) AS count
+        FROM forum_posts
+        GROUP BY status
+        """
+    )
+    stats = {"pending": 0, "published": 0, "rejected": 0, "deleted": 0, "hidden": 0}
+    for row in stats_rows:
+        stats[str(row["status"] or "")] = int(row["count"])
+
+    return ok({"items": [_post_row_to_dict(row) for row in rows], "stats": stats, "page": page, "page_size": page_size})
+
+
+@router.patch("/admin/posts/{post_id}/status")
+async def admin_update_post_status(post_id: int, req: ForumModerationReq):
+    status = req.status.strip().lower()
+    if status not in {"pending", "published", "rejected", "deleted", "hidden"}:
+        raise HTTPException(status_code=400, detail="invalid status")
+
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM forum_posts WHERE id = ?", (post_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="post not found")
+        conn.execute("UPDATE forum_posts SET status = ?, updated_at = ? WHERE id = ?", (status, now_iso(), post_id))
+        updated = conn.execute("SELECT * FROM forum_posts WHERE id = ?", (post_id,)).fetchone()
+
+    return ok({"post": _post_row_to_dict(updated), "reason": req.reason.strip()})
 
 
 @router.get("/posts")

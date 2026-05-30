@@ -1,0 +1,51 @@
+{
+  "frontend": {
+    "enabled": true,
+    "url": "http://127.0.0.1:3000",
+    "host": "127.0.0.1",
+    "port": 3000,
+    "command": "npm",
+    "args": ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", "3000"],
+    "cwd": "../frontend",
+    "healthUrl": "http://127.0.0.1:3000"
+  },
+  "backend": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 8000,
+    "command": "python",
+    "args": ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
+    "cwd": "../backend",
+    "healthUrl": "http://127.0.0.1:8000/health"
+  },
+  "nanobot": {
+    "enabled": true,
+    "required": false,
+    "host": "127.0.0.1",
+    "port": 8900,
+    "command": "python",
+    "args": [
+      "-m",
+      "nanobot",
+      "serve",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "8900",
+      "--config",
+      "../desktop/config/nanobot.sparklearn.config.json",
+      "--workspace",
+      "../desktop/config/nanobot-workspace"
+    ],
+    "cwd": "../nanobot-main",
+    "healthUrl": "http://127.0.0.1:8900/health",
+    "env": {
+      "NANOBOT_API_BASE_URL": "http://127.0.0.1:8900"
+    }
+  },
+  "startup": {
+    "healthTimeoutMs": 60000,
+    "healthIntervalMs": 1000,
+    "restartLimit": 1
+  }
+}

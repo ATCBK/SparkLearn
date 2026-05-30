@@ -1,50 +1,69 @@
 [
   {
-    "id": "dq_e9c7de70_1",
-    "type": "single",
-    "content": "三元表达式的语法是什么？",
+    "id": "dq_a3129824_1",
+    "type": "multiple",
+    "content": "以下哪些方法可以用于字符串？",
     "options": [
-      "a if b else c",
-      "if b then a else c",
-      "b ? a : c",
-      "a unless b else c"
+      "upper()",
+      "lower()",
+      "append()",
+      "sort()"
     ],
-    "correct_answer": "a if b else c",
-    "explanation": "Python 的三元表达式格式为 a if condition else b。",
-    "knowledge_point_id": "2.2",
-    "knowledge_point_name": "条件判断"
-  },
-  {
-    "id": "dq_e9c7de70_2",
-    "type": "fill_blank",
-    "content": "字符串的 ______ 方法可以将字符串转换为大写。",
-    "correct_answer": "upper",
-    "explanation": "upper() 方法将字符串转换为大写。",
+    "correct_answer": [
+      "upper()",
+      "lower()"
+    ],
+    "explanation": "upper() 和 lower() 是字符串方法，append() 和 sort() 是列表方法。",
     "knowledge_point_id": "1.4",
     "knowledge_point_name": "字符串处理"
   },
   {
-    "id": "dq_e9c7de70_3",
-    "type": "fill_blank",
-    "content": "列表的 ______ 方法可以反转列表。",
-    "correct_answer": "reverse",
-    "explanation": "reverse() 方法反转列表中的元素顺序。",
-    "knowledge_point_id": "1.3",
-    "knowledge_point_name": "列表操作"
+    "id": "dq_a3129824_2",
+    "type": "single",
+    "content": "Python 中用于捕获异常的关键字是？",
+    "options": [
+      "catch",
+      "try",
+      "except",
+      "handle"
+    ],
+    "correct_answer": "except",
+    "explanation": "Python 使用 try-except 语句捕获异常。",
+    "knowledge_point_id": "4.1",
+    "knowledge_point_name": "异常处理"
   },
   {
-    "id": "dq_e9c7de70_4",
+    "id": "dq_a3129824_3",
     "type": "single",
-    "content": "if 语句中 elif 的作用是什么？",
+    "content": "以下哪个值在 Python 中被认为是 False？",
     "options": [
-      "结束条件",
-      "否则",
-      "否则如果",
-      "重复条件"
+      "1",
+      "[]",
+      "True",
+      "\"0\""
     ],
-    "correct_answer": "否则如果",
-    "explanation": "elif 用于检查多个条件。",
+    "correct_answer": "[]",
+    "explanation": "空列表、空字符串、0、None 等被认为是 False。",
     "knowledge_point_id": "2.2",
     "knowledge_point_name": "条件判断"
+  },
+  {
+    "id": "dq_a3129824_4",
+    "type": "multiple",
+    "content": "以下哪些是赋值运算符？",
+    "options": [
+      "=",
+      "+=",
+      "-=",
+      "=="
+    ],
+    "correct_answer": [
+      "=",
+      "+=",
+      "-="
+    ],
+    "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
+    "knowledge_point_id": "1.1",
+    "knowledge_point_name": "基础语法"
   }
 ]

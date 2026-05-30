@@ -48,7 +48,7 @@ export interface ForumPost {
   title: string
   content: string
   tags: string[]
-  status: 'published' | 'hidden' | 'deleted'
+  status: 'pending' | 'published' | 'rejected' | 'hidden' | 'deleted'
   like_count: number
   comment_count: number
   favorite_count: number
@@ -494,6 +494,21 @@ export interface AgentPet {
   unlocked_abilities: string[]
   created_at: string
   updated_at: string
+}
+
+export interface ForumModerationList {
+  items: ForumPost[]
+  stats: Record<'pending' | 'published' | 'rejected' | 'hidden' | 'deleted', number>
+  page: number
+  page_size: number
+}
+
+export interface NanobotStatus {
+  enabled: boolean
+  healthy: boolean
+  url?: string
+  reason?: string
+  detail?: Record<string, unknown>
 }
 
 export interface AgentTaskStep {

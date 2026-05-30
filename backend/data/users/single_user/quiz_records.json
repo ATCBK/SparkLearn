@@ -2658,5 +2658,74 @@
       "knowledge_point_name": "文件操作"
     },
     "at": "2026-05-28"
+  },
+  {
+    "quiz_id": "dq_96fe6962_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": "接收可变数量的位置参数",
+    "knowledge_point_id": "3.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_96fe6962_1",
+      "type": "single",
+      "content": "函数中 *args 的作用是什么？",
+      "options": [
+        "接收关键字参数",
+        "接收可变数量的位置参数",
+        "接收单个参数",
+        "接收列表参数"
+      ],
+      "explanation": "*args 用于接收任意数量的位置参数，作为元组存储。",
+      "knowledge_point_id": "3.1",
+      "knowledge_point_name": "函数定义"
+    },
+    "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_79a06295_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": "无序且不可重复",
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_79a06295_1",
+      "type": "single",
+      "content": "集合（set）中的元素有什么特点？",
+      "options": [
+        "有序且可重复",
+        "无序且不可重复",
+        "有序且不可重复",
+        "无序且可重复"
+      ],
+      "explanation": "集合中的元素是无序的，且不允许重复。",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型"
+    },
+    "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_4c69aea9_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": "接收可变数量的位置参数",
+    "knowledge_point_id": "3.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_4c69aea9_1",
+      "type": "single",
+      "content": "函数中 *args 的作用是什么？",
+      "options": [
+        "接收关键字参数",
+        "接收可变数量的位置参数",
+        "接收单个参数",
+        "接收列表参数"
+      ],
+      "explanation": "*args 用于接收任意数量的位置参数，作为元组存储。",
+      "knowledge_point_id": "3.1",
+      "knowledge_point_name": "函数定义"
+    },
+    "at": "2026-05-30"
   }
 ]

@@ -63,10 +63,10 @@ test.describe('Onboarding 页面', () => {
   })
 
   test('第一步显示4个目标选项', async ({ page }) => {
-    await expect(page.getByText('期末提分')).toBeVisible()
-    await expect(page.getByText('竞赛准备')).toBeVisible()
+    await expect(page.getByText('掌握核心技能')).toBeVisible()
+    await expect(page.getByText('项目实战能力')).toBeVisible()
     await expect(page.getByText('兴趣探索')).toBeVisible()
-    await expect(page.getByText('求职准备')).toBeVisible()
+    await expect(page.getByText('准备找工作')).toBeVisible()
   })
 
   test('未选择时下一步按钮为 disabled', async ({ page }) => {
@@ -74,18 +74,18 @@ test.describe('Onboarding 页面', () => {
   })
 
   test('选择选项后下一步按钮为 enabled', async ({ page }) => {
-    await page.getByText('期末提分').click()
+    await page.getByRole('button', { name: /掌握核心技能/ }).click()
     await expect(page.getByRole('button', { name: '下一步' })).toBeEnabled()
   })
 
   test('完成全流程到达摘要页', async ({ page }) => {
     // Step 1: 学习目标
-    await page.getByText('期末提分').click()
+    await page.getByRole('button', { name: /掌握核心技能/ }).click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
 
     // Step 2: 编程基础
-    await page.getByText('有一些基础').click()
+    await page.getByRole('button', { name: /入门阶段/ }).click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
 
@@ -95,50 +95,49 @@ test.describe('Onboarding 页面', () => {
     await page.waitForTimeout(2000)
 
     // Step 4: 学习偏好
-    await page.getByText('实践型').click()
+    await page.getByRole('button', { name: /动手实践/ }).click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
 
     // Step 5: 学习时间 (最后一步显示摘要 + "开始学习"按钮)
     // 注意：最后一步 canNext 默认 true，不需要选择
     // 但需要点击时间选项（如果有的话）
-    const timeOption = page.getByText('1-2小时')
+    const timeOption = page.getByRole('button', { name: '5-10小时' })
     if (await timeOption.isVisible()) {
       await timeOption.click()
     }
-    // 最后一步按钮是"开始学习"
-    await expect(page.getByRole('button', { name: '开始学习' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '完成建档' })).toBeVisible()
   })
 
   test('点击开始学习跳转到首页', async ({ page }) => {
     // 快速走完流程
-    await page.getByText('期末提分').click()
+    await page.getByRole('button', { name: /掌握核心技能/ }).click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
-    await page.getByText('有一些基础').click()
+    await page.getByRole('button', { name: /入门阶段/ }).click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
     await page.getByText('数据结构').click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
-    await page.getByText('实践型').click()
+    await page.getByRole('button', { name: /动手实践/ }).click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
 
-    // 最后一步直接点击开始学习
-    await page.getByRole('button', { name: '开始学习' }).click()
+    await page.getByRole('button', { name: '5-10小时' }).click()
+    await page.getByRole('button', { name: '完成建档' }).click()
     await expect(page).toHaveURL(/\//, { timeout: 10000 })
   })
 
   test('返回按钮从第2步可以回到第1步', async ({ page }) => {
-    await page.getByText('期末提分').click()
+    await page.getByRole('button', { name: /掌握核心技能/ }).click()
     await page.getByRole('button', { name: '下一步' }).click()
     await page.waitForTimeout(2000)
 
     const backBtn = page.getByRole('button', { name: '上一步' })
     await expect(backBtn).toBeEnabled()
     await backBtn.click()
-    await expect(page.getByText('期末提分')).toBeVisible()
+    await expect(page.getByRole('button', { name: /掌握核心技能/ })).toBeVisible()
   })
 })
 
@@ -616,7 +615,7 @@ test.describe('个人信息页', () => {
   })
 
   test('显示学习目标 Badge', async ({ page }) => {
-    await expect(page.getByText('期末提分')).toBeVisible()
+    await expect(page.getByText('掌握核心技能')).toBeVisible()
   })
 
   test('显示保存按钮', async ({ page }) => {

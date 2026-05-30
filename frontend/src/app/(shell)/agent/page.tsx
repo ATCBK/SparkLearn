@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { api, AgentPet } from '@/lib/api'
-import { PageHead } from '@/components/proto'
-import { Star, Sparkles, Zap } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { api, AgentPet, NanobotStatus } from '@/lib/api'
+import { PageHead, Pill } from '@/components/proto'
+import { Activity, AlertTriangle, Cpu, Star, Zap } from 'lucide-react'
 import { AdoptionFlow } from '@/components/agent/AdoptionFlow'
 import { AgentPetCard } from '@/components/agent/AgentPetCard'
 import { AgentChat } from '@/components/agent/AgentChat'
@@ -12,9 +12,10 @@ import { PetState } from '@/components/agent/PetAvatar'
 
 export default function AgentPage() {
   const [pet, setPet] = useState<AgentPet | null | undefined>(undefined)
+  const [nanobot, setNanobot] = useState<NanobotStatus | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [petState, setPetState] = useState<PetState>('idle')
-  const [statusText, setStatusText] = useState<string>('')
+  const [statusText, setStatusText] = useState('')
 
   const loadPet = useCallback(async () => {
     try {
@@ -25,80 +26,92 @@ export default function AgentPage() {
     }
   }, [])
 
-  useEffect(() => {
-    void loadPet()
-  }, [loadPet, refreshKey])
+  const loadNanobot = useCallback(async () => {
+    try {
+      setNanobot(await api.getNanobotStatus())
+    } catch {
+      setNanobot({ enabled: true, healthy: false, reason: '无法连接后端状态接口' })
+    }
+  }, [])
 
-  // Loading state
+  useEffect(() => {
+    // The page must fetch persisted local companion state after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadPet()
+    void loadNanobot()
+  }, [loadPet, loadNanobot, refreshKey])
+
   if (pet === undefined) {
     return (
       <div>
-        <PageHead
-          eyebrow="学习中心 / 学习伙伴"
-          title="学习伙伴空间"
-          description="正在加载..."
-        />
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-[#6b7280]">正在连接学习伙伴...</span>
+        <PageHead eyebrow="学习中心 / AI 学伴" title="AI 学伴空间" description="正在连接学习画像、任务记录和本机学伴内核。" />
+        <div className="grid min-h-[420px] place-items-center">
+          <div className="flex items-center gap-3 rounded-[12px] border border-line bg-white px-5 py-4 shadow-sm">
+            <div className="h-9 w-9 animate-spin rounded-full border-4 border-blue border-t-transparent" />
+            <span className="text-small font-bold text-muted">正在加载学伴空间</span>
           </div>
         </div>
       </div>
     )
   }
 
-  // No pet yet - show adoption prompt inside chat layout
   if (pet === null) {
     return (
       <div>
         <PageHead
-          eyebrow="学习中心 / 学习伙伴"
-          title="学习伙伴空间"
-          description="认养一只 AI 小助手，它会陪你一起学习、帮你找资料、整理笔记。"
+          eyebrow="学习中心 / AI 学伴"
+          title="创建你的 AI 学伴"
+          description="学伴会结合学习画像、任务目标和本机 Nanobot 能力，辅助完成资料检索、内容摘要和概念对比。"
+          actions={<NanobotPill status={nanobot} />}
         />
         <AdoptionFlow onAdopted={() => setRefreshKey(k => k + 1)} />
       </div>
     )
   }
 
-  // Has pet - show main interface
   return (
     <div>
       <PageHead
-        eyebrow="学习中心 / 学习伙伴"
-        title={`${pet.name}的学习空间`}
-        description="让你的学习伙伴帮你搜索资料、整理笔记、发现学习内容。"
+        eyebrow="学习中心 / AI 学伴"
+        title={`${pet.name} 的学习工作台`}
+        description="围绕一个明确任务发起对话，学伴会先调用本机 Nanobot，异常时自动切换到 SparkLearn 备用能力。"
+        actions={<NanobotPill status={nanobot} />}
         chips={[
-          { value: `Lv.${pet.level}`, label: '当前等级', icon: <Star className="h-4 w-4" />, tone: 'orange' as const },
-          { value: `${pet.xp} XP`, label: '经验值', icon: <Sparkles className="h-4 w-4" />, tone: 'blue' as const },
-          { value: `${pet.unlocked_abilities.length} 项`, label: '已解锁能力', icon: <Zap className="h-4 w-4" />, tone: 'green' as const },
+          { value: `Lv.${pet.level}`, label: '成长等级', icon: <Star className="h-4 w-4" />, tone: 'orange' },
+          { value: `${pet.xp} XP`, label: '累计经验', icon: <Activity className="h-4 w-4" />, tone: 'blue' },
+          { value: `${pet.unlocked_abilities.length} 项`, label: '已解锁能力', icon: <Zap className="h-4 w-4" />, tone: 'green' },
         ]}
       />
 
-      <div className="grid grid-cols-[1fr_300px] gap-5 max-[960px]:grid-cols-1">
-        {/* 左侧：对话区 */}
-        <div className="min-h-0">
-          <AgentChat
-            pet={pet}
-            onXpChange={() => setRefreshKey(k => k + 1)}
-            onStateChange={(state, text) => { setPetState(state); setStatusText(text || '') }}
-          />
-        </div>
+      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5 max-[980px]:grid-cols-1">
+        <AgentChat
+          pet={pet}
+          nanobot={nanobot}
+          onXpChange={() => setRefreshKey(k => k + 1)}
+          onStateChange={(state, text) => {
+            setPetState(state)
+            setStatusText(text || '')
+          }}
+        />
 
-        {/* 右侧：学习驾驶舱 */}
-        <div className="space-y-0 overflow-y-auto max-h-[calc(100vh-200px)] pr-1">
-          <AgentPetCard
-            pet={pet}
-            petState={petState}
-            statusText={statusText}
-            onUpdate={() => setRefreshKey(k => k + 1)}
-          />
-          <div className="mt-4">
-            <AgentHistory />
-          </div>
-        </div>
+        <aside className="space-y-4">
+          <AgentPetCard pet={pet} petState={petState} statusText={statusText} nanobot={nanobot} onUpdate={() => setRefreshKey(k => k + 1)} />
+          <AgentHistory />
+        </aside>
       </div>
     </div>
   )
+}
+
+function NanobotPill({ status }: { status: NanobotStatus | null }) {
+  if (!status) {
+    return <Pill tone="neutral"><Cpu className="h-3.5 w-3.5" />检测中</Pill>
+  }
+  if (!status.enabled) {
+    return <Pill tone="neutral"><Cpu className="h-3.5 w-3.5" />未启用</Pill>
+  }
+  if (status.healthy) {
+    return <Pill tone="green"><Cpu className="h-3.5 w-3.5" />Nanobot 在线</Pill>
+  }
+  return <Pill tone="orange"><AlertTriangle className="h-3.5 w-3.5" />备用模式</Pill>
 }

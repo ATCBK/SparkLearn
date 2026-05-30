@@ -278,6 +278,16 @@ export async function getDailyQuote(): Promise<string> {
   return quotes[Math.floor(Math.random() * quotes.length)]
 }
 
+export async function getNanobotStatus() {
+  await delay(100)
+  return {
+    enabled: true,
+    healthy: false,
+    url: 'http://127.0.0.1:8900',
+    reason: 'mock mode',
+  }
+}
+
 // ---- Contribution Graph ----
 
 export async function getContributionData(): Promise<ContributionDay[]> {

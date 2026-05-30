@@ -1,0 +1,39 @@
+{
+  "name": "sparklearn-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SparkLearn Windows desktop shell",
+  "main": "main/index.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "doctor": "node scripts/doctor.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "cn.sparklearn.desktop",
+    "productName": "SparkLearn",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main/**/*",
+      "preload/**/*",
+      "renderer/**/*",
+      "config/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^36.3.2",
+    "electron-builder": "^26.0.12"
+  }
+}
