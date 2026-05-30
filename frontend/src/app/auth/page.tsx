@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react'
-import { NanobotDesktopPanel } from '@/components/desktop/NanobotDesktopPanel'
 import './auth.css'
 
 const SLOGANS = [
@@ -319,7 +318,6 @@ export default function AuthPage() {
       <div className={`toast ${toast ? 'show' : ''}`}>
         {toast}
       </div>
-      <NanobotDesktopPanel />
     </main>
   )
 }

@@ -3,13 +3,11 @@ const path = require('node:path');
 const { loadConfig } = require('./config-loader');
 const { LogManager } = require('./log-manager');
 const { ProcessManager } = require('./process-manager');
-const { NanobotSettings } = require('./nanobot-settings');
 
 let mainWindow;
 let processManager;
 let logManager;
 let config;
-let nanobotSettings;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -34,49 +32,15 @@ function createWindow() {
 async function bootstrap() {
   logManager = new LogManager();
   config = loadConfig();
-  nanobotSettings = new NanobotSettings({
-    userDataDir: app.getPath('userData'),
-    rootDir: config.rootDir,
-    desktopDir: config.desktopDir,
-    baseConfig: config,
-  });
-  config = nanobotSettings.applyToDesktopConfig(config);
   processManager = new ProcessManager(config, logManager);
 
   ipcMain.handle('desktop:get-status', () => ({
     frontendUrl: config.frontend.url,
     backendUrl: config.backend.healthUrl,
-    nanobotUrl: config.nanobot.healthUrl,
-    nanobotGatewayUrl: config.nanobotGateway && config.nanobotGateway.healthUrl,
     logDir: logManager.logDir,
   }));
 
   ipcMain.handle('desktop:open-logs', () => shell.openPath(logManager.logDir));
-
-  ipcMain.handle('nanobot:get-config', () => nanobotSettings.loadForRenderer());
-
-  ipcMain.handle('nanobot:save-config', async (_event, payload) => {
-    const saved = nanobotSettings.mergeSettings(payload || {});
-    config = nanobotSettings.applyToDesktopConfig(config);
-    processManager.config = config;
-    return saved;
-  });
-
-  ipcMain.handle('nanobot:get-status', async () => nanobotSettings.status(config, processManager));
-
-  ipcMain.handle('nanobot:restart-gateway', async () => {
-    config = nanobotSettings.applyToDesktopConfig(config);
-    processManager.config = config;
-    await processManager.restartService('nanobotGateway', config.nanobotGateway);
-    return nanobotSettings.status(config, processManager);
-  });
-
-  ipcMain.handle('nanobot:restart-serve', async () => {
-    config = nanobotSettings.applyToDesktopConfig(config);
-    processManager.config = config;
-    await processManager.restartService('nanobot', config.nanobot);
-    return nanobotSettings.status(config, processManager);
-  });
 
   try {
     await processManager.startAll();

@@ -43,7 +43,6 @@ const config = loadConfig();
 const issues = [
   ...checkService('frontend', config.frontend),
   ...checkService('backend', config.backend),
-  ...(config.nanobot.enabled && config.nanobot.required ? checkService('nanobot', config.nanobot) : []),
 ];
 
 if (!commandOk('node', ['--version'])) {
@@ -55,10 +54,6 @@ if (!commandOk('npm', ['--version'])) {
 if (!commandOk(config.backend.command, ['--version'])) {
   issues.push(`backend python: command not available (${config.backend.command})`);
 }
-if (config.nanobot.enabled && !commandOk(config.nanobot.command, ['-m', 'nanobot', '--help'])) {
-  issues.push(`nanobot: cannot run "${config.nanobot.command} -m nanobot --help"; install nanobot dependencies in the selected Python environment`);
-}
-
 if (issues.length) {
   console.error('SparkLearn desktop environment issues:');
   for (const issue of issues) {

@@ -18,31 +18,6 @@
     "cwd": "../backend",
     "healthUrl": "http://127.0.0.1:8000/health"
   },
-  "nanobot": {
-    "enabled": true,
-    "required": false,
-    "host": "127.0.0.1",
-    "port": 8900,
-    "command": "python",
-    "args": [
-      "-m",
-      "nanobot",
-      "serve",
-      "--host",
-      "127.0.0.1",
-      "--port",
-      "8900",
-      "--config",
-      "../desktop/config/nanobot.sparklearn.config.json",
-      "--workspace",
-      "../desktop/config/nanobot-workspace"
-    ],
-    "cwd": "../nanobot-main",
-    "healthUrl": "http://127.0.0.1:8900/health",
-    "env": {
-      "NANOBOT_API_BASE_URL": "http://127.0.0.1:8900"
-    }
-  },
   "startup": {
     "healthTimeoutMs": 60000,
     "healthIntervalMs": 1000,

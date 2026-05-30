@@ -1,18 +1,18 @@
 {
   "goal": [
-    "项目实战能力"
+    "期末提分"
   ],
-  "knowledge_level": "基础较好",
+  "knowledge_level": "有一些基础",
   "weak_points": [
-    "编程语言实践"
+    "函数"
   ],
   "learning_preference": [
-    "互动交流，共同进步"
+    "实践型"
   ],
   "cognitive_style": "归纳型",
-  "daily_time": 30,
+  "daily_time": 45,
   "practical_ability": "能独立完成小项目",
   "current_stage": "函数与模块",
   "version": 1,
-  "updated_at": "2026-05-30T15:25:35.863412Z"
+  "updated_at": "2026-05-30T16:08:08.930514Z"
 }

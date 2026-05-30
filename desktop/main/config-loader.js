@@ -56,40 +56,6 @@ function resolveCwd(cwd) {
 
 function applyEnvOverrides(config, env = process.env) {
   const patched = { ...config };
-  if (env.NANOBOT_PET_ENABLED) {
-    patched.nanobot = {
-      ...patched.nanobot,
-      enabled: env.NANOBOT_PET_ENABLED.toLowerCase() === 'true',
-    };
-  }
-  if (env.NANOBOT_PROJECT_DIR) {
-    patched.nanobot = { ...patched.nanobot, cwd: env.NANOBOT_PROJECT_DIR };
-  }
-  if (env.NANOBOT_PYTHON_EXE && fs.existsSync(env.NANOBOT_PYTHON_EXE)) {
-    patched.nanobot = { ...patched.nanobot, command: env.NANOBOT_PYTHON_EXE };
-  }
-  if (env.NANOBOT_CONFIG_PATH || env.NANOBOT_WORKSPACE) {
-    patched.nanobot = {
-      ...patched.nanobot,
-      env: {
-        ...(patched.nanobot && patched.nanobot.env),
-        ...(env.NANOBOT_CONFIG_PATH ? { NANOBOT_CONFIG_PATH: env.NANOBOT_CONFIG_PATH } : {}),
-        ...(env.NANOBOT_WORKSPACE ? { NANOBOT_WORKSPACE: env.NANOBOT_WORKSPACE } : {}),
-      },
-    };
-  }
-  if (patched.nanobot) {
-    const args = [...(patched.nanobot.args || [])];
-    const configIndex = args.indexOf('--config');
-    if (env.NANOBOT_CONFIG_PATH && fs.existsSync(env.NANOBOT_CONFIG_PATH) && configIndex >= 0) {
-      args[configIndex + 1] = env.NANOBOT_CONFIG_PATH;
-    }
-    const workspaceIndex = args.indexOf('--workspace');
-    if (env.NANOBOT_WORKSPACE && workspaceIndex >= 0) {
-      args[workspaceIndex + 1] = env.NANOBOT_WORKSPACE;
-    }
-    patched.nanobot = { ...patched.nanobot, args };
-  }
   return patched;
 }
 
@@ -115,7 +81,6 @@ function loadConfig() {
     env: rootEnv,
     frontend: normalizeService(merged.frontend),
     backend: normalizeService(merged.backend),
-    nanobot: normalizeService(merged.nanobot),
   };
 }
 

@@ -13,27 +13,11 @@ const pet = {
   updated_at: '2026-05-30T00:00:00Z',
 }
 
-async function mockAgentApis(page: import('@playwright/test').Page, options?: { nanobotHealthy?: boolean }) {
+async function mockAgentApis(page: import('@playwright/test').Page) {
   let pollCount = 0
-  const healthy = options?.nanobotHealthy ?? true
 
   await page.route('**/api/agent/pet', async route => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({ json: { success: true, data: pet } })
-      return
-    }
     await route.fulfill({ json: { success: true, data: pet } })
-  })
-
-  await page.route('**/api/agent/nanobot/status', async route => {
-    await route.fulfill({
-      json: {
-        success: true,
-        data: healthy
-          ? { enabled: true, healthy: true, url: 'http://127.0.0.1:8900' }
-          : { enabled: true, healthy: false, url: 'http://127.0.0.1:8900', reason: 'connection refused' },
-      },
-    })
   })
 
   await page.route('**/api/agent/task', async route => {
@@ -73,15 +57,10 @@ async function mockAgentApis(page: import('@playwright/test').Page, options?: { 
             : null,
           error_message: null,
           feedback: null,
-          steps: healthy
-            ? [
-                { step: 1, action: 'nanobot', description: '已切换到学习宠物新内核：正在调用本机 Nanobot...', time: new Date().toISOString() },
-                { step: 2, action: 'extract', description: 'Nanobot 已返回结构化学习结果', time: new Date().toISOString() },
-              ]
-            : [
-                { step: 1, action: 'nanobot', description: '已切换到学习宠物新内核：正在调用本机 Nanobot...', time: new Date().toISOString() },
-                { step: 2, action: 'fallback', description: 'Nanobot 暂不可用，切换到 SparkLearn 备用能力...', time: new Date().toISOString() },
-              ],
+          steps: [
+            { step: 0, action: 'start', description: '开始处理任务...', time: new Date().toISOString() },
+            { step: 1, action: 'search', description: '正在检索和筛选资料。', time: new Date().toISOString() },
+          ],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
@@ -102,12 +81,11 @@ async function mockAgentApis(page: import('@playwright/test').Page, options?: { 
   })
 }
 
-test.describe('AI 学伴本机 Nanobot 链路', () => {
-  test('正常流程：输入复杂学习任务，等待任务完成，收藏结果并反馈', async ({ page }) => {
-    await mockAgentApis(page, { nanobotHealthy: true })
+test.describe('AI 学伴任务流程', () => {
+  test('正常流程：输入学习任务，等待任务完成，收藏结果并反馈', async ({ page }) => {
+    await mockAgentApis(page)
     await page.goto('/agent')
 
-    await expect(page.getByText('Nanobot 在线')).toBeVisible()
     await page.getByPlaceholder(/Python 装饰器/).fill('Python 装饰器学习资料：请按初学者路径推荐，并说明阅读顺序')
     await page.getByRole('button', { name: '发送任务' }).click()
 
@@ -135,18 +113,5 @@ test.describe('AI 学伴本机 Nanobot 链路', () => {
 
     await expect(page.getByText('任务描述太短')).toBeVisible()
     expect(createCalled).toBe(false)
-  })
-
-  test('边界情况：Nanobot 离线时显示备用模式并完成同一用户流程', async ({ page }) => {
-    await mockAgentApis(page, { nanobotHealthy: false })
-    await page.goto('/agent')
-
-    await expect(page.getByText('备用模式')).toBeVisible()
-    await page.getByPlaceholder(/Python 装饰器/).fill('Python 装饰器学习资料：Nanobot 离线时也要给出备用结果')
-    await page.getByRole('button', { name: '发送任务' }).click()
-
-    await expect(page.locator('.text-micro', { hasText: 'Nanobot 暂不可用，切换到 SparkLearn 备用能力' })).toBeVisible()
-    await expect(page.getByText('本机 Nanobot 未在线，桌面端会使用 SparkLearn 备用能力继续处理当前任务。')).toBeVisible()
-    await expect(page.getByText('Python 装饰器入门')).toBeVisible()
   })
 })

@@ -13,8 +13,6 @@ class ProcessManager {
   }
 
   async startAll() {
-    await this.startService('nanobot', this.config.nanobot);
-    await this.startService('nanobotGateway', this.config.nanobotGateway);
     await this.startService('backend', this.config.backend);
     await this.startService('frontend', this.config.frontend);
   }
@@ -64,7 +62,6 @@ class ProcessManager {
         ...(service.env || {}),
         BROWSER: 'none',
         NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:8000',
-        NANOBOT_AUTO_START: 'false',
       },
       shell: process.platform === 'win32',
       windowsHide: true,
@@ -134,8 +131,6 @@ class ProcessManager {
     this.shuttingDown = true;
     await this.stopService('frontend');
     await this.stopService('backend');
-    await this.stopService('nanobotGateway');
-    await this.stopService('nanobot');
   }
 
   async stopService(name) {

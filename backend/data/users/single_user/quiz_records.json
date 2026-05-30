@@ -2875,5 +2875,50 @@
       "knowledge_point_name": "数据类型"
     },
     "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_1ddfd6e0_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": [
+      "list",
+      "dict",
+      "set"
+    ],
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_1ddfd6e0_1",
+      "type": "multiple",
+      "content": "以下哪些是 Python 内置数据类型？",
+      "options": [
+        "list",
+        "dict",
+        "array",
+        "set"
+      ],
+      "explanation": "list、dict、set 是内置类型，array 需要导入 array 模块。",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型"
+    },
+    "at": "2026-05-31"
+  },
+  {
+    "quiz_id": "dq_a662a7c2_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": "reverse",
+    "knowledge_point_id": "1.3",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_a662a7c2_1",
+      "type": "fill_blank",
+      "content": "列表的 ______ 方法可以反转列表。",
+      "options": null,
+      "explanation": "reverse() 方法反转列表中的元素顺序。",
+      "knowledge_point_id": "1.3",
+      "knowledge_point_name": "列表操作"
+    },
+    "at": "2026-05-31"
   }
 ]
