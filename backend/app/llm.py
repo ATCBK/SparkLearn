@@ -11,18 +11,34 @@ from urllib.parse import urlencode, urlparse
 import websockets
 
 from .config import settings
+from .deepseek_adapter import DeepSeekAdapter
 
 logger = logging.getLogger("spark")
 
+_deepseek: DeepSeekAdapter | None = None
+
+
+def _get_deepseek() -> DeepSeekAdapter:
+    global _deepseek
+    if _deepseek is None:
+        _deepseek = DeepSeekAdapter()
+    return _deepseek
+
 
 class SparkLiteAdapter:
+    def _model_config(self, model: str = "") -> dict:
+        """根据模型标识获取 ws_url 和 domain，默认使用 spark_default_model。"""
+        key = (model or "").strip().lower() or settings.spark_default_model
+        return settings.spark_model_map.get(key, settings.spark_model_map.get("lite", {}))
+
     async def stream_chat(
         self,
         prompt: str,
         mode: str = "general",
         history: list[dict] | None = None,
+        model: str = "",
     ) -> AsyncGenerator[str, None]:
-        async for event_type, payload in self.stream_chat_events(prompt, mode=mode, history=history):
+        async for event_type, payload in self.stream_chat_events(prompt, mode=mode, history=history, model=model):
             if event_type == "text":
                 content = str(payload.get("content", ""))
                 if content:
@@ -33,13 +49,21 @@ class SparkLiteAdapter:
         prompt: str,
         mode: str = "general",
         history: list[dict] | None = None,
+        model: str = "",
     ) -> AsyncGenerator[tuple[str, dict], None]:
-        if settings.spark_use_bridge and settings.spark_bridge_exe.exists():
-            async for evt in self._stream_events_from_bridge(prompt, mode=mode):
+        # DeepSeek 模型走 OpenAI 兼容 HTTP 协议
+        mc = self._model_config(model)
+        if mc.get("provider") == "deepseek":
+            async for evt in _get_deepseek().stream_chat_events(prompt, mode=mode, history=history, model=model):
                 yield evt
             return
 
-        async for evt in self._stream_events_from_ws(prompt, mode=mode, history=history or []):
+        if settings.spark_use_bridge and settings.spark_bridge_exe.exists():
+            async for evt in self._stream_events_from_bridge(prompt, mode=mode, model=model):
+                yield evt
+            return
+
+        async for evt in self._stream_events_from_ws(prompt, mode=mode, history=history or [], model=model):
             yield evt
 
     async def summarize(self, prompt: str) -> str:
@@ -51,7 +75,8 @@ class SparkLiteAdapter:
             return text
         return f"本周期你在{prompt}方面保持了稳定进步，建议优先补齐薄弱点并维持每日练习。"
 
-    async def _stream_events_from_bridge(self, prompt: str, mode: str) -> AsyncGenerator[tuple[str, dict], None]:
+    async def _stream_events_from_bridge(self, prompt: str, mode: str, model: str = "") -> AsyncGenerator[tuple[str, dict], None]:
+        mc = self._model_config(model)
         cmd = [
             str(settings.spark_bridge_exe),
             "--app_id",
@@ -61,7 +86,7 @@ class SparkLiteAdapter:
             "--api_secret",
             settings.spark_api_secret,
             "--domain",
-            self._normalize_domain(mode or settings.spark_model),
+            mc.get("domain", self._normalize_domain(mode or settings.spark_model)),
             "--input",
             prompt,
         ]
@@ -94,6 +119,7 @@ class SparkLiteAdapter:
         prompt: str,
         mode: str,
         history: list[dict],
+        model: str = "",
     ) -> AsyncGenerator[tuple[str, dict], None]:
         if not settings.spark_app_id or not settings.spark_api_key or not settings.spark_api_secret:
             for chunk in self._chunk_text(f"关于“{prompt}”，我来分步骤讲解：先理解概念，再看示例，最后给你练习建议。"):
@@ -101,17 +127,19 @@ class SparkLiteAdapter:
             yield ("done", {"fallback": True})
             return
 
+        mc = self._model_config(model)
+        base_url = mc.get("url", settings.spark_api_url)
         ws_url = self._build_auth_url(
-            settings.spark_api_url,
+            base_url,
             settings.spark_api_key,
             settings.spark_api_secret,
         )
-        domain = self._normalize_domain(mode or settings.spark_model)
+        domain = mc.get("domain", self._normalize_domain(mode or settings.spark_model))
         messages = [{"role": m.get("role", "user"), "content": m.get("content", "")} for m in history][-6:]
         messages.append({"role": "user", "content": prompt})
         req = {
             "header": {"app_id": settings.spark_app_id, "uid": settings.single_user_id},
-            "parameter": {"chat": {"domain": domain, "temperature": 0.6, "max_tokens": 2048}},
+            "parameter": {"chat": {"domain": domain, "temperature": 0.6, "max_tokens": 4096}},
             "payload": {"message": {"text": messages}},
         }
 
@@ -131,7 +159,7 @@ class SparkLiteAdapter:
                             "message": str(header.get("message", "spark cloud error")),
                             "sid": str(header.get("sid", "")),
                             "domain": domain,
-                            "api_url": settings.spark_api_url,
+                            "api_url": base_url,
                         }
                         logger.warning("spark ws error: %s", cloud_error_payload)
                         break
@@ -149,7 +177,7 @@ class SparkLiteAdapter:
                 "message": f"websocket exception: {ex}",
                 "sid": "",
                 "domain": domain,
-                "api_url": settings.spark_api_url,
+                "api_url": base_url,
             }
             logger.exception("spark ws exception")
 

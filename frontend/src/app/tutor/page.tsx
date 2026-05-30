@@ -131,7 +131,10 @@ export default function TutorPage() {
   const [workshopEnabled, setWorkshopEnabled] = useState(false)
   const [openMode, setOpenMode] = useState(true)
   const [imageMode, setImageMode] = useState(false)
+  const [knowledgeReverse, setKnowledgeReverse] = useState(false)
   const [webSearch, setWebSearch] = useState(false)
+  const [selectedModel, setSelectedModel] = useState('lite')
+  const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [workshopRoleIds, setWorkshopRoleIds] = useState<number[]>([])
   const [hubMessages, setHubMessages] = useState<WorkshopHubEvent[]>([])
   const [workshopPhase, setWorkshopPhase] = useState<{ phase: string; round?: number; status: string } | null>(null)
@@ -512,12 +515,13 @@ export default function TutorPage() {
         {
           conversationId: convId,
           roleId: currentRoleId || undefined,
-          mode: imageMode ? 'image_gen' : 'knowledge_qa',
+          mode: imageMode ? 'image_gen' : knowledgeReverse ? 'knowledge_reverse' : 'knowledge_qa',
           fileIds: pendingFiles.map((f) => f.id),
           workshopEnabled,
           workshopRoleIds,
           openMode: imageMode ? true : openMode,
           webSearch,
+          model: selectedModel,
         },
         {
           onText: (chunk) => {
@@ -761,9 +765,53 @@ export default function TutorPage() {
                                       if (!safeSrc) return null
                                       return <img src={safeSrc} alt={alt || 'generated image'} className="max-w-full h-auto rounded-lg border border-[#e2e8f0]" />
                                     },
+                                    a: ({ href, children }) => {
+                                      const safeHref = typeof href === 'string' ? href.trim() : ''
+                                      if (!safeHref) return <>{children}</>
+                                      const childText = typeof children === 'string' ? children : Array.isArray(children) ? children.join('') : String(children ?? '')
+                                      if (childText.startsWith('来源')) {
+                                        const pillClass = 'inline-flex items-center rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[11px] text-[#64748b] no-underline align-middle mx-0.5'
+                                        if (safeHref === '#') {
+                                          return <span className={pillClass}>{children}</span>
+                                        }
+                                        return (
+                                          <a
+                                            href={safeHref}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`${pillClass} hover:bg-[#e2e8f0] hover:text-[#334155] transition-colors`}
+                                          >
+                                            {children}
+                                          </a>
+                                        )
+                                      }
+                                      return (
+                                        <a
+                                          href={safeHref}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-[#2563eb] underline decoration-[#93c5fd] underline-offset-2 hover:text-[#1d4ed8] transition-colors"
+                                        >
+                                          {children}
+                                        </a>
+                                      )
+                                    },
                                   }}
                                 >
-                                  {msg.content}
+                                  {(() => {
+                                    let text = msg.content
+                                    const citations = msg.citations || []
+                                    if (citations.length) {
+                                      text = text.replace(/\[来源(\d+)\]/g, (_m: string, n: string) => {
+                                        const idx = parseInt(n, 10) - 1
+                                        const cite = citations[idx]
+                                        if (!cite) return _m
+                                        const url = cite.id?.startsWith('web:') ? cite.id.replace(/^web:/, '') : '#'
+                                        return `[${cite.label || `来源${n}`}](${url})`
+                                      })
+                                    }
+                                    return text
+                                  })()}
                                   </ReactMarkdown>
                                 )}
                               </div>
@@ -893,12 +941,61 @@ export default function TutorPage() {
               )}
               <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，提任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
+                  <textarea
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = 'auto'
+                        el.style.height = `${Math.min(el.scrollHeight, 120)}px`
+                      }
+                    }}
+                    value={input} onChange={(e) => { setInput(e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，提任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
+                  <button onClick={() => fileInputRef.current?.click()} className="w-8 h-8 rounded-full bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#1e293b] flex items-center justify-center transition-colors flex-shrink-0 relative" title="上传文档">
+                    <Plus className="w-4 h-4" />
+                    {pendingFiles.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#2563eb] text-white text-[10px] flex items-center justify-center font-medium">{pendingFiles.length}</span>
+                    )}
+                  </button>
                   <button onClick={toggleVoiceInput} className={cn('w-10 h-10 rounded-full flex items-center justify-center transition-colors', recording ? 'bg-red-500 text-white animate-pulse' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#1e293b]')} title={recording ? '停止录音' : '语音输入'}>{recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</button>
                   <button onClick={() => void handleSend()} disabled={(!input.trim() && pendingFiles.length === 0) || streaming} className="w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center hover:bg-[#1d4ed8] disabled:opacity-30 transition-colors"><Send className="w-4 h-4" /></button>
                 </div>
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#f1f5f9]">
                   <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handlePickFiles(e.target.files)} />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setModelMenuOpen((v) => !v)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors"
+                    >
+                      {{ lite: 'Lite', x1: 'x1.5', x2: 'x2', 'ds-flash': 'DS Flash', 'ds-pro': 'DS Pro' }[selectedModel] || 'Lite'}
+                      <ChevronDown className={cn('w-3 h-3 transition-transform', modelMenuOpen && 'rotate-180')} />
+                    </button>
+                    {modelMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setModelMenuOpen(false)} />
+                        <div className="absolute bottom-full left-0 mb-1 z-20 bg-white rounded-lg border border-[#e2e8f0] shadow-lg py-1 min-w-[140px]">
+                          {[
+                            { key: 'lite', label: 'Spark Lite' },
+                            { key: 'x1', label: 'Spark X1.5' },
+                            { key: 'x2', label: 'Spark X2' },
+                            { key: 'ds-flash', label: 'DeepSeek V4 Flash' },
+                            { key: 'ds-pro', label: 'DeepSeek V4 Pro' },
+                          ].map((m) => (
+                            <button
+                              key={m.key}
+                              type="button"
+                              onClick={() => { setSelectedModel(m.key); setModelMenuOpen(false) }}
+                              className={cn(
+                                'w-full text-left px-3 py-1.5 text-xs hover:bg-[#f1f5f9] transition-colors',
+                                selectedModel === m.key ? 'text-[#2563eb] font-medium' : 'text-[#334155]',
+                              )}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setWebSearch((v) => !v)}
@@ -908,6 +1005,25 @@ export default function TutorPage() {
                     )}
                   >
                     <Globe className="w-3.5 h-3.5" />联网搜索
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKnowledgeReverse((v) => {
+                        const next = !v
+                        if (next) {
+                          setWebSearch(true)
+                          setImageMode(false)
+                        }
+                        return next
+                      })
+                    }}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                      knowledgeReverse ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                    )}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />知识逆构
                   </button>
                   <button
                     type="button"
@@ -922,7 +1038,16 @@ export default function TutorPage() {
                   {!imageMode && (
                     <button
                       type="button"
-                      onClick={() => setOpenMode((v) => !v)}
+                      onClick={() => {
+                        setOpenMode((v) => {
+                          const next = !v
+                          if (!next) {
+                            // 进入可信模式时自动开启联网搜索作为知识来源
+                            setWebSearch(true)
+                          }
+                          return next
+                        })
+                      }}
                       className={cn(
                         'inline-flex items-center px-3 py-1.5 rounded-lg border text-xs transition-colors',
                         !openMode ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
@@ -931,7 +1056,6 @@ export default function TutorPage() {
                       可信模式
                     </button>
                   )}
-                  <button onClick={() => fileInputRef.current?.click()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f8fafc] transition-colors"><Paperclip className="w-3.5 h-3.5" /> 上传文档</button>
                 </div>
               </div>
             </div>

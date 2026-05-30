@@ -276,6 +276,7 @@ export async function sendMessage(
     workshopRoleIds?: number[]
     openMode?: boolean
     webSearch?: boolean
+    model?: string
     pageContext?: Record<string, unknown>
   },
   handlers?: {
@@ -305,6 +306,7 @@ export async function sendMessage(
     workshop_role_ids: options?.workshopRoleIds || [],
     open_mode: Boolean(options?.openMode),
     web_search: Boolean(options?.webSearch),
+    model: options?.model || '',
     page_context: options?.pageContext || undefined,
   }, (evt) => {
     if (evt.type === 'text') {

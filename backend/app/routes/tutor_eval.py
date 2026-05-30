@@ -40,6 +40,7 @@ class TutorReq(BaseModel):
     knowledge_file_ids: list[int] = []
     open_mode: bool = False
     web_search: bool = False
+    model: str = ""
 
 
 def _is_image_mode(mode: str) -> bool:
@@ -64,20 +65,7 @@ def _resolve_effective_file_ids(conversation_id: int, requested_file_ids: list[i
         ids = _parse_json_list(row['file_ids'])
         if ids:
             return ids
-    # Global fallback: use latest user message with non-empty file_ids across conversations.
-    row2 = fetch_one(
-        """
-        SELECT file_ids
-        FROM tutor_messages
-        WHERE user_id = ? AND sender_role = 'user' AND file_ids IS NOT NULL AND file_ids <> '[]'
-        ORDER BY id DESC
-        LIMIT 1
-        """,
-        (settings.single_user_id,),
-    )
-    if not row2:
-        return []
-    return _parse_json_list(row2['file_ids'])
+    return []
 
 
 class EvalRefreshReq(BaseModel):
@@ -535,8 +523,9 @@ async def tutor_chat(req: TutorReq):
             history_for_model.append({'role': model_role, 'content': row['content']})
 
         # 联网搜索：在调用 LLM 之前执行 Tavily 搜索并将结果注入 system prompt
+        # 知识逆构模式自行处理多角度搜索，此处跳过避免重复
         search_results: list[dict[str, Any]] = []
-        if req.web_search and req.message.strip():
+        if req.web_search and req.message.strip() and req.mode != 'knowledge_reverse':
             search_results = search_web(req.message.strip())
             if search_results:
                 yield ('search_results', {'items': search_results})
@@ -661,7 +650,41 @@ async def tutor_chat(req: TutorReq):
                 yield ('text', {'content': chunk})
             yield ('workshop_phase', {'phase': 'synthesis', 'status': 'done'})
         else:
-            if _is_image_mode(req.mode):
+            if req.mode == 'knowledge_reverse':
+                # 知识逆构模式：根据用户目标搜索内容 → 反推实现过程 → 配对真实资源
+                yield ('meta', {'mode': 'knowledge_reverse', 'phase': 'searching'})
+                search_queries = [
+                    f"{req.message} 学习路线图 从入门到精通",
+                    f"{req.message} 推荐学习资源 教程 书籍 课程",
+                    f"{req.message} 实战项目 练习 案例分析",
+                ]
+                all_web_results: list[dict[str, Any]] = []
+                for q in search_queries:
+                    results = search_web(q, max_results=3)
+                    all_web_results.extend(results)
+                seen = set()
+                deduped: list[dict[str, Any]] = []
+                for r in all_web_results:
+                    if r['url'] not in seen:
+                        seen.add(r['url'])
+                        deduped.append(r)
+                deduped = deduped[:8]
+                yield ('search_results', {'items': deduped})
+                reverse_prompt = _build_reverse_engineering_prompt(req.message, deduped, role_prompt)
+                assistant_parts = []
+                async for evt_type, payload in spark_lite.stream_chat_events(reverse_prompt, mode='knowledge_qa', history=[], model=req.model):
+                    if evt_type == 'text':
+                        chunk = str(payload.get('content', ''))
+                        if chunk:
+                            assistant_parts.append(chunk)
+                            yield ('text', {'content': chunk})
+                    elif evt_type == 'error':
+                        yield ('error', payload)
+                answer = ''.join(assistant_parts).strip()
+                if not answer:
+                    answer = '知识逆构分析未能生成结果，请尝试更具体地描述你的学习目标。'
+                    yield ('text', {'content': answer})
+            elif _is_image_mode(req.mode):
                 image_b64 = await generate_image_base64(
                     prompt=req.message,
                     width=512,
@@ -692,6 +715,7 @@ async def tutor_chat(req: TutorReq):
                         direct_prompt,
                         mode=req.mode,
                         history=history_for_model,
+                        model=req.model,
                     ):
                         if evt_type == 'text':
                             chunk = str(payload.get('content', ''))
@@ -720,6 +744,7 @@ async def tutor_chat(req: TutorReq):
                         file_ids=effective_file_ids,
                         knowledge_file_ids=req.knowledge_file_ids or [],
                         user_file_sources=file_sources,
+                        web_search_results=search_results,
                         use_profile=True,
                     )
                 )
@@ -747,7 +772,7 @@ async def tutor_chat(req: TutorReq):
                             },
                         )
                 answer_parts: list[str] = []
-                async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=req.mode, history=[]):
+                async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=req.mode, history=[], model=req.model):
                     if evt_type == 'text':
                         chunk = str(payload.get('content', ''))
                         if chunk:
@@ -1134,6 +1159,50 @@ def _profile_summary_text(profile: dict[str, Any]) -> str:
         f"认知风格: {profile.get('cognitive_style', '')}; "
         f"每天可投入: {profile.get('daily_time', 0)}分钟; "
         f"实践能力: {profile.get('practical_ability', '')}。"
+    )
+
+
+def _build_reverse_engineering_prompt(goal: str, search_results: list[dict[str, Any]], role_prompt: str) -> str:
+    """构建知识逆构模式的 prompt：从学习目标反推实现过程并配对资源。"""
+    resources_block = ""
+    if search_results:
+        lines = ["以下是联网搜索到的真实学习资源："]
+        for i, r in enumerate(search_results, 1):
+            lines.append(f"\n[来源{i}] {r['title']}\n  URL: {r['url']}\n  内容摘要: {r['content']}")
+        resources_block = "\n".join(lines)
+
+    role_section = f"[角色设定]\n{role_prompt}\n\n" if role_prompt else ""
+
+    return (
+        "你是 SparkLearn 的学习路径规划专家。用户有一个学习目标，请基于联网搜索到的真实资源，"
+        "反推构建从零到实现该目标的结构化学习路径。\n\n"
+        f"{role_section}"
+        f"[用户学习目标]\n{goal}\n\n"
+        f"{resources_block}\n\n"
+        "请按以下格式输出（使用 Markdown）：\n\n"
+        "## 学习目标分析\n"
+        "简要分析达成此目标需要掌握的核心能力和知识领域。\n\n"
+        "## 分阶段学习路径\n"
+        "### 阶段一：基础入门\n"
+        "- **学习内容**：具体要学什么\n"
+        "- **推荐资源**：优先从搜索结果中匹配，标注 [来源N]\n"
+        "- **预计时长**：X 周/天\n\n"
+        "### 阶段二：进阶提升\n"
+        "- **学习内容**：...\n"
+        "- **推荐资源**：...\n"
+        "- **预计时长**：...\n\n"
+        "（继续 3-5 个阶段）\n\n"
+        "## 实战建议\n"
+        "推荐 2-3 个具体项目或练习，优先使用搜索结果中的实战资源。\n\n"
+        "## 注意事项\n"
+        "常见误区、学习技巧和避坑建议。\n\n"
+        "## 资源清单\n"
+        "列出所有引用的资源名称和链接。\n\n"
+        "要求：\n"
+        "1. 每个阶段的推荐资源必须优先从搜索结果中选取，并标注来源编号\n"
+        "2. 如果搜索结果中缺乏某阶段的资源，可以推荐公认的优质资源并说明\n"
+        "3. 学习路径要具体可执行，避免抽象空泛\n"
+        "4. 使用中文输出，内容详实有条理"
     )
 
 

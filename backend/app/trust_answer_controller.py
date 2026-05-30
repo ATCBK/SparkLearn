@@ -8,13 +8,28 @@ from .trust_judge import judge_answerability
 from .trust_retriever import retrieve_evidence
 from .trust_router import route_query
 from .trust_rules import CONFIDENCE_MESSAGE_MAP
-from .trust_schemas import TrustAnswerRequest, TrustAnswerResult
+from .trust_schemas import EvidenceItem, TrustAnswerRequest, TrustAnswerResult
 
 
 class TrustAnswerController:
     async def plan(self, req: TrustAnswerRequest) -> dict[str, Any]:
         routed = route_query(req.query, req.mode)
         evidence = await retrieve_evidence(req, routed)
+
+        # 将联网搜索结果转化为证据项，融入防幻觉判断
+        for r in req.web_search_results or []:
+            evidence.web.append(
+                EvidenceItem(
+                    id=f"web:{r.get('url', '')}",
+                    source_type="web",
+                    source_id=r.get("url", ""),
+                    title=r.get("title", ""),
+                    snippet=r.get("content", ""),
+                    score=float(r.get("score", 0.0)),
+                    metadata={"url": r.get("url", "")},
+                )
+            )
+
         decision = judge_answerability(routed, evidence)
         citations = render_citations(evidence)
 

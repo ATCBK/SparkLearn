@@ -5,17 +5,23 @@ from .trust_schemas import AnswerabilityDecision, EvidenceBundle, RoutedQuery
 
 
 def judge_answerability(routed: RoutedQuery, evidence: EvidenceBundle) -> AnswerabilityDecision:
-    knowledge_scores = [e.score for e in evidence.knowledge]
-    evidence_count = len(evidence.knowledge) + len(evidence.profile)
-    top1 = max(knowledge_scores) if knowledge_scores else 0.0
-    top3_avg = (sum(sorted(knowledge_scores, reverse=True)[:3]) / min(len(knowledge_scores), 3)) if knowledge_scores else 0.0
+    all_scores = (
+        [e.score for e in evidence.knowledge]
+        + [e.score for e in evidence.files]
+        + [e.score for e in evidence.web]
+    )
+    evidence_count = len(evidence.knowledge) + len(evidence.profile) + len(evidence.files) + len(evidence.web)
+    top1 = max(all_scores) if all_scores else 0.0
+    top3_avg = (sum(sorted(all_scores, reverse=True)[:3]) / min(len(all_scores), 3)) if all_scores else 0.0
 
     reasons: list[str] = []
     missing: list[str] = []
 
     if evidence_count == 0:
         reasons.append("NO_EVIDENCE")
-    if top1 < 0.55 and top3_avg < 0.45 and routed.need_knowledge:
+    has_knowledge = len(evidence.knowledge) > 0
+    has_web = len(evidence.web) > 0
+    if top1 < 0.55 and top3_avg < 0.45 and routed.need_knowledge and not has_web:
         reasons.append("LOW_RETRIEVAL_SCORE")
     if routed.need_profile and len(evidence.profile) == 0:
         reasons.append("PROFILE_REQUIRED_BUT_MISSING")
@@ -24,6 +30,9 @@ def judge_answerability(routed: RoutedQuery, evidence: EvidenceBundle) -> Answer
     min_evidence = MIN_EVIDENCE_BY_TYPE.get(routed.query_type, 1)
     base = 0.35 + min(0.4, (evidence_count / max(1, min_evidence + 1)) * 0.25)
     score = base + min(0.25, top1 * 0.15 + top3_avg * 0.1)
+    # 联网搜索结果可有效补偿知识库证据不足的情况
+    if has_web and not has_knowledge and "LOW_RETRIEVAL_SCORE" not in reasons:
+        score = max(score, 0.55)
     if "NO_EVIDENCE" in reasons:
         score = min(score, 0.54)
     if "PROFILE_REQUIRED_BUT_MISSING" in reasons:

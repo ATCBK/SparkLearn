@@ -16,6 +16,7 @@ class TrustAnswerRequest(BaseModel):
     file_ids: list[int] = []
     knowledge_file_ids: list[int] = []
     user_file_sources: list[dict[str, Any]] = []
+    web_search_results: list[dict[str, Any]] = []
     use_profile: bool = True
 
 
@@ -43,6 +44,7 @@ class EvidenceBundle(BaseModel):
     knowledge: list[EvidenceItem] = []
     profile: list[EvidenceItem] = []
     files: list[EvidenceItem] = []
+    web: list[EvidenceItem] = []
     rules: list[EvidenceItem] = []
 
 

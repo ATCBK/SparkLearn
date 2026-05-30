@@ -25,6 +25,21 @@ class Settings(BaseSettings):
     spark_use_bridge: bool = True
     spark_bridge_exe: Path = ROOT_DIR / "backend" / "bridge" / "bin" / "spark_bridge.exe"
 
+    # DeepSeek API
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com"
+
+    # 多模型配置：{模型标识: {provider, url, domain, label}}
+    # provider: "spark" 走 WebSocket 星火协议，"deepseek" 走 OpenAI 兼容 HTTP 协议
+    spark_model_map: dict = {
+        "lite": {"provider": "spark", "url": "wss://spark-api.xf-yun.com/v1.1/chat", "domain": "lite", "label": "Spark Lite"},
+        "x1": {"provider": "spark", "url": "wss://spark-api.xf-yun.com/v1/x1", "domain": "spark-x", "label": "Spark X1.5"},
+        "x2": {"provider": "spark", "url": "wss://spark-api.xf-yun.com/x2", "domain": "spark-x", "label": "Spark X2"},
+        "ds-flash": {"provider": "deepseek", "url": "", "domain": "", "label": "DeepSeek V4 Flash"},
+        "ds-pro": {"provider": "deepseek", "url": "", "domain": "", "label": "DeepSeek V4 Pro"},
+    }
+    spark_default_model: str = "lite"
+
     # Coze (resource generation)
     coze_base_url: str = "https://api.coze.cn"
     coze_api_path_chat: str = "/v3/chat"

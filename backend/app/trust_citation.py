@@ -6,7 +6,7 @@ from .trust_schemas import EvidenceBundle
 
 def render_citations(bundle: EvidenceBundle) -> list[dict]:
     out: list[dict] = []
-    for item in [*bundle.knowledge, *bundle.files, *bundle.profile]:
+    for item in [*bundle.knowledge, *bundle.files, *bundle.profile, *bundle.web]:
         out.append(
             {
                 "id": item.id,
