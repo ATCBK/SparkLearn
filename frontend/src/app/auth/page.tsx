@@ -4,7 +4,15 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react'
+import { NanobotDesktopPanel } from '@/components/desktop/NanobotDesktopPanel'
 import './auth.css'
+
+const SLOGANS = [
+  '基于你的目标、基础与学习偏好，智能规划专属学习路径，精准推荐资源，陪伴你高效成长。',
+  '多智能体协作驱动，实时分析学习行为，动态调整路径节奏，让每一步都恰到好处。',
+  '从知识薄弱点出发，AI 精准定位问题根源，生成专属练习与讲解，高效突破瓶颈。',
+  '学习画像持续进化，越学越懂你，资源推荐越来越精准，成长看得见。',
+]
 
 export default function AuthPage() {
   const router = useRouter()
@@ -20,12 +28,6 @@ export default function AuthPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   // 打字机效果
-  const SLOGANS = [
-    '基于你的目标、基础与学习偏好，智能规划专属学习路径，精准推荐资源，陪伴你高效成长。',
-    '多智能体协作驱动，实时分析学习行为，动态调整路径节奏，让每一步都恰到好处。',
-    '从知识薄弱点出发，AI 精准定位问题根源，生成专属练习与讲解，高效突破瓶颈。',
-    '学习画像持续进化，越学越懂你，资源推荐越来越精准，成长看得见。',
-  ]
   const [sloganIndex, setSloganIndex] = useState(0)
   const [displayText, setDisplayText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
@@ -52,8 +54,10 @@ export default function AuthPage() {
         }, 25)
       } else {
         // 删完了，切换下一条
-        setIsDeleting(false)
-        setSloganIndex((prev) => (prev + 1) % SLOGANS.length)
+        timerRef.current = setTimeout(() => {
+          setIsDeleting(false)
+          setSloganIndex((prev) => (prev + 1) % SLOGANS.length)
+        }, 25)
       }
     }
 
@@ -83,6 +87,19 @@ export default function AuthPage() {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
+      const userName = email.split('@')[0] || '学习者'
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sparklearn_token', `demo_user_token_${Date.now()}`)
+        localStorage.setItem(
+          'sparklearn_user',
+          JSON.stringify({
+            email,
+            name: userName,
+            loginAt: new Date().toISOString(),
+          }),
+        )
+        localStorage.setItem('sparklearn_profile_needs_recapture', 'true')
+      }
       if (mode === 'login') {
         router.push('/onboarding')
       } else {
@@ -182,7 +199,7 @@ export default function AuthPage() {
         <aside className="login-card">
           <h2 className="login-title">{isLogin ? '欢迎回来' : '创建账号'}</h2>
           <p className="login-sub">
-            {isLogin ? '登录继续你的个性化学习之旅' : '注册后开启你的个性化学习之旅'}
+            {isLogin ? '登录后重新采集学习画像，继续你的个性化学习之旅' : '注册后先完成学习画像采集，再进入学习空间'}
           </p>
 
           {/* Tabs */}
@@ -302,6 +319,7 @@ export default function AuthPage() {
       <div className={`toast ${toast ? 'show' : ''}`}>
         {toast}
       </div>
+      <NanobotDesktopPanel />
     </main>
   )
 }

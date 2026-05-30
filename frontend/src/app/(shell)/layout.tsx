@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { AIAssistant } from '@/components/layout/AIAssistant'
+import { NanobotDesktopPanel } from '@/components/desktop/NanobotDesktopPanel'
 import { MOBILE_TABS, PAGE_META } from '@/components/layout/navigation'
 import { GenerationTaskProvider } from '@/components/providers/GenerationTaskProvider'
 import { useBreakpoint } from '@/lib/hooks/useMediaQuery'
@@ -105,6 +106,7 @@ export default function ShellLayout({
             <div className="mx-auto max-w-[560px] px-3 py-4">{children}</div>
           </main>
           <BottomTabBar />
+          <NanobotDesktopPanel />
         </div>
       </GenerationTaskProvider>
     )
@@ -132,6 +134,7 @@ export default function ShellLayout({
           <div className="mx-auto max-w-[1360px] px-8 py-7 max-[760px]:px-4">{children}</div>
         </main>
         <AIAssistant />
+        <NanobotDesktopPanel />
         {sidebarState === 'collapsed' && (
           <button
             onClick={() => setSidebarState('expanded')}

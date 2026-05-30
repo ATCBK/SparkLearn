@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { AgentPet, NanobotStatus, api } from '@/lib/api'
+import { AgentPet, api } from '@/lib/api'
 import { Bar, Pill, ProtoCard } from '@/components/proto'
-import { AlertTriangle, CheckCircle2, Cpu, FileText, GitCompare, Search, Settings, Sparkles, Star, TrendingUp, Zap } from 'lucide-react'
+import { Cpu, FileText, GitCompare, Search, Settings, Sparkles, Star, TrendingUp, Zap } from 'lucide-react'
 import { PetAvatar, PetState, PetType } from './PetAvatar'
 
 const PERSONALITY_LABEL: Record<string, string> = {
@@ -35,13 +35,11 @@ export function AgentPetCard({
   pet,
   petState = 'idle',
   statusText,
-  nanobot,
   onUpdate,
 }: {
   pet: AgentPet
   petState?: PetState
   statusText?: string
-  nanobot?: NanobotStatus | null
   onUpdate: () => void
 }) {
   const [showSettings, setShowSettings] = useState(false)
@@ -50,9 +48,7 @@ export function AgentPetCard({
 
   const xpProgress = pet.next_level_xp ? Math.round((pet.xp / pet.next_level_xp) * 100) : 100
   const xpToNext = pet.next_level_xp ? Math.max(0, pet.next_level_xp - pet.xp) : 0
-  const displayStatus = nanobot?.healthy
-    ? (statusText || STATE_MESSAGES[petState])
-    : '本机 Nanobot 未在线，桌面端会使用 SparkLearn 备用能力继续处理当前任务。'
+  const displayStatus = statusText || STATE_MESSAGES[petState]
 
   async function savePersonality() {
     if (personality === pet.personality) return
@@ -90,8 +86,8 @@ export function AgentPetCard({
 
       <div className="rounded-[10px] border border-line bg-[#f8fbff] p-3">
         <div className="mb-2 flex items-center gap-2 text-small font-bold text-ink">
-          {nanobot?.healthy ? <CheckCircle2 className="h-4 w-4 text-green" /> : <AlertTriangle className="h-4 w-4 text-orange" />}
-          {nanobot?.healthy ? '本机 Nanobot 已接管任务' : '备用能力已就绪'}
+          <Cpu className="h-4 w-4 text-blue" />
+          学伴任务状态
         </div>
         <p className="text-small leading-6 text-muted">{displayStatus}</p>
       </div>

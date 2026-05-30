@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AgentPet, AgentTask, AgentTaskStep, NanobotStatus, api } from '@/lib/api'
+import { AgentPet, AgentTask, AgentTaskStep, api } from '@/lib/api'
 import { ProtoCard, SoftCard } from '@/components/proto'
 import { Bookmark, ExternalLink, FileText, GitCompare, Loader2, Mic, MicOff, Pause, Search, Send, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
 import { PetAvatar, PetState, PetType, taskStatusToPetState } from './PetAvatar'
@@ -59,12 +59,10 @@ interface ChatMessage {
 
 export function AgentChat({
   pet,
-  nanobot,
   onXpChange,
   onStateChange,
 }: {
   pet: AgentPet
-  nanobot?: NanobotStatus | null
   onXpChange: () => void
   onStateChange?: (state: PetState, statusText?: string) => void
 }) {
@@ -202,7 +200,7 @@ export function AgentChat({
     setInput('')
     setPolling(true)
     setSteps([])
-    onStateChange?.('thinking', nanobot?.healthy ? '正在调用本机 Nanobot 学伴内核。' : 'Nanobot 不在线，准备使用备用能力。')
+    onStateChange?.('thinking', '正在分析任务并准备学习工具。')
 
     try {
       const result = await api.createAgentTask({ task_type: taskType, input_text: text })

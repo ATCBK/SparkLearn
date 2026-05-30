@@ -1194,15 +1194,11 @@ export async function generateVideo(
 // ─── Agent Pet API ─────────────────────────────────────────────────────────────
 
 import type {
-  AgentPet, AgentTask, AgentTaskList, AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload, NanobotStatus,
+  AgentPet, AgentTask, AgentTaskList, AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
 } from './types'
 
 export async function getAgentPet(): Promise<AgentPet | null> {
   return fetchJson('/api/agent/pet')
-}
-
-export async function getNanobotStatus(): Promise<NanobotStatus> {
-  return fetchJson('/api/agent/nanobot/status')
 }
 
 export async function adoptAgentPet(payload: AdoptPetPayload): Promise<AgentPet> {

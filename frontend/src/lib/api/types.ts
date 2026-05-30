@@ -503,14 +503,6 @@ export interface ForumModerationList {
   page_size: number
 }
 
-export interface NanobotStatus {
-  enabled: boolean
-  healthy: boolean
-  url?: string
-  reason?: string
-  detail?: Record<string, unknown>
-}
-
 export interface AgentTaskStep {
   step: number
   action: string

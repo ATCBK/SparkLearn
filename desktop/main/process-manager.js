@@ -14,6 +14,7 @@ class ProcessManager {
 
   async startAll() {
     await this.startService('nanobot', this.config.nanobot);
+    await this.startService('nanobotGateway', this.config.nanobotGateway);
     await this.startService('backend', this.config.backend);
     await this.startService('frontend', this.config.frontend);
   }
@@ -83,6 +84,17 @@ class ProcessManager {
     }
   }
 
+  isRunning(name) {
+    const child = this.children.get(name);
+    return Boolean(child && !child.killed);
+  }
+
+  async restartService(name, service) {
+    await this.stopService(name);
+    this.restartCounts.set(name, 0);
+    await this.startService(name, service);
+  }
+
   pipeLogs(name, child) {
     const stdoutPath = this.logManager.streamPath(name, 'stdout');
     const stderrPath = this.logManager.streamPath(name, 'stderr');
@@ -122,6 +134,7 @@ class ProcessManager {
     this.shuttingDown = true;
     await this.stopService('frontend');
     await this.stopService('backend');
+    await this.stopService('nanobotGateway');
     await this.stopService('nanobot');
   }
 

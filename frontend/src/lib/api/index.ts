@@ -107,7 +107,6 @@ export const api = {
 
   // Agent Pet
   getAgentPet: impl.getAgentPet,
-  getNanobotStatus: impl.getNanobotStatus,
   adoptAgentPet: impl.adoptAgentPet,
   updateAgentPet: impl.updateAgentPet,
   createAgentTask: impl.createAgentTask,
@@ -129,6 +128,6 @@ export type {
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   McpService, McpServicePayload,
-  AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult, NanobotStatus,
+  AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
 } from './types'

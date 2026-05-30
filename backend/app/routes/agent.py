@@ -13,18 +13,9 @@ from pydantic import BaseModel, field_validator
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
 from ..llm import spark_lite
-from ..nanobot_client import NanobotUnavailable, get_nanobot_status, run_learning_task
 from ..schemas import fail, ok
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
-
-
-class NanobotPetClient:
-    async def run_task(self, *, task_type: str, input_text: str, user_id: str, personality: str) -> dict:
-        return await run_learning_task(task_type, input_text, personality)
-
-
-nanobot_pet_client = NanobotPetClient()
 
 # --- Constants ---
 
@@ -234,21 +225,7 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
 
         persona_prompt = PERSONA_PROMPTS.get(personality, PERSONA_PROMPTS["encouraging"])
 
-        try:
-            _add_step(task_id, 1, "nanobot", "已切换到学习宠物新内核：正在调用本机 Nanobot...")
-            result = await nanobot_pet_client.run_task(
-                task_type=task_type,
-                input_text=input_text,
-                user_id=settings.single_user_id,
-                personality=personality,
-            )
-            _add_step(task_id, 2, "extract", "Nanobot 已返回结构化学习结果")
-        except NanobotUnavailable:
-            _add_step(task_id, 2, "fallback", "Nanobot 暂不可用，切换到 SparkLearn 备用能力...")
-            result = await _execute_fallback_task(task_id, task_type, input_text, persona_prompt)
-        except Exception as exc:
-            _add_step(task_id, 2, "fallback", f"Nanobot 调用异常，切换备用能力：{str(exc)[:80]}")
-            result = await _execute_fallback_task(task_id, task_type, input_text, persona_prompt)
+        result = await _execute_fallback_task(task_id, task_type, input_text, persona_prompt)
 
         execute(
             "UPDATE agent_tasks SET status = 'completed', result_json = ?, updated_at = ? WHERE id = ?",
@@ -503,11 +480,6 @@ async def get_pet():
     if not row:
         return ok(None)
     return ok(_pet_row_to_dict(row))
-
-
-@router.get("/nanobot/status")
-async def nanobot_status():
-    return ok(await get_nanobot_status())
 
 
 @router.patch("/pet")

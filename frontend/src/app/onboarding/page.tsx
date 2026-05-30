@@ -123,6 +123,11 @@ export default function OnboardingPage() {
 
   // 初始化第一步的消息
   useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('sparklearn_token')) {
+      router.replace('/auth')
+      return
+    }
+
     // 清空之前的状态，防止重复进入时消息重复
     setMessages([])
     setSelections({})
@@ -281,6 +286,10 @@ export default function OnboardingPage() {
       )
     } catch {
       // 即使提交失败也跳转
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sparklearn_profile_needs_recapture')
+      localStorage.setItem('sparklearn_profile_collected_at', new Date().toISOString())
     }
     setTimeout(() => router.push('/'), 1500)
   }

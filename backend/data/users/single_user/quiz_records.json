@@ -2848,5 +2848,32 @@
       "knowledge_point_name": "数据类型"
     },
     "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_a529b770_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": [
+      "list",
+      "dict",
+      "set"
+    ],
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_a529b770_1",
+      "type": "multiple",
+      "content": "以下哪些是 Python 内置数据类型？",
+      "options": [
+        "list",
+        "dict",
+        "array",
+        "set"
+      ],
+      "explanation": "list、dict、set 是内置类型，array 需要导入 array 模块。",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型"
+    },
+    "at": "2026-05-30"
   }
 ]
