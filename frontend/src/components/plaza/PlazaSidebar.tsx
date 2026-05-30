@@ -16,7 +16,7 @@ export function PlazaSidebar() {
   const isHome = pathname === '/plaza'
 
   return (
-    <aside className="fixed left-0 top-0 flex h-screen w-[260px] flex-col border-r border-line bg-[#f5f7fb] pt-14">
+    <aside className="fixed left-0 top-0 flex h-screen w-[260px] flex-col border-r border-line bg-[#f5f7fb] pt-14 max-[760px]:hidden">
       <div className="border-b border-line px-2 py-3">
         <Link href="/plaza" className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-bold ${isHome ? 'bg-white text-ink' : 'text-ink-secondary hover:bg-white'}`}>
           <Home className="h-4 w-4" />

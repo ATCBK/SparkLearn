@@ -65,7 +65,7 @@ export default function TeacherStudentsPage() {
               className="h-9 w-full rounded-[8px] border border-[#e5e7eb] bg-[#f9fafb] pl-9 pr-3 text-sm outline-none focus:border-[#2563eb]"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-[#6b7280]">风险：</span>
             {['全部', 'danger', 'warning', 'normal'].map(v => (
               <button
@@ -77,7 +77,7 @@ export default function TeacherStudentsPage() {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-[#6b7280]">阶段：</span>
             {STAGES.map(v => (
               <button

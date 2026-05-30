@@ -2727,5 +2727,126 @@
       "knowledge_point_name": "函数定义"
     },
     "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_b97a22d4_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": "接收可变数量的关键字参数",
+    "knowledge_point_id": "3.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_b97a22d4_1",
+      "type": "single",
+      "content": "函数中 **kwargs 的作用是什么？",
+      "options": [
+        "接收位置参数",
+        "接收可变数量的关键字参数",
+        "接收单个参数",
+        "接收字典参数"
+      ],
+      "explanation": "**kwargs 用于接收任意数量的关键字参数，作为字典存储。",
+      "knowledge_point_id": "3.1",
+      "knowledge_point_name": "函数定义"
+    },
+    "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_9e7ec76a_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": "split",
+    "knowledge_point_id": "1.4",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_9e7ec76a_1",
+      "type": "fill_blank",
+      "content": "字符串的 ______ 方法可以将字符串分割成列表。",
+      "options": null,
+      "explanation": "split() 方法将字符串分割成列表。",
+      "knowledge_point_id": "1.4",
+      "knowledge_point_name": "字符串处理"
+    },
+    "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_72a74add_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": [
+      "=",
+      "+=",
+      "-="
+    ],
+    "knowledge_point_id": "1.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_72a74add_1",
+      "type": "multiple",
+      "content": "以下哪些是赋值运算符？",
+      "options": [
+        "=",
+        "+=",
+        "-=",
+        "=="
+      ],
+      "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
+      "knowledge_point_id": "1.1",
+      "knowledge_point_name": "基础语法"
+    },
+    "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_44d3808c_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": [
+      "=",
+      "+=",
+      "-="
+    ],
+    "knowledge_point_id": "1.1",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_44d3808c_1",
+      "type": "multiple",
+      "content": "以下哪些是赋值运算符？",
+      "options": [
+        "=",
+        "+=",
+        "-=",
+        "=="
+      ],
+      "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
+      "knowledge_point_id": "1.1",
+      "knowledge_point_name": "基础语法"
+    },
+    "at": "2026-05-30"
+  },
+  {
+    "quiz_id": "dq_551d48ed_1",
+    "answer": "list",
+    "correct": false,
+    "correct_answer": [
+      "tuple",
+      "string"
+    ],
+    "knowledge_point_id": "1.2",
+    "judge_mode": "rule",
+    "question": {
+      "id": "dq_551d48ed_1",
+      "type": "multiple",
+      "content": "以下哪些是不可变数据类型？",
+      "options": [
+        "list",
+        "tuple",
+        "string",
+        "dict"
+      ],
+      "explanation": "tuple 和 string 是不可变的。",
+      "knowledge_point_id": "1.2",
+      "knowledge_point_name": "数据类型"
+    },
+    "at": "2026-05-30"
   }
 ]

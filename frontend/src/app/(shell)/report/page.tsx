@@ -365,7 +365,8 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
   if (mode === 'day') {
     // Single row: 24 hours
     return (
-      <div>
+      <div className="max-w-full overflow-x-auto pb-1">
+        <div className="min-w-[520px]">
         <div className="flex gap-[3px]">
           {(data[0] || []).map((value, hour) => (
             <div
@@ -380,6 +381,7 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
             <span key={h} className="flex-1 text-[10px] text-muted text-center">{h}</span>
           ))}
         </div>
+        </div>
       </div>
     )
   }
@@ -387,7 +389,8 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
   if (mode === 'week') {
     // 7 rows x 24 columns
     return (
-      <div>
+      <div className="max-w-full overflow-x-auto pb-1">
+        <div className="min-w-[390px]">
         <div className="flex gap-[3px] mb-1">
           <div className="w-8 shrink-0" />
           {HOURS.filter((_, i) => i % 3 === 0).map((h) => (
@@ -408,13 +411,15 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
             </div>
           ))}
         </div>
+        </div>
       </div>
     )
   }
 
   // Month: 30 rows x 24 columns (compact)
   return (
-    <div>
+    <div className="max-w-full overflow-x-auto pb-1">
+      <div className="min-w-[340px]">
       <div className="flex gap-[2px] mb-1">
         <div className="w-6 shrink-0" />
         {HOURS.filter((_, i) => i % 4 === 0).map((h) => (
@@ -434,6 +439,7 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
             ))}
           </div>
         ))}
+      </div>
       </div>
     </div>
   )

@@ -591,9 +591,9 @@ export default function TutorPage() {
 
   return (
     <>
-      <div className="h-screen flex bg-[#f5f7fa]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      <div className="flex h-screen bg-[#f5f7fa] max-[760px]:block max-[760px]:h-auto max-[760px]:min-h-screen" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
         {/* 左侧导航栏 */}
-        <nav className="w-[200px] shrink-0 bg-[#f0f4ff] border-r border-[#e2e8f0] flex flex-col">
+        <nav className="flex w-[200px] shrink-0 flex-col border-r border-[#e2e8f0] bg-[#f0f4ff] max-[760px]:hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="p-3 border-b border-[#e2e8f0]"><div className="flex items-center gap-2.5"><img src="/sparklearn-logo-official.png" alt="" className="h-8 w-8 object-contain" /><div><div className="text-xs font-bold text-[#1e293b]">SparkLearn</div><div className="text-[10px] text-[#94a3b8]">个性化学习闭环</div></div></div></div>
           {/* 鏂板缓瀵硅瘽鎸夐挳 */}
@@ -644,7 +644,7 @@ export default function TutorPage() {
         </nav>
 
         {/* 中间对话列表栏 */}
-        <div className="w-[280px] shrink-0 bg-white border-r border-[#eef1f5] flex flex-col">
+        <div className="flex w-[280px] shrink-0 flex-col border-r border-[#eef1f5] bg-white max-[760px]:w-full max-[760px]:border-b max-[760px]:border-r-0">
           {/* 搜索 */}
           <div className="p-3 border-b border-[#eef1f5]">
             <div className="flex items-center gap-2 h-9 rounded-lg bg-[#f5f7fa] px-3">
@@ -656,7 +656,7 @@ export default function TutorPage() {
           {/* 角色切换 */}
           {roles.length > 0 && (
             <div className="px-3 py-2 border-b border-[#eef1f5]">
-              <div className="flex items-center gap-1 overflow-x-auto">
+              <div className="flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden">
                 {roles.map((role) => (
                   <button key={role.id} onClick={() => void handleRoleChange(role.id)} className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors', currentRoleId === role.id ? 'bg-[#2563eb] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]')}>
                     {role.name}
@@ -667,7 +667,7 @@ export default function TutorPage() {
           )}
 
           {/* 瀵硅瘽鍒楄〃 */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto max-[760px]:max-h-[42vh]">
             {conversations.map((conv) => (
               <div key={conv.id} onClick={() => void switchConversation(conv)} className={cn('group px-4 py-3 border-b border-[#f5f7fa] cursor-pointer transition-colors', currentConversationId === conv.id ? 'bg-[#eff6ff]' : 'hover:bg-[#f8fafc]')}>
                 {renamingConversationId === conv.id ? (
@@ -692,14 +692,14 @@ export default function TutorPage() {
         </div>
 
         {/* 主对话区 */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white max-[760px]:overflow-visible">
           {actionError && <div className="px-6 pt-3"><p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{actionError}</p></div>}
 
           {/* 瀵硅瘽鏍囬鏍?*/}
           {currentConversation && (
-            <div className="px-6 py-3 border-b border-[#eef1f5] flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#1e293b]">{currentConversation.title}</h2>
-              <p className="text-xs text-[#94a3b8]">{currentRole ? currentRole.name : ''}</p>
+            <div className="flex items-center justify-between gap-3 border-b border-[#eef1f5] px-6 py-3 max-[760px]:px-4">
+              <h2 className="min-w-0 break-words text-base font-semibold text-[#1e293b]">{currentConversation.title}</h2>
+              <p className="shrink-0 text-xs text-[#94a3b8]">{currentRole ? currentRole.name : ''}</p>
             </div>
           )}
 
@@ -728,8 +728,8 @@ export default function TutorPage() {
                     <div key={msg.id}>
                       {msg.role === 'user' ? (
                         <div className="flex justify-end mb-4">
-                          <div className="max-w-[70%] rounded-2xl rounded-tr-sm bg-[#eff6ff] px-4 py-2.5">
-                            <p className="text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{msg.content}</p>
+                          <div className="max-w-[70%] rounded-2xl rounded-tr-sm bg-[#eff6ff] px-4 py-2.5 max-[760px]:max-w-[92%]">
+                            <p className="break-words text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{msg.content}</p>
                             {msg.fileNames && msg.fileNames.length > 0 && (<div className="mt-2 flex flex-wrap gap-1.5">{msg.fileNames.map((name) => <span key={name} className="text-xs px-2 py-0.5 rounded border border-[#e2e8f0] bg-white">{name}</span>)}</div>)}
                           </div>
                         </div>
@@ -958,7 +958,7 @@ export default function TutorPage() {
                   <button onClick={toggleVoiceInput} className={cn('w-10 h-10 rounded-full flex items-center justify-center transition-colors', recording ? 'bg-red-500 text-white animate-pulse' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#1e293b]')} title={recording ? '停止录音' : '语音输入'}>{recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}</button>
                   <button onClick={() => void handleSend()} disabled={(!input.trim() && pendingFiles.length === 0) || streaming} className="w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center hover:bg-[#1d4ed8] disabled:opacity-30 transition-colors"><Send className="w-4 h-4" /></button>
                 </div>
-                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#f1f5f9]">
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-[#f1f5f9] pt-2">
                   <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => void handlePickFiles(e.target.files)} />
                   <div className="relative">
                     <button

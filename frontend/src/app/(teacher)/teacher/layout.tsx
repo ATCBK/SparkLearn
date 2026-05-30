@@ -44,7 +44,7 @@ export default function TeacherShellLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen bg-bg">
-      <aside className="fixed left-0 top-0 z-20 flex h-screen w-[236px] flex-col border-r border-[#e8edf5] bg-white">
+      <aside className="fixed left-0 top-0 z-20 hidden h-screen w-[236px] flex-col border-r border-[#e8edf5] bg-white min-[900px]:flex">
         <div className="flex items-center gap-3 border-b border-[#edf2f8] px-5 py-4">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#eaf2ff] text-[#2563eb]">
             <GraduationCap className="h-5 w-5" />
@@ -103,7 +103,7 @@ export default function TeacherShellLayout({ children }: { children: React.React
       </aside>
 
       <main
-        className="ml-[236px] min-h-screen flex-1"
+        className="min-h-screen w-full min-w-0 flex-1 min-[900px]:ml-[236px]"
         style={{
           backgroundImage: 'url(/gongzuotai-bg.png)',
           backgroundSize: 'cover',
@@ -111,18 +111,18 @@ export default function TeacherShellLayout({ children }: { children: React.React
           backgroundAttachment: 'fixed',
         }}
       >
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e8edf5] bg-white/96 px-8 backdrop-blur">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-10 flex min-h-14 items-center justify-between gap-3 border-b border-[#e8edf5] bg-white/96 px-4 py-3 backdrop-blur min-[900px]:h-14 min-[900px]:px-8 min-[900px]:py-0">
+          <div className="flex min-w-0 items-center gap-3">
             <span className="text-sm font-extrabold text-[#2563eb]">教师工作台</span>
-            <span className="text-xs font-semibold text-[#64748b]">{NAV.find((n) => pathname.startsWith(n.href))?.label ?? '数据总览'}</span>
+            <span className="truncate text-xs font-semibold text-[#64748b]">{NAV.find((n) => pathname.startsWith(n.href))?.label ?? '数据总览'}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             <div className="grid h-8 w-8 place-items-center rounded-full bg-[#eaf2ff] text-xs font-bold text-[#2563eb]">师</div>
-            <span className="text-sm font-semibold text-ink">教师账号</span>
+            <span className="hidden text-sm font-semibold text-ink min-[480px]:inline">教师账号</span>
           </div>
         </header>
-        <div className="min-h-[calc(100vh-56px)] px-8 py-7">
-          <div className="mx-auto max-w-[1360px]">{children}</div>
+        <div className="min-h-[calc(100vh-56px)] px-4 py-5 min-[900px]:px-8 min-[900px]:py-7">
+          <div className="mx-auto w-full max-w-[1360px] min-w-0">{children}</div>
         </div>
       </main>
     </div>

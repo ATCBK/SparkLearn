@@ -76,19 +76,19 @@ export function BoardModulePage({ title, description, boardTag }: { title: strin
       <section className="rounded-xl border border-line bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
           <div className="text-sm font-bold text-ink">帖子数：{items.length}</div>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <select value={tab} onChange={(e) => setTab(e.target.value as Tab)} className="rounded-md border border-line bg-white px-2 py-1 text-sm">
               <option value="latest">最新发布</option>
               <option value="hot">热门</option>
               <option value="recommended">推荐</option>
             </select>
-            <div className="flex items-center gap-2 rounded-md border border-line px-2 py-1">
+            <div className="flex min-w-0 max-w-full items-center gap-2 rounded-md border border-line px-2 py-1">
               <Search className="h-4 w-4 text-muted" />
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && void loadPosts(tab, q)}
-                className="w-[220px] bg-transparent text-sm outline-none"
+                className="w-[220px] max-w-[52vw] bg-transparent text-sm outline-none"
                 placeholder="搜索本模块帖子"
               />
               <button onClick={() => void loadPosts(tab, q)} className="text-xs font-bold text-blue">搜索</button>
@@ -99,9 +99,9 @@ export function BoardModulePage({ title, description, boardTag }: { title: strin
         {loading && <div className="px-4 py-3 text-sm text-muted">加载中...</div>}
         <div>
           {items.map((post) => (
-            <Link key={post.id} href={`/plaza/${post.id}`} className="block border-b border-line px-4 py-4 hover:bg-[#f9fbff]">
-              <h2 className="truncate text-lg font-bold text-ink">{post.title}</h2>
-              <p className="mt-1 line-clamp-1 text-sm text-muted">{post.content}</p>
+            <Link key={post.id} href={`/plaza/${post.id}`} className="block min-w-0 border-b border-line px-4 py-4 hover:bg-[#f9fbff]">
+              <h2 className="break-words text-lg font-bold text-ink">{post.title}</h2>
+              <p className="mt-1 break-words text-sm text-muted">{post.content}</p>
             </Link>
           ))}
           {!loading && !items.length && <div className="px-4 py-5 text-sm text-muted">本模块暂无帖子</div>}

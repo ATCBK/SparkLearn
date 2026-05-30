@@ -129,9 +129,9 @@ export default function RolesPage() {
   }
 
   return (
-    <div className="h-screen flex bg-[#f5f7fa]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+    <div className="flex h-screen bg-[#f5f7fa] max-[760px]:block max-[760px]:h-auto max-[760px]:min-h-screen" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* ═══ 左侧导航栏 ═══ */}
-      <nav className="w-[200px] shrink-0 bg-[#f0f4ff] border-r border-[#e2e8f0] flex flex-col">
+      <nav className="flex w-[200px] shrink-0 flex-col border-r border-[#e2e8f0] bg-[#f0f4ff] max-[760px]:hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <div className="p-3 border-b border-[#e2e8f0]"><div className="flex items-center gap-2.5"><img src="/sparklearn-logo-official.png" alt="" className="h-8 w-8 object-contain" /><div><div className="text-xs font-bold text-[#1e293b]">学而思 SparkLearn</div><div className="text-[10px] text-[#94a3b8]">个性化学习闭环</div></div></div></div>
         <div className="p-3">
@@ -172,7 +172,7 @@ export default function RolesPage() {
       </nav>
 
       {/* ═══ 角色列表栏 ═══ */}
-      <div className="w-[280px] shrink-0 bg-white border-r border-[#eef1f5] flex flex-col">
+      <div className="flex w-[280px] shrink-0 flex-col border-r border-[#eef1f5] bg-white max-[760px]:w-full max-[760px]:border-b max-[760px]:border-r-0">
         <div className="p-4 border-b border-[#eef1f5]">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-[#1e293b]">角色工坊</h2>
@@ -186,7 +186,7 @@ export default function RolesPage() {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto max-[760px]:max-h-[42vh]">
           {/* 系统内置智能体 */}
           <div className="px-4 pt-3 pb-1">
             <p className="text-[11px] font-semibold text-[#94a3b8] uppercase tracking-wider">系统智能体</p>
@@ -241,9 +241,9 @@ export default function RolesPage() {
       </div>
 
       {/* ═══ 主编辑区 ═══ */}
-      <main className="flex-1 flex min-h-0 overflow-hidden">
+      <main className="flex min-h-0 flex-1 overflow-hidden max-[760px]:block max-[760px]:overflow-visible">
         {/* 中间详情编辑 */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 max-[760px]:overflow-visible max-[760px]:p-4">
           {(selectedRole || isNew) ? (
             <>
               {/* 角色头部信息 */}

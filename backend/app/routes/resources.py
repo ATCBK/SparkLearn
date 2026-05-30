@@ -1,4 +1,5 @@
 import asyncio
+import ipaddress
 import re
 import uuid
 from collections.abc import AsyncGenerator
@@ -404,10 +405,9 @@ def _find_resource(resource_id: str) -> dict[str, Any] | None:
 
 
 async def _fetch_url_text(url: str) -> str:
-    if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="invalid preview link")
+    _validate_public_http_url(url, "preview link")
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, max_redirects=3) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             content_type = resp.headers.get("content-type", "").lower()
@@ -421,16 +421,30 @@ async def _fetch_url_text(url: str) -> str:
 
 
 async def _fetch_url_binary(url: str) -> tuple[bytes, str]:
-    if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="invalid source link")
+    _validate_public_http_url(url, "source link")
     try:
-        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True, verify=False) as client:
+        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True, max_redirects=3) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             ctype = resp.headers.get("content-type", "application/octet-stream").split(";")[0].strip().lower()
             return resp.content, ctype
     except Exception as ex:
         raise HTTPException(status_code=502, detail=f"source fetch failed: {ex}") from ex
+
+
+def _validate_public_http_url(url: str, label: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise HTTPException(status_code=400, detail=f"invalid {label}")
+    host = parsed.hostname.strip().lower()
+    if host in {"localhost", "127.0.0.1", "0.0.0.0"} or host.endswith(".local"):
+        raise HTTPException(status_code=400, detail=f"unsafe {label}")
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return
+    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
+        raise HTTPException(status_code=400, detail=f"unsafe {label}")
 
 
 def _safe_filename(name: str) -> str:

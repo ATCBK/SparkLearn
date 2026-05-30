@@ -99,7 +99,15 @@ export default function TeacherBroadcastPage() {
       setSelectedMaterialIds([])
       await refreshAll()
     } catch (ex) {
-      setError(ex instanceof Error ? ex.message : '发送失败')
+      const message = ex instanceof Error ? ex.message : '发送失败'
+      const friendly = message.includes('title is required')
+        ? '请输入通知标题'
+        : message.includes('content is required')
+          ? '请输入通知内容'
+          : message.includes('student_ids required')
+            ? '请选择接收学生'
+            : message
+      setError(friendly)
     } finally {
       setSending(false)
     }

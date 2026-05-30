@@ -15,11 +15,21 @@ export default function NewForumPostPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    const cleanTitle = title.trim()
+    const cleanContent = content.trim()
+    if (!cleanTitle) {
+      setError('请输入帖子标题')
+      return
+    }
+    if (!cleanContent) {
+      setError('请输入正文内容')
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
       const tags = tagsText.split(/[,，\s]+/).map((x) => x.trim()).filter(Boolean)
-      const post = await api.createForumPost({ title, content, tags })
+      const post = await api.createForumPost({ title: cleanTitle, content: cleanContent, tags })
       if (files.length) {
         await api.uploadForumAttachments(post.id, files)
       }

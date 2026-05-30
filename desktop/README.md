@@ -2,6 +2,8 @@
 
 第四阶段桌面端 MVP 使用 Electron 复用现有前端、后端和本机 `nanobot`。
 
+详细使用教程见 [USAGE.md](./USAGE.md)。
+
 桌面端不是把服务部署到远程服务器，而是在用户电脑上统一托管本机环境：
 
 1. `frontend` 由 Electron 拉起 Next.js 本机服务，只监听 `127.0.0.1:3000`。

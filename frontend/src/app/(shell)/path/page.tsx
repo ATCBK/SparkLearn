@@ -216,26 +216,30 @@ export default function PathPage() {
         <SummaryBar />
 
         {/* 主体区域：左右两栏 */}
-        <div className="mt-6 grid grid-cols-[1fr_320px] gap-2 max-[980px]:grid-cols-1">
+        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_320px] gap-2 max-[980px]:grid-cols-1">
           {/* 左侧：阶段路径回路 */}
-          <PathCircuitCard
-            targetInput={targetInput}
-            setTargetInput={setTargetInput}
-            selectedNodeId={selectedNodeId}
-            setSelectedNodeId={handleNodeClick}
-            onRegeneratePath={handleRegeneratePath}
-            loading={loading}
-            phases={phases}
-          />
+          <div className="min-w-0">
+            <PathCircuitCard
+              targetInput={targetInput}
+              setTargetInput={setTargetInput}
+              selectedNodeId={selectedNodeId}
+              setSelectedNodeId={handleNodeClick}
+              onRegeneratePath={handleRegeneratePath}
+              loading={loading}
+              phases={phases}
+            />
+          </div>
 
           {/* 右侧：建议栏 */}
-          <SuggestionPanel 
-            selectedNodeId={selectedNodeId} 
-            suggestions={generatedSuggestions}
-            resources={generatedResources}
-            loading={nodeLoading}
-            phases={phases}
-          />
+          <div className="min-w-0">
+            <SuggestionPanel 
+              selectedNodeId={selectedNodeId} 
+              suggestions={generatedSuggestions}
+              resources={generatedResources}
+              loading={nodeLoading}
+              phases={phases}
+            />
+          </div>
         </div>
       </div>
     </>
@@ -407,7 +411,7 @@ interface PathCanvasProps {
 
 function PathCanvas({ selectedNodeId, setSelectedNodeId, phases }: PathCanvasProps) {
   const nodeWidth = 168
-  const nodeHeight = 72
+  const nodeHeight = 96
   const nodeGap = 16
   const stageLeftWidth = 120
   const stageGap = 24

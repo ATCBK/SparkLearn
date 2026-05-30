@@ -18,8 +18,8 @@ export default function PlazaLayout({ children }: { children: ReactNode }) {
 
       <PlazaSidebar />
 
-      <main className="ml-[260px] min-h-screen pt-16">
-        <div className="mx-auto max-w-[1180px] px-6 py-6">{children}</div>
+      <main className="ml-[260px] min-h-screen pt-16 max-[760px]:ml-0 max-[760px]:pt-14">
+        <div className="mx-auto max-w-[1180px] px-6 py-6 max-[760px]:px-3 max-[760px]:py-4">{children}</div>
       </main>
     </div>
   )

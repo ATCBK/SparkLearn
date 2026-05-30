@@ -106,9 +106,9 @@ export default function WorkshopPage() {
   }
 
   return (
-    <div className="h-screen flex bg-[#f5f7fa]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+    <div className="flex h-screen bg-[#f5f7fa] max-[760px]:block max-[760px]:h-auto max-[760px]:min-h-screen" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* ═══ 左侧导航栏 ═══ */}
-      <nav className="w-[200px] shrink-0 bg-[#f0f4ff] border-r border-[#e2e8f0] flex flex-col">
+      <nav className="flex w-[200px] shrink-0 flex-col border-r border-[#e2e8f0] bg-[#f0f4ff] max-[760px]:hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <div className="p-3 border-b border-[#e2e8f0]"><div className="flex items-center gap-2.5"><img src="/sparklearn-logo-official.png" alt="" className="h-8 w-8 object-contain" /><div><div className="text-xs font-bold text-[#1e293b]">学而思 SparkLearn</div><div className="text-[10px] text-[#94a3b8]">个性化学习闭环</div></div></div></div>
         <div className="p-3">
@@ -149,14 +149,14 @@ export default function WorkshopPage() {
       </nav>
 
       {/* ═══ 角色选择栏 ═══ */}
-      <div className="w-[280px] shrink-0 bg-white border-r border-[#eef1f5] flex flex-col">
+      <div className="flex w-[280px] shrink-0 flex-col border-r border-[#eef1f5] bg-white max-[760px]:w-full max-[760px]:border-b max-[760px]:border-r-0">
         <div className="p-4 border-b border-[#eef1f5]">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[#1e293b]">选择参与角色 ({selectedRoleIds.length}/6)</h2>
             <button onClick={() => router.push('/tutor/roles')} className="text-xs text-[#2563eb] hover:underline">+ 添加角色</button>
           </div>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto max-[760px]:max-h-[42vh]">
           {roles.map((role) => {
             const selected = selectedRoleIds.includes(role.id)
             return (
@@ -187,7 +187,7 @@ export default function WorkshopPage() {
       </div>
 
       {/* ═══ 主讨论区 ═══ */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white max-[760px]:overflow-visible">
         {/* 顶部标题栏 */}
         <div className="px-6 py-3 border-b border-[#eef1f5] flex items-center justify-between">
           <div>

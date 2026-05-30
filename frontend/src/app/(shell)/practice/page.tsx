@@ -235,7 +235,7 @@ export default function PracticePage() {
   const currentPageQuestions = questions.slice(startIdx, endIdx)
 
   return (
-    <div>
+    <div className="max-w-full overflow-hidden">
       <header className="mb-5 flex flex-col items-start gap-3 border-b border-line pb-4 min-[900px]:flex-row min-[900px]:justify-between">
         <div className="min-w-0 w-full">
           <div className="mb-2 text-small font-extrabold text-soft">练习评测 / 判题、解析、错题</div>
@@ -290,11 +290,11 @@ export default function PracticePage() {
             </div>
           ) : (
             <>
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex min-w-0 flex-col gap-3 min-[760px]:flex-row min-[760px]:items-start min-[760px]:justify-between">
+                <div className="min-w-0">
                   <Pill tone="blue">个性化练习 · {topic}</Pill>
                   <div className="mt-3 flex items-center gap-2">
-                    <h2 className="text-h2 font-bold text-ink">第 {currentIndex + 1} 题：{currentQuestion?.title || '题目'}</h2>
+                    <h2 className="min-w-0 break-words text-h2 font-bold text-ink">第 {currentIndex + 1} 题：{currentQuestion?.title || '题目'}</h2>
                     <Pill tone={
                       currentQuestion?.type === 'single' ? 'blue' :
                       currentQuestion?.type === 'multiple' ? 'orange' :
@@ -306,13 +306,13 @@ export default function PracticePage() {
                     </Pill>
                   </div>
                 </div>
-                <span className="text-micro text-muted">当前题组：{questions.length} 题 · 预计 {Math.ceil(questions.length * 1.5)} 分钟</span>
+                <span className="shrink-0 text-micro text-muted">当前题组：{questions.length} 题 · 预计 {Math.ceil(questions.length * 1.5)} 分钟</span>
               </div>
 
               {currentQuestion && (
                 <>
                   <div className="mt-5 rounded-[12px] border border-line bg-[#f9fafb] p-4">
-                    <b className="text-small text-ink">{currentQuestion.question || currentQuestion.content}</b>
+                    <b className="break-words text-small text-ink">{currentQuestion.question || currentQuestion.content}</b>
                     {currentQuestion.codeSnippet && (
                       <pre className="mt-3 overflow-auto rounded-[10px] bg-[#0f172a] p-4 text-small leading-6 text-white">
                         {currentQuestion.codeSnippet}
@@ -372,7 +372,7 @@ export default function PracticePage() {
                       </div>
                     ) : currentQuestion.type === 'multiple' ? (
                       // 多选题：显示方形复选框
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-2">
                         {currentQuestion.options && currentQuestion.options.length > 0 ? (
                           currentQuestion.options.map((option, idx) => {
                             const isSelected = Array.isArray(selectedAnswer) && selectedAnswer.includes(option)

@@ -14,6 +14,7 @@ export default function ForumPostDetailPage() {
   const [comments, setComments] = useState<ForumComment[]>([])
   const [comment, setComment] = useState('')
   const [error, setError] = useState('')
+  const [commentError, setCommentError] = useState('')
 
   async function loadAll() {
     try {
@@ -76,12 +77,24 @@ export default function ForumPostDetailPage() {
       <div className="rounded-xl bg-white p-5 ring-1 ring-line">
         <h2 className="text-lg font-bold text-ink">评论区</h2>
         <div className="mt-3 flex gap-2">
-          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="写下你的评论" className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-blue" />
+          <input
+            value={comment}
+            onChange={(e) => {
+              setComment(e.target.value)
+              if (commentError) setCommentError('')
+            }}
+            placeholder="写下你的评论"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-blue"
+          />
           <button
             onClick={async () => {
-              if (!comment.trim()) return
+              if (!comment.trim()) {
+                setCommentError('请输入评论内容')
+                return
+              }
               await api.createForumComment(post.id, comment)
               setComment('')
+              setCommentError('')
               await loadAll()
             }}
             className="rounded-lg bg-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-dark"
@@ -89,6 +102,7 @@ export default function ForumPostDetailPage() {
             发送
           </button>
         </div>
+        {commentError && <div className="mt-2 rounded-lg bg-red-light p-2 text-sm text-red">{commentError}</div>}
         <div className="mt-4 space-y-2">
           {comments.map((x) => (
             <div key={x.id} className="rounded-lg bg-bg-hover p-3 text-sm text-ink">

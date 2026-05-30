@@ -1,69 +1,56 @@
 [
   {
-    "id": "dq_a3129824_1",
-    "type": "multiple",
-    "content": "以下哪些方法可以用于字符串？",
+    "id": "dq_d32c2ace_1",
+    "type": "fill_blank",
+    "content": "列表的 ______ 方法可以获取元素的索引。",
+    "correct_answer": "index",
+    "explanation": "index() 方法返回指定元素的索引。",
+    "knowledge_point_id": "1.3",
+    "knowledge_point_name": "列表操作"
+  },
+  {
+    "id": "dq_d32c2ace_2",
+    "type": "single",
+    "content": "以下哪个函数可以获取对象的类型？",
     "options": [
-      "upper()",
-      "lower()",
-      "append()",
-      "sort()"
+      "isinstance()",
+      "type()",
+      "len()",
+      "id()"
     ],
-    "correct_answer": [
-      "upper()",
-      "lower()"
+    "correct_answer": "type()",
+    "explanation": "type() 函数返回对象的类型。",
+    "knowledge_point_id": "1.2",
+    "knowledge_point_name": "数据类型"
+  },
+  {
+    "id": "dq_d32c2ace_3",
+    "type": "single",
+    "content": "字符串的 center() 方法的作用是什么？",
+    "options": [
+      "左对齐",
+      "右对齐",
+      "居中对齐",
+      "删除空格"
     ],
-    "explanation": "upper() 和 lower() 是字符串方法，append() 和 sort() 是列表方法。",
+    "correct_answer": "居中对齐",
+    "explanation": "center() 将字符串居中对齐，用指定字符填充。",
     "knowledge_point_id": "1.4",
     "knowledge_point_name": "字符串处理"
   },
   {
-    "id": "dq_a3129824_2",
+    "id": "dq_d32c2ace_4",
     "type": "single",
-    "content": "Python 中用于捕获异常的关键字是？",
+    "content": "字符串的 swapcase() 方法的作用是什么？",
     "options": [
-      "catch",
-      "try",
-      "except",
-      "handle"
+      "转换为大写",
+      "转换为小写",
+      "交换大小写",
+      "删除空格"
     ],
-    "correct_answer": "except",
-    "explanation": "Python 使用 try-except 语句捕获异常。",
-    "knowledge_point_id": "4.1",
-    "knowledge_point_name": "异常处理"
-  },
-  {
-    "id": "dq_a3129824_3",
-    "type": "single",
-    "content": "以下哪个值在 Python 中被认为是 False？",
-    "options": [
-      "1",
-      "[]",
-      "True",
-      "\"0\""
-    ],
-    "correct_answer": "[]",
-    "explanation": "空列表、空字符串、0、None 等被认为是 False。",
-    "knowledge_point_id": "2.2",
-    "knowledge_point_name": "条件判断"
-  },
-  {
-    "id": "dq_a3129824_4",
-    "type": "multiple",
-    "content": "以下哪些是赋值运算符？",
-    "options": [
-      "=",
-      "+=",
-      "-=",
-      "=="
-    ],
-    "correct_answer": [
-      "=",
-      "+=",
-      "-="
-    ],
-    "explanation": "=、+=、-= 是赋值运算符，== 是比较运算符。",
-    "knowledge_point_id": "1.1",
-    "knowledge_point_name": "基础语法"
+    "correct_answer": "交换大小写",
+    "explanation": "swapcase() 将大写字母转为小写，小写转为大写。",
+    "knowledge_point_id": "1.4",
+    "knowledge_point_name": "字符串处理"
   }
 ]

@@ -4,7 +4,7 @@ import json
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..config import settings
@@ -243,7 +243,7 @@ async def get_today_tasks():
 async def create_task(req: TaskCreateReq):
     tasks = _read_tasks()
     task = {
-        'id': f'task-{date.today().strftime("%Y%m%d")}-{len(tasks) + 1}',
+        'id': f'task-{date.today().strftime("%Y%m%d")}-{len(tasks) + 1}-{now_iso().replace(":", "").replace(".", "")}',
         'title': req.title.strip() or '新的学习任务',
         'type': req.type if req.type in {'video', 'reading', 'quiz', 'practice'} else 'practice',
         'status': 'pending',
@@ -263,22 +263,26 @@ async def complete_task(task_id: str, req: TaskCompleteReq):
         if task['id'] == task_id:
             task['status'] = req.status if req.status in {'pending', 'in_progress', 'completed'} else 'completed'
             updated = task
+            break
+    if not updated:
+        raise HTTPException(status_code=404, detail='task not found')
     write_json(settings.single_user_id, 'task_progress.json', tasks)
     append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_status_updated', 'task_id': task_id, 'status': req.status})
 
-    today = date.today().isoformat()
-    row = fetch_one('SELECT count FROM contribution_days WHERE user_id = ? AND date = ?', (settings.single_user_id, today))
-    if row:
-        execute(
-            'UPDATE contribution_days SET count = ? WHERE user_id = ? AND date = ?',
-            (int(row['count']) + 1, settings.single_user_id, today),
-        )
-    else:
-        execute(
-            'INSERT INTO contribution_days(user_id, date, count) VALUES (?, ?, ?)',
-            (settings.single_user_id, today, 1),
-        )
-    return ok(updated or {'task_id': task_id, 'status': req.status})
+    if updated['status'] == 'completed':
+        today = date.today().isoformat()
+        row = fetch_one('SELECT count FROM contribution_days WHERE user_id = ? AND date = ?', (settings.single_user_id, today))
+        if row:
+            execute(
+                'UPDATE contribution_days SET count = ? WHERE user_id = ? AND date = ?',
+                (int(row['count']) + 1, settings.single_user_id, today),
+            )
+        else:
+            execute(
+                'INSERT INTO contribution_days(user_id, date, count) VALUES (?, ?, ?)',
+                (settings.single_user_id, today, 1),
+            )
+    return ok(updated)
 
 
 @router.delete('/tasks/{task_id}')

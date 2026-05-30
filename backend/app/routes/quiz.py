@@ -6,7 +6,7 @@ import uuid
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from ..config import settings
@@ -141,51 +141,39 @@ async def get_quiz(chapter: str | None = None, count: int = 4, use_llm: bool = F
     - count: 题目数量（1-50，默认4）
     - use_llm: 是否使用 LLM 生成（默认 False，使用预设题库）
     """
-    print(f"DEBUG: get_quiz called with chapter={chapter}, count={count}, use_llm={use_llm}")
     requested_count = max(1, min(count, 50))
     batch_id = uuid.uuid4().hex[:8]
-    print(f"DEBUG: requested_count={requested_count}, batch_id={batch_id}")
 
     # 策略：优先使用预设题库，只在明确要求时才使用 LLM
     quiz_set = None
     
     if use_llm:
         # 用户明确要求使用 LLM 生成
-        print(f"DEBUG: User requested LLM generation")
         generated = await _generate_quiz_with_llm(chapter, requested_count, batch_id)
         quiz_set = generated
     
     # 如果 LLM 生成失败或未使用，使用预设题库
     if not quiz_set:
-        print(f"DEBUG: Using default quiz set")
         quiz_set = _build_default_batch(requested_count, batch_id)
-    
-    print(f"DEBUG: quiz_set generated with {len(quiz_set)} questions")
 
     write_json(settings.single_user_id, 'latest_quiz_set.json', quiz_set)
-    print(f"DEBUG: quiz_set written to JSON")
     
     append_jsonl(
         settings.single_user_id,
         'learning_events.jsonl',
         {'type': 'quiz_generated', 'count': len(quiz_set), 'chapter': chapter or '', 'batch_id': batch_id, 'use_llm': use_llm},
     )
-    print(f"DEBUG: learning event appended")
-
     slim = [
         {
             'id': q['id'],
             'type': q['type'],
             'content': q['content'],
             'options': q.get('options'),
-            'correct_answer': q.get('correct_answer'),
-            'explanation': q.get('explanation', ''),
             'knowledge_point_id': q.get('knowledge_point_id', ''),
             'knowledge_point_name': q.get('knowledge_point_name', ''),
         }
         for q in quiz_set[:requested_count]
     ]
-    print(f"DEBUG: slim list created with {len(slim)} items")
     return ok(slim)
 
 
@@ -195,18 +183,16 @@ async def submit_quiz(req: SubmitReq):
     提交答案并判题
     """
     quiz_set = _latest_quiz_set()
-    target = next((q for q in quiz_set if q['id'] == req.quiz_id), None) or quiz_set[0]
-
-    print(f"DEBUG: Submitting answer for quiz_id={req.quiz_id}, answer={req.answer}")
+    target = next((q for q in quiz_set if q['id'] == req.quiz_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail='quiz not found')
     
     # 第1步：规则判题
     rule_correct = _is_correct_rule(target, req.answer)
-    print(f"DEBUG: Rule-based judge result: {rule_correct}")
     
     # 第2步：如果规则判题失败，尝试 LLM 辅助判题（仅填空题）
     llm_judge = None
     if not rule_correct and target.get('type') == 'fill_blank':
-        print(f"DEBUG: Rule judge failed, trying LLM assist for fill_blank question")
         llm_judge = await _judge_with_llm(target, req.answer)
     
     # 第3步：确定最终判题结果
@@ -218,7 +204,6 @@ async def submit_quiz(req: SubmitReq):
         if bool(llm_judge.get('correct', False)) and float(llm_judge.get('confidence', 0.0)) >= 0.8:
             correct = True
             judge_mode = 'llm_assist'
-            print(f"DEBUG: LLM assist changed result to correct")
 
     # 第4步：构建解析
     explanation = str(target.get('explanation', '')).strip()
@@ -261,8 +246,6 @@ async def submit_quiz(req: SubmitReq):
         'SELECT score FROM mastery_records WHERE user_id = ? AND knowledge_point_id = ?',
         (settings.single_user_id, target['knowledge_point_id']),
     )
-
-    print(f"DEBUG: Final result - correct={correct}, judge_mode={judge_mode}, mastery={mastery_row['score'] if mastery_row else 0.5}")
 
     return ok(
         {

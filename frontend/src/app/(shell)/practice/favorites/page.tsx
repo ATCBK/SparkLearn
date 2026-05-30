@@ -24,18 +24,18 @@ export default function FavoritesPage() {
       </div>
       <div className="grid gap-3">
         {items.map((item) => (
-          <ProtoCard key={item.quizId}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
+          <ProtoCard key={item.quizId} className="min-w-0 max-w-full overflow-hidden">
+            <div className="flex items-start justify-between gap-4 max-[640px]:flex-col">
+              <div className="flex min-w-0 items-start gap-3">
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fff7ed] text-[#d97706]">
                   <BookmarkX className="h-4 w-4" />
                 </div>
-                <div>
-                  <h2 className="text-h2 font-bold text-ink">{String(item.question?.content || `收藏题 ${item.quizId}`)}</h2>
-                  <p className="mt-2 text-small text-muted">收藏时间：{item.createdAt || '刚刚'} · 可加入复习练习</p>
+                <div className="min-w-0">
+                  <h2 className="break-words text-h2 font-bold text-ink">{String(item.question?.content || `收藏题 ${item.quizId}`)}</h2>
+                  <p className="mt-2 break-words text-small text-muted">收藏时间：{item.createdAt || '刚刚'} · 可加入复习练习</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex shrink-0 gap-2 max-[640px]:w-full max-[640px]:justify-end">
                 <ProtoButton href="/practice">加入练习</ProtoButton>
                 <button onClick={() => void remove(item.quizId)} className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-red-light hover:text-red" aria-label="取消收藏"><BookmarkX className="h-4 w-4" /></button>
               </div>

@@ -1187,3 +1187,156 @@
 {"ts": "2026-05-30T01:45:05.789965Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a3129824", "use_llm": false}
 {"ts": "2026-05-30T01:45:24.841810Z", "type": "tutor_chat", "conversation_id": 50, "role_id": 6, "question": "你好"}
 {"ts": "2026-05-30T01:45:24.872345Z", "type": "memory_updated", "conversation_id": 50, "changed": 0, "version": 1}
+{"ts": "2026-05-30T01:57:36.947193Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "98efbf62", "use_llm": false}
+{"ts": "2026-05-30T01:57:37.013210Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T01:57:36.997183Z"}}
+{"ts": "2026-05-30T01:57:37.126481Z", "type": "tutor_chat", "conversation_id": 50, "role_id": 6, "question": "什么是闭包"}
+{"ts": "2026-05-30T01:57:37.181971Z", "type": "memory_updated", "conversation_id": 50, "changed": 0, "version": 1}
+{"ts": "2026-05-30T01:57:37.257500Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "b97a22d4", "use_llm": false}
+{"ts": "2026-05-30T01:57:37.314510Z", "type": "submit_quiz", "quiz_id": "dq_b97a22d4_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-30T01:57:40.430879Z", "type": "tutor_chat", "conversation_id": 51, "role_id": 7, "question": "请解释闭包"}
+{"ts": "2026-05-30T01:57:40.493943Z", "type": "memory_updated", "conversation_id": 51, "changed": 0, "version": 1}
+{"ts": "2026-05-30T01:57:41.228076Z", "type": "profile_dialog_completed", "session_id": "sess_57a1fbc5", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T01:57:41.214066Z"}}
+{"ts": "2026-05-30T02:00:54.112071Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "6e47178a", "use_llm": false}
+{"ts": "2026-05-30T02:00:54.198633Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:00:54.154631Z"}}
+{"ts": "2026-05-30T02:00:54.313779Z", "type": "tutor_chat", "conversation_id": 51, "role_id": 7, "question": "什么是闭包"}
+{"ts": "2026-05-30T02:00:54.348050Z", "type": "memory_updated", "conversation_id": 51, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:00:54.378050Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "9e7ec76a", "use_llm": false}
+{"ts": "2026-05-30T02:00:54.398057Z", "type": "submit_quiz", "quiz_id": "dq_9e7ec76a_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-30T02:00:57.191650Z", "type": "tutor_chat", "conversation_id": 52, "role_id": 8, "question": "请解释闭包"}
+{"ts": "2026-05-30T02:00:57.254692Z", "type": "memory_updated", "conversation_id": 52, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:00:57.793757Z", "type": "profile_dialog_completed", "session_id": "sess_f27a459e", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:00:57.779758Z"}}
+{"ts": "2026-05-30T02:03:21.040474Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:03:21.024008Z"}}
+{"ts": "2026-05-30T02:03:24.422635Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "59d8ecc5", "use_llm": false}
+{"ts": "2026-05-30T02:03:57.309074Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:03:57.283132Z"}}
+{"ts": "2026-05-30T02:04:00.348200Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c2c38c56", "use_llm": false}
+{"ts": "2026-05-30T02:04:00.400298Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7374eb16", "use_llm": false}
+{"ts": "2026-05-30T02:04:00.407296Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "ef19864a", "use_llm": false}
+{"ts": "2026-05-30T02:05:11.228637Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e1e4d53a", "use_llm": false}
+{"ts": "2026-05-30T02:05:11.291406Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f594c340", "use_llm": false}
+{"ts": "2026-05-30T02:05:11.296391Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "43a325eb", "use_llm": false}
+{"ts": "2026-05-30T02:07:59.197513Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:07:59.176497Z"}}
+{"ts": "2026-05-30T02:08:02.569037Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "819dba70", "use_llm": false}
+{"ts": "2026-05-30T02:08:02.625986Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f1742d16", "use_llm": false}
+{"ts": "2026-05-30T02:08:02.635651Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "05477b2c", "use_llm": false}
+{"ts": "2026-05-30T02:09:54.391949Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:09:54.367874Z"}}
+{"ts": "2026-05-30T02:09:57.387589Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "47d56061", "use_llm": false}
+{"ts": "2026-05-30T02:09:57.438794Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6945db2a", "use_llm": false}
+{"ts": "2026-05-30T02:09:57.445810Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "705c1009", "use_llm": false}
+{"ts": "2026-05-30T02:11:21.230898Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:11:21.207078Z"}}
+{"ts": "2026-05-30T02:11:24.204175Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6c1635cf", "use_llm": false}
+{"ts": "2026-05-30T02:11:24.255725Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3cf49805", "use_llm": false}
+{"ts": "2026-05-30T02:11:24.262711Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "b0ede499", "use_llm": false}
+{"ts": "2026-05-30T02:11:55.145821Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "3a943a0c", "use_llm": false}
+{"ts": "2026-05-30T02:11:55.234402Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:11:55.212362Z"}}
+{"ts": "2026-05-30T02:11:55.416739Z", "type": "tutor_chat", "conversation_id": 52, "role_id": 8, "question": "什么是闭包"}
+{"ts": "2026-05-30T02:11:55.472264Z", "type": "memory_updated", "conversation_id": 52, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:11:55.604328Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "72a74add", "use_llm": false}
+{"ts": "2026-05-30T02:11:55.646084Z", "type": "submit_quiz", "quiz_id": "dq_72a74add_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-30T02:11:58.239577Z", "type": "tutor_chat", "conversation_id": 53, "role_id": 9, "question": "请解释闭包"}
+{"ts": "2026-05-30T02:11:58.297578Z", "type": "memory_updated", "conversation_id": 53, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:11:58.908433Z", "type": "profile_dialog_completed", "session_id": "sess_3300e29c", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:11:58.889907Z"}}
+{"ts": "2026-05-30T02:12:09.616864Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:12:09.594825Z"}}
+{"ts": "2026-05-30T02:12:09.709452Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:12:09.692662Z"}}
+{"ts": "2026-05-30T02:12:14.091498Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3244aa16", "use_llm": false}
+{"ts": "2026-05-30T02:12:14.101510Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a86cd170", "use_llm": false}
+{"ts": "2026-05-30T02:12:14.171516Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1b4edb43", "use_llm": false}
+{"ts": "2026-05-30T02:12:14.177518Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c46b801b", "use_llm": false}
+{"ts": "2026-05-30T02:13:54.408124Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:13:54.383387Z"}}
+{"ts": "2026-05-30T02:13:58.089603Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "675201c3", "use_llm": false}
+{"ts": "2026-05-30T02:14:23.133239Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:14:23.114333Z"}}
+{"ts": "2026-05-30T02:14:26.125965Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0d74ecc9", "use_llm": false}
+{"ts": "2026-05-30T02:14:26.181468Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "64191c30", "use_llm": false}
+{"ts": "2026-05-30T02:14:26.188450Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a43f240a", "use_llm": false}
+{"ts": "2026-05-30T02:15:07.009248Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "396b0b30", "use_llm": false}
+{"ts": "2026-05-30T02:15:07.137510Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:15:07.055766Z"}}
+{"ts": "2026-05-30T02:15:07.276039Z", "type": "tutor_chat", "conversation_id": 53, "role_id": 9, "question": "什么是闭包"}
+{"ts": "2026-05-30T02:15:07.324102Z", "type": "memory_updated", "conversation_id": 53, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:15:07.367673Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "44d3808c", "use_llm": false}
+{"ts": "2026-05-30T02:15:07.396207Z", "type": "submit_quiz", "quiz_id": "dq_44d3808c_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-30T02:15:10.455058Z", "type": "tutor_chat", "conversation_id": 54, "role_id": 10, "question": "请解释闭包"}
+{"ts": "2026-05-30T02:15:10.514117Z", "type": "memory_updated", "conversation_id": 54, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:15:11.084491Z", "type": "profile_dialog_completed", "session_id": "sess_98f410e9", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:15:11.067636Z"}}
+{"ts": "2026-05-30T02:15:22.967259Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:15:22.947949Z"}}
+{"ts": "2026-05-30T02:15:26.676092Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2afae966", "use_llm": false}
+{"ts": "2026-05-30T02:15:55.803400Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:15:55.780916Z"}}
+{"ts": "2026-05-30T02:15:58.684041Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e7d31d15", "use_llm": false}
+{"ts": "2026-05-30T02:15:58.740230Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2718a649", "use_llm": false}
+{"ts": "2026-05-30T02:15:58.747230Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "4b761dc3", "use_llm": false}
+{"ts": "2026-05-30T02:20:04.825477Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:20:04.809457Z"}}
+{"ts": "2026-05-30T02:20:08.486863Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "255d8b7d", "use_llm": false}
+{"ts": "2026-05-30T02:26:26.156483Z", "type": "profile_updated", "patch": {"name": "验收学生85765", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:28:25.014840Z", "type": "profile_updated", "patch": {"name": "验收学生04685", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:30:33.386139Z", "type": "profile_updated", "patch": {"name": "验收学生32982", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:31:10.119253Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "66486175", "use_llm": false}
+{"ts": "2026-05-30T02:32:06.921522Z", "type": "profile_updated", "patch": {"name": "验收学生26560", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:33:06.044187Z", "type": "profile_updated", "patch": {"name": "验收学生85745", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:34:45.302657Z", "type": "profile_updated", "patch": {"name": "验收学生84984", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:35:41.297113Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dde0a7b1", "use_llm": false}
+{"ts": "2026-05-30T02:35:41.349280Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1219db83", "use_llm": false}
+{"ts": "2026-05-30T02:35:41.356276Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c3f40b7d", "use_llm": false}
+{"ts": "2026-05-30T02:36:16.014179Z", "type": "profile_updated", "patch": {"name": "验收学生75644", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:38:09.239763Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "2c5e7e9e", "use_llm": false}
+{"ts": "2026-05-30T02:38:09.290098Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "69a056de", "use_llm": false}
+{"ts": "2026-05-30T02:38:09.297257Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "32402b1c", "use_llm": false}
+{"ts": "2026-05-30T02:38:41.519766Z", "type": "profile_updated", "patch": {"name": "验收学生21176", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:40:10.702335Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6f23ea3c", "use_llm": false}
+{"ts": "2026-05-30T02:40:10.740342Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c482e64a", "use_llm": false}
+{"ts": "2026-05-30T02:40:10.747355Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "bbf9e6ff", "use_llm": false}
+{"ts": "2026-05-30T02:40:36.885150Z", "type": "profile_updated", "patch": {"name": "验收学生36531", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:41:38.961606Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6d421ba6", "use_llm": false}
+{"ts": "2026-05-30T02:41:39.003639Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "7f709197", "use_llm": false}
+{"ts": "2026-05-30T02:41:39.011204Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d6171349", "use_llm": false}
+{"ts": "2026-05-30T02:42:18.779883Z", "type": "profile_updated", "patch": {"name": "验收学生38392", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:43:27.739725Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f7c84491", "use_llm": false}
+{"ts": "2026-05-30T02:43:27.775678Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a961af54", "use_llm": false}
+{"ts": "2026-05-30T02:43:27.781686Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1a974b78", "use_llm": false}
+{"ts": "2026-05-30T02:44:06.632913Z", "type": "profile_updated", "patch": {"name": "验收学生46259", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:45:41.733513Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "21f8a490", "use_llm": false}
+{"ts": "2026-05-30T02:45:41.778062Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "dd8955b2", "use_llm": false}
+{"ts": "2026-05-30T02:45:41.784082Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "767c9abb", "use_llm": false}
+{"ts": "2026-05-30T02:46:19.880629Z", "type": "profile_updated", "patch": {"name": "验收学生79503", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:47:21.526959Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f7d176d2", "use_llm": false}
+{"ts": "2026-05-30T02:47:21.583750Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "f9971087", "use_llm": false}
+{"ts": "2026-05-30T02:47:21.593204Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "397b394d", "use_llm": false}
+{"ts": "2026-05-30T02:47:59.719899Z", "type": "profile_updated", "patch": {"name": "验收学生79198", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:49:43.305757Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d54f139a", "use_llm": false}
+{"ts": "2026-05-30T02:49:43.340286Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0f5281af", "use_llm": false}
+{"ts": "2026-05-30T02:49:43.345808Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "a9741c55", "use_llm": false}
+{"ts": "2026-05-30T02:50:20.031250Z", "type": "profile_updated", "patch": {"name": "验收学生19663", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:51:31.613626Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "aa3d4956", "use_llm": false}
+{"ts": "2026-05-30T02:51:31.648160Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "889eb117", "use_llm": false}
+{"ts": "2026-05-30T02:51:31.652155Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "da3cb023", "use_llm": false}
+{"ts": "2026-05-30T02:52:15.527205Z", "type": "profile_updated", "patch": {"name": "验收学生35184", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:53:15.972682Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "96be82f7", "use_llm": false}
+{"ts": "2026-05-30T02:53:16.012268Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8dacf682", "use_llm": false}
+{"ts": "2026-05-30T02:53:16.017819Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "0ff04adf", "use_llm": false}
+{"ts": "2026-05-30T02:54:00.064317Z", "type": "profile_updated", "patch": {"name": "验收学生39784", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:55:01.682621Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "5f30ffec", "use_llm": false}
+{"ts": "2026-05-30T02:55:01.725502Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c9254b1e", "use_llm": false}
+{"ts": "2026-05-30T02:55:01.731500Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "81d1c308", "use_llm": false}
+{"ts": "2026-05-30T02:55:48.508441Z", "type": "profile_updated", "patch": {"name": "验收学生48207", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:56:55.909109Z", "type": "quiz_generated", "count": 3, "chapter": "", "batch_id": "7ac7c10d", "use_llm": false}
+{"ts": "2026-05-30T02:56:56.037348Z", "type": "profile_onboarding", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数"], "learning_preference": ["实践型"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:56:56.023825Z"}}
+{"ts": "2026-05-30T02:56:56.137880Z", "type": "tutor_chat", "conversation_id": 54, "role_id": 10, "question": "什么是闭包"}
+{"ts": "2026-05-30T02:56:56.165890Z", "type": "memory_updated", "conversation_id": 54, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:56:56.186090Z", "type": "quiz_generated", "count": 4, "chapter": "", "batch_id": "551d48ed", "use_llm": false}
+{"ts": "2026-05-30T02:56:56.195094Z", "type": "submit_quiz", "quiz_id": "dq_551d48ed_1", "correct": false, "judge_mode": "rule"}
+{"ts": "2026-05-30T02:56:57.897572Z", "type": "tutor_chat", "conversation_id": 55, "role_id": 11, "question": "请解释闭包"}
+{"ts": "2026-05-30T02:56:57.926586Z", "type": "memory_updated", "conversation_id": 55, "changed": 0, "version": 1}
+{"ts": "2026-05-30T02:56:58.309859Z", "type": "profile_dialog_completed", "session_id": "sess_2c894d0b", "profile": {"goal": ["期末提分"], "knowledge_level": "有一些基础", "weak_points": ["函数", "面向对象"], "learning_preference": ["实践型", "视觉型"], "cognitive_style": "归纳型", "daily_time": 60, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:56:58.297864Z"}}
+{"ts": "2026-05-30T02:58:08.559638Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:58:08.545629Z"}}
+{"ts": "2026-05-30T02:58:11.541372Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "1852dcdb", "use_llm": false}
+{"ts": "2026-05-30T02:58:28.550468Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "5e04fd9c", "use_llm": false}
+{"ts": "2026-05-30T02:59:15.724840Z", "type": "profile_updated", "patch": {"name": "验收学生55346", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T02:59:29.891964Z", "type": "profile_onboarding", "profile": {"goal": ["掌握 Python 核心能力"], "knowledge_level": "有一些基础", "weak_points": ["函数、闭包和项目实战"], "learning_preference": ["动手实践和文档阅读"], "cognitive_style": "归纳型", "daily_time": 45, "practical_ability": "能独立完成小项目", "current_stage": "函数与模块", "version": 1, "updated_at": "2026-05-30T02:59:29.869797Z"}}
+{"ts": "2026-05-30T02:59:32.775659Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "307b968d", "use_llm": false}
+{"ts": "2026-05-30T02:59:32.827732Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "07e3f962", "use_llm": false}
+{"ts": "2026-05-30T02:59:32.835837Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "3247d324", "use_llm": false}
+{"ts": "2026-05-30T02:59:47.865887Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "cbaa71df", "use_llm": false}
+{"ts": "2026-05-30T02:59:47.906944Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "e9c4d80a", "use_llm": false}
+{"ts": "2026-05-30T02:59:47.912944Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "c6a8087a", "use_llm": false}
+{"ts": "2026-05-30T03:00:30.327167Z", "type": "profile_updated", "patch": {"name": "验收学生29981", "email": "acceptance@example.com", "major": "计算机科学", "grade": "大二", "goal": ["掌握 Python 核心能力"], "daily_time": 95}}
+{"ts": "2026-05-30T03:39:04.813814Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "fb524f54", "use_llm": false}
+{"ts": "2026-05-30T03:39:04.818714Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "6a792e66", "use_llm": false}
+{"ts": "2026-05-30T03:40:10.179411Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "8f5d44ce", "use_llm": false}
+{"ts": "2026-05-30T03:40:10.185407Z", "type": "quiz_generated", "count": 4, "chapter": "函数返回值", "batch_id": "d32c2ace", "use_llm": false}

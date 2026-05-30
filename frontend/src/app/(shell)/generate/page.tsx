@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
@@ -37,7 +37,7 @@ function typeLabel(type: string) {
   return map[type] || type
 }
 
-export default function GeneratePage() {
+function GeneratePageContent() {
   const searchParams = useSearchParams()
   const initialView = searchParams.get('view') === 'library' ? 'library' : 'generate'
   const initialResourceId = searchParams.get('id') || ''
@@ -447,5 +447,13 @@ export default function GeneratePage() {
         </div>
       </ProtoCard>
     </div>
+  )
+}
+
+export default function GeneratePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-small text-muted">资源工作台加载中...</div>}>
+      <GeneratePageContent />
+    </Suspense>
   )
 }

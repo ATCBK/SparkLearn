@@ -24,19 +24,19 @@ export default function MistakesPage() {
       </div>
       <div className="grid gap-3">
         {items.map((item) => (
-          <ProtoCard key={item.quizId}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
+          <ProtoCard key={item.quizId} className="min-w-0 max-w-full overflow-hidden">
+            <div className="flex items-start justify-between gap-4 max-[640px]:flex-col">
+              <div className="flex min-w-0 items-start gap-3">
                 <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#fef2f2] text-[#dc2626]">
                   <AlertCircle className="h-4 w-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <Pill tone="orange">错 {item.count} 次</Pill>
-                  <h2 className="mt-3 text-h2 font-bold text-ink">{item.content}</h2>
-                  <p className="mt-2 text-small text-muted">错因分类：概念混淆 · 关联知识点：函数返回值</p>
+                  <h2 className="mt-3 break-words text-h2 font-bold text-ink">{item.content}</h2>
+                  <p className="mt-2 break-words text-small text-muted">错因分类：概念混淆 · 关联知识点：函数返回值</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex shrink-0 gap-2 max-[640px]:w-full max-[640px]:justify-end">
                 <ProtoButton href="/practice" variant="secondary"><RotateCcw className="h-4 w-4" />再练一次</ProtoButton>
                 <button onClick={() => void remove(item.quizId)} className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-red-light hover:text-red" aria-label="删除错题"><Trash2 className="h-4 w-4" /></button>
               </div>

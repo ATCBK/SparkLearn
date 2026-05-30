@@ -18,8 +18,15 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     })
-    const json = await res.json() as ApiResp<T>
-    if (!res.ok || !json.success) throw new Error(json.error || `请求失败：${res.status}`)
+    const json = await res.json() as ApiResp<T> & { detail?: unknown }
+    if (!res.ok || !json.success) {
+      const detail = Array.isArray(json.detail)
+        ? json.detail.map((item) => typeof item === 'object' && item !== null && 'msg' in item ? String((item as { msg: unknown }).msg) : String(item)).join('；')
+        : typeof json.detail === 'string'
+          ? json.detail
+          : ''
+      throw new Error(json.error || detail || `请求失败：${res.status}`)
+    }
     return json.data
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
