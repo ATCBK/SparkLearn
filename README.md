@@ -27,6 +27,8 @@
   <img src="https://img.shields.io/badge/记忆系统-多层记忆召回-6366F1" />
   <img src="https://img.shields.io/badge/防幻觉-可信回答控制器-F97316" />
   <img src="https://img.shields.io/badge/多模态对话-文本%2B图片生成-EC4899" />
+  <img src="https://img.shields.io/badge/Desktop-Electron桌面端-8B5CF6?logo=electron&logoColor=white" />
+  <img src="https://img.shields.io/badge/Admin-平台管理端-3B82F6" />
 </p>
 
 ---
@@ -93,7 +95,7 @@ SparkLearn 通过 AI 多智能体协同，为学习者构建一套可持续优�
 - 检索能力：知识分片召回 + 上下文拼接。
 - 目标：减少纯拼接回答，提高知识问答准确性与可解释性。
 
-### 8) 记忆系统与多轮上下文
+### 7) 记忆系统与多轮上下文
 
 系统具备多层记忆存储与召回能力，用于支持连续学习对话与个体化辅导。
 
@@ -101,7 +103,7 @@ SparkLearn 通过 AI 多智能体协同，为学习者构建一套可持续优�
 - 能力：记忆写入、检索、压缩整合、遗忘清理。
 - 目标：降低多轮对话信息丢失，提升连续性与个体化。
 
-### 9) 可信回答与防幻觉机制
+### 8) 可信回答与防幻觉机制
 
 已接入可信回答控制思路，在知识问答场景中增强证据约束与可信度表达。
 
@@ -109,7 +111,7 @@ SparkLearn 通过 AI 多智能体协同，为学习者构建一套可持续优�
 - 场景：知识问答、学习指导、引用证据类回答。
 - 目标：降低幻觉风险，提升回答可验证性与教学可信度。
 
-### 10) 多模态对话链路
+### 9) 多模态对话链路
 
 Tutor 场景已支持文本主链路与图片生成链路并行存在，并进行流程隔离。
 
@@ -117,15 +119,39 @@ Tutor 场景已支持文本主链路与图片生成链路并行存在，并进�
 - 策略：图片生成链路与可信问答链路解耦，避免互相干扰。
 - 目标：在保证稳定性的前提下提供多模态学习体验。
 
+### 10) 桌面端应用（Electron）
+
+SparkLearn 提供 Windows 桌面端应用，基于 Electron 将前端与后端服务统一托管在用户本机，无需远程部署即可完整体验平台全部功能。
+
+- 启动方式：一键启动后端 (FastAPI) 与前端 (Next.js)，自动加载桌面窗口。
+- 运行架构：前后端仅监听 `127.0.0.1`，数据不出本机，保障隐私安全。
+- 开发支持：提供 `doctor` 环境检测、日志管理、健康检查与进程守护等完整工具链。
+- 打包分发：支持 `electron-builder` 打包为 NSIS 安装程序（Windows）。
+- 价值：降低部署门槛，让师生无需技术背景即可快速上手使用。
+
+### 11) 平台管理端
+
+提供独立的管理后台，支持平台运营、用户管理、内容审核与系统运维。
+
+- 管理能力：平台总览看板、用户与权限管理、帖子内容审核、审计日志追踪、系统设置。
+- 快捷入口：支持从管理端直接跳转教师端与数据大屏。
+- 响应式设计：适配桌面端与小屏设备，侧栏自动折叠，操作体验流畅。
+- 价值：为平台运营者提供集中化管理入口，降低运维成本。
+
 ---
 
 ## 技术架构
 
 ```text
 SparkLearn
+├─ Desktop (Electron Shell)
+│  ├─ 进程管理（前端 + 后端）
+│  ├─ 日志与健康检查
+│  └─ NSIS 安装包分发
 ├─ Frontend (Next.js 16 + React 19 + TypeScript)
 │  ├─ 学生端 (shell)
 │  ├─ 教师端 (teacher)
+│  ├─ 管理端 (admin)
 │  └─ 社区端 (forum/plaza)
 ├─ Backend (FastAPI + Pydantic)
 │  ├─ 学习业务路由
@@ -150,6 +176,7 @@ SparkLearn
 | 层级 | 技术选型 |
 |---|---|
 | 前端 | Next.js 16、React 19、TypeScript、Tailwind CSS |
+| 桌面端 | Electron 36、electron-builder（NSIS 安装包） |
 | 后端 | Python 3.11、FastAPI、Pydantic |
 | 数据 | SQLite + 文件存储 |
 | AI 能力 | 讯飞星火、星辰Agent平台、多模态生成链路、RAG、Embedding 向量检索、记忆系统、可信回答控制 |
@@ -158,10 +185,14 @@ SparkLearn
 
 ```text
 SparkLearn/
+├─ desktop/               # Electron 桌面端
+│  ├─ main/               # 主进程（进程管理、日志、健康检查）
+│  └─ package.json
 ├─ frontend/
-│  ├─ src/app/(shell)/
-│  ├─ src/app/(teacher)/
-│  └─ src/app/plaza/
+│  ├─ src/app/(shell)/    # 学生端
+│  ├─ src/app/(teacher)/  # 教师端
+│  ├─ src/app/(admin)/    # 管理端
+│  └─ src/app/plaza/      # 社区/广场
 ├─ backend/
 │  ├─ app/routes/forum.py
 │  ├─ app/routes/teacher.py
@@ -182,6 +213,8 @@ SparkLearn/
 | 多模态内容供给 | 教师和学生手工找资料，效率低、更新慢 | AI 自动生成文档/题目/视频/播客等并支持迭代 |
 | 教学干预可执行 | 风险学生识别后缺少落地动作 | 教师端提供干预入口、通知分发和跟踪反馈 |
 | 学习社群协同 | 学习过程割裂，缺少互助和共学机制 | 社区端打通论坛、答疑、组队共学与经验共享 |
+| 桌面端一键部署 | 师生需自行配置前后端环境，门槛高 | Electron 桌面端一键启动，自动托管前后端本机服务 |
+| 平台集中管理 | 缺少统一运营管理入口 | 管理端提供看板、审核、用户管理、系统配置一体化 |
 
 ### 学生端功能详解
 
@@ -219,6 +252,20 @@ SparkLearn/
 - `/teacher/dashboard`、`/teacher/students`、`/teacher/students/[id]`
 - `/teacher/ai`、`/teacher/interventions`、`/teacher/broadcast`、`/teacher/reports`
 
+### 管理端功能详解
+
+| 功能模块 | 具体能力 | 运营价值 |
+|---|---|---|
+| 平台总览 | 用户活跃度、内容统计、服务状态 | 快速掌握平台整体运行健康度 |
+| 用户与权限 | 用户列表、角色分配、权限配置 | 精细化管理用户访问与操作权限 |
+| 帖子审核 | 待审列表、审核通过/拒绝、批量操作 | 保障社区内容质量与合规性 |
+| 审计日志 | 关键操作记录、操作人追踪、时间线 | 满足安全审计与问题追溯需求 |
+| 系统设置 | 平台参数调节、运维配置入口 | 支持灵活的系统级运营策略调整 |
+
+管理端主路由示例：
+- `/admin/dashboard`、`/admin/users`、`/admin/forum`
+- `/admin/audit`、`/admin/settings`、`/admin/login`
+
 ### 社区端功能详解
 
 | 功能模块 | 具体能力 | 社群价值 |
@@ -234,6 +281,7 @@ SparkLearn/
 
 ### API 概览
 
+- Admin API（`/api/admin`）：用户管理、帖子审核、审计日志、系统配置。
 - Forum API（`/api/forum`）：帖子、评论、点赞收藏、附件上传下载、个人论坛数据。
 - Teacher API（`/api/teacher`）：看板与学生、AI 诊断与日报、教学资料管理、通知分发。
 - Tutor/学习 API：`/api/profile`、`/api/learning`、`/api/path`、`/api/quiz`、`/api/resources`、`/api/knowledge`。
@@ -270,13 +318,30 @@ npm run dev
 
 访问：`http://localhost:3000`
 
-### 3) 说明
+### 3) 启动桌面端（可选）
+
+```bash
+cd desktop
+npm install
+npm run doctor   # 环境检测
+npm run dev      # 一键启动桌面应用
+```
+
+桌面端会自动按顺序启动后端 → 前端 → 加载桌面窗口，无需手动执行步骤 1 和 2。
+
+### 4) 说明
 
 - 当前默认以 `single_user_id` 模式进行本地体验与联调。
 - 面向多用户线上部署时，建议补齐鉴权、权限、审计与数据库迁移方案。
 
-### 4) 已加入能力说明
+### 5) 已加入能力说明
 
+- **桌面端**：Electron 桌面应用已可用，支持一键启动前后端本机服务，降低部署门槛。
+- **平台管理端**：独立管理后台已上线，支持平台运营、内容审核与系统运维。
+- **响应式适配**：前端各端（学生/教师/管理/社区）均已适配桌面与小屏设备。
+- **交互修复**：前后端多处按钮无响应 Bug 已修复，整体交互流畅性大幅提升。
+- **登录优化**：支持画像重新采集与本地状态持久化，体验更加连贯。
+- **测试覆盖**：新增深度验收测试与全平台端到端测试（Playwright + Pytest）。
 - 学习空间已加入 MCP 插件商店页面入口（后续扩展插件生态）。
 - Tutor 学习工作区已加入角色、文件、知识与研讨页面，支持更完整的学习协作流。
 - 已加入 RAG + Embedding 文本向量化检索链路，用于知识问答增强。
