@@ -20,6 +20,8 @@ backend/data/artifacts/
 *.log
 .DS_Store
 Thumbs.db
+.idea/
+frontend/test-results/
 
 # Temp browser profiles
 .tmp-chrome-profile/
