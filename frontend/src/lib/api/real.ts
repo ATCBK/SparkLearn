@@ -283,6 +283,7 @@ export async function sendMessage(
     workshopRoleIds?: number[]
     openMode?: boolean
     webSearch?: boolean
+    mcpEnabled?: boolean
     model?: string
     pageContext?: Record<string, unknown>
   },
@@ -294,7 +295,7 @@ export async function sendMessage(
     onConfidence?: (confidence: ConfidenceInfo) => void
     onCitations?: (citations: CitationItem[]) => void
     onTrustMeta?: (trustMeta: Record<string, unknown>) => void
-    onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string }) => void
+    onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string; status: string; ok: boolean; error: string; args?: Record<string, unknown> }) => void
     onSearchResults?: (results: SearchResultItem[]) => void
     onDone?: () => void
   },
@@ -303,6 +304,7 @@ export async function sendMessage(
   let latestConfidence: ConfidenceInfo | undefined
   let latestCitations: CitationItem[] | undefined
   let latestTrustMeta: Record<string, unknown> | undefined
+  let doneMessage: Record<string, unknown> | undefined
   const events = await readSSE('/api/tutor/chat', {
     message: content,
     mode: options?.mode || 'knowledge_qa',
@@ -313,6 +315,7 @@ export async function sendMessage(
     workshop_role_ids: options?.workshopRoleIds || [],
     open_mode: Boolean(options?.openMode),
     web_search: Boolean(options?.webSearch),
+    mcp_enabled: Boolean(options?.mcpEnabled),
     model: options?.model || '',
     page_context: options?.pageContext || undefined,
   }, (evt) => {
@@ -388,6 +391,12 @@ export async function sendMessage(
         serviceId: String(evt.payload.service_id || ''),
         serviceName: String(evt.payload.service_name || ''),
         toolName: String(evt.payload.tool_name || ''),
+        status: String(evt.payload.status || 'running'),
+        ok: Boolean(evt.payload.ok),
+        error: String(evt.payload.error || ''),
+        args: evt.payload.args && typeof evt.payload.args === 'object' && !Array.isArray(evt.payload.args)
+          ? evt.payload.args as Record<string, unknown>
+          : undefined,
       })
       return
     }
@@ -403,15 +412,21 @@ export async function sendMessage(
       handlers?.onSearchResults?.(items)
       return
     }
-    if (evt.type === 'done') handlers?.onDone?.()
+    if (evt.type === 'done') {
+      doneMessage = evt.payload.message && typeof evt.payload.message === 'object'
+        ? evt.payload.message as Record<string, unknown>
+        : undefined
+      handlers?.onDone?.()
+    }
   })
   const text = events.filter(e => e.type === 'text').map(e => String(e.payload.content || '')).join('')
   if (!text && lastError) throw new Error(lastError)
   return {
-    id: `m-${Date.now()}`,
+    id: doneMessage?.id !== undefined ? String(doneMessage.id) : `m-${Date.now()}`,
     role: 'assistant',
     content: text || '我已收到你的问题，我们继续一起拆解。',
-    timestamp: new Date().toISOString(),
+    timestamp: String(doneMessage?.timestamp || new Date().toISOString()),
+    conversationId: doneMessage?.conversation_id !== undefined ? Number(doneMessage.conversation_id) : options?.conversationId,
     confidence: latestConfidence,
     citations: latestCitations,
     trustMeta: latestTrustMeta,
@@ -444,6 +459,15 @@ export async function getChatHistory(conversationId?: number): Promise<Message[]
       score: x.score !== undefined ? Number(x.score) : undefined,
     })) : [],
     trustMeta: m.trust_meta && typeof m.trust_meta === 'object' ? m.trust_meta : undefined,
+    mcpCalls: Array.isArray(m.mcp_calls) ? m.mcp_calls : [],
+    searchResults: Array.isArray(m.search_results)
+      ? m.search_results.map((x: any) => ({
+          title: String(x.title || ''),
+          url: String(x.url || ''),
+          content: String(x.content || ''),
+          score: Number(x.score || 0),
+        }))
+      : [],
   }))
 }
 

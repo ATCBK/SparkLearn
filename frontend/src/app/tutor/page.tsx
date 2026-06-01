@@ -8,7 +8,13 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import {
   Bot,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Cpu,
   FileText,
+  Globe,
+  Loader2,
   MessageSquareText,
   Mic,
   MicOff,
@@ -19,19 +25,15 @@ import {
   Puzzle,
   Save,
   Send,
+  Sparkles,
   Trash2,
   UserCog,
   Volume2,
   X,
+  ArrowLeft,
   PanelLeftClose,
   PanelLeftOpen,
   Users,
-  ArrowLeft,
-  Sparkles,
-  Loader2,
-  ChevronDown,
-  ChevronRight,
-  Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import ReactMarkdown from 'react-markdown'
@@ -60,6 +62,16 @@ type WorkshopSummary = {
   coreConclusion: string
   steps: string[]
   followUps: string[]
+}
+
+type McpCallView = {
+  serviceId: string
+  serviceName: string
+  toolName: string
+  status: string
+  ok: boolean
+  error?: string
+  args?: Record<string, unknown>
 }
 
 function parseWorkshopSummary(content: string): WorkshopSummary | null {
@@ -133,6 +145,7 @@ export default function TutorPage() {
   const [imageMode, setImageMode] = useState(false)
   const [knowledgeReverse, setKnowledgeReverse] = useState(false)
   const [webSearch, setWebSearch] = useState(false)
+  const [mcpEnabled, setMcpEnabled] = useState(false)
   const [selectedModel, setSelectedModel] = useState('lite')
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [workshopRoleIds, setWorkshopRoleIds] = useState<number[]>([])
@@ -145,7 +158,7 @@ export default function TutorPage() {
   const [roleDraft, setRoleDraft] = useState<RoleDraft>(EMPTY_ROLE_DRAFT)
   const [savingRole, setSavingRole] = useState(false)
   const [trustPanelOpenByMsg, setTrustPanelOpenByMsg] = useState<Record<string, boolean>>({})
-  const [mcpCallsByMsg, setMcpCallsByMsg] = useState<Record<string, Array<{ serviceName: string; toolName: string }>>>({})
+  const [mcpCallsByMsg, setMcpCallsByMsg] = useState<Record<string, McpCallView[]>>({})
   const [searchResultsByMsg, setSearchResultsByMsg] = useState<Record<string, SearchResultItem[]>>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -213,6 +226,36 @@ export default function TutorPage() {
 
   const hasInteracted = messages.length > 0
 
+  function hydrateMessageSidecars(items: Message[]) {
+    const nextMcp: Record<string, McpCallView[]> = {}
+    const nextSearch: Record<string, SearchResultItem[]> = {}
+    for (const msg of items) {
+      if (msg.role !== 'assistant') continue
+      const calls = Array.isArray(msg.mcpCalls) ? msg.mcpCalls : []
+      if (calls.length > 0) {
+        nextMcp[msg.id] = calls.map((x) => ({
+          serviceId: String(x.service_id || x.serviceId || ''),
+          serviceName: String(x.service_name || x.serviceName || x.service_id || x.serviceId || ''),
+          toolName: String(x.tool_name || x.toolName || ''),
+          status: String(x.status || 'done'),
+          ok: x.ok !== undefined ? Boolean(x.ok) : true,
+          error: String(x.error || ''),
+          args: x.args && typeof x.args === 'object' && !Array.isArray(x.args) ? x.args as Record<string, unknown> : undefined,
+        })).filter((x) => x.toolName)
+      }
+      if (Array.isArray(msg.searchResults) && msg.searchResults.length > 0) {
+        nextSearch[msg.id] = msg.searchResults
+      }
+    }
+    setMcpCallsByMsg(nextMcp)
+    setSearchResultsByMsg(nextSearch)
+  }
+
+  function setHydratedMessages(items: Message[]) {
+    setMessages(items)
+    hydrateMessageSidecars(items)
+  }
+
   function hydrateRoleDraft(role: TutorRole | null) {
     if (!role) {
       setRoleDraft(EMPTY_ROLE_DRAFT)
@@ -239,9 +282,9 @@ export default function TutorPage() {
       setCurrentConversationId(fallback?.id ?? null)
       if (fallback) {
         const history = await api.getChatHistory(fallback.id)
-        setMessages(history)
+        setHydratedMessages(history)
       } else {
-        setMessages([])
+        setHydratedMessages([])
       }
     }
   }
@@ -262,9 +305,9 @@ export default function TutorPage() {
 
       if (selectedConversation) {
         const history = await api.getChatHistory(selectedConversation.id)
-        setMessages(history)
+        setHydratedMessages(history)
       } else {
-        setMessages([])
+        setHydratedMessages([])
       }
 
       hydrateRoleDraft(roleData.find((r) => r.id === selectedRoleId) || null)
@@ -299,7 +342,7 @@ export default function TutorPage() {
       setWorkshopPhase(null)
       setPendingFiles([])
       const history = await api.getChatHistory(conversation.id)
-      setMessages(history)
+      setHydratedMessages(history)
 
       if (conversation.roleId) {
         setCurrentRoleId(conversation.roleId)
@@ -457,7 +500,7 @@ export default function TutorPage() {
       await api.deleteTutorMessage(messageId)
       if (!currentConversationId) return
       const history = await api.getChatHistory(currentConversationId)
-      setMessages(history)
+      setHydratedMessages(history)
       await refreshConversations(currentConversationId)
     } catch (e) {
       setActionError(e instanceof Error ? e.message : '删除消息失败，请检查后端服务')
@@ -499,7 +542,18 @@ export default function TutorPage() {
       userMsg,
       { id: assistantId, role: 'assistant', content: '', timestamp: new Date().toISOString(), conversationId: convId },
     ])
-    setMcpCallsByMsg((prev) => ({ ...prev, [assistantId]: [] }))
+    setMcpCallsByMsg((prev) => ({
+      ...prev,
+      [assistantId]: mcpEnabled
+        ? [{
+            serviceId: 'pending',
+            serviceName: 'MCP',
+            toolName: '等待匹配可用工具',
+            status: 'pending',
+            ok: false,
+          }]
+        : [],
+    }))
     setSearchResultsByMsg((prev) => ({ ...prev, [assistantId]: [] }))
 
     setInput('')
@@ -510,7 +564,7 @@ export default function TutorPage() {
 
     try {
       setActionError(null)
-      await api.sendMessage(
+      const savedMessage = await api.sendMessage(
         userInput,
         {
           conversationId: convId,
@@ -521,6 +575,7 @@ export default function TutorPage() {
           workshopRoleIds,
           openMode: imageMode ? true : openMode,
           webSearch,
+          mcpEnabled,
           model: selectedModel,
         },
         {
@@ -539,7 +594,18 @@ export default function TutorPage() {
           onMcpCall: (call) => {
             setMcpCallsByMsg((prev) => {
               const list = prev[assistantId] || []
-              const next = [...list, { serviceName: call.serviceName || call.serviceId, toolName: call.toolName }]
+              const withoutPending = list.filter((x) => x.serviceId !== 'pending')
+              const nextCall: McpCallView = {
+                serviceId: call.serviceId,
+                serviceName: call.serviceName || call.serviceId,
+                toolName: call.toolName,
+                status: call.status || 'running',
+                ok: call.ok,
+                error: call.error,
+                args: call.args,
+              }
+              const idx = withoutPending.findIndex((x) => x.serviceId === nextCall.serviceId && x.toolName === nextCall.toolName)
+              const next = idx >= 0 ? withoutPending.map((x, i) => (i === idx ? { ...x, ...nextCall } : x)) : [...withoutPending, nextCall]
               return { ...prev, [assistantId]: next }
             })
           },
@@ -562,6 +628,21 @@ export default function TutorPage() {
           },
         },
       )
+      if (savedMessage.id && savedMessage.id !== assistantId) {
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, id: savedMessage.id, conversationId: savedMessage.conversationId } : m)))
+        setMcpCallsByMsg((prev) => {
+          if (!prev[assistantId]) return prev
+          const next = { ...prev, [savedMessage.id]: prev[assistantId] }
+          delete next[assistantId]
+          return next
+        })
+        setSearchResultsByMsg((prev) => {
+          if (!prev[assistantId]) return prev
+          const next = { ...prev, [savedMessage.id]: prev[assistantId] }
+          delete next[assistantId]
+          return next
+        })
+      }
       setPendingFiles([])
       await refreshConversations(convId)
     } catch (e) {
@@ -718,7 +799,6 @@ export default function TutorPage() {
                 {workshopEnabled && hubMessages.length > 0 && (<div className="rounded-xl border border-[#e2e8f0] bg-[#fafafa] p-3 mb-4"><div className="flex items-center justify-between mb-2"><p className="text-sm font-semibold text-[#1e293b]">研讨会</p></div><div key={`hub-${workshopRunId}`} className="max-h-[180px] overflow-y-auto space-y-2">{hubMessages.map((evt, idx) => (<div key={`${evt.agentId}-${idx}`} className="rounded-lg bg-white border border-[#eef2f7] px-3 py-2"><p className="text-xs font-medium text-[#475569]">{evt.agentName}</p><p className="text-xs text-[#64748b] mt-1 whitespace-pre-wrap">{evt.content}</p></div>))}</div></div>)}
 
                 {messages.map((msg) => {
-                  if (streaming && msg.role === 'assistant' && !msg.content.trim()) return null
                   const summary = msg.role === 'assistant' ? parseWorkshopSummary(msg.content) : null
                   const imageDataMatch =
                     msg.role === 'assistant'
@@ -737,7 +817,13 @@ export default function TutorPage() {
                         <div className="flex gap-3 mb-6">
                           <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center mt-1"><Sparkles className="w-4 h-4 text-white" /></div>
                           <div className="flex-1 min-w-0">
-                            {summary ? (
+                            {streaming && !msg.content.trim() && !mcpCallsByMsg[msg.id]?.length ? (
+                              <div className="flex gap-1.5 pt-3">
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '0ms' }} />
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '150ms' }} />
+                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '300ms' }} />
+                              </div>
+                            ) : summary ? (
                               <div className="space-y-4">
                                 {summary.coreConclusion && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">核心结论</p><p className="text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{summary.coreConclusion}</p></div>}
                                 {summary.steps.length > 0 && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">行动清单</p><div className="space-y-1">{summary.steps.map((s, i) => <p key={i} className="text-[15px] leading-[1.8] text-[#1e293b]">{i+1}. {s}</p>)}</div></div>}
@@ -817,24 +903,98 @@ export default function TutorPage() {
                               </div>
                             )}
                             {/* TTS 播报按钮 */}
-                            <button
-                              onClick={() => void playTts(msg.id, msg.content)}
-                              disabled={ttsLoading === msg.id}
-                              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
-                              title="语音播报"
-                            >
-                              {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                              <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
-                            </button>
+                            {!!msg.content.trim() && (
+                              <button
+                                onClick={() => void playTts(msg.id, msg.content)}
+                                disabled={ttsLoading === msg.id}
+                                className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
+                                title="语音播报"
+                              >
+                                {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                                <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
+                              </button>
+                            )}
                             {!!mcpCallsByMsg[msg.id]?.length && (
-                              <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2">
-                                <p className="text-xs font-medium text-[#334155]">MCP 调用</p>
-                                <div className="mt-1 flex flex-wrap gap-1.5">
-                                  {mcpCallsByMsg[msg.id].map((c, i) => (
-                                    <span key={`${c.serviceName}-${c.toolName}-${i}`} className="inline-flex items-center rounded-md border border-[#dbe4f0] bg-white px-2 py-0.5 text-xs text-[#475569]">
-                                      {c.serviceName} / {c.toolName}
+                              <div className="mt-3 overflow-hidden rounded-xl border border-[#e0e7f5] bg-[#fafcff] shadow-[0_2px_8px_rgba(37,99,235,0.04)]">
+                                <div className="flex items-center gap-2 border-b border-[#eef2f8] bg-[#f4f8ff] px-3.5 py-2">
+                                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#e6eeff] text-[#4f6bf6]">
+                                    <Cpu className="h-3 w-3" />
+                                  </div>
+                                  <span className="text-xs font-semibold text-[#1e293b]">MCP 工具调用</span>
+                                  {streaming && (
+                                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#eef4ff] px-2 py-0.5 text-[10px] font-medium text-[#4f6bf6]">
+                                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4f6bf6]" />
+                                      执行中
                                     </span>
-                                  ))}
+                                  )}
+                                </div>
+                                <div className="divide-y divide-[#eef2f8] px-1">
+                                  {mcpCallsByMsg[msg.id].map((c, i) => {
+                                    const isRunning = c.status === 'pending' || c.status === 'running' || c.status === 'discovering'
+                                    const isError = c.status === 'error' || (!c.ok && c.status === 'done')
+                                    const statusText = c.status === 'pending' ? '等待中' : c.status === 'discovering' ? '发现工具' : isRunning ? '调用中' : isError ? '失败' : '完成'
+                                    const argsText = c.args && Object.keys(c.args).length > 0 ? JSON.stringify(c.args) : ''
+                                    return (
+                                      <div
+                                        key={`${c.serviceName}-${c.toolName}-${i}`}
+                                        className={`flex items-center gap-3 px-2.5 py-2.5 transition-colors ${isRunning ? 'bg-[#f8fbff]' : ''}`}
+                                      >
+                                        {/* 时序连接线 */}
+                                        <div className="flex flex-col items-center gap-0.5">
+                                          <div className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                                            isRunning ? 'bg-[#e6eeff] text-[#4f6bf6]' : isError ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'
+                                          }`}>
+                                            {isRunning ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : isError ? (
+                                              <X className="h-3 w-3" />
+                                            ) : (
+                                              <CheckCircle2 className="h-3 w-3" />
+                                            )}
+                                          </div>
+                                          {i < mcpCallsByMsg[msg.id].length - 1 && (
+                                            <div className="h-3 w-px bg-[#dbe4f0]" />
+                                          )}
+                                        </div>
+                                        {/* 工具信息 */}
+                                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#e4eaf5] bg-white">
+                                            <Puzzle className="h-3 w-3 text-[#6b7cba]" />
+                                          </div>
+                                          <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="truncate text-xs font-semibold text-[#1e293b]">{c.toolName}</span>
+                                              <span className="shrink-0 text-[10px] text-[#94a3b8]">· {c.serviceName}</span>
+                                            </div>
+                                            {(argsText || c.error) && (
+                                              <div className={cn('mt-0.5 truncate text-[10px]', c.error ? 'text-rose-500' : 'text-[#64748b]')}>
+                                                {c.error || `参数 ${argsText}`}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {/* 状态标签 */}
+                                        <div className="shrink-0">
+                                          {isRunning ? (
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
+                                              <span className="h-1 w-1 animate-pulse rounded-full bg-amber-500" />
+                                              {statusText}
+                                            </span>
+                                          ) : isError ? (
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-medium text-rose-600">
+                                              <X className="h-2.5 w-2.5" />
+                                              {statusText}
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
+                                              <CheckCircle2 className="h-2.5 w-2.5" />
+                                              {statusText}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               </div>
                             )}
@@ -916,7 +1076,6 @@ export default function TutorPage() {
                     </div>
                   )
                 })}
-                {streaming && messages[messages.length - 1]?.content === '' && (<div className="flex gap-3 mb-6"><div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center"><Sparkles className="w-4 h-4 text-white" /></div><div className="flex gap-1.5 pt-3"><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '0ms' }}></span><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '150ms' }}></span><span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '300ms' }}></span></div></div>)}
                 <div ref={messagesEndRef} />
               </div>
             )}
@@ -1005,6 +1164,16 @@ export default function TutorPage() {
                     )}
                   >
                     <Globe className="w-3.5 h-3.5" />联网搜索
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMcpEnabled((v) => !v)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                      mcpEnabled ? 'border-[#7c3aed] bg-[#f5f3ff] text-[#6d28d9]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                    )}
+                  >
+                    <Cpu className="w-3.5 h-3.5" />MCP 模式
                   </button>
                   <button
                     type="button"

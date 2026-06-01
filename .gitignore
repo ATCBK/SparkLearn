@@ -25,6 +25,8 @@ Thumbs.db
 .tmp-chrome-profile/
 
 # Local-only runtimes
+.venv/
+.venv_mcp_weather/
 .venv-nanobot/
 nanobot-main/
 

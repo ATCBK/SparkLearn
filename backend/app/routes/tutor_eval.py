@@ -22,6 +22,7 @@ from ..trust_citation import render_confidence
 from ..trust_schemas import TrustAnswerRequest
 from ..xfyun_tti import generate_image_base64
 from .common import sse_wrap
+from .mcp import _mcp_request
 
 router = APIRouter(prefix='/api', tags=['tutor-evaluation'])
 trust_answer_controller = TrustAnswerController()
@@ -40,7 +41,166 @@ class TutorReq(BaseModel):
     knowledge_file_ids: list[int] = []
     open_mode: bool = False
     web_search: bool = False
+    mcp_enabled: bool = False
     model: str = ""
+
+
+def _build_mcp_tools_prompt() -> str:
+    """查询已启用的 MCP 服务，构建工具描述文本用于注入 system prompt。"""
+    rows = fetch_all(
+        "SELECT name, description, transport, command, args_json FROM mcp_services "
+        "WHERE owner_id = ? AND enabled = 1 ORDER BY updated_at DESC",
+        (settings.single_user_id,),
+    )
+    if not rows:
+        return ""
+
+    lines = ["<mcp_available_tools>", "以下 MCP 工具可供调用："]
+    for row in rows:
+        name = row["name"] or "未命名服务"
+        desc = row["description"] or ""
+        transport = row["transport"] or "stdio"
+        tool_desc = f"- 服务「{name}」({transport})"
+        if desc:
+            tool_desc += f"：{desc}"
+        lines.append(tool_desc)
+    lines.append("当需要调用以上工具时，请在思考中使用它们的功能辅助回答。</mcp_available_tools>")
+    return "\n".join(lines)
+
+
+async def _maybe_call_mcp_tools(question: str) -> tuple[str, list[dict[str, Any]]]:
+    """Run enabled MCP tools that can be selected deterministically from the user question."""
+    context_blocks: list[str] = []
+    calls: list[dict[str, Any]] = []
+    async for event in _iter_mcp_tool_call_events(question):
+        call = dict(event)
+        result_context = str(call.pop("result_context", "") or "")
+        if result_context:
+            context_blocks.append(result_context)
+        if call.get("status") in {"done", "error"}:
+            calls.append(call)
+    return ("\n\n".join(context_blocks), calls)
+
+
+async def _iter_mcp_tool_call_events(question: str) -> AsyncGenerator[dict[str, Any], None]:
+    """Yield MCP call progress events and final result context for this question."""
+    if not question.strip():
+        return
+
+    services = fetch_all(
+        "SELECT * FROM mcp_services WHERE owner_id = ? AND enabled = 1 ORDER BY updated_at DESC",
+        (settings.single_user_id,),
+    )
+    if not services:
+        return
+
+    for service in services:
+        discover_event = {
+            "service_id": str(service["id"]),
+            "service_name": str(service["name"] or ""),
+            "tool_name": "tools/list",
+            "args": {},
+            "status": "discovering",
+            "ok": False,
+            "error": "",
+        }
+        yield discover_event
+        try:
+            tools_result = await _mcp_request(service, "tools/list", {})
+            tools = tools_result.get("tools", [])
+        except Exception as exc:
+            yield {**discover_event, "status": "error", "error": str(exc)}
+            continue
+        yield {**discover_event, "status": "done", "ok": True}
+
+        for tool in tools if isinstance(tools, list) else []:
+            if not isinstance(tool, dict):
+                continue
+            tool_name = str(tool.get("name") or "")
+            tool_desc = str(tool.get("description") or "")
+            args = _infer_mcp_tool_args(question, tool_name, tool_desc)
+            if args is None:
+                continue
+
+            call_info = {
+                "service_id": str(service["id"]),
+                "service_name": str(service["name"] or ""),
+                "tool_name": tool_name,
+                "args": args,
+                "ok": False,
+                "status": "running",
+                "error": "",
+            }
+            yield call_info
+            try:
+                result = await _mcp_request(
+                    service,
+                    "tools/call",
+                    {"name": tool_name, "arguments": args},
+                )
+                call_info["ok"] = True
+                call_info["status"] = "done"
+                call_info["result_preview"] = _compact_mcp_result(result)[:500]
+                call_info["result_context"] = (
+                    f"工具: {service['name']} / {tool_name}\n"
+                    f"参数: {json.dumps(args, ensure_ascii=False)}\n"
+                    f"结果:\n{_compact_mcp_result(result)}"
+                )
+            except Exception as exc:
+                call_info["status"] = "error"
+                call_info["error"] = str(exc)
+            yield call_info
+
+            # 当前一轮只自动调用一个确定匹配的工具，避免重复/误调用。
+            return
+
+
+def _infer_mcp_tool_args(question: str, tool_name: str, tool_desc: str) -> dict[str, Any] | None:
+    text = question.strip()
+    haystack = f"{tool_name}\n{tool_desc}".lower()
+    is_weather_tool = "weather" in haystack or "天气" in tool_desc or tool_name == "get_weather"
+    asks_weather = any(x in text for x in ["天气", "气温", "温度", "下雨", "预报", "weather"])
+    asks_lookup = any(x in text for x in ["查", "查询", "查找", "搜索", "找一下", "看看", "看一下", "帮我"])
+    if is_weather_tool and asks_weather:
+        city = _extract_weather_city(text)
+        return {"city": city} if city else {}
+    if tool_name == "get_weather" and asks_lookup:
+        city = _extract_weather_city(text)
+        return {"city": city} if city else {}
+    return None
+
+
+def _extract_weather_city(question: str) -> str:
+    text = re.sub(r"https?://\S+", "", question)
+    text = re.sub(r"[，。！？,.!?；;：:\n\r\t]", " ", text)
+    for token in [
+        "帮我", "请", "查询", "查找", "查一下", "查", "看一下", "看看", "告诉我", "一下",
+        "今天", "明天", "后天", "现在", "当前", "实时", "的", "天气", "气温", "温度", "预报",
+        "weather", "forecast", " in ", " for ",
+    ]:
+        text = text.replace(token, " ")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:40]
+
+
+def _compact_mcp_result(result: Any) -> str:
+    if isinstance(result, dict):
+        content = result.get("content")
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict):
+                    parts.append(str(item.get("text") or item.get("content") or ""))
+            text = "\n".join(x for x in parts if x.strip())
+            if text:
+                return _strip_ansi(text).strip()
+        if "result" in result:
+            return _strip_ansi(str(result.get("result", ""))).strip()
+    return _strip_ansi(json.dumps(result, ensure_ascii=False, default=str)).strip()
+
+
+def _strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text or "")
 
 
 def _is_image_mode(mode: str) -> bool:
@@ -514,9 +674,12 @@ async def tutor_chat(req: TutorReq):
         if file_context:
             file_prompt = f"以下是用户上传文件检索到的相关片段，请优先基于这些证据回答：\n{file_context}"
             yield ('sources', {'items': file_sources})
+        mcp_prompt = _build_mcp_tools_prompt() if req.mcp_enabled else ""
         merged_system_prompt = "\n\n".join(p for p in [role_prompt, page_prompt, memory_prompt] if p)
         if file_prompt:
             merged_system_prompt = "\n\n".join(p for p in [merged_system_prompt, file_prompt] if p)
+        if mcp_prompt:
+            merged_system_prompt = "\n\n".join(p for p in [merged_system_prompt, mcp_prompt] if p)
         history_for_model = [{'role': 'system', 'content': merged_system_prompt}] if merged_system_prompt else []
         for row in reversed(rows):
             model_role = 'assistant' if row['sender_role'] == 'assistant' else 'user'
@@ -527,17 +690,51 @@ async def tutor_chat(req: TutorReq):
         search_results: list[dict[str, Any]] = []
         if req.web_search and req.message.strip() and req.mode != 'knowledge_reverse':
             search_results = search_web(req.message.strip())
-            if search_results:
-                yield ('search_results', {'items': search_results})
-                search_prompt = format_search_results(search_results)
+        if search_results:
+            yield ('search_results', {'items': search_results})
+            search_prompt = format_search_results(search_results)
+            if history_for_model and history_for_model[0]['role'] == 'system':
+                history_for_model[0]['content'] = search_prompt + "\n\n" + history_for_model[0]['content']
+            else:
+                history_for_model.insert(0, {'role': 'system', 'content': search_prompt})
+
+        mcp_context = ""
+        mcp_calls_payload: list[dict[str, Any]] = []
+        if req.mcp_enabled and req.message.strip():
+            mcp_context_blocks: list[str] = []
+            async for item in _iter_mcp_tool_call_events(req.message):
+                result_context = str(item.get('result_context') or '')
+                if result_context:
+                    mcp_context_blocks.append(result_context)
+                if item.get('status') in {'done', 'error'} and item.get('tool_name') != 'tools/list':
+                    mcp_calls_payload.append(dict(item))
+                yield (
+                    'mcp_call',
+                    {
+                        'service_id': str(item.get('service_id', '')),
+                        'service_name': str(item.get('service_name', '')),
+                        'tool_name': str(item.get('tool_name', '')),
+                        'args': item.get('args') if isinstance(item.get('args'), dict) else {},
+                        'ok': bool(item.get('ok', False)),
+                        'status': str(item.get('status', 'running')),
+                        'error': str(item.get('error', '')),
+                    },
+                )
+            mcp_context = "\n\n".join(mcp_context_blocks)
+            if mcp_context:
+                mcp_result_prompt = (
+                    "以下是本轮已实际调用 MCP 工具得到的结果。回答用户时必须优先基于这些结果，"
+                    "不要声称没有调用工具，也不要再要求用户手动查询。\n"
+                    f"{mcp_context}"
+                )
                 if history_for_model and history_for_model[0]['role'] == 'system':
-                    history_for_model[0]['content'] = search_prompt + "\n\n" + history_for_model[0]['content']
+                    history_for_model[0]['content'] = mcp_result_prompt + "\n\n" + history_for_model[0]['content']
                 else:
-                    history_for_model.insert(0, {'role': 'system', 'content': search_prompt})
+                    history_for_model.insert(0, {'role': 'system', 'content': mcp_result_prompt})
 
         confidence_payload: dict[str, Any] = {}
         citations_payload: list[dict[str, Any]] = []
-        trust_meta_payload: dict[str, Any] = {}
+        trust_meta_payload: dict[str, Any] = {'mcp_calls': mcp_calls_payload} if mcp_calls_payload else {}
 
         if req.workshop_enabled:
             profile = _load_profile_snapshot()
@@ -755,11 +952,13 @@ async def tutor_chat(req: TutorReq):
                 )
                 citations_payload = list(trust_plan['citations'])
                 trust_meta_payload = dict(trust_plan['trust_meta'])
+                if mcp_calls_payload:
+                    trust_meta_payload['mcp_calls'] = mcp_calls_payload
                 yield ('confidence', confidence_payload)
                 yield ('trust_meta', trust_meta_payload)
                 yield ('citations', {'items': citations_payload})
                 mcp_calls = trust_meta_payload.get('mcp_calls')
-                if isinstance(mcp_calls, list):
+                if isinstance(mcp_calls, list) and not mcp_calls_payload:
                     for item in mcp_calls:
                         if not isinstance(item, dict):
                             continue
@@ -804,6 +1003,9 @@ async def tutor_chat(req: TutorReq):
                         'trust_meta': trust_meta_payload,
                         'open_mode': bool(req.open_mode),
                         'web_search': bool(req.web_search),
+                        'mcp_enabled': bool(req.mcp_enabled),
+                        'mcp_calls': mcp_calls_payload,
+                        'search_results': search_results,
                         'mode': req.mode,
                     },
                     ensure_ascii=False,
@@ -889,6 +1091,8 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
     for row in reversed(rows):
         files = _resolve_file_names(_parse_json_list(row['file_ids']))
         meta = _parse_json_dict(row['meta_json']) if 'meta_json' in row.keys() else {}
+        trust_meta = meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {}
+        mcp_calls = meta.get('mcp_calls') if isinstance(meta.get('mcp_calls'), list) else trust_meta.get('mcp_calls')
         data.append(
             {
                 'id': row['id'],
@@ -899,7 +1103,10 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
                 'file_names': files,
                 'confidence': meta.get('confidence') if isinstance(meta.get('confidence'), dict) else None,
                 'citations': meta.get('citations') if isinstance(meta.get('citations'), list) else [],
-                'trust_meta': meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {},
+                'trust_meta': trust_meta,
+                'mcp_enabled': bool(meta.get('mcp_enabled', False)),
+                'mcp_calls': mcp_calls if isinstance(mcp_calls, list) else [],
+                'search_results': meta.get('search_results') if isinstance(meta.get('search_results'), list) else [],
                 'open_mode': bool(meta.get('open_mode', False)),
             }
         )
@@ -1017,6 +1224,8 @@ def _build_page_context_prompt(page_context: dict[str, Any] | None) -> str:
 def _message_row_to_dict(row) -> dict[str, Any]:
     file_ids = _parse_json_list(row['file_ids'])
     meta = _parse_json_dict(row['meta_json']) if 'meta_json' in row.keys() else {}
+    trust_meta = meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {}
+    mcp_calls = meta.get('mcp_calls') if isinstance(meta.get('mcp_calls'), list) else trust_meta.get('mcp_calls')
     return {
         'id': row['id'],
         'conversation_id': row['conversation_id'],
@@ -1026,7 +1235,10 @@ def _message_row_to_dict(row) -> dict[str, Any]:
         'file_names': _resolve_file_names(file_ids),
         'confidence': meta.get('confidence') if isinstance(meta.get('confidence'), dict) else None,
         'citations': meta.get('citations') if isinstance(meta.get('citations'), list) else [],
-        'trust_meta': meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {},
+        'trust_meta': trust_meta,
+        'mcp_enabled': bool(meta.get('mcp_enabled', False)),
+        'mcp_calls': mcp_calls if isinstance(mcp_calls, list) else [],
+        'search_results': meta.get('search_results') if isinstance(meta.get('search_results'), list) else [],
         'open_mode': bool(meta.get('open_mode', False)),
         'created_at': row['created_at'],
     }

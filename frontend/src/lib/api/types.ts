@@ -209,6 +209,8 @@ export interface Message {
   confidence?: ConfidenceInfo
   citations?: CitationItem[]
   trustMeta?: Record<string, unknown>
+  mcpCalls?: Array<Record<string, unknown>>
+  searchResults?: SearchResultItem[]
 }
 
 export interface ConfidenceInfo {
