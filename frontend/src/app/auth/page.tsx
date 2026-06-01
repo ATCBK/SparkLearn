@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react'
+import { createMockAuthSession } from '@/lib/auth'
 import './auth.css'
 
 const SLOGANS = [
@@ -73,31 +74,14 @@ export default function AuthPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!email || !password) {
-      showToast('请填写邮箱和密码')
-      return
-    }
-
-    if (mode === 'register' && password !== confirmPassword) {
-      showToast('两次输入的密码不一致')
-      return
-    }
-
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      const userName = email.split('@')[0] || '学习者'
+      const loginEmail = email.trim() || 'demo@sparklearn.local'
+      const userName = loginEmail.split('@')[0] || '学习者'
       if (typeof window !== 'undefined') {
-        localStorage.setItem('sparklearn_token', `demo_user_token_${Date.now()}`)
-        localStorage.setItem(
-          'sparklearn_user',
-          JSON.stringify({
-            email,
-            name: userName,
-            loginAt: new Date().toISOString(),
-          }),
-        )
-        localStorage.setItem('sparklearn_profile_needs_recapture', 'true')
+        const { user } = createMockAuthSession('13800000000', userName)
+        localStorage.setItem('sparklearn_user', JSON.stringify({ ...user, email: loginEmail }))
       }
       if (mode === 'login') {
         router.push('/onboarding')

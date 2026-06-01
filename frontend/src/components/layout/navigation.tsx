@@ -32,6 +32,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   '/tutor': { group: '工具', title: '智能辅导' },
   '/tutor/mcp-store': { group: '工具', title: 'MCP 插件商店' },
   '/video': { group: 'SparkLearn', title: '视频资源' },
+  '/info-stream': { group: 'SparkLearn', title: '信息流' },
 }
 
 export const MOBILE_TABS: MobileTabItem[] = [

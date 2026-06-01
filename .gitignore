@@ -21,6 +21,10 @@ backend/data/artifacts/
 .DS_Store
 Thumbs.db
 .idea/
+.claude/settings.local.json
+.playwright-mcp/
+memory/
+backup_data.json
 frontend/test-results/
 
 # Temp browser profiles

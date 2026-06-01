@@ -10,9 +10,9 @@ type SpeechRecognitionConstructor = new () => {
   lang: string
   continuous: boolean
   interimResults: boolean
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null
+  onresult: ((event: any) => void) | null
   onend: (() => void) | null
-  onerror: (() => void) | null
+  onerror: ((event?: any) => void) | null
   start: () => void
   stop: () => void
 }

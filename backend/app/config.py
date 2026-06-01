@@ -65,9 +65,26 @@ class Settings(BaseSettings):
     xf_tts_api_secret: str = ""
     xf_tts_base_url: str = "wss://tts-api.xfyun.cn/v2/tts"
     xf_tts_default_voice: str = "xiaoyan"
+    xf_tts_speed: int = 45
+    xf_tts_pitch: int = 50
+    xf_tts_volume: int = 65
+    xf_tts_sample_rate: int = 16000
     xf_tts_max_concurrency: int = 2
     xf_tts_timeout_ms: int = 15000
     xf_tts_text_limit: int = 1000
+
+    # Aliyun CosyVoice TTS (DashScope)
+    cosyvoice_api_key: str = ""
+    cosyvoice_model: str = "cosyvoice-v1"
+    cosyvoice_default_voice: str = "longxiaochun"
+    cosyvoice_format: str = "wav"
+    cosyvoice_sample_rate: int = 24000
+    cosyvoice_speech_rate: float = 1.0
+    cosyvoice_pitch_rate: float = 1.0
+    cosyvoice_volume: float = 1.0
+    cosyvoice_max_concurrency: int = 2
+    cosyvoice_timeout_sec: int = 30
+    tts_provider: str = "auto"
 
     # iFlytek Embedding (HTTP)
     xfyun_emb_base_url: str = "https://emb-cn-huabei-1.xf-yun.com/"
@@ -91,6 +108,7 @@ class Settings(BaseSettings):
     video_ai_max_tokens: int = 4096
     video_ai_temperature: float = 0.7
     video_ai_fallback_enabled: bool = True
+    video_ai_embedding_model: str = ""
 
     # Tavily 联网搜索
     tavily_api_key: str = ""
@@ -99,6 +117,26 @@ class Settings(BaseSettings):
     agent_browser_headless: bool = False   # False = 演示模式，浏览器窗口可见
     agent_browser_slow_mo: int = 800       # 毫秒，让操作慢一点方便观看
 
+    # Unified external API defaults
+    api_default_timeout: int = 30
+    api_max_retries: int = 2
+
+    # Aliyun SMS and OSS
+    aliyun_sms_access_key_id: str = ""
+    aliyun_sms_access_key_secret: str = ""
+    aliyun_sms_region_id: str = "cn-hangzhou"
+    aliyun_sms_endpoint: str = "dypnsapi.aliyuncs.com"
+    aliyun_sms_sign_name: str = ""
+    aliyun_sms_template_code: str = "100001"
+    sms_code_expire_minutes: int = 5
+    sms_rate_limit_seconds: int = 60
+
+    aliyun_oss_access_key_id: str = ""
+    aliyun_oss_access_key_secret: str = ""
+    aliyun_oss_bucket_name: str = ""
+    aliyun_oss_endpoint: str = "oss-cn-hangzhou.aliyuncs.com"
+    aliyun_oss_cdn_domain: str = ""
+
     single_user_id: str = "single_user"
     use_mock_data: bool = True
     cors_origin: str = "http://localhost:3000"
@@ -106,6 +144,14 @@ class Settings(BaseSettings):
 
     data_dir: Path = ROOT_DIR / "backend" / "data"
     db_path: Path = ROOT_DIR / "backend" / "data" / "db" / "sparklearn.db"
+
+    db_type: str = "sqlite"
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "sparklearn"
+    db_user: str = ""
+    db_password: str = ""
+    db_ssl_mode: str = "prefer"
 
 
 settings = Settings()
