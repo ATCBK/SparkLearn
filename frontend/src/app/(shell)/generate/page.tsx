@@ -8,6 +8,8 @@ import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/compone
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio, RadioTrack } from '@/components/ui/AudioRadio'
 import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
+import { ShareDialog } from '@/components/ui/ShareDialog'
+import { CodeExerciseCard } from '@/components/ui/CodeExerciseCard'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
@@ -37,6 +39,18 @@ function typeLabel(type: string) {
   return map[type] || type
 }
 
+function extractCode(content?: string) {
+  if (!content) return 'print("Hello, SparkLearn")'
+  const fenced = content.match(/```(?:python|py|javascript|js|html)?\s*([\s\S]*?)```/i)
+  if (fenced?.[1]) return fenced[1].trim()
+  const codeLines = content
+    .split('\n')
+    .filter((line) => /print\(|def |return |for |while |const |let |function |class /.test(line))
+    .join('\n')
+    .trim()
+  return codeLines || content.slice(0, 1200)
+}
+
 function GeneratePageContent() {
   const searchParams = useSearchParams()
   const initialView = searchParams.get('view') === 'library' ? 'library' : 'generate'
@@ -60,6 +74,7 @@ function GeneratePageContent() {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('全部')
   const [libraryError, setLibraryError] = useState('')
+  const [shareTarget, setShareTarget] = useState<Resource | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -198,6 +213,17 @@ function GeneratePageContent() {
                         })()}
                       />
                     </div>
+                  ) : selected.type === 'code' ? (
+                    <div className="p-5">
+                      <CodeExerciseCard
+                        title={selected.title}
+                        description={selected.content || 'Run and edit this generated code example.'}
+                        language="python"
+                        difficulty="beginner"
+                        initialCode={extractCode(selected.content)}
+                        hints="Try changing the input values, then run the code again."
+                      />
+                    </div>
                   ) : selected.sourceUrl ? (
                     <iframe title={selected.title} src={`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`} className="h-[420px] w-full border-0" />
                   ) : selected.type === 'video' ? (
@@ -220,6 +246,7 @@ function GeneratePageContent() {
                     <ProtoButton href="/practice">学完去练习</ProtoButton>
                   )}
                   <ProtoButton variant="secondary"><MessageCircle className="h-4 w-4" />让 AI 讲解</ProtoButton>
+                  <ProtoButton variant="tertiary" onClick={() => setShareTarget(selected)}>分享</ProtoButton>
                   <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
                   <ProtoButton variant="tertiary" onClick={() => void removeResource(selected.id)}><Trash2 className="h-4 w-4" />删除</ProtoButton>
                 </div>
@@ -229,6 +256,15 @@ function GeneratePageContent() {
             )}
           </ProtoCard>
         </div>
+        {shareTarget && (
+          <ShareDialog
+            isOpen={Boolean(shareTarget)}
+            onClose={() => setShareTarget(null)}
+            resourceType={shareTarget.type}
+            resourceId={shareTarget.id}
+            title={shareTarget.title}
+          />
+        )}
       </div>
     )
   }

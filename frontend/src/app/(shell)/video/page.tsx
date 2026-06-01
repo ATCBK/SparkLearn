@@ -7,11 +7,12 @@ import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Play, Clock, Download, Volume2, Subtitles, Share2, ExternalLink, Trash2, ArrowLeft } from 'lucide-react'
+import { Play, Clock, Download, Volume2, Subtitles, Share2, ExternalLink, Trash2, ArrowLeft, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { formatDuration } from '@/lib/utils/format'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
+import { ShareDialog } from '@/components/ui/ShareDialog'
 
 export default function VideoPage() {
   const [videos, setVideos] = useState<VideoInfo[]>([])
@@ -19,6 +20,7 @@ export default function VideoPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [shareTarget, setShareTarget] = useState<VideoInfo | null>(null)
 
   async function fetchData() {
     try {
@@ -129,6 +131,10 @@ export default function VideoPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => window.location.href = `/digital-human?video=${selected.id}`}>
+                    <Bot className="h-4 w-4" />
+                    数字人
+                  </Button>
                   <Button size="sm" variant="secondary" onClick={() => api.downloadVideoArtifact(selected.id, 'mp4')}>
                     <Download className="h-4 w-4" />
                     {selected.hasMp4 ? '下载MP4' : '下载生成清单'}
@@ -143,10 +149,7 @@ export default function VideoPage() {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      const link = selected.shareUrl || selected.sceneUrl || selected.url
-                      if (link) navigator.clipboard?.writeText(link)
-                    }}
+                    onClick={() => setShareTarget(selected)}
                   >
                     <Share2 className="h-4 w-4" />
                     分享
@@ -205,6 +208,15 @@ export default function VideoPage() {
             ))}
           </div>
         </>
+      )}
+      {shareTarget && (
+        <ShareDialog
+          isOpen={Boolean(shareTarget)}
+          onClose={() => setShareTarget(null)}
+          resourceType="video"
+          resourceId={shareTarget.id}
+          title={shareTarget.title}
+        />
       )}
     </div>
   )
