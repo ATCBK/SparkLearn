@@ -1,11 +1,22 @@
 import asyncio
+import logging
 import sys
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import init_db
+
+# 统一日志配置
+logging.basicConfig(
+    level=logging.DEBUG if settings.debug.lower() == "true" else logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+from .auth import router as auth_router
 from .routes.learning import router as learning_router
 from .routes.knowledge import router as knowledge_router
 from .routes.path_planning import router as path_planning_router
@@ -19,7 +30,10 @@ from .routes.voice_admin import router as voice_admin_router
 from .routes.agent import router as agent_router
 from .routes.teacher import router as teacher_router
 from .routes.forum import router as forum_router
+from .routes.sharing import router as sharing_router
+from .routes.info_stream import router as info_stream_router
 from .routes.num_person import router as num_person_router
+from .routes.code_runner import router as code_runner_router
 
 
 def _configure_event_loop_policy() -> None:
@@ -47,6 +61,22 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    request_logger = logging.getLogger("request")
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.monotonic()
+        response = await call_next(request)
+        elapsed = time.monotonic() - start
+        request_logger.info(
+            "%s %s -> %d (%.3fs)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed,
+        )
+        return response
+
     @app.on_event("startup")
     async def on_startup() -> None:
         init_db()
@@ -55,6 +85,7 @@ def create_app() -> FastAPI:
     async def health():
         return {"ok": True}
 
+    app.include_router(auth_router)
     app.include_router(profile_router)
     app.include_router(learning_router)
     app.include_router(knowledge_router)
@@ -68,7 +99,10 @@ def create_app() -> FastAPI:
     app.include_router(agent_router)
     app.include_router(teacher_router)
     app.include_router(forum_router)
+    app.include_router(sharing_router)
+    app.include_router(info_stream_router)
     app.include_router(num_person_router)
+    app.include_router(code_runner_router)
     return app
 
 

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks, Clip
 import { api, QuizQuestion } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
+import { MarkdownCodePreview } from '@/components/ui/MarkdownCodePreview'
 
 interface ExtendedQuizQuestion extends QuizQuestion {
   title?: string
@@ -314,9 +315,9 @@ export default function PracticePage() {
                   <div className="mt-5 rounded-[12px] border border-line bg-[#f9fafb] p-4">
                     <b className="text-small text-ink">{currentQuestion.question || currentQuestion.content}</b>
                     {currentQuestion.codeSnippet && (
-                      <pre className="mt-3 overflow-auto rounded-[10px] bg-[#0f172a] p-4 text-small leading-6 text-white">
-                        {currentQuestion.codeSnippet}
-                      </pre>
+                      <div className="mt-3">
+                        <MarkdownCodePreview content={'```python\n' + currentQuestion.codeSnippet + '\n```'} editable={false} />
+                      </div>
                     )}
                   </div>
 

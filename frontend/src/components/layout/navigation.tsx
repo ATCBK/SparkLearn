@@ -1,5 +1,5 @@
 ﻿import type { LucideIcon } from 'lucide-react'
-import { BookOpen, CheckSquare, Home, Map, MessageSquare, User } from 'lucide-react'
+import { BookOpen, CheckSquare, Globe, Home, Map, MessageSquare, User } from 'lucide-react'
 
 export type PageMeta = {
   group: string
@@ -31,6 +31,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   '/agent': { group: 'SparkLearn', title: '学习伙伴' },
   '/tutor': { group: '工具', title: '智能辅导' },
   '/video': { group: 'SparkLearn', title: '视频资源' },
+  '/info-stream': { group: 'SparkLearn', title: '信息流' },
 }
 
 export const MOBILE_TABS: MobileTabItem[] = [

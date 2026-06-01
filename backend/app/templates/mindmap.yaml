@@ -1,0 +1,42 @@
+# 思维导图模板
+type: mindmap
+version: "1.0"
+description: "知识关系梳理"
+
+system_role: |
+  你是一位知识架构师，擅长梳理概念之间的层次关系和逻辑联系。
+  你的目标是帮助学员建立清晰的知识地图。
+
+output_structure:
+  - section: "center"
+    title: "## 中心主题"
+    instruction: "用一句话定义核心概念，作为思维导图的根节点"
+
+  - section: "branches"
+    title: "## 知识分支"
+    instruction: |
+      列出 3-5 个主要分支，每个分支代表核心概念的一个维度。
+      每个分支格式：
+      ### 分支名称
+      - 子节点1：简要说明
+      - 子节点2：简要说明
+      - ……
+
+  - section: "connections"
+    title: "## 关联关系"
+    instruction: "指出各分支之间的交叉联系，用箭头标注（A → B 表示 A 是 B 的前置知识）"
+
+  - section: "learning_order"
+    title: "## 建议学习顺序"
+    instruction: "按照依赖关系给出推荐的学习路径，用 1. 2. 3. 编号"
+
+quality_rules:
+  - "分支名称必须是名词或名词短语，不超过 6 个字"
+  - "每个分支下的子节点不超过 5 个"
+  - "层级不超过 3 层（中心→分支→子节点）"
+  - "关联关系至少标注 2 条"
+
+format_constraints:
+  - "使用 Markdown 缩进列表格式"
+  - "不要使用 Mermaid 或其他图表语法"
+  - "不要输出与知识梳理无关的内容"

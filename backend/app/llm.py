@@ -188,14 +188,12 @@ class SparkLiteAdapter:
 
     def _normalize_domain(self, raw: str) -> str:
         candidate = (raw or "").strip().lower()
-        if candidate in {"lite", "general-lite", "spark-lite"}:
-            return "lite"
-        # Spark Lite websocket (v1.1/chat) rejects "general", must use "lite".
-        if candidate == "general":
-            return "lite"
+        # MaaS 平台通用模型
+        if candidate in {"general", "lite", "general-lite", "spark-lite", ""}:
+            return "general"
         if candidate in {"knowledge_qa", "step_hint", "follow_up", "resource"}:
-            return "lite"
-        return candidate or "lite"
+            return "general"
+        return candidate
 
 
 spark_lite = SparkLiteAdapter()

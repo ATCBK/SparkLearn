@@ -59,6 +59,21 @@ class Settings(BaseSettings):
     xf_tts_timeout_ms: int = 15000
     xf_tts_text_limit: int = 1000
 
+    # 阿里云 CosyVoice TTS (DashScope)
+    cosyvoice_api_key: str = ""          # 复用 DashScope API Key
+    cosyvoice_model: str = "cosyvoice-v1"
+    cosyvoice_default_voice: str = "longxiaochun"   # 龙小春(女声,清晰) / longyuan(男声,沉稳) / longlaotie(男声)
+    cosyvoice_format: str = "wav"        # pcm / wav / mp3
+    cosyvoice_sample_rate: int = 24000   # 16000 / 22050 / 24000 / 48000
+    cosyvoice_speech_rate: float = 1.0   # 0.5 ~ 2.0
+    cosyvoice_pitch_rate: float = 1.0    # 0.5 ~ 2.0
+    cosyvoice_volume: float = 1.0        # 0.5 ~ 2.0
+    cosyvoice_max_concurrency: int = 2
+    cosyvoice_timeout_sec: int = 30
+
+    # TTS provider 选择: "cosyvoice" / "xfyun" / "auto"(优先CosyVoice,降级讯飞)
+    tts_provider: str = "auto"
+
     # Video creator
     video_creator_enabled: bool = True
     video_default_provider: str = "html_ppt"
@@ -157,6 +172,27 @@ class Settings(BaseSettings):
     # Agent browser settings
     agent_browser_headless: bool = False   # False = 演示模式，浏览器窗口可见
     agent_browser_slow_mo: int = 800       # 毫秒，让操作慢一点方便观看
+
+    # 统一外部 API 配置
+    api_default_timeout: int = 30          # 默认超时（秒）
+    api_max_retries: int = 2               # 默认最大重试次数
+
+    # 阿里云号码认证服务配置（dypnsapi.aliyuncs.com）
+    aliyun_sms_access_key_id: str = ""
+    aliyun_sms_access_key_secret: str = ""
+    aliyun_sms_region_id: str = "cn-hangzhou"
+    aliyun_sms_endpoint: str = "dypnsapi.aliyuncs.com"
+    aliyun_sms_sign_name: str = ""
+    aliyun_sms_template_code: str = "100001"  # 号码认证服务模板编号（数字格式）
+    sms_code_expire_minutes: int = 5
+    sms_rate_limit_seconds: int = 60
+
+    # 阿里云 OSS 配置
+    aliyun_oss_access_key_id: str = ""
+    aliyun_oss_access_key_secret: str = ""
+    aliyun_oss_bucket_name: str = ""
+    aliyun_oss_endpoint: str = "oss-cn-hangzhou.aliyuncs.com"
+    aliyun_oss_cdn_domain: str = ""
 
     single_user_id: str = "single_user"
     use_mock_data: bool = True

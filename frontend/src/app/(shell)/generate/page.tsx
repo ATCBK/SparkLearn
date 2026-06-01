@@ -7,6 +7,8 @@ import { api, KnowledgeFile, Resource, StudentProfile, VideoStyle, VideoScriptSe
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio, RadioTrack } from '@/components/ui/AudioRadio'
+import { MarkdownCodePreview } from '@/components/ui/MarkdownCodePreview'
+import { CodeExerciseCard, TestCase } from '@/components/ui/CodeExerciseCard'
 import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
@@ -37,6 +39,68 @@ function typeLabel(type: string) {
   return map[type] || type
 }
 
+interface ParsedCodeExercise {
+  description: string
+  code: string
+  language: string
+  testCases?: TestCase[]
+  hints?: string
+  solution?: string
+  restMarkdown: string
+}
+
+function parseCodeExercise(content: string): ParsedCodeExercise | null {
+  // Check if content has structured markers (## headings or 「」brackets)
+  const hasStructuredMarkers = /^##\s*(问题描述|代码实现|逐行讲解|运行结果|常见错误|扩展练习|配套练习)/m.test(content)
+    || /「(问题描述|代码实现|逐行讲解|运行结果|常见错误|扩展练习|配套练习)」/.test(content)
+  if (!hasStructuredMarkers) {
+    return null
+  }
+
+  const sections: Record<string, string> = {}
+  // Match both "## 标题" and "「标题」" as section headers
+  const sectionRegex = /^##\s*(.+)$|「(.+?)」[:：]?\s*$/gm
+  const matches = [...content.matchAll(sectionRegex)]
+
+  for (let i = 0; i < matches.length; i++) {
+    const sectionName = (matches[i][1] || matches[i][2]).trim()
+    const start = matches[i].index! + matches[i][0].length
+    const end = i + 1 < matches.length ? matches[i + 1].index! : content.length
+    sections[sectionName] = content.slice(start, end).trim()
+  }
+
+  // Extract code from code block
+  const codeSection = sections['代码实现'] || ''
+  const codeMatch = codeSection.match(/```(\w*)\n([\s\S]*?)```/)
+  const code = codeMatch ? codeMatch[2].trim() : codeSection
+  const language = codeMatch?.[1]?.toLowerCase() || 'python'
+
+  // Extract test cases from JSON block
+  let testCases: TestCase[] | undefined
+  const exerciseSection = sections['配套练习'] || ''
+  const jsonMatch = exerciseSection.match(/```json\n([\s\S]*?)```/)
+  if (jsonMatch) {
+    try {
+      testCases = JSON.parse(jsonMatch[1].trim())
+    } catch {
+      // ignore parse error
+    }
+  }
+
+  const description = sections['问题描述'] || ''
+  const hints = sections['常见错误'] || undefined
+  const solution = code // The generated code IS the solution
+
+  // Build remaining markdown from non-extracted sections
+  const extractedKeys = new Set(['问题描述', '代码实现', '配套练习'])
+  const restParts = Object.entries(sections)
+    .filter(([key]) => !extractedKeys.has(key))
+    .map(([key, val]) => `## ${key}\n\n${val}`)
+  const restMarkdown = restParts.join('\n\n')
+
+  return { description, code, language, testCases, hints, solution, restMarkdown }
+}
+
 export default function GeneratePage() {
   const searchParams = useSearchParams()
   const initialView = searchParams.get('view') === 'library' ? 'library' : 'generate'
@@ -64,6 +128,11 @@ export default function GeneratePage() {
   const [generateError, setGenerateError] = useState('')
   const [showSegments, setShowSegments] = useState(false)
   const [sseMessages, setSseMessages] = useState<string[]>([])
+
+  // 代码案例专用状态
+  const [codeLanguage, setCodeLanguage] = useState('python')
+  const [codeLevel, setCodeLevel] = useState('beginner')
+  const [codeIncludeExercise, setCodeIncludeExercise] = useState(true)
 
   // 视频风格预设（与后端 config.py video_styles 对应）
   const VIDEO_STYLES: VideoStyle[] = useMemo(() => [
@@ -118,10 +187,25 @@ export default function GeneratePage() {
     setGenerateError('')
     setSseMessages([])
     setResource(null)
+
+    // Build code-specific prompt with options
+    let effectivePrompt = prompt
+    if (type === 'code') {
+      const langMap: Record<string, string> = { python: 'Python', javascript: 'JavaScript', html: 'HTML/CSS' }
+      const levelMap: Record<string, string> = { beginner: '入门级（零基础友好）', intermediate: '进阶（有一定基础）', advanced: '高级（深入原理）' }
+      const parts = [
+        `编程语言：${langMap[codeLanguage] || codeLanguage}`,
+        `难度：${levelMap[codeLevel] || codeLevel}`,
+        codeIncludeExercise ? '要求：包含 2-3 道可运行的配套练习题（含测试用例）' : '',
+        `主题需求：${prompt}`,
+      ].filter(Boolean)
+      effectivePrompt = parts.join('\n')
+    }
+
     try {
       const res = await api.generateResource(
         type,
-        prompt,
+        effectivePrompt,
         selectedKnowledge,
         type === 'video' ? {
           durationSec: videoDuration,
@@ -272,7 +356,29 @@ export default function GeneratePage() {
                     </div>
                   ) : (
                     <div className="p-5">
-                      <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
+                      {selected.type === 'code' ? (() => {
+                        const parsed = parseCodeExercise(selected.content || '')
+                        return parsed ? (
+                          <div className="space-y-4">
+                            <CodeExerciseCard
+                              title={selected.title}
+                              description={parsed.description}
+                              language={parsed.language}
+                              initialCode={parsed.code}
+                              testCases={parsed.testCases}
+                              hints={parsed.hints}
+                              solution={parsed.solution}
+                            />
+                            {parsed.restMarkdown && (
+                              <MarkdownCodePreview content={parsed.restMarkdown} editable={false} />
+                            )}
+                          </div>
+                        ) : (
+                          <MarkdownCodePreview content={selected.content || '该资源暂无预览内容。'} editable />
+                        )
+                      })() : (
+                        <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
+                      )}
                     </div>
                   )}
                 </div>
@@ -460,6 +566,61 @@ export default function GeneratePage() {
                     <span>180s</span>
                   </div>
                 </div>
+              </>
+            )}
+
+            {/* 代码案例专用：语言 & 难度 & 配套练习 */}
+            {type === 'code' && (
+              <>
+                <div>
+                  <span className="text-small font-bold text-ink mb-2 block">编程语言</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'python', label: 'Python' },
+                      { value: 'javascript', label: 'JavaScript' },
+                      { value: 'html', label: 'HTML/CSS' },
+                    ].map((lang) => (
+                      <button
+                        key={lang.value}
+                        onClick={() => setCodeLanguage(lang.value)}
+                        className={`flex-1 rounded-[10px] border p-2.5 text-center text-small font-bold transition-all ${codeLanguage === lang.value ? 'border-blue bg-blue-light ring-2 ring-blue/20 text-blue' : 'border-line bg-white hover:border-blue/50 text-ink'}`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-small font-bold text-ink mb-2 block">难度级别</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'beginner', label: '入门', desc: '零基础友好' },
+                      { value: 'intermediate', label: '进阶', desc: '有一定基础' },
+                      { value: 'advanced', label: '高级', desc: '深入原理' },
+                    ].map((lvl) => (
+                      <button
+                        key={lvl.value}
+                        onClick={() => setCodeLevel(lvl.value)}
+                        className={`flex-1 rounded-[10px] border p-2.5 text-center transition-all ${codeLevel === lvl.value ? 'border-blue bg-blue-light ring-2 ring-blue/20' : 'border-line bg-white hover:border-blue/50'}`}
+                      >
+                        <b className="block text-small text-ink">{lvl.label}</b>
+                        <span className="text-micro text-muted">{lvl.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex items-center gap-3 rounded-[10px] border border-line bg-white p-3 cursor-pointer hover:border-blue/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={codeIncludeExercise}
+                    onChange={(e) => setCodeIncludeExercise(e.target.checked)}
+                    className="h-4 w-4 rounded border-line accent-blue"
+                  />
+                  <div>
+                    <b className="text-small text-ink">生成配套练习题</b>
+                    <span className="block text-micro text-muted">在案例末尾附带 2-3 道可运行的编程练习</span>
+                  </div>
+                </label>
               </>
             )}
 
@@ -670,6 +831,30 @@ export default function GeneratePage() {
                         })()}
                       />
                       <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音讲解。</p>
+                    </div>
+                  ) : resource.type === 'code' ? (
+                    <div className="mt-2">
+                      {(() => {
+                        const parsed = parseCodeExercise(resource.content || '')
+                        return parsed ? (
+                          <div className="space-y-4">
+                            <CodeExerciseCard
+                              title={resource.title}
+                              description={parsed.description}
+                              language={parsed.language}
+                              initialCode={parsed.code}
+                              testCases={parsed.testCases}
+                              hints={parsed.hints}
+                              solution={parsed.solution}
+                            />
+                            {parsed.restMarkdown && (
+                              <MarkdownCodePreview content={parsed.restMarkdown} editable={false} />
+                            )}
+                          </div>
+                        ) : (
+                          <MarkdownCodePreview content={resource.content || '该资源暂无预览内容。'} editable />
+                        )
+                      })()}
                     </div>
                   ) : (
                     <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可在我的资源中查看完整预览。'}</p>

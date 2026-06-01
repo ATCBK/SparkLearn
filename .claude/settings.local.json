@@ -84,7 +84,19 @@
       "Bash(curl -sI http://localhost:3000/dh-live/common/bs_texture_halfFace.png --max-time 5)",
       "Bash(python scripts/export_sqlite.py)",
       "Bash(pip install *)",
-      "Bash(timeout 10 python -c ' *)"
+      "Bash(timeout 10 python -c ' *)",
+      "Bash(python -c \"from app.routes.code_runner import router; print\\('OK'\\)\")",
+      "Bash(python -c \"from app.routes.resources import router; print\\('OK'\\)\")",
+      "Bash(ping -n 3 pc-uf6q6wb3d7w96j9h9.pg.polardb.rds.aliyuncs.com)",
+      "Bash(python -c \"from app.main import app; print\\('Backend OK'\\)\")",
+      "Bash(python -c \"from app.main import app; print\\('OK'\\)\")",
+      "Bash(.venv/Scripts/python -c \"from app.templates import build_prompt_from_template; result = build_prompt_from_template\\('document', '函数返回值'\\); print\\(result[:500]\\)\")",
+      "Bash(d:/Office_File/other/SparkLearn/SparkLearn-main/.venv/Scripts/python.exe -c \"from app.templates import build_prompt_from_template; result = build_prompt_from_template\\('document', '函数返回值'\\); print\\(result[:500]\\)\")",
+      "Bash(python -c \"from jose import JWTError, jwt; print\\('jose OK'\\)\")",
+      "Bash(python -c \"from app.sms import sms_client; print\\('sms OK, configured:', sms_client.is_configured\\(\\)\\)\")",
+      "Bash(python -c \"from app.auth import router; print\\('auth OK, routes:', len\\(router.routes\\)\\)\")",
+      "Bash(node -e \"try { const m = require\\('lucide-react'\\); console.log\\('Github:', typeof m.Github\\); console.log\\('GithubIcon:', typeof m.GithubIcon\\); } catch\\(e\\) { console.log\\(e.message\\); }\")",
+      "Bash(node -e \"const m = require\\('lucide-react'\\); console.log\\('Code:', typeof m.Code\\); console.log\\('CodeXml:', typeof m.CodeXml\\); console.log\\('Braces:', typeof m.Braces\\); console.log\\('SquareCode:', typeof m.SquareCode\\);\")"
     ],
     "additionalDirectories": [
       "d:\\Office_File\\other\\SparkLearn\\SparkLearn-main\\.venv",

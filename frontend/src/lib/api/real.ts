@@ -5,17 +5,27 @@ import type {
   LearningPath, VideoInfo, VideoStyle, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
 } from './types'
+import { getToken } from '../auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 type ApiResp<T> = { success: boolean; data: T; error?: string }
 type SseEvent = { type: string; payload: Record<string, unknown> }
 
+function _authHeaders(): Record<string, string> {
+  const token = getToken()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+      headers: { ..._authHeaders(), ...(init?.headers || {}) },
     })
     const json = await res.json() as ApiResp<T>
     if (!res.ok || !json.success) throw new Error(json.error || `请求失败：${res.status}`)
@@ -35,7 +45,7 @@ async function readSSE(
 ) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: _authHeaders(),
     body: JSON.stringify(body),
   })
   if (!res.body) throw new Error('流式响应体为空')
@@ -74,6 +84,39 @@ function toResource(raw: any): Resource {
     progress: raw.progress,
   }
 }
+
+// ─── 认证 API ────────────────────────────────────────────────────────────────────
+
+export async function checkPhoneRegistered(phone: string): Promise<{ registered: boolean }> {
+  return fetchJson(`/api/auth/check-phone/${phone}`)
+}
+
+export async function sendSmsCode(phone: string, purpose: 'login' | 'register' = 'login'): Promise<{ message: string; expires_in: number }> {
+  return fetchJson('/api/auth/sms/send', {
+    method: 'POST',
+    body: JSON.stringify({ phone, purpose }),
+  })
+}
+
+export async function smsLogin(phone: string, code: string): Promise<{ token: string; user: { user_id: string; name: string; phone: string } }> {
+  return fetchJson('/api/auth/sms/login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code }),
+  })
+}
+
+export async function smsRegister(phone: string, code: string, name?: string): Promise<{ token: string; user: { user_id: string; name: string; phone: string } }> {
+  return fetchJson('/api/auth/sms/register', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code, name }),
+  })
+}
+
+export async function getMe(): Promise<{ user_id: string; name: string; phone: string }> {
+  return fetchJson('/api/auth/me')
+}
+
+// ─── 学习任务 API ────────────────────────────────────────────────────────────────
 
 export async function getTodayTasks(): Promise<Task[]> {
   return fetchJson('/api/tasks/today')
@@ -495,7 +538,10 @@ export async function deleteTutorMessage(messageId: string | number): Promise<vo
 export async function uploadTutorFiles(files: File[]): Promise<TutorFile[]> {
   const form = new FormData()
   files.forEach(file => form.append('files', file))
-  const res = await fetch(`${API_BASE}/api/tutor/files`, { method: 'POST', body: form })
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`${API_BASE}/api/tutor/files`, { method: 'POST', body: form, headers })
   const json = await res.json() as ApiResp<any[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
   return (json.data || []).map(f => ({
@@ -656,7 +702,10 @@ export async function getKnowledgeFiles(params?: { status?: string; search?: str
 export async function uploadKnowledgeFiles(files: File[]): Promise<KnowledgeFile[]> {
   const form = new FormData()
   files.forEach(file => form.append('files', file))
-  const res = await fetch(`${API_BASE}/api/knowledge/files`, { method: 'POST', body: form })
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`${API_BASE}/api/knowledge/files`, { method: 'POST', body: form, headers })
   const json = await res.json() as ApiResp<any[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
   return (json.data || []).map(toKnowledgeFile)
@@ -917,7 +966,10 @@ export async function toggleForumFavorite(postId: number): Promise<{ favorited: 
 export async function uploadForumAttachments(postId: number, files: File[]): Promise<ForumAttachment[]> {
   const form = new FormData()
   files.forEach(file => form.append('files', file))
-  const res = await fetch(`${API_BASE}/api/forum/posts/${postId}/attachments`, { method: 'POST', body: form })
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`${API_BASE}/api/forum/posts/${postId}/attachments`, { method: 'POST', body: form, headers })
   const json = await res.json() as ApiResp<ForumAttachment[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败: ${res.status}`)
   return json.data || []
@@ -942,7 +994,10 @@ export async function getTeacherRecipients(): Promise<TeacherRecipient[]> {
 export async function uploadTeacherMaterials(files: File[]): Promise<TeacherMaterialFile[]> {
   const form = new FormData()
   files.forEach(file => form.append('files', file))
-  const res = await fetch(`${API_BASE}/api/teacher/broadcast/materials`, { method: 'POST', body: form })
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`${API_BASE}/api/teacher/broadcast/materials`, { method: 'POST', body: form, headers })
   const json = await res.json() as ApiResp<TeacherMaterialFile[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败: ${res.status}`)
   return json.data || []

@@ -301,6 +301,80 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
             ON teacher_broadcasts(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS sms_codes (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              phone TEXT NOT NULL,
+              code TEXT NOT NULL,
+              purpose TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              used INTEGER DEFAULT 0,
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_sms_codes_phone
+            ON sms_codes(phone, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS share_links (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              share_code TEXT UNIQUE NOT NULL,
+              creator_id TEXT NOT NULL,
+              resource_type TEXT NOT NULL,
+              resource_id TEXT NOT NULL,
+              title TEXT DEFAULT '',
+              access_type TEXT DEFAULT 'public',
+              password TEXT DEFAULT '',
+              allowed_user_ids TEXT DEFAULT '[]',
+              max_views INTEGER,
+              view_count INTEGER DEFAULT 0,
+              expires_at TEXT,
+              created_at TEXT NOT NULL,
+              status TEXT DEFAULT 'active'
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_share_links_creator
+            ON share_links(creator_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS broadcast_deliveries (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              broadcast_id INTEGER NOT NULL,
+              student_id TEXT NOT NULL,
+              delivered_at TEXT NOT NULL,
+              read_at TEXT,
+              downloaded_at TEXT
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_broadcast_deliveries_unique
+            ON broadcast_deliveries(broadcast_id, student_id);
+
+            CREATE TABLE IF NOT EXISTS info_stream_cache (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              source TEXT NOT NULL,
+              external_id TEXT,
+              title TEXT,
+              summary TEXT,
+              url TEXT,
+              thumbnail TEXT,
+              author TEXT,
+              tags TEXT DEFAULT '[]',
+              extra_data TEXT DEFAULT '{}',
+              cached_at TEXT NOT NULL,
+              expires_at TEXT NOT NULL,
+              click_count INTEGER DEFAULT 0
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_info_stream_cache_source
+            ON info_stream_cache(source, cached_at DESC);
+
+            CREATE TABLE IF NOT EXISTS info_stream_bookmarks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              cache_id INTEGER REFERENCES info_stream_cache(id),
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_info_stream_bookmarks_user
+            ON info_stream_bookmarks(user_id, created_at DESC);
             """
         )
 
@@ -354,6 +428,12 @@ def _ensure_student_columns(conn: sqlite3.Connection) -> None:
     columns = {row['name'] for row in conn.execute('PRAGMA table_info(students)').fetchall()}
     if 'email' not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN email TEXT DEFAULT ''")
+    if 'phone' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN phone TEXT DEFAULT ''")
+    if 'avatar' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN avatar TEXT DEFAULT ''")
+    if 'last_login_at' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN last_login_at TEXT DEFAULT ''")
 
 
 def _seed_mastery(conn: sqlite3.Connection) -> None:

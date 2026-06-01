@@ -309,6 +309,80 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
             ON teacher_broadcasts(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS sms_codes (
+                id SERIAL PRIMARY KEY,
+                phone VARCHAR(20) NOT NULL,
+                code VARCHAR(6) NOT NULL,
+                purpose VARCHAR(20) NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_sms_codes_phone
+            ON sms_codes(phone, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS share_links (
+                id SERIAL PRIMARY KEY,
+                share_code VARCHAR(16) UNIQUE NOT NULL,
+                creator_id VARCHAR(50) NOT NULL,
+                resource_type VARCHAR(20) NOT NULL,
+                resource_id VARCHAR(100) NOT NULL,
+                title VARCHAR(200) DEFAULT '',
+                access_type VARCHAR(20) DEFAULT 'public',
+                password VARCHAR(64) DEFAULT '',
+                allowed_user_ids JSONB DEFAULT '[]',
+                max_views INTEGER,
+                view_count INTEGER DEFAULT 0,
+                expires_at TIMESTAMP,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                status VARCHAR(20) DEFAULT 'active'
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_share_links_creator
+            ON share_links(creator_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS broadcast_deliveries (
+                id SERIAL PRIMARY KEY,
+                broadcast_id INTEGER NOT NULL,
+                student_id VARCHAR(50) NOT NULL,
+                delivered_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                read_at TIMESTAMP,
+                downloaded_at TIMESTAMP
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_broadcast_deliveries_unique
+            ON broadcast_deliveries(broadcast_id, student_id);
+
+            CREATE TABLE IF NOT EXISTS info_stream_cache (
+                id SERIAL PRIMARY KEY,
+                source VARCHAR(20) NOT NULL,
+                external_id VARCHAR(200),
+                title VARCHAR(500),
+                summary TEXT,
+                url VARCHAR(1000),
+                thumbnail VARCHAR(1000),
+                author VARCHAR(200),
+                tags JSONB DEFAULT '[]',
+                extra_data JSONB DEFAULT '{}',
+                cached_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                expires_at TIMESTAMP NOT NULL,
+                click_count INTEGER DEFAULT 0
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_info_stream_cache_source
+            ON info_stream_cache(source, cached_at DESC);
+
+            CREATE TABLE IF NOT EXISTS info_stream_bookmarks (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                cache_id INTEGER REFERENCES info_stream_cache(id),
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_info_stream_bookmarks_user
+            ON info_stream_bookmarks(user_id, created_at DESC);
             """
         )
 
@@ -367,6 +441,27 @@ def _ensure_student_columns(cursor) -> None:
     """)
     if not cursor.fetchone():
         cursor.execute("ALTER TABLE students ADD COLUMN email VARCHAR(200) DEFAULT ''")
+
+    cursor.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'students' AND column_name = 'phone'
+    """)
+    if not cursor.fetchone():
+        cursor.execute("ALTER TABLE students ADD COLUMN phone VARCHAR(20) DEFAULT ''")
+
+    cursor.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'students' AND column_name = 'avatar'
+    """)
+    if not cursor.fetchone():
+        cursor.execute("ALTER TABLE students ADD COLUMN avatar VARCHAR(500) DEFAULT ''")
+
+    cursor.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'students' AND column_name = 'last_login_at'
+    """)
+    if not cursor.fetchone():
+        cursor.execute("ALTER TABLE students ADD COLUMN last_login_at TIMESTAMP")
 
 
 def _seed_mastery(cursor) -> None:

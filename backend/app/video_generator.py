@@ -215,7 +215,25 @@ def _write_slide_html_files(root: Path, title: str, slides: list[dict[str, Any]]
 def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> dict[str, str]:
     audio_dir = root / "audio_segments"
     audio_dir.mkdir(parents=True, exist_ok=True)
-    used_provider = "xunfei_tts" if _has_xfyun_tts_config() else "windows_sapi"
+
+    # 根据 tts_provider 配置决定尝试顺序
+    provider = settings.tts_provider.lower()
+    if provider == "cosyvoice":
+        chain = ["cosyvoice"]
+    elif provider == "xfyun":
+        chain = ["xfyun"]
+    else:  # auto
+        chain = []
+        if _has_cosyvoice_config():
+            chain.append("cosyvoice")
+        if _has_xfyun_tts_config():
+            chain.append("xfyun")
+        chain.append("windows_sapi")
+
+    if "windows_sapi" not in chain:
+        chain.append("windows_sapi")
+
+    used_provider = chain[0] if chain else "tone_fallback"
     messages: list[str] = []
     segment_paths: list[Path] = []
     for idx, seg in enumerate(segments, start=1):
@@ -223,14 +241,16 @@ def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> di
         text = str(seg.get("narration") or seg.get("subtitle") or seg.get("title") or "")
         ok = False
         message = ""
-        if _has_xfyun_tts_config():
-            ok, message = _try_xfyun_tts_wav(wav_path, text)
-        if not ok:
-            sapi_ok, sapi_message = _try_windows_sapi_tts(wav_path, text)
-            ok = sapi_ok
-            message = message or sapi_message
-            if sapi_ok and used_provider != "xunfei_tts":
-                used_provider = "windows_sapi"
+        for p in chain:
+            if p == "cosyvoice":
+                ok, message = _try_cosyvoice_tts_wav(wav_path, text)
+            elif p == "xfyun":
+                ok, message = _try_xfyun_tts_wav(wav_path, text)
+            elif p == "windows_sapi":
+                ok, message = _try_windows_sapi_tts(wav_path, text)
+            if ok:
+                used_provider = p
+                break
         if not ok:
             used_provider = "tone_fallback"
             _write_tone_wav(wav_path, int(seg.get("end_ms", 0)) - int(seg.get("start_ms", 0)))
@@ -238,19 +258,60 @@ def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> di
         segment_paths.append(wav_path)
 
     _write_concat_wav(root / "narration.wav", segment_paths)
-    if used_provider == "xunfei_tts":
-        return {"provider": "xunfei_tts", "status": "completed", "message": "已用讯飞 TTS 生成逐页讲解 WAV。"}
-    if used_provider == "windows_sapi":
-        return {"provider": "windows_sapi", "status": "completed", "message": "已用 Windows SAPI 生成逐页讲解 WAV。"}
+    provider_messages = {
+        "cosyvoice": "已用阿里云 CosyVoice 生成逐页讲解 WAV。",
+        "xunfei_tts": "已用讯飞 TTS 生成逐页讲解 WAV。",
+        "windows_sapi": "已用 Windows SAPI 生成逐页讲解 WAV。",
+    }
+    if used_provider in provider_messages:
+        return {"provider": used_provider, "status": "completed", "message": provider_messages[used_provider]}
     return {
         "provider": "tone_fallback",
         "status": "fallback",
-        "message": "讯飞/系统语音不可用，已生成可播放提示音轨。 " + "；".join(messages[:2]),
+        "message": "所有 TTS 不可用，已生成可播放提示音轨。 " + "；".join(messages[:2]),
     }
+
+
+def _has_cosyvoice_config() -> bool:
+    return bool(settings.cosyvoice_api_key)
 
 
 def _has_xfyun_tts_config() -> bool:
     return bool(settings.xf_tts_app_id and settings.xf_tts_api_key and settings.xf_tts_api_secret)
+
+
+def _try_cosyvoice_tts_wav(path: Path, text: str) -> tuple[bool, str]:
+    """使用阿里云 CosyVoice 合成语音并写入 WAV 文件"""
+    if not text.strip():
+        return False, "讲稿为空。"
+    try:
+        import dashscope
+        from dashscope.audio.tts_v2 import SpeechSynthesizer, AudioFormat
+    except ImportError:
+        return False, "dashscope 库未安装。"
+
+    try:
+        dashscope.api_key = settings.cosyvoice_api_key
+        # 根据采样率选择对应的 AudioFormat 枚举
+        rate = settings.cosyvoice_sample_rate
+        fmt_name = f"WAV_{rate}HZ_MONO_16BIT"
+        audio_fmt = getattr(AudioFormat, fmt_name, AudioFormat.WAV_24000HZ_MONO_16BIT)
+
+        synthesizer = SpeechSynthesizer(
+            model=settings.cosyvoice_model,
+            voice=settings.cosyvoice_default_voice,
+            format=audio_fmt,
+            speech_rate=settings.cosyvoice_speech_rate,
+            pitch_rate=settings.cosyvoice_pitch_rate,
+            volume=int(settings.cosyvoice_volume * 50),
+        )
+        audio_bytes = synthesizer.call(text)
+        if not audio_bytes:
+            return False, "CosyVoice 未返回音频数据。"
+        path.write_bytes(audio_bytes)
+        return True, "ok"
+    except Exception as ex:
+        return False, f"CosyVoice 调用失败：{ex}"
 
 
 def _try_xfyun_tts_wav(path: Path, text: str) -> tuple[bool, str]:

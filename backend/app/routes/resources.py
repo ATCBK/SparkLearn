@@ -8,6 +8,8 @@ from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
+
+from app.templates import build_prompt_from_template
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
@@ -104,8 +106,8 @@ async def generate_resource(req: GenerateReq):
                     "source_url": None,
                     "progress": 100,
                 }
-        elif resource_type == "blog":
-            # 播客电台：直接调用星火大模型生成播客脚本
+        elif resource_type in ("blog", "code"):
+            # 播客电台 & 代码案例：直接调用星火大模型生成
             chunks: list[str] = []
             progress = 10
 
@@ -115,10 +117,10 @@ async def generate_resource(req: GenerateReq):
                 user_prompt = (
                     f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考：\n{knowledge_context}"
                 )
-            blog_prompt = _build_resource_prompt("blog", user_prompt)
+            llm_prompt = _build_resource_prompt(resource_type, user_prompt)
 
             yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
-            async for evt_type, payload in spark_lite.stream_chat_events(blog_prompt, mode="general", history=[]):
+            async for evt_type, payload in spark_lite.stream_chat_events(llm_prompt, mode="general", history=[]):
                 if evt_type == "text":
                     chunk = str(payload.get("content", ""))
                     if chunk:
@@ -131,12 +133,12 @@ async def generate_resource(req: GenerateReq):
 
             content = "".join(chunks).strip()
             if not content:
-                content = _fallback_resource_content("blog", req.prompt)
+                content = _fallback_resource_content(resource_type, req.prompt)
 
             resource = {
                 "id": res_id,
-                "title": req.prompt[:20] or "新生成播客",
-                "type": "blog",
+                "title": req.prompt[:20] or ("新生成播客" if resource_type == "blog" else "新生成代码案例"),
+                "type": resource_type,
                 "status": "completed",
                 "created_at": _now_date(),
                 "content": f"# {req.prompt}\n\n{content}",
@@ -358,37 +360,8 @@ def _default_resources() -> list[dict[str, Any]]:
 
 
 def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
-    base = user_prompt.strip()
-    if resource_type == "document":
-        return (
-            "请生成结构化学习文档（Markdown）。包含学习目标、关键概念、示例、常见错误、练习建议。"
-            "若有网页链接，第一行输出 SOURCE_URL: https://...；若无输出 SOURCE_URL: NONE\n\n需求："
-            + base
-        )
-    if resource_type == "mindmap":
-        return base
-    if resource_type == "quiz":
-        return "请生成练习题（Markdown），包含题目、答案与解析，覆盖简单/中等/困难。\n\n主题：" + base
-    if resource_type == "reading":
-        return "请生成拓展阅读文档（Markdown），包含背景、关键知识、应用场景、延伸阅读建议。\n\n主题：" + base
-    if resource_type == "code":
-        return "请生成代码学习案例（Markdown），包含问题描述、完整代码、讲解与扩展练习。\n\n主题：" + base
-    if resource_type == "blog":
-        return (
-            "SOURCE_URL: NONE\n\n"
-            "你是一位专业的播客主播兼科普作者。请根据以下学习主题，生成一篇适合语音朗读的播客电台脚本。\n\n"
-            "要求：\n"
-            "1. 用口语化、亲切自然的语气，像在和听众聊天一样讲解知识\n"
-            '2. 开头用一句吸引人的引入语（比如"嘿，大家好，欢迎收听今天的 SparkLearn 播客电台"）\n'
-            "3. 把知识点拆成 3-5 个小段落，每段之间用自然的过渡语连接\n"
-            "4. 多用生活化的类比和例子来解释抽象概念\n"
-            "5. 结尾做一个简短总结，并给出一个思考问题\n"
-            "6. 不要使用 Markdown 格式符号（不要 #、*、`、- 等），纯文本即可\n"
-            "7. 每个段落之间用两个空行分隔（方便拆分为多个音频片段）\n"
-            "8. 总长度控制在 800-1500 字，适合 5-8 分钟的音频播放\n\n"
-            "主题：" + base
-        )
-    return base
+    """根据资源类型和用户输入构建 prompt，优先使用 YAML 模板。"""
+    return build_prompt_from_template(resource_type, user_prompt.strip())
 
 
 def _fallback_resource_content(resource_type: str, prompt: str) -> str:

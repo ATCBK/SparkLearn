@@ -3,21 +3,22 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react'
+import { Smartphone, Shield, KeyRound } from 'lucide-react'
+import { setToken, setUser } from '@/lib/auth'
+import { sendSmsCode, smsLogin, smsRegister, checkPhoneRegistered } from '@/lib/api/real'
 import './auth.css'
 
 export default function AuthPage() {
   const router = useRouter()
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [remember, setRemember] = useState(false)
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [phone, setPhone] = useState('')
+  const [code, setCode] = useState('')
+  const [name, setName] = useState('')
+  const [countdown, setCountdown] = useState(0)
+  const [codeSent, setCodeSent] = useState(false)
 
   // 打字机效果
   const SLOGANS = [
@@ -35,23 +36,19 @@ export default function AuthPage() {
     const currentSlogan = SLOGANS[sloganIndex]
 
     if (!isDeleting) {
-      // 打字
       if (displayText.length < currentSlogan.length) {
         timerRef.current = setTimeout(() => {
           setDisplayText(currentSlogan.slice(0, displayText.length + 1))
         }, 50)
       } else {
-        // 打完了，等一会再删
         timerRef.current = setTimeout(() => setIsDeleting(true), 2500)
       }
     } else {
-      // 删字
       if (displayText.length > 0) {
         timerRef.current = setTimeout(() => {
           setDisplayText(displayText.slice(0, -1))
         }, 25)
       } else {
-        // 删完了，切换下一条
         setIsDeleting(false)
         setSloganIndex((prev) => (prev + 1) % SLOGANS.length)
       }
@@ -62,34 +59,91 @@ export default function AuthPage() {
     }
   }, [displayText, isDeleting, sloganIndex])
 
+  // 倒计时
+  useEffect(() => {
+    if (countdown <= 0) return
+    const t = setTimeout(() => setCountdown(countdown - 1), 1000)
+    return () => clearTimeout(t)
+  }, [countdown])
+
   const showToast = useCallback((text: string) => {
     setToast(text)
     setTimeout(() => setToast(null), 2200)
   }, [])
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-
-    if (!email || !password) {
-      showToast('请填写邮箱和密码')
+  async function handleSendCode() {
+    if (!phone || phone.length !== 11) {
+      showToast('请输入正确的11位手机号')
       return
     }
+    try {
+      setLoading(true)
 
-    if (mode === 'register' && password !== confirmPassword) {
-      showToast('两次输入的密码不一致')
+      // 登录模式下，先检查手机号是否已注册
+      if (mode === 'login') {
+        const { registered } = await checkPhoneRegistered(phone)
+        if (!registered) {
+          showToast('该手机号未注册，请先注册')
+          setMode('register')
+          setLoading(false)
+          return
+        }
+      }
+
+      await sendSmsCode(phone, mode)
+      setCodeSent(true)
+      setCountdown(60)
+      showToast('验证码已发送')
+    } catch (err: any) {
+      showToast(err.message || '发送失败，请稍后重试')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (!phone || phone.length !== 11) {
+      showToast('请输入正确的11位手机号')
+      return
+    }
+    if (!code || code.length !== 6) {
+      showToast('请输入6位验证码')
       return
     }
 
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      let result
       if (mode === 'login') {
-        router.push('/onboarding')
+        try {
+          result = await smsLogin(phone, code)
+        } catch (loginErr: any) {
+          // 如果登录时手机号未注册，自动切换到注册模式
+          if (loginErr.message && loginErr.message.includes('未注册')) {
+            showToast('该手机号未注册，请先注册')
+            setMode('register')
+            setLoading(false)
+            return
+          }
+          throw loginErr
+        }
       } else {
-        showToast('注册成功，即将跳转...')
-        setTimeout(() => router.push('/onboarding'), 800)
+        result = await smsRegister(phone, code, name)
       }
-    }, 850)
+
+      // 保存 token 和用户信息
+      setToken(result.token)
+      setUser(result.user)
+
+      showToast(mode === 'login' ? '登录成功' : '注册成功')
+      setTimeout(() => router.push('/onboarding'), 500)
+    } catch (err: any) {
+      showToast(err.message || '操作失败')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const isLogin = mode === 'login'
@@ -182,7 +236,7 @@ export default function AuthPage() {
         <aside className="login-card">
           <h2 className="login-title">{isLogin ? '欢迎回来' : '创建账号'}</h2>
           <p className="login-sub">
-            {isLogin ? '登录继续你的个性化学习之旅' : '注册后开启你的个性化学习之旅'}
+            {isLogin ? '使用手机号登录继续你的学习之旅' : '注册后开启你的个性化学习之旅'}
           </p>
 
           {/* Tabs */}
@@ -192,7 +246,7 @@ export default function AuthPage() {
               type="button"
               role="tab"
               aria-selected={isLogin}
-              onClick={() => setMode('login')}
+              onClick={() => { setMode('login'); setCodeSent(false); setCode('') }}
             >
               登录
             </button>
@@ -201,7 +255,7 @@ export default function AuthPage() {
               type="button"
               role="tab"
               aria-selected={!isLogin}
-              onClick={() => setMode('register')}
+              onClick={() => { setMode('register'); setCodeSent(false); setCode('') }}
             >
               注册
             </button>
@@ -210,72 +264,58 @@ export default function AuthPage() {
           {/* Form */}
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="field">
-              <Mail className="field-icon" size={18} strokeWidth={2} />
+              <Smartphone className="field-icon" size={18} strokeWidth={2} />
               <input
-                type="email"
-                placeholder="请输入邮箱"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="tel"
+                placeholder="请输入手机号"
+                autoComplete="tel"
+                maxLength={11}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
               />
-            </div>
-
-            <div className="field">
-              <Lock className="field-icon" size={18} strokeWidth={2} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="请输入密码"
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                className="eye-btn"
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label="显示或隐藏密码"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
             </div>
 
             {!isLogin && (
               <div className="field">
-                <Lock className="field-icon" size={18} strokeWidth={2} />
+                <svg className="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width="18" height="18">
+                  <circle cx="12" cy="8" r="3.5" />
+                  <path d="M5 21a7 7 0 0 1 14 0" />
+                </svg>
                 <input
-                  type={showConfirm ? 'text' : 'password'}
-                  placeholder="请再次输入密码"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  type="text"
+                  placeholder="请输入昵称（选填）"
+                  maxLength={50}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
-                <button
-                  className="eye-btn"
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  aria-label="显示或隐藏确认密码"
-                >
-                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
               </div>
             )}
 
+            <div className="field code-field">
+              <KeyRound className="field-icon" size={18} strokeWidth={2} />
+              <input
+                type="text"
+                placeholder="请输入6位验证码"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+              />
+              <button
+                className="send-code-btn"
+                type="button"
+                onClick={handleSendCode}
+                disabled={loading || countdown > 0}
+              >
+                {countdown > 0 ? `${countdown}s` : (codeSent ? '重新发送' : '获取验证码')}
+              </button>
+            </div>
+
             <div className="form-row">
               <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                />
-                <span>记住我</span>
+                <input type="checkbox" defaultChecked />
+                <span>记住登录状态</span>
               </label>
-              <button
-                className="forgot-btn"
-                type="button"
-                onClick={() => showToast('密码找回暂未接入，请联系老师或管理员。')}
-              >
-                忘记密码？
-              </button>
             </div>
 
             <button className="submit-btn" type="submit" disabled={loading}>
