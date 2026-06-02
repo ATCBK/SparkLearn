@@ -207,20 +207,7 @@ export default function GeneratePage() {
         type,
         effectivePrompt,
         selectedKnowledge,
-        type === 'video' ? {
-          durationSec: videoDuration,
-          targetLevel: videoLevel,
-          styleId: videoStyleId,
-          onEvent: (evt) => {
-            if (evt.type === 'progress') {
-              const msg = String(evt.payload.message || '')
-              if (msg) setSseMessages(prev => [...prev, msg])
-            }
-            if (evt.type === 'error') {
-              setGenerateError(String(evt.payload.message || '视频生成失败'))
-            }
-          },
-        } : undefined,
+        type === 'video' ? getVideoOptions() : undefined,
       )
       setResource(res)
       setStep(4)
@@ -245,6 +232,24 @@ export default function GeneratePage() {
       setPolishError(ex instanceof Error ? ex.message : '润色失败')
     } finally {
       setPolishing(false)
+    }
+  }
+
+  // 确保 styleId 被正确传递
+  function getVideoOptions() {
+    return {
+      durationSec: videoDuration,
+      targetLevel: videoLevel,
+      styleId: videoStyleId,
+      onEvent: (evt: { type: string; payload: Record<string, unknown> }) => {
+        if (evt.type === 'progress') {
+          const msg = String(evt.payload.message || '')
+          if (msg) setSseMessages(prev => [...prev, msg])
+        }
+        if (evt.type === 'error') {
+          setGenerateError(String(evt.payload.message || '视频生成失败'))
+        }
+      },
     }
   }
 

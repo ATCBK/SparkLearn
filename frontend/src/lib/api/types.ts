@@ -464,6 +464,8 @@ export interface VideoPolishResult {
   script_outline: VideoScriptSegment[]
   estimated_duration_sec: number
   voice: string
+  style_id?: string
+  style_name?: string
 }
 
 export interface VideoGenerateOptions {

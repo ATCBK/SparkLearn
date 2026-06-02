@@ -106,6 +106,7 @@ def init_db() -> None:
               sender_role TEXT NOT NULL,
               content TEXT NOT NULL,
               file_ids TEXT DEFAULT '[]',
+              meta_json TEXT DEFAULT '{}',
               created_at TEXT NOT NULL
             );
 
@@ -379,6 +380,7 @@ def init_db() -> None:
         )
 
         _ensure_student_columns(conn)
+        _ensure_tutor_messages_columns(conn)
 
         timestamp = now_iso()
         conn.execute(
@@ -434,6 +436,12 @@ def _ensure_student_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE students ADD COLUMN avatar TEXT DEFAULT ''")
     if 'last_login_at' not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN last_login_at TEXT DEFAULT ''")
+
+
+def _ensure_tutor_messages_columns(conn: sqlite3.Connection) -> None:
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(tutor_messages)').fetchall()}
+    if 'meta_json' not in columns:
+        conn.execute("ALTER TABLE tutor_messages ADD COLUMN meta_json TEXT DEFAULT '{}'")
 
 
 def _seed_mastery(conn: sqlite3.Connection) -> None:

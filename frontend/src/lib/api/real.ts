@@ -83,6 +83,35 @@ function toResource(raw: any): Resource {
   }
 }
 
+// ─── Auth API ──────────────────────────────────────────────────────────────
+
+export async function sendSmsCode(phone: string, mode: 'login' | 'register'): Promise<void> {
+  await fetchJson('/api/auth/sms/send', {
+    method: 'POST',
+    body: JSON.stringify({ phone, mode }),
+  })
+}
+
+export async function checkPhoneRegistered(phone: string): Promise<{ registered: boolean }> {
+  return fetchJson<{ registered: boolean }>(`/api/auth/phone/check?phone=${encodeURIComponent(phone)}`)
+}
+
+export async function smsLogin(phone: string, code: string): Promise<{ token: string; user: { id: string; name: string; phone: string } }> {
+  return fetchJson('/api/auth/sms/login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code }),
+  })
+}
+
+export async function smsRegister(phone: string, code: string, name?: string): Promise<{ token: string; user: { id: string; name: string; phone: string } }> {
+  return fetchJson('/api/auth/sms/register', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code, name }),
+  })
+}
+
+// ─── Tasks API ─────────────────────────────────────────────────────────────
+
 export async function getTodayTasks(): Promise<Task[]> {
   return fetchJson('/api/tasks/today')
 }
@@ -246,10 +275,20 @@ export async function downloadResourceSource(resourceId: string): Promise<void> 
   window.URL.revokeObjectURL(obj)
 }
 
-export async function generateResource(type: Resource['type'], prompt: string, knowledgeFileIds: number[] = []): Promise<Resource> {
+export async function generateResource(
+  type: Resource['type'],
+  prompt: string,
+  knowledgeFileIds: number[] = [],
+  videoOptions?: {
+    durationSec?: number
+    targetLevel?: string
+    styleId?: string
+    onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
+  },
+): Promise<Resource> {
   // 视频类型走专用生成管线
   if (type === 'video') {
-    return generateVideo(prompt)
+    return generateVideo(prompt, videoOptions)
   }
 
   const events = await readSSE('/api/resources/generate', { type, prompt, knowledge_file_ids: knowledgeFileIds })
@@ -1128,17 +1167,24 @@ export async function downloadVideoArtifact(videoId: string, type: 'mp4' | 'audi
   window.URL.revokeObjectURL(a.href)
 }
 
-export async function polishVideoPrompt(prompt: string, durationSec: number = 90): Promise<{
+export async function polishVideoPrompt(
+  prompt: string,
+  durationSec: number = 90,
+  targetLevel: string = 'beginner',
+  styleId: string = 'apple-minimal',
+): Promise<{
   polishId: string
   title: string
   polishedPrompt: string
   scriptOutline: Array<{ segment_id: string; title: string; narration: string; visual_hint: string; duration_ms?: number }>
   estimatedDurationSec: number
   voice: string
+  styleId: string
+  styleName: string
 }> {
   const data = await fetchJson<any>('/api/video/polish', {
     method: 'POST',
-    body: JSON.stringify({ prompt, duration_sec: durationSec }),
+    body: JSON.stringify({ prompt, duration_sec: durationSec, target_level: targetLevel, style_id: styleId }),
   })
   return {
     polishId: data.polish_id,
@@ -1147,15 +1193,27 @@ export async function polishVideoPrompt(prompt: string, durationSec: number = 90
     scriptOutline: data.script_outline || [],
     estimatedDurationSec: data.estimated_duration_sec || durationSec,
     voice: data.voice || '',
+    styleId: data.style_id || styleId,
+    styleName: data.style_name || styleId,
   }
 }
 
 export async function generateVideo(
   prompt: string,
-  onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void,
+  options?: {
+    durationSec?: number
+    targetLevel?: string
+    styleId?: string
+    onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
+  },
 ): Promise<Resource> {
+  const durationSec = options?.durationSec ?? 90
+  const targetLevel = options?.targetLevel ?? 'beginner'
+  const styleId = options?.styleId ?? 'apple-minimal'
+  const onEvent = options?.onEvent
+
   // Step 1: Polish the prompt into a script
-  const polish = await polishVideoPrompt(prompt)
+  const polish = await polishVideoPrompt(prompt, durationSec, targetLevel, styleId)
 
   // Step 2: Create a video generation job
   const job = await fetchJson<any>('/api/video/jobs', {
@@ -1166,6 +1224,9 @@ export async function generateVideo(
       title: polish.title,
       script_outline: polish.scriptOutline,
       video_provider: 'html_ppt',
+      style_id: styleId,
+      target_level: targetLevel,
+      duration_sec: durationSec,
     }),
   })
 

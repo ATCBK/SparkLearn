@@ -114,6 +114,7 @@ def init_db() -> None:
                 sender_role VARCHAR(20) NOT NULL,
                 content TEXT NOT NULL,
                 file_ids JSONB DEFAULT '[]',
+                meta_json JSONB DEFAULT '{}',
                 created_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
 
@@ -387,6 +388,7 @@ def init_db() -> None:
         )
 
         _ensure_student_columns(cursor)
+        _ensure_tutor_messages_columns(cursor)
 
         timestamp = now_iso()
         cursor.execute(
@@ -462,6 +464,15 @@ def _ensure_student_columns(cursor) -> None:
     """)
     if not cursor.fetchone():
         cursor.execute("ALTER TABLE students ADD COLUMN last_login_at TIMESTAMP")
+
+
+def _ensure_tutor_messages_columns(cursor) -> None:
+    cursor.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'tutor_messages' AND column_name = 'meta_json'
+    """)
+    if not cursor.fetchone():
+        cursor.execute("ALTER TABLE tutor_messages ADD COLUMN meta_json JSONB DEFAULT '{}'")
 
 
 def _seed_mastery(cursor) -> None:
