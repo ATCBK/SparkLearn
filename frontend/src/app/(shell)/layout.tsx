@@ -3,13 +3,29 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, LogOut } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { AIAssistant } from '@/components/layout/AIAssistant'
 import { MOBILE_TABS, PAGE_META } from '@/components/layout/navigation'
 import { GenerationTaskProvider } from '@/components/providers/GenerationTaskProvider'
 import { useBreakpoint } from '@/lib/hooks/useMediaQuery'
+import { isAuthenticated } from '@/lib/auth'
+
+function useAuthGuard() {
+  const router = useRouter()
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace('/auth')
+    } else {
+      setChecked(true)
+    }
+  }, [router])
+
+  return checked
+}
 
 function MobileTopbar() {
   const pathname = usePathname()
@@ -85,9 +101,12 @@ export default function ShellLayout({
 }: {
   children: React.ReactNode
 }) {
+  const authed = useAuthGuard()
   const { isMobile } = useBreakpoint()
   const [sidebarState, setSidebarState] = useState<'expanded' | 'icons' | 'collapsed'>('expanded')
   const sidebarWidth = sidebarState === 'expanded' ? 220 : sidebarState === 'icons' ? 74 : 0
+
+  if (!authed) return null
 
   if (isMobile) {
     return (
