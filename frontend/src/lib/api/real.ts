@@ -6,17 +6,27 @@ import type {
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
 } from './types'
+import { getToken } from '../auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 type ApiResp<T> = { success: boolean; data: T; error?: string }
 type SseEvent = { type: string; payload: Record<string, unknown> }
 
+function _authHeaders(): Record<string, string> {
+  const token = getToken()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+      headers: { ..._authHeaders(), ...(init?.headers || {}) },
     })
     const json = await res.json() as ApiResp<T> & { detail?: unknown }
     if (!res.ok || !json.success) {
@@ -43,7 +53,7 @@ async function readSSE(
 ) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: _authHeaders(),
     body: JSON.stringify(body),
   })
   if (!res.body) throw new Error('流式响应体为空')
