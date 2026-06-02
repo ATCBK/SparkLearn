@@ -1,109 +1,80 @@
-const TOKEN_KEY = 'sparklearn_token'
-const USER_KEY = 'sparklearn_user'
+/**
+ * 前端认证工具
+ * 管理 JWT token 的存储、读取和验证
+ */
+
+const TOKEN_KEY = 'sparklearn_token';
+const USER_KEY = 'sparklearn_user';
 
 export interface AuthUser {
-  user_id?: string
-  name: string
-  phone?: string
-  email?: string
-  loginAt?: string
+  user_id: string;
+  name: string;
+  phone: string;
 }
 
 export function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(TOKEN_KEY)
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(TOKEN_KEY, token)
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function removeToken(): void {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }
 
 export function getUser(): AuthUser | null {
-  if (typeof window === 'undefined') return null
-  const raw = localStorage.getItem(USER_KEY)
-  if (!raw) return null
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
   try {
-    return JSON.parse(raw) as AuthUser
+    return JSON.parse(raw);
   } catch {
-    return null
+    return null;
   }
 }
 
 export function setUser(user: AuthUser): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(USER_KEY, JSON.stringify(user))
-}
-
-function base64UrlEncode(value: object): string {
-  const json = JSON.stringify(value)
-  const bytes = new TextEncoder().encode(json)
-  let binary = ''
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte)
-  })
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
-}
-
-export function createMockAuthSession(
-  phone: string = '13800000000',
-  name: string = '模拟用户',
-): { token: string; user: AuthUser } {
-  const now = Math.floor(Date.now() / 1000)
-  const user = {
-    user_id: 'single_user',
-    phone,
-    name,
-    loginAt: new Date().toISOString(),
-  }
-  const token = [
-    base64UrlEncode({ alg: 'HS256', typ: 'JWT' }),
-    base64UrlEncode({ sub: user.user_id, name, phone, iat: now, exp: now + 72 * 60 * 60 }),
-    'mock-signature',
-  ].join('.')
-
-  setToken(token)
-  setUser(user)
-  localStorage.setItem('sparklearn_profile_needs_recapture', 'true')
-  return { token, user }
-}
-
-export function isTokenExpired(): boolean {
-  const token = getToken()
-  if (!token) return true
-  const payloadPart = token.split('.')[1]
-  if (!payloadPart) return false
-
-  try {
-    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
-    const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0))
-    const payload = JSON.parse(new TextDecoder().decode(bytes)) as { exp?: number }
-    return payload.exp ? Date.now() >= payload.exp * 1000 : false
-  } catch {
-    return false
-  }
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function isAuthenticated(): boolean {
-  const token = getToken()
-  if (!token) return false
+  const token = getToken();
+  if (!token) return false;
+  // 检查 token 是否过期
   if (isTokenExpired()) {
-    removeToken()
-    return false
+    // token 已过期，清除登录状态
+    removeToken();
+    return false;
   }
-  return true
+  return true;
 }
 
+/**
+ * 检查 token 是否过期（基于 JWT payload 的 exp 字段）
+ */
+export function isTokenExpired(): boolean {
+  const token = getToken();
+  if (!token) return true;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp = payload.exp * 1000; // 转为毫秒
+    return Date.now() >= exp;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * 登出并跳转到登录页
+ */
 export function logout(): void {
-  removeToken()
+  removeToken();
   if (typeof window !== 'undefined') {
-    window.location.href = '/auth'
+    window.location.href = '/auth';
   }
 }

@@ -332,7 +332,8 @@
 
 .auth-form input[type="email"],
 .auth-form input[type="password"],
-.auth-form input[type="text"] {
+.auth-form input[type="text"],
+.auth-form input[type="tel"] {
   width: 100%;
   height: 46px;
   border: 1px solid #d8e4f2;
@@ -343,6 +344,44 @@
   padding: 0 46px;
   font-size: 14px;
   transition: .18s ease;
+}
+
+/* 验证码输入行 */
+.code-field {
+  display: flex;
+  align-items: center;
+}
+
+.code-field input {
+  flex: 1;
+  padding-right: 120px;
+}
+
+.send-code-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #075ff0, #5aa2ff);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .18s ease;
+}
+
+.send-code-btn:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(11, 95, 240, .3);
+}
+
+.send-code-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
 }
 
 .auth-form input::placeholder {
