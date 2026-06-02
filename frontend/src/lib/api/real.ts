@@ -103,7 +103,7 @@ export async function sendSmsCode(phone: string, mode: 'login' | 'register'): Pr
 }
 
 export async function checkPhoneRegistered(phone: string): Promise<{ registered: boolean }> {
-  return fetchJson<{ registered: boolean }>(`/api/auth/phone/check?phone=${encodeURIComponent(phone)}`)
+  return fetchJson(`/api/auth/check-phone/${phone}`)
 }
 
 export async function smsLogin(phone: string, code: string): Promise<{ token: string; user: { id: string; name: string; phone: string } }> {
