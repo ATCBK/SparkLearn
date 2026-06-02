@@ -25,6 +25,59 @@ class VideoAIScriptError(RuntimeError):
     pass
 
 
+def _style_content_guidance(style_id: str) -> str:
+    """Generate per-style content guidance for the AI prompt.
+
+    Five dimensions: wording, metaphor, visual, code, hook.
+    Eight quality rules apply universally.
+    """
+    guidance_map = {
+        "apple-minimal": (
+            "【措辞】简洁克制，每页不超过3个要点，用「我们」拉近距离。"
+            "【隐喻】用「工具箱」「流水线」「开关」等工业设计类比喻。"
+            "【视觉】白底大图，文字极简，留白充足，强调单一焦点。"
+            "【代码】展示最小可行示例，不展开无关细节。"
+            "【引入】从一个具体的任务场景直接切入，不铺垫。"
+        ),
+        "dark-tech": (
+            "【措辞】直接、技术化，可用「注意」「关键」「核心」等强调词。"
+            "【隐喻】用「引擎」「管线」「信号」「堆栈」等工程隐喻。"
+            "【视觉】深色终端风格，代码是主角，注释用亮色标注。"
+            "【代码】展开关键实现细节，配合行内注释逐步解析。"
+            "【引入】从一段输出结果或错误信息倒推原理。"
+        ),
+        "warm-education": (
+            "【措辞】像老师一对一辅导，用「别担心」「慢慢来」「很好，你已经……」等鼓励语。"
+            "【隐喻】用「做菜」「搭积木」「寄快递」等生活化类比。"
+            "【视觉】暖色卡片，圆角按钮，步骤用大数字标记。"
+            "【代码】先给完整可运行的小例子，再逐步解释每一行。"
+            "【引入】先说「你是不是经常遇到这个问题？」唤醒共鸣。"
+        ),
+        "business-pro": (
+            "【措辞】正式、结构化，用「我们将……」「关键结论」「落地建议」等商务用语。"
+            "【隐喻】用「供应链」「决策树」「仪表盘」等管理类比喻。"
+            "【视觉】深蓝专业感，数据用图表呈现，逻辑用箭头连接。"
+            "【代码】强调工程最佳实践、性能考量、可维护性。"
+            "【引入】先展示业务场景和KPI目标,再引出技术方案。"
+        ),
+        "cartoon-playful": (
+            "【措辞】活泼、拟人化，用「小变量」「函数小助手」「循环大冒险」等角色化表达。"
+            "【隐喻】用「魔法咒语」「探险地图」「通关秘籍」等游戏化类比。"
+            "【视觉】多彩渐变背景，大圆角气泡卡片，表情符号点缀。"
+            "【代码】用故事串联代码片段，每一步都是「关卡」。"
+            "【引入】「嘿！准备好今天的编程冒险了吗？」"
+        ),
+        "academic": (
+            "【措辞】严谨、定义先行，用「根据……」「定理」「推论」等学术用语。"
+            "【隐喻】用数学归纳、逻辑推导替代类比，保持知识密度。"
+            "【视觉】米色学术底色，衬线字体标题，公式居中对齐。"
+            "【代码】先给形式化定义，再给具体实现，最后分析复杂度。"
+            "【引入】「我们先回顾一下前置知识……」建立知识锚点。"
+        ),
+    }
+    return guidance_map.get(style_id, guidance_map["apple-minimal"])
+
+
 def generate_video_script_with_ai(
     prompt: str,
     duration_sec: int,
@@ -58,16 +111,25 @@ def expected_slide_types(duration_sec: int) -> list[str]:
 
 
 def _call_openai_compatible(prompt: str, duration_sec: int, target_level: str, style: str) -> dict[str, Any]:
-    if not settings.video_ai_api_key or not settings.video_ai_model:
-        raise VideoAIScriptError("video_ai_api_key or video_ai_model is empty")
+    if not settings.video_ai_base_url or not settings.video_ai_base_url.startswith("http"):
+        raise VideoAIScriptError("未配置视频 AI 服务商地址，请在后台设置中配置 OpenAI 兼容接口或 Agent 地址。")
+    if not settings.video_ai_api_key:
+        raise VideoAIScriptError("API 认证失败，请检查后台配置的 API Key 是否有效。")
+    if not settings.video_ai_model:
+        raise VideoAIScriptError("未配置 AI 模型名称，请在后台设置中指定模型。")
 
     base_url = settings.video_ai_base_url.rstrip("/")
     chat_path = "/" + settings.video_ai_chat_path.strip("/")
     url = f"{base_url}{chat_path}"
+
+    # Dynamic timeout & token budget: longer videos need more time and output tokens.
+    dynamic_timeout = max(settings.video_ai_timeout_sec, int(duration_sec * 1.2))
+    dynamic_max_tokens = max(settings.video_ai_max_tokens, int(settings.video_ai_max_tokens * (duration_sec / 60)))
+
     payload = {
         "model": settings.video_ai_model,
         "temperature": settings.video_ai_temperature,
-        "max_tokens": settings.video_ai_max_tokens,
+        "max_tokens": dynamic_max_tokens,
         "response_format": {"type": "json_object"},
         "messages": [
             {
@@ -84,20 +146,46 @@ def _call_openai_compatible(prompt: str, duration_sec: int, target_level: str, s
         ],
     }
     headers = {"Authorization": f"Bearer {settings.video_ai_api_key}", "Content-Type": "application/json"}
-    with httpx.Client(timeout=settings.video_ai_timeout_sec) as client:
-        response = client.post(url, headers=headers, json=payload)
-        if response.status_code >= 400:
-            payload.pop("response_format", None)
+    try:
+        with httpx.Client(timeout=dynamic_timeout) as client:
             response = client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
+            if response.status_code >= 400:
+                payload.pop("response_format", None)
+                response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+    except httpx.TimeoutException:
+        raise VideoAIScriptError(
+            f"AI 模型调用超时（{dynamic_timeout} 秒），视频时长越长脚本越复杂，可考虑缩短视频时长或更换更快的模型重试。"
+        )
+    except httpx.HTTPStatusError as ex:
+        status = ex.response.status_code
+        if status == 401 or status == 403:
+            raise VideoAIScriptError("API 认证失败，请检查后台配置的 API Key 是否有效。")
+        if status == 429:
+            raise VideoAIScriptError("API 请求过于频繁，请稍后重试。")
+        if status >= 500:
+            raise VideoAIScriptError(f"AI 服务暂时不可用（{status}），请稍后重试。")
+        raise VideoAIScriptError(f"AI 调用失败（HTTP {status}），请检查服务配置。")
+    except httpx.ConnectError:
+        raise VideoAIScriptError(
+            f"无法连接到 AI 服务 ({base_url})，请检查网络连接和服务地址是否正确。"
+        )
+    except httpx.RequestError as ex:
+        raise VideoAIScriptError(f"AI 服务请求失败：{ex}")
+
     data = response.json()
     content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-    return _loads_json_object(content)
+    try:
+        return _loads_json_object(content)
+    except VideoAIScriptError:
+        raise
+    except Exception as ex:
+        raise VideoAIScriptError(f"AI 返回内容解析失败：{ex}")
 
 
 def _call_agent_http(prompt: str, duration_sec: int, target_level: str, style: str) -> dict[str, Any]:
     if not settings.video_ai_agent_url:
-        raise VideoAIScriptError("video_ai_agent_url is empty")
+        raise VideoAIScriptError("未配置视频 AI Agent 地址，请在后台设置中配置 Agent HTTP 地址。")
 
     headers = {"Content-Type": "application/json"}
     if settings.video_ai_agent_token:
@@ -111,21 +199,47 @@ def _call_agent_http(prompt: str, duration_sec: int, target_level: str, style: s
         "slide_types": expected_slide_types(duration_sec),
         "schema": _schema_contract(),
     }
-    with httpx.Client(timeout=settings.video_ai_timeout_sec) as client:
-        response = client.post(settings.video_ai_agent_url, headers=headers, json=payload)
-        response.raise_for_status()
-    return _loads_json_object(response.text)
+    try:
+        with httpx.Client(timeout=settings.video_ai_timeout_sec) as client:
+            response = client.post(settings.video_ai_agent_url, headers=headers, json=payload)
+            response.raise_for_status()
+    except httpx.TimeoutException:
+        raise VideoAIScriptError(
+            f"Agent 调用超时（{settings.video_ai_timeout_sec} 秒），请稍后重试或检查 Agent 服务状态。"
+        )
+    except httpx.HTTPStatusError as ex:
+        status = ex.response.status_code
+        if status == 401 or status == 403:
+            raise VideoAIScriptError("Agent 认证失败，请检查后台配置的 Agent Token 是否有效。")
+        if status >= 500:
+            raise VideoAIScriptError(f"Agent 服务暂时不可用（{status}），请稍后重试。")
+        raise VideoAIScriptError(f"Agent 调用失败（HTTP {status}），请检查服务配置。")
+    except httpx.ConnectError:
+        raise VideoAIScriptError(
+            f"无法连接到 Agent 服务 ({settings.video_ai_agent_url})，请检查网络连接和服务地址。"
+        )
+    except httpx.RequestError as ex:
+        raise VideoAIScriptError(f"Agent 服务请求失败：{ex}")
+
+    try:
+        return _loads_json_object(response.text)
+    except VideoAIScriptError:
+        raise
+    except Exception as ex:
+        raise VideoAIScriptError(f"Agent 返回内容解析失败：{ex}")
 
 
 def _script_prompt(prompt: str, duration_sec: int, target_level: str, style: str) -> str:
     slide_types = expected_slide_types(duration_sec)
+    style_guidance = _style_content_guidance(style)
     return json.dumps(
         {
-            "task": "根据用户主题生成动态微课视频脚本，不要复用固定模板文案。",
+            "task": "根据用户主题生成动态微课视频脚本，严格按照风格指引撰写每一页内容。",
             "topic": prompt,
             "duration_sec": duration_sec,
             "target_level": target_level,
             "style": style,
+            "style_guidance": style_guidance,
             "required_slide_types": slide_types,
             "output_language": "zh-CN",
             "contract": _schema_contract(),
@@ -135,6 +249,9 @@ def _script_prompt(prompt: str, duration_sec: int, target_level: str, style: str
                 "code 页如主题不适合代码，可给最小案例、公式或伪代码。",
                 "quiz 页必须给 interaction 和 answer。",
                 "mistake 页必须给 mistake 和 answer。",
+                "措辞和语调必须严格遵循 style_guidance 中的指引。",
+                "比喻和视觉描述必须与风格一致，不同风格产出应明显不同。",
+                "代码示例的风格和复杂度必须匹配目标难度级别。",
             ],
         },
         ensure_ascii=False,

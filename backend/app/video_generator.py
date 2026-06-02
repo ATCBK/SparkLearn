@@ -37,11 +37,12 @@ def make_polished_script(
     prompt: str,
     duration_sec: int = 90,
     target_level: str = "beginner",
-    style: str = "清晰、生动、适合课堂讲解",
+    style: str = "apple-minimal",
 ) -> dict[str, Any]:
     clean_prompt = " ".join(prompt.strip().split()) or "Python 基础知识讲解"
     polish_id = _make_polish_id(clean_prompt, duration_sec, target_level, style)
-    ai_error = ""
+    style_config = _get_style_config(style)
+
     try:
         ai_script = generate_video_script_with_ai(clean_prompt, duration_sec, target_level, style)
         return {
@@ -54,200 +55,11 @@ def make_polished_script(
             "content_source": "ai",
             "ai_provider": str(ai_script.get("ai_provider") or settings.video_ai_provider),
             "ai_model": str(ai_script.get("ai_model") or settings.video_ai_model),
+            "style_id": style,
+            "style_name": style_config.get("name", style),
         }
     except Exception as ex:
-        ai_error = str(ex)
-        if settings.video_ai_enabled and not settings.video_ai_fallback_enabled:
-            raise VideoAIScriptError(f"AI 视频脚本生成失败：{ai_error}") from ex
-
-    title = _make_title(clean_prompt)
-    templates = _lesson_templates(clean_prompt, target_level, style)
-    if duration_sec < 60:
-        selected_templates = [templates[0], templates[2], templates[3], templates[6], templates[-1]]
-    elif duration_sec < 120:
-        selected_templates = templates[:8] + [templates[-1]]
-    else:
-        selected_templates = templates
-
-    segment_duration = max(7, int(duration_sec / len(selected_templates)))
-
-    outline: list[dict[str, Any]] = []
-    for idx, template in enumerate(selected_templates, start=1):
-        narration = str(template["narration"])
-        outline.append(
-            {
-                "segment_id": f"seg_{idx:03d}",
-                "slide_type": template["slide_type"],
-                "title": template["title"],
-                "subtitle": template["subtitle"],
-                "slide_text": template["slide_text"],
-                "narration": narration,
-                "visual_hint": template["visual_hint"],
-                "teacher_note": template["teacher_note"],
-                "interaction": template.get("interaction", ""),
-                "code": template.get("code", ""),
-                "mistake": template.get("mistake", ""),
-                "answer": template.get("answer", ""),
-                "duration_ms": segment_duration * 1000,
-            }
-        )
-
-    return {
-        "polish_id": polish_id,
-        "title": title,
-        "polished_prompt": (
-            f"请生成一个约 {duration_sec} 秒的 1080p/30fps 学习讲解视频，主题为“{clean_prompt}”。"
-            f"面向 {target_level} 学习者，风格为{style}。输出分镜、讲稿、字幕和时间轴。"
-        ),
-        "script_outline": outline,
-        "estimated_duration_sec": duration_sec,
-        "voice": settings.xf_tts_default_voice,
-        "content_source": "local_fallback",
-        "ai_provider": str(settings.video_ai_provider),
-        "ai_model": str(settings.video_ai_model),
-        "ai_error": ai_error,
-    }
-
-
-def _lesson_templates(topic: str, target_level: str, style: str) -> list[dict[str, Any]]:
-    code_sample = _topic_code_sample(topic)
-    return [
-        {
-            "slide_type": "cover",
-            "title": _make_title(topic),
-            "subtitle": f"一节面向 {target_level} 学习者的 AI 微课",
-            "slide_text": ["先建立直觉", "再看关键规则", "最后用练习巩固"],
-            "visual_hint": "封面使用大标题、课程路径和轻量图形背景。",
-            "teacher_note": "开场要告诉学生这节课能解决什么具体困惑。",
-            "interaction": "你现在听到这个主题时，最容易卡住的是哪一点？",
-            "narration": (
-                f"欢迎来到这节关于{topic}的微课。我们不会一上来堆定义，而是先从一个问题出发，"
-                f"再用类比、图解和例子逐步拆开。学完后，你应该能说清它是什么、什么时候用，以及最容易错在哪里。"
-            ),
-        },
-        {
-            "slide_type": "goals",
-            "title": "本节课你会学会什么",
-            "subtitle": "把学习目标拆成三个可检查结果",
-            "slide_text": [f"说清 {topic} 的核心含义", "看懂一个最小示例", "避开一个常见误区"],
-            "visual_hint": "使用 checklist 和进度条表现学习目标。",
-            "teacher_note": "目标要可验证，避免只写理解、掌握这类空泛词。",
-            "interaction": "看完这三项目标，先选一个你最想解决的问题。",
-            "narration": (
-                f"这节课有三个目标。第一，你要能用自己的话解释{topic}。第二，你要能看懂一个最小示例，"
-                "知道每一步发生了什么。第三，你要能识别一个常见错误，避免以后写代码或做题时反复踩坑。"
-            ),
-        },
-        {
-            "slide_type": "hook",
-            "title": "先看一个真实问题",
-            "subtitle": "为什么这个知识点值得学",
-            "slide_text": ["如果只背定义，很快会忘", "如果知道它解决的问题，就容易迁移", "先问：它帮我们省掉了什么麻烦？"],
-            "visual_hint": "画面左侧展示困惑表情，右侧展示问题气泡。",
-            "teacher_note": "用问题驱动后续讲解，降低抽象感。",
-            "interaction": f"你觉得{topic}主要是为了解决记忆问题、表达问题，还是复用问题？",
-            "narration": (
-                f"学习{topic}时，很多同学会直接背定义，但背完很难用。更好的方式是先问："
-                "这个概念到底解决了什么麻烦？当我们知道它服务于哪个问题，后面的规则就不再是孤立的条文。"
-            ),
-        },
-        {
-            "slide_type": "concept",
-            "title": "一句话讲清核心概念",
-            "subtitle": "先抓主干，再补细节",
-            "slide_text": [f"{topic} 是用来组织和表达程序含义的工具", "核心不是记名字，而是理解关系", "先分清“是什么”和“怎么用”"],
-            "visual_hint": "中央概念卡片，周围三条关系箭头。",
-            "teacher_note": "概念页只放最关键的定义，细节留给后续页。",
-            "interaction": "请暂停 5 秒，用自己的话复述这一页的第一句话。",
-            "narration": (
-                f"我们先用一句话抓住{topic}：它是帮助我们组织和表达程序含义的工具。"
-                "注意，这里的重点不是记住一个术语，而是看清它和数据、操作、结果之间的关系。"
-            ),
-        },
-        {
-            "slide_type": "analogy",
-            "title": "用生活类比建立直觉",
-            "subtitle": "把抽象概念变成可想象的画面",
-            "slide_text": ["左边：生活中的标签、盒子、流程", "右边：程序里的名称、数据、执行", "类比只帮你入门，不能替代规则"],
-            "visual_hint": "左右分栏：生活场景 vs 程序世界。",
-            "teacher_note": "提醒学生类比有边界，避免类比误导。",
-            "interaction": "你还能为这个主题想出另一个生活类比吗？",
-            "narration": (
-                f"可以把{topic}先类比成生活中的标签和盒子：标签让我们快速找到东西，盒子保存具体内容。"
-                "在程序里，类似的结构帮助我们定位数据、组织操作。不过类比只是入口，真正写代码时还要回到语言规则。"
-            ),
-        },
-        {
-            "slide_type": "process",
-            "title": "把使用过程拆成三步",
-            "subtitle": "遇到题目时按步骤判断",
-            "slide_text": ["第 1 步：找到对象", "第 2 步：确定关系", "第 3 步：观察结果"],
-            "visual_hint": "三段式流程图，每一步有图标和箭头。",
-            "teacher_note": "流程页用于建立解题路径。",
-            "interaction": "下一次看到类似题目时，先别急着写答案，先按三步标注。",
-            "narration": (
-                f"使用{topic}时，可以拆成三步。第一步，找到正在处理的对象。第二步，确定对象之间的关系。"
-                "第三步，观察执行后的结果。这个三步法能帮你把模糊的理解变成可操作的判断。"
-            ),
-        },
-        {
-            "slide_type": "code",
-            "title": "看一个最小示例",
-            "subtitle": "代码越短，越容易看清本质",
-            "slide_text": ["先读代码，不急着运行", "关注每一行改变了什么", "把结果和概念对应起来"],
-            "visual_hint": "代码编辑器样式，右侧显示运行结果。",
-            "teacher_note": "代码示例只保留必要行，避免信息过载。",
-            "interaction": "运行前先预测输出结果，再对照答案。",
-            "code": code_sample,
-            "narration": (
-                "现在看一个最小示例。请先不要急着看答案，先逐行读代码：第一行创建或准备对象，"
-                "第二行使用它，最后一行观察结果。短代码的价值在于让我们把概念和执行结果一一对应起来。"
-            ),
-        },
-        {
-            "slide_type": "mistake",
-            "title": "常见误区：只看表面写法",
-            "subtitle": "错误通常来自把概念和语法混在一起",
-            "slide_text": ["误区：只记住写法", "后果：换个题目就不会", "修正：解释每一步为什么成立"],
-            "visual_hint": "错误卡片与正确卡片对比。",
-            "teacher_note": "这一页用于防止机械记忆。",
-            "interaction": "请找出你过去是否也只记过写法，而没有解释原因。",
-            "mistake": f"只背 {topic} 的固定写法，却说不清它解决的问题。",
-            "answer": "先说明对象、关系和结果，再写具体语法。",
-            "narration": (
-                f"学习{topic}最常见的误区，是只记表面写法。这样做短期看起来快，但只要题目稍微变化，"
-                "就很难迁移。更稳的方法是先解释对象、关系和结果，再把解释落到代码或题目步骤上。"
-            ),
-        },
-        {
-            "slide_type": "quiz",
-            "title": "小练习：马上判断一次",
-            "subtitle": "用一个问题检查是否真的理解",
-            "slide_text": [f"请用一句话解释 {topic}", "写出一个最小例子", "指出一个可能的错误理解"],
-            "visual_hint": "练习卡片，带倒计时和答案区域。",
-            "teacher_note": "练习不追求难，追求立刻反馈。",
-            "interaction": "暂停视频 20 秒，写下你的答案。",
-            "answer": f"参考答案：{topic} 不是孤立写法，而是帮助我们表达对象、关系和结果的工具。",
-            "narration": (
-                "现在做一个小练习。请暂停视频二十秒，用一句话解释这个主题，再写一个最小例子，"
-                "最后指出一个你认为容易误解的地方。能完成这三件事，说明你已经不只是听懂，而是开始会用了。"
-            ),
-        },
-        {
-            "slide_type": "summary",
-            "title": "三句话带走",
-            "subtitle": "把这节课压缩成可复习的结论",
-            "slide_text": [f"{topic} 要先理解问题，再记规则", "用类比建立直觉，用代码验证结果", "遇到新题时按对象、关系、结果三步分析"],
-            "visual_hint": "总结清单和下一步学习按钮。",
-            "teacher_note": "总结页要形成可复述的闭环。",
-            "interaction": "下一步：把今天的例子改一个条件，再预测结果。",
-            "narration": (
-                f"最后用三句话总结。第一，学习{topic}要先理解它解决的问题，再记规则。"
-                "第二，用类比建立直觉，但要用代码或题目验证结果。第三，遇到新题时按对象、关系、结果三步分析。"
-                f"如果你能做到这些，就已经从听懂{topic}走向会用了。"
-            ),
-        },
-    ]
+        raise VideoAIScriptError(f"AI 视频脚本生成失败：{ex}") from ex
 
 
 def _topic_code_sample(topic: str) -> str:
@@ -267,11 +79,15 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
     prompt = str(job.get("prompt") or "")
     title = str(job.get("title") or _make_title(prompt))
     script_outline = job.get("script_outline")
+    style_id = str(job.get("style_id") or job.get("styleId") or "apple-minimal")
+    style_config = _get_style_config(style_id)
+    style_name = style_config.get("name", style_id)
     generated_script: dict[str, Any] = {}
     if not isinstance(script_outline, list) or not script_outline:
-        generated_script = make_polished_script(prompt)
+        generated_script = make_polished_script(prompt, style=style_id)
         script_outline = generated_script.get("script_outline", [])
         title = str(generated_script.get("title") or title)
+        style_id = str(generated_script.get("style_id") or style_id)
     content_source = str(job.get("content_source") or generated_script.get("content_source") or "provided")
 
     root = artifact_dir(resource_id)
@@ -283,6 +99,8 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
         "content_source": content_source,
         "ai_provider": str(job.get("ai_provider") or generated_script.get("ai_provider") or settings.video_ai_provider),
         "ai_model": str(job.get("ai_model") or generated_script.get("ai_model") or settings.video_ai_model),
+        "style_id": style_id,
+        "style_name": style_name,
         "script_outline": script_outline,
     }
 
@@ -302,10 +120,10 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
     (root / "slides.json").write_text(json.dumps({"title": title, "slides": slides}, ensure_ascii=False, indent=2), encoding="utf-8")
     (root / "timeline.json").write_text(json.dumps(timeline, ensure_ascii=False, indent=2), encoding="utf-8")
     (root / "subtitle.srt").write_text(_to_srt(segments), encoding="utf-8")
-    (root / "slides.html").write_text(_slides_overview_html(title, slides), encoding="utf-8")
-    (root / "scene.html").write_text(_slides_overview_html(title, slides), encoding="utf-8")
+    (root / "slides.html").write_text(_slides_overview_html(title, slides, style_id), encoding="utf-8")
+    (root / "scene.html").write_text(_slides_overview_html(title, slides, style_id), encoding="utf-8")
 
-    slide_paths = _write_slide_html_files(root, title, slides)
+    slide_paths = _write_slide_html_files(root, title, slides, style_id)
     frame_result = (
         _render_slide_frames(root, slide_paths)
         if _find_ffmpeg()
@@ -337,9 +155,11 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
         "mux_status": mux_result["status"],
         "mux_message": mux_result["message"],
         "created_at": now_iso(),
-        "note": "V4 以 AI 动态教学脚本生成 HTML-PPT，逐页生成讲解音频，安装 FFmpeg 后会自动合成 output.mp4。",
-        "content_version": "v4",
+        "note": f"V5 纯 AI 管线 + 多风格渲染（{style_name}），逐页生成讲解音频，安装 FFmpeg 后自动合成 output.mp4。",
+        "content_version": "v5",
         "content_source": content_source,
+        "style_id": style_id,
+        "style_name": style_name,
     }
     if mux_result["ok"]:
         manifest["files"]["mp4"] = "output.mp4"
@@ -380,14 +200,14 @@ def _build_ppt_slides(title: str, segments: list[dict[str, Any]]) -> list[dict[s
     return slides
 
 
-def _write_slide_html_files(root: Path, title: str, slides: list[dict[str, Any]]) -> list[Path]:
+def _write_slide_html_files(root: Path, title: str, slides: list[dict[str, Any]], style_id: str = "apple-minimal") -> list[Path]:
     slides_dir = root / "slides"
     slides_dir.mkdir(parents=True, exist_ok=True)
     paths: list[Path] = []
     total = len(slides)
     for slide in slides:
         path = slides_dir / f"{slide['slide_id']}.html"
-        path.write_text(_single_slide_html(title, slide, total), encoding="utf-8")
+        path.write_text(_single_slide_html(title, slide, total, style_id), encoding="utf-8")
         paths.append(path)
     return paths
 
@@ -395,7 +215,25 @@ def _write_slide_html_files(root: Path, title: str, slides: list[dict[str, Any]]
 def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> dict[str, str]:
     audio_dir = root / "audio_segments"
     audio_dir.mkdir(parents=True, exist_ok=True)
-    used_provider = "xunfei_tts" if _has_xfyun_tts_config() else "windows_sapi"
+
+    # 根据 tts_provider 配置决定尝试顺序
+    provider = settings.tts_provider.lower()
+    if provider == "cosyvoice":
+        chain = ["cosyvoice"]
+    elif provider == "xfyun":
+        chain = ["xfyun"]
+    else:  # auto
+        chain = []
+        if _has_cosyvoice_config():
+            chain.append("cosyvoice")
+        if _has_xfyun_tts_config():
+            chain.append("xfyun")
+        chain.append("windows_sapi")
+
+    if "windows_sapi" not in chain:
+        chain.append("windows_sapi")
+
+    used_provider = chain[0] if chain else "tone_fallback"
     messages: list[str] = []
     segment_paths: list[Path] = []
     for idx, seg in enumerate(segments, start=1):
@@ -403,14 +241,16 @@ def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> di
         text = str(seg.get("narration") or seg.get("subtitle") or seg.get("title") or "")
         ok = False
         message = ""
-        if _has_xfyun_tts_config():
-            ok, message = _try_xfyun_tts_wav(wav_path, text)
-        if not ok:
-            sapi_ok, sapi_message = _try_windows_sapi_tts(wav_path, text)
-            ok = sapi_ok
-            message = message or sapi_message
-            if sapi_ok and used_provider != "xunfei_tts":
-                used_provider = "windows_sapi"
+        for p in chain:
+            if p == "cosyvoice":
+                ok, message = _try_cosyvoice_tts_wav(wav_path, text)
+            elif p == "xfyun":
+                ok, message = _try_xfyun_tts_wav(wav_path, text)
+            elif p == "windows_sapi":
+                ok, message = _try_windows_sapi_tts(wav_path, text)
+            if ok:
+                used_provider = p
+                break
         if not ok:
             used_provider = "tone_fallback"
             _write_tone_wav(wav_path, int(seg.get("end_ms", 0)) - int(seg.get("start_ms", 0)))
@@ -418,19 +258,60 @@ def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> di
         segment_paths.append(wav_path)
 
     _write_concat_wav(root / "narration.wav", segment_paths)
-    if used_provider == "xunfei_tts":
-        return {"provider": "xunfei_tts", "status": "completed", "message": "已用讯飞 TTS 生成逐页讲解 WAV。"}
-    if used_provider == "windows_sapi":
-        return {"provider": "windows_sapi", "status": "completed", "message": "已用 Windows SAPI 生成逐页讲解 WAV。"}
+    provider_messages = {
+        "cosyvoice": "已用阿里云 CosyVoice 生成逐页讲解 WAV。",
+        "xunfei_tts": "已用讯飞 TTS 生成逐页讲解 WAV。",
+        "windows_sapi": "已用 Windows SAPI 生成逐页讲解 WAV。",
+    }
+    if used_provider in provider_messages:
+        return {"provider": used_provider, "status": "completed", "message": provider_messages[used_provider]}
     return {
         "provider": "tone_fallback",
         "status": "fallback",
-        "message": "讯飞/系统语音不可用，已生成可播放提示音轨。 " + "；".join(messages[:2]),
+        "message": "所有 TTS 不可用，已生成可播放提示音轨。 " + "；".join(messages[:2]),
     }
+
+
+def _has_cosyvoice_config() -> bool:
+    return bool(settings.cosyvoice_api_key)
 
 
 def _has_xfyun_tts_config() -> bool:
     return bool(settings.xf_tts_app_id and settings.xf_tts_api_key and settings.xf_tts_api_secret)
+
+
+def _try_cosyvoice_tts_wav(path: Path, text: str) -> tuple[bool, str]:
+    """使用阿里云 CosyVoice 合成语音并写入 WAV 文件"""
+    if not text.strip():
+        return False, "讲稿为空。"
+    try:
+        import dashscope
+        from dashscope.audio.tts_v2 import SpeechSynthesizer, AudioFormat
+    except ImportError:
+        return False, "dashscope 库未安装。"
+
+    try:
+        dashscope.api_key = settings.cosyvoice_api_key
+        # 根据采样率选择对应的 AudioFormat 枚举
+        rate = settings.cosyvoice_sample_rate
+        fmt_name = f"WAV_{rate}HZ_MONO_16BIT"
+        audio_fmt = getattr(AudioFormat, fmt_name, AudioFormat.WAV_24000HZ_MONO_16BIT)
+
+        synthesizer = SpeechSynthesizer(
+            model=settings.cosyvoice_model,
+            voice=settings.cosyvoice_default_voice,
+            format=audio_fmt,
+            speech_rate=settings.cosyvoice_speech_rate,
+            pitch_rate=settings.cosyvoice_pitch_rate,
+            volume=int(settings.cosyvoice_volume * 50),
+        )
+        audio_bytes = synthesizer.call(text)
+        if not audio_bytes:
+            return False, "CosyVoice 未返回音频数据。"
+        path.write_bytes(audio_bytes)
+        return True, "ok"
+    except Exception as ex:
+        return False, f"CosyVoice 调用失败：{ex}"
 
 
 def _try_xfyun_tts_wav(path: Path, text: str) -> tuple[bool, str]:
@@ -443,16 +324,18 @@ def _try_xfyun_tts_wav(path: Path, text: str) -> tuple[bool, str]:
 
     try:
         auth_url = _build_xfyun_tts_url()
+        sample_rate = settings.xf_tts_sample_rate
+        auf = f"audio/L16;rate={sample_rate}"
         payload = {
             "common": {"app_id": settings.xf_tts_app_id},
             "business": {
                 "aue": "raw",
-                "auf": "audio/L16;rate=16000",
+                "auf": auf,
                 "vcn": settings.xf_tts_default_voice,
                 "tte": "utf8",
-                "speed": 50,
-                "volume": 60,
-                "pitch": 50,
+                "speed": settings.xf_tts_speed,
+                "volume": settings.xf_tts_volume,
+                "pitch": settings.xf_tts_pitch,
             },
             "data": {
                 "status": 2,
@@ -479,7 +362,7 @@ def _try_xfyun_tts_wav(path: Path, text: str) -> tuple[bool, str]:
                     break
         if not pcm:
             return False, "讯飞 TTS 未返回音频数据。"
-        _write_pcm_as_wav(path, bytes(pcm), sample_rate=16000)
+        _write_pcm_as_wav(path, bytes(pcm), sample_rate=sample_rate)
         return True, "ok"
     except Exception as ex:
         return False, f"讯飞 TTS 调用失败：{ex}"
@@ -645,6 +528,22 @@ def _make_title(prompt: str) -> str:
     return text[:18] + "..."
 
 
+def _get_style_config(style_id: str) -> dict[str, Any]:
+    styles = settings.video_styles
+    if isinstance(styles, dict) and style_id in styles:
+        return styles[style_id]
+    # fallback to apple-minimal
+    fallback = styles.get("apple-minimal", {}) if isinstance(styles, dict) else {}
+    return fallback if fallback else {
+        "id": "apple-minimal", "name": "苹果极简风",
+        "accent_color": "#0071e3",
+        "bg_gradient": "linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%)",
+        "font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif',
+        "code_bg": "#1d1d1f", "code_color": "#f5f5f7",
+        "card_bg": "rgba(255,255,255,.74)",
+    }
+
+
 def _make_polish_id(prompt: str, duration_sec: int, target_level: str, style: str) -> str:
     raw = f"{prompt}|{duration_sec}|{target_level}|{style}".encode("utf-8")
     digest = hashlib.sha1(raw).hexdigest()[:8]
@@ -770,27 +669,24 @@ def _try_mux_mp4(root: Path, segments: list[dict[str, Any]], frames: list[Path])
         cmd = [
             ffmpeg,
             "-y",
-            "-loop",
-            "1",
-            "-i",
-            str(frame),
-            "-i",
-            str(audio),
-            "-t",
-            f"{fallback_duration:.3f}",
-            "-r",
-            "30",
-            "-c:v",
-            "libx264",
-            "-pix_fmt",
-            "yuv420p",
-            "-c:a",
-            "aac",
-            "-movflags",
-            "+faststart",
+            "-loop", "1",
+            "-framerate", "30",
+            "-i", str(frame),
+            "-i", str(audio),
+            "-t", f"{fallback_duration:.3f}",
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "23",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-movflags", "+faststart",
+            "-shortest",
             str(part),
         ]
-        result = _run_ffmpeg(cmd)
+        # timeout scales with segment duration (min 120s, max 600s)
+        seg_timeout = max(120, int(fallback_duration * 4))
+        result = _run_ffmpeg(cmd, timeout=seg_timeout)
         if not result["ok"]:
             return result
         part_paths.append(part)
@@ -801,31 +697,11 @@ def _try_mux_mp4(root: Path, segments: list[dict[str, Any]], frames: list[Path])
     cmd = [
         ffmpeg,
         "-y",
-        "-safe",
-        "0",
-        "-i",
-        str(concat_file),
-        "-f",
-        "concat",
-        "-c",
-        "copy",
-        str(output),
-    ]
-    # The concat demuxer requires -f before -i. Keep the readable command above
-    # corrected before execution.
-    cmd = [
-        ffmpeg,
-        "-y",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        str(concat_file),
-        "-c",
-        "copy",
-        "-movflags",
-        "+faststart",
+        "-f", "concat",
+        "-safe", "0",
+        "-i", str(concat_file),
+        "-c", "copy",
+        "-movflags", "+faststart",
         str(output),
     ]
     result = _run_ffmpeg(cmd)
@@ -834,9 +710,11 @@ def _try_mux_mp4(root: Path, segments: list[dict[str, Any]], frames: list[Path])
     return {"ok": True, "status": "completed", "message": "已按 HTML-PPT 页面和逐页语音生成 output.mp4。"}
 
 
-def _run_ffmpeg(cmd: list[str]) -> dict[str, Any]:
+def _run_ffmpeg(cmd: list[str], timeout: int = 120) -> dict[str, Any]:
     try:
-        completed = subprocess.run(cmd, capture_output=True, text=True, timeout=120, check=False)
+        completed = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "status": "mux_failed", "message": f"FFmpeg 执行超时（{timeout} 秒），可尝试缩短视频时长或升级 CPU。"}
     except Exception as ex:
         return {"ok": False, "status": "mux_failed", "message": f"FFmpeg 调用失败：{ex}"}
 
@@ -893,18 +771,25 @@ def _scene_html(title: str, segments: list[dict[str, Any]]) -> str:
 </html>"""
 
 
-def _slides_overview_html(title: str, slides: list[dict[str, Any]]) -> str:
+def _slides_overview_html(title: str, slides: list[dict[str, Any]], style_id: str = "apple-minimal") -> str:
     sections = "".join(_slide_markup(slide, len(slides), overview=True) for slide in slides)
-    return _html_shell(title, f"<div class=\"deck\">{sections}</div>", overview=True)
+    return _html_shell(title, f"<div class=\"deck\">{sections}</div>", overview=True, style_id=style_id)
 
 
-def _single_slide_html(deck_title: str, slide: dict[str, Any], total: int) -> str:
-    return _html_shell(deck_title, _slide_markup(slide, total, overview=False), overview=False)
+def _single_slide_html(deck_title: str, slide: dict[str, Any], total: int, style_id: str = "apple-minimal") -> str:
+    return _html_shell(deck_title, _slide_markup(slide, total, overview=False), overview=False, style_id=style_id)
 
 
-def _html_shell(title: str, body: str, overview: bool) -> str:
-    wrapper_width = "min(1180px, calc(100vw - 48px))" if overview else "100vw"
-    wrapper_margin = "32px auto" if overview else "0"
+def _html_shell(title: str, body: str, overview: bool, style_id: str = "apple-minimal") -> str:
+    sc = _get_style_config(style_id)
+    accent = sc.get("accent_color", "#0071e3")
+    bg_gradient = sc.get("bg_gradient", "linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%)")
+    font_family = sc.get("font_family", '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif')
+    code_bg = sc.get("code_bg", "#1d1d1f")
+    code_color = sc.get("code_color", "#f5f5f7")
+    card_bg = sc.get("card_bg", "rgba(255,255,255,.74)")
+    wrapper_width = "min(1280px, calc(100vw - 56px))" if overview else "100vw"
+    wrapper_margin = "40px auto" if overview else "0"
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -912,35 +797,288 @@ def _html_shell(title: str, body: str, overview: bool) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{escape(title)}</title>
   <style>
-    * {{ box-sizing: border-box; }}
-    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; background: #eef3f8; color: #1d1d1f; }}
-    .deck {{ width: {wrapper_width}; margin: {wrapper_margin}; display: grid; gap: 22px; }}
-    .slide {{ position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #fbfbfd; border: 1px solid rgba(0,0,0,.06); box-shadow: 0 22px 70px rgba(24,38,63,.14); }}
-    .slide.single {{ width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; box-shadow: none; }}
-    .band {{ position: absolute; inset: 0; background: linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%); }}
-    .accent {{ position: absolute; right: -180px; top: -160px; width: 520px; height: 520px; border-radius: 999px; background: rgba(0,113,227,.12); }}
-    .content {{ position: relative; z-index: 1; height: 100%; padding: 70px 82px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 42px; align-items: center; }}
-    .content.full {{ grid-template-columns: 1fr; align-content: center; }}
-    .eyebrow {{ color: #0071e3; font-size: 24px; font-weight: 700; margin-bottom: 20px; }}
-    h1 {{ margin: 0; font-size: 70px; line-height: 1.05; letter-spacing: 0; }}
-    .subtitle {{ margin-top: 24px; color: #424245; font-size: 32px; line-height: 1.45; }}
-    ul {{ margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; }}
-    li {{ padding: 22px 24px; border-radius: 18px; background: rgba(255,255,255,.74); border: 1px solid rgba(0,0,0,.06); font-size: 27px; line-height: 1.45; color: #1d1d1f; }}
-    .hint {{ margin-top: 26px; color: #6e6e73; font-size: 22px; line-height: 1.5; }}
-    .panel {{ border-radius: 28px; padding: 28px; background: rgba(255,255,255,.72); border: 1px solid rgba(0,0,0,.07); box-shadow: 0 18px 48px rgba(24,38,63,.10); }}
-    .label {{ color: #0071e3; font-size: 20px; font-weight: 800; margin-bottom: 14px; }}
-    .code {{ margin: 0; white-space: pre-wrap; font-family: "Cascadia Code", Consolas, monospace; font-size: 28px; line-height: 1.55; color: #f5f5f7; background: #1d1d1f; border-radius: 22px; padding: 30px; }}
-    .compare {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
-    .box {{ min-height: 180px; border-radius: 22px; padding: 24px; background: rgba(255,255,255,.78); border: 1px solid rgba(0,0,0,.06); }}
-    .box strong {{ display: block; font-size: 24px; margin-bottom: 14px; }}
-    .box p {{ margin: 0; color: #424245; font-size: 28px; line-height: 1.45; }}
-    .steps {{ counter-reset: step; display: grid; gap: 18px; }}
-    .step {{ counter-increment: step; display: flex; align-items: center; gap: 18px; padding: 20px 22px; border-radius: 18px; background: rgba(255,255,255,.78); font-size: 28px; }}
-    .step::before {{ content: counter(step); display: grid; place-items: center; width: 42px; height: 42px; border-radius: 999px; background: #0071e3; color: white; font-weight: 800; font-size: 20px; }}
-    .question {{ font-size: 36px; line-height: 1.35; font-weight: 700; color: #1d1d1f; }}
-    .answer {{ margin-top: 22px; color: #6e6e73; font-size: 24px; line-height: 1.5; }}
-    .note {{ margin-top: 20px; padding: 18px 20px; border-radius: 16px; background: rgba(0,113,227,.08); color: #245; font-size: 21px; line-height: 1.5; }}
-    .footer {{ position: absolute; left: 88px; right: 88px; bottom: 42px; display: flex; justify-content: space-between; color: #86868b; font-size: 18px; }}
+    :root {{
+      --accent: {accent};
+      --accent-soft: {accent}18;
+      --bg-gradient: {bg_gradient};
+      --font: {font_family};
+      --code-bg: {code_bg};
+      --code-color: {code_color};
+      --card-bg: {card_bg};
+      --card-border: rgba(128,128,128,.12);
+      --text-primary: #1a1a2e;
+      --text-secondary: #52525b;
+      --text-muted: #8e8e93;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.04);
+      --shadow-md: 0 8px 30px rgba(0,0,0,.06);
+      --shadow-lg: 0 24px 80px rgba(0,0,0,.10);
+      --radius-sm: 14px;
+      --radius-md: 20px;
+      --radius-lg: 28px;
+    }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: var(--font);
+      background: #f0f2f5;
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }}
+    .deck {{
+      width: {wrapper_width};
+      margin: {wrapper_margin};
+      display: grid;
+      gap: 28px;
+      padding: {("40px 0" if overview else "0")};
+    }}
+
+    /* ── Slide Shell ───────────────────────────────────────── */
+    .slide {{
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #fafbfc;
+      border-radius: {("var(--radius-lg)" if overview else "0")};
+      border: {("1px solid var(--card-border)" if overview else "none")};
+      box-shadow: {("var(--shadow-lg)" if overview else "none")};
+      transition: transform .2s ease, box-shadow .2s ease;
+    }}
+    .slide:hover {{ transform: {"translateY(-4px)" if overview else "none"}; box-shadow: {("0 32px 100px rgba(0,0,0,.14)" if overview else "none")}; }}
+    .slide.single {{ width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; }}
+    .slide.single:hover {{ transform: none; box-shadow: none; }}
+
+    /* ── Background Layers ──────────────────────────────────── */
+    .band {{
+      position: absolute; inset: 0;
+      background: var(--bg-gradient);
+    }}
+    .mesh {{
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(circle at 15% 25%, var(--accent-soft) 0%, transparent 50%),
+        radial-gradient(circle at 78% 70%, var(--accent-soft) 0%, transparent 42%),
+        radial-gradient(circle at 50% 50%, rgba(200,210,220,.14) 0%, transparent 60%);
+    }}
+    .grid-overlay {{
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(128,128,128,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(128,128,128,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+    }}
+    .accent-blob {{
+      position: absolute;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .09;
+      filter: blur(80px);
+    }}
+    .accent-blob.top {{ right: -140px; top: -120px; width: 480px; height: 480px; }}
+    .accent-blob.bottom {{ left: -100px; bottom: -100px; width: 360px; height: 360px; }}
+
+    /* ── Content Layout ─────────────────────────────────────── */
+    .content {{
+      position: relative; z-index: 1;
+      height: 100%; padding: 64px 76px;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 48px; align-items: center;
+    }}
+    .content.full {{ grid-template-columns: 1fr; align-content: center; max-width: 900px; margin: 0 auto; }}
+
+    /* ── Typography ─────────────────────────────────────────── */
+    .eyebrow {{
+      display: inline-flex; align-items: center; gap: 10px;
+      color: var(--accent); font-size: 20px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 28px;
+    }}
+    .eyebrow::before {{
+      content: ""; display: block;
+      width: 32px; height: 3px; border-radius: 2px;
+      background: var(--accent);
+    }}
+    h1 {{
+      font-size: 68px; line-height: 1.08; letter-spacing: -.02em;
+      font-weight: 800; color: var(--text-primary);
+    }}
+    .subtitle {{
+      margin-top: 20px; color: var(--text-secondary);
+      font-size: 30px; line-height: 1.5; font-weight: 400;
+      max-width: 32em;
+    }}
+
+    /* ── Bullet List ────────────────────────────────────────── */
+    ul {{
+      margin: 0; padding: 0; list-style: none;
+      display: grid; gap: 16px;
+    }}
+    li {{
+      position: relative;
+      padding: 18px 20px 18px 48px;
+      border-radius: var(--radius-sm);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      font-size: 26px; line-height: 1.5; color: var(--text-primary);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }}
+    li:hover {{ transform: translateX(4px); box-shadow: var(--shadow-md); }}
+    li::before {{
+      content: "";
+      position: absolute; left: 18px; top: 28px;
+      width: 7px; height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+      opacity: .7;
+    }}
+    .hint {{
+      margin-top: 22px; color: var(--text-muted);
+      font-size: 20px; line-height: 1.6; font-style: italic;
+    }}
+
+    /* ── Panel / Card ───────────────────────────────────────── */
+    .panel {{
+      border-radius: var(--radius-md);
+      padding: 28px 30px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }}
+    .label {{
+      color: var(--accent); font-size: 19px; font-weight: 800;
+      letter-spacing: .04em; margin-bottom: 18px;
+      display: flex; align-items: center; gap: 10px;
+    }}
+    .label::after {{
+      content: "";
+      display: block; flex: 1; height: 1px;
+      background: linear-gradient(to right, var(--accent-soft), transparent);
+    }}
+
+    /* ── Code Block ─────────────────────────────────────────── */
+    .code-block {{
+      position: relative;
+      margin: 0;
+      border-radius: var(--radius-md);
+      background: var(--code-bg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }}
+    .code-block::before {{
+      content: "";
+      display: flex; gap: 8px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,.05);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }}
+    .code-header {{
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 18px;
+      background: rgba(255,255,255,.04);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }}
+    .dot {{ width: 10px; height: 10px; border-radius: 999px; }}
+    .dot.r {{ background: #ff5f57; }} .dot.y {{ background: #febc2e; }} .dot.g {{ background: #30d158; }}
+    .code {{
+      margin: 0; padding: 22px 24px;
+      white-space: pre-wrap;
+      font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: 26px; line-height: 1.6;
+      color: var(--code-color);
+    }}
+
+    /* ── Compare (Mistake / Analogy) ────────────────────────── */
+    .compare {{
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }}
+    .box {{
+      border-radius: var(--radius-md);
+      padding: 26px 28px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: transform .15s ease;
+    }}
+    .box:hover {{ transform: translateY(-2px); }}
+    .box strong {{
+      display: block; font-size: 22px; margin-bottom: 16px;
+      color: var(--accent); letter-spacing: .02em;
+    }}
+    .box p {{
+      margin: 0; color: var(--text-secondary);
+      font-size: 26px; line-height: 1.55;
+    }}
+
+    /* ── Steps (Process) ────────────────────────────────────── */
+    .steps {{ counter-reset: step; display: grid; gap: 14px; }}
+    .step {{
+      counter-increment: step;
+      display: flex; align-items: center; gap: 20px;
+      padding: 18px 22px; border-radius: var(--radius-sm);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      font-size: 26px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: transform .15s ease;
+    }}
+    .step:hover {{ transform: translateX(6px); }}
+    .step::before {{
+      content: "0" counter(step);
+      display: grid; place-items: center;
+      min-width: 44px; height: 44px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff; font-weight: 800; font-size: 18px;
+    }}
+
+    /* ── Quiz / Question ────────────────────────────────────── */
+    .question {{
+      font-size: 34px; line-height: 1.4; font-weight: 700;
+      color: var(--text-primary);
+    }}
+    .answer {{
+      margin-top: 18px; color: var(--text-muted);
+      font-size: 24px; line-height: 1.6;
+    }}
+
+    /* ── Teacher Note ───────────────────────────────────────── */
+    .note {{
+      margin-top: 20px; padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+      color: var(--text-secondary);
+      font-size: 19px; line-height: 1.6;
+    }}
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    .footer {{
+      position: absolute; left: 76px; right: 76px; bottom: 36px;
+      display: flex; justify-content: space-between; align-items: center;
+      color: var(--text-muted); font-size: 17px;
+      z-index: 1;
+    }}
+    .progress-dots {{
+      display: flex; gap: 8px; align-items: center;
+    }}
+    .progress-dot {{
+      width: 8px; height: 8px; border-radius: 999px;
+      background: rgba(128,128,128,.25);
+      transition: all .3s ease;
+    }}
+    .progress-dot.active {{
+      width: 24px; border-radius: 4px;
+      background: var(--accent);
+    }}
   </style>
 </head>
 <body>{body}</body>
@@ -953,13 +1091,21 @@ def _slide_markup(slide: dict[str, Any], total: int, overview: bool) -> str:
     slide_type = str(slide.get("slide_type") or "concept")
     visual = _slide_visual_markup(slide_type, slide, bullets)
     content_class = "content full" if slide_type in {"cover", "goals", "summary"} else "content"
+    idx = int(slide.get("index") or 1)
+    progress = "".join(
+        f'<span class="progress-dot{" active" if i == idx else ""}"></span>'
+        for i in range(1, total + 1)
+    ) if overview else ""
     return f"""
     <section class="{cls}">
       <div class="band"></div>
-      <div class="accent"></div>
+      <div class="mesh"></div>
+      <div class="grid-overlay"></div>
+      <div class="accent-blob top"></div>
+      <div class="accent-blob bottom"></div>
       <div class="{content_class}">
         <div>
-          <div class="eyebrow">SparkLearn · {int(slide.get('index') or 1):02d}/{total:02d}</div>
+          <div class="eyebrow">{escape(_slide_type_label(slide_type))} · {idx:02d}/{total:02d}</div>
           <h1>{escape(str(slide.get('title') or ''))}</h1>
           <p class="subtitle">{escape(str(slide.get('subtitle') or ''))}</p>
           <p class="hint">{escape(str(slide.get('visual_hint') or ''))}</p>
@@ -969,6 +1115,7 @@ def _slide_markup(slide: dict[str, Any], total: int, overview: bool) -> str:
       </div>
       <div class="footer">
         <span>{escape(str(slide.get('deck_title') or ''))}</span>
+        <div class="progress-dots">{progress}</div>
         <span>{escape(str(slide.get('segment_id') or ''))}</span>
       </div>
     </section>
@@ -981,6 +1128,14 @@ def _teacher_note_markup(slide: dict[str, Any]) -> str:
         return ""
     return f'<div class="note">{escape(note)}</div>'
 
+
+def _slide_type_label(slide_type: str) -> str:
+    labels = {
+        "cover": "封面", "goals": "学习目标", "hook": "问题引入",
+        "concept": "核心概念", "analogy": "类比理解", "process": "步骤拆解",
+        "code": "代码演示", "mistake": "避坑指南", "quiz": "小练习", "summary": "课堂总结",
+    }
+    return labels.get(slide_type, slide_type)
 
 def _slide_visual_markup(slide_type: str, slide: dict[str, Any], bullets: str) -> str:
     code = str(slide.get("code") or "").strip()
@@ -1005,7 +1160,14 @@ def _slide_visual_markup(slide_type: str, slide: dict[str, Any], bullets: str) -
         steps = "".join(f'<div class="step">{escape(str(item))}</div>' for item in slide.get("bullets", []))
         return f'<div class="steps">{steps}</div>'
     if slide_type == "code":
-        return f'<pre class="code">{escape(code or "# 暂无代码示例")}</pre>'
+        return (
+            '<div class="code-block">'
+            '<div class="code-header">'
+            '<span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>'
+            "</div>"
+            f'<pre class="code">{escape(code or "# 暂无代码示例")}</pre>'
+            "</div>"
+        )
     if slide_type == "mistake":
         return (
             '<div class="compare">'
