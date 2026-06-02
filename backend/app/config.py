@@ -110,6 +110,82 @@ class Settings(BaseSettings):
     video_ai_fallback_enabled: bool = True
     video_ai_embedding_model: str = ""
 
+    # 视频风格配置
+    video_styles: dict = {
+        "apple-minimal": {
+            "id": "apple-minimal",
+            "name": "苹果极简风",
+            "description": "白底+蓝色点缀，系统化技术教学",
+            "accent_color": "#0071e3",
+            "bg_gradient": "linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%)",
+            "font_family": '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif',
+            "code_bg": "#1d1d1f",
+            "code_color": "#f5f5f7",
+            "card_bg": "rgba(255,255,255,.74)",
+            "tone": "简洁、现代、克制，像 Apple 官网风格",
+        },
+        "dark-tech": {
+            "id": "dark-tech",
+            "name": "暗色科技风",
+            "description": "深色+霓虹青绿，进阶编程内容",
+            "accent_color": "#00e5a0",
+            "bg_gradient": "linear-gradient(135deg, #0a0e17 0%, #111827 48%, #0d1b2a 100%)",
+            "font_family": '"JetBrains Mono", "Cascadia Code", Consolas, "Microsoft YaHei", monospace',
+            "code_bg": "#030712",
+            "code_color": "#00e5a0",
+            "card_bg": "rgba(17,24,39,.92)",
+            "tone": "科技感、黑客风格，代码驱动讲解",
+        },
+        "warm-education": {
+            "id": "warm-education",
+            "name": "温暖教育风",
+            "description": "柔和暖色+圆润卡片，入门教学、少儿编程",
+            "accent_color": "#f59e0b",
+            "bg_gradient": "linear-gradient(135deg, #fefce8 0%, #fff7ed 48%, #fef3c7 100%)",
+            "font_family": '"PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif',
+            "code_bg": "#292524",
+            "code_color": "#fef3c7",
+            "card_bg": "rgba(255,252,240,.88)",
+            "tone": "温暖、耐心、鼓励式，适合初学者和少儿",
+        },
+        "business-pro": {
+            "id": "business-pro",
+            "name": "商务专业风",
+            "description": "深蓝基调+金色点缀，企业培训、报告",
+            "accent_color": "#d4a853",
+            "bg_gradient": "linear-gradient(135deg, #0c1929 0%, #152238 48%, #0f1f3a 100%)",
+            "font_family": '"PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif',
+            "code_bg": "#020617",
+            "code_color": "#e2e8f0",
+            "card_bg": "rgba(21,34,56,.94)",
+            "tone": "专业、权威、结构化，适合企业培训",
+        },
+        "cartoon-playful": {
+            "id": "cartoon-playful",
+            "name": "趣味卡通风",
+            "description": "多彩渐变+大圆角，少儿编程、零基础",
+            "accent_color": "#8b5cf6",
+            "bg_gradient": "linear-gradient(135deg, #faf5ff 0%, #ede9fe 25%, #fce7f3 55%, #e0e7ff 100%)",
+            "font_family": '"PingFang SC", "Noto Sans SC", "Comic Sans MS", cursive, sans-serif',
+            "code_bg": "#2d1b69",
+            "code_color": "#e9d5ff",
+            "card_bg": "rgba(255,255,255,.82)",
+            "tone": "活泼、有趣、游戏化，卡片圆润、色彩丰富",
+        },
+        "academic": {
+            "id": "academic",
+            "name": "学术典雅风",
+            "description": "米色底色+衬线字体，大学课程、深度专题",
+            "accent_color": "#8b2500",
+            "bg_gradient": "linear-gradient(135deg, #fdfbf7 0%, #f7f3e8 48%, #faf6ee 100%)",
+            "font_family": '"Noto Serif SC", "STSong", "SimSun", Georgia, serif',
+            "code_bg": "#2c2420",
+            "code_color": "#f5e6d3",
+            "card_bg": "rgba(253,251,247,.90)",
+            "tone": "学术、严谨、深度，适合大学课程和专题研究",
+        },
+    }
+
     # Tavily 联网搜索
     tavily_api_key: str = ""
 
