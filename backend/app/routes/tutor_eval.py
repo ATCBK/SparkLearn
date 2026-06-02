@@ -16,7 +16,7 @@ from ..llm import spark_lite
 from ..memory_engine import build_injected_context, update_memory_from_turn
 from ..schemas import fail, ok
 from ..storage import append_jsonl
-from ..tavily_search import format_search_results, search_web
+# tavily_search 使用懒加载，避免未安装 tavily-python 时阻塞启动
 from ..trust_answer_controller import TrustAnswerController
 from ..trust_citation import render_confidence
 from ..trust_schemas import TrustAnswerRequest
@@ -689,10 +689,18 @@ async def tutor_chat(req: TutorReq):
         # 知识逆构模式自行处理多角度搜索，此处跳过避免重复
         search_results: list[dict[str, Any]] = []
         if req.web_search and req.message.strip() and req.mode != 'knowledge_reverse':
-            search_results = search_web(req.message.strip())
+            try:
+                from ..tavily_search import search_web
+                search_results = search_web(req.message.strip())
+            except ImportError:
+                pass  # tavily-python 未安装时跳过联网搜索
         if search_results:
             yield ('search_results', {'items': search_results})
-            search_prompt = format_search_results(search_results)
+            try:
+                from ..tavily_search import format_search_results
+                search_prompt = format_search_results(search_results)
+            except ImportError:
+                search_prompt = ""
             if history_for_model and history_for_model[0]['role'] == 'system':
                 history_for_model[0]['content'] = search_prompt + "\n\n" + history_for_model[0]['content']
             else:
@@ -856,9 +864,13 @@ async def tutor_chat(req: TutorReq):
                     f"{req.message} 实战项目 练习 案例分析",
                 ]
                 all_web_results: list[dict[str, Any]] = []
-                for q in search_queries:
-                    results = search_web(q, max_results=3)
-                    all_web_results.extend(results)
+                try:
+                    from ..tavily_search import search_web
+                    for q in search_queries:
+                        results = search_web(q, max_results=3)
+                        all_web_results.extend(results)
+                except ImportError:
+                    pass  # tavily-python 未安装时跳过联网搜索
                 seen = set()
                 deduped: list[dict[str, Any]] = []
                 for r in all_web_results:

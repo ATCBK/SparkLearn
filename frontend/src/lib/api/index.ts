@@ -119,6 +119,10 @@ export const api = {
   // Voice TTS
   synthesizeSpeech: impl.synthesizeSpeech,
   getTtsStatus: impl.getTtsStatus,
+
+  // Digital Human
+  loadMemory: impl.loadMemory,
+  chatWithDigitalHuman: impl.chatWithDigitalHuman,
 }
 
 export type {

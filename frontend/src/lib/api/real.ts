@@ -1342,3 +1342,40 @@ export async function callMcpTool(serviceId: string, toolName: string, args: Rec
     body: JSON.stringify({ tool_name: toolName, args }),
   })
 }
+
+// ─── Digital Human API ─────────────────────────────────────────────────────────
+
+export async function loadMemory(videoId: string): Promise<{
+  memory_id: string
+  video_id: string
+  video_title: string
+  greeting: string
+}> {
+  const data = await fetchJson<any>('/api/num-person/memory/load', {
+    method: 'POST',
+    body: JSON.stringify({ video_id: videoId }),
+  })
+  return {
+    memory_id: data.memory_id,
+    video_id: videoId,
+    video_title: data.video_title || '',
+    greeting: data.greeting || '你好！我是你的数字人学习助手，有什么可以帮你的吗？',
+  }
+}
+
+export async function chatWithDigitalHuman(
+  memoryId: string,
+  message: string,
+  history: Array<{ role: string; content: string }>,
+  onEvent?: (evt: SseEvent) => void,
+): Promise<string> {
+  const events = await readSSE('/api/num-person/chat', {
+    memory_id: memoryId,
+    message,
+    history,
+  }, onEvent)
+  return events
+    .filter(e => e.type === 'text')
+    .map(e => String(e.payload.content || ''))
+    .join('')
+}
