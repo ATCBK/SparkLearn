@@ -95,10 +95,10 @@ function toResource(raw: any): Resource {
 
 // ─── Auth API ──────────────────────────────────────────────────────────────
 
-export async function sendSmsCode(phone: string, mode: 'login' | 'register'): Promise<void> {
+export async function sendSmsCode(phone: string, purpose: 'login' | 'register'): Promise<void> {
   await fetchJson('/api/auth/sms/send', {
     method: 'POST',
-    body: JSON.stringify({ phone, mode }),
+    body: JSON.stringify({ phone, purpose }),
   })
 }
 
