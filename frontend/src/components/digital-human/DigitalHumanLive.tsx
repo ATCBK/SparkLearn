@@ -4,9 +4,11 @@ import { useRef, useState, useEffect } from 'react'
 
 interface DigitalHumanLiveProps {
   className?: string
+  onReady?: () => void
+  onError?: (message: string) => void
 }
 
-export default function DigitalHumanLive({ className = '' }: DigitalHumanLiveProps) {
+export default function DigitalHumanLive({ className = '', onReady, onError }: DigitalHumanLiveProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -18,6 +20,10 @@ export default function DigitalHumanLive({ className = '' }: DigitalHumanLivePro
     window.addEventListener('message', handler)
     return () => window.removeEventListener('message', handler)
   }, [])
+
+  useEffect(() => {
+    if (loaded) onReady?.()
+  }, [loaded, onReady])
 
   return (
     <div className={`relative w-full h-full ${className}`} style={{ background: 'transparent' }}>
@@ -36,6 +42,7 @@ export default function DigitalHumanLive({ className = '' }: DigitalHumanLivePro
           // Fallback: mark as loaded after 3s even if no message received
           setTimeout(() => setLoaded(true), 3000)
         }}
+        onError={() => onError?.('数字人资源加载失败')}
         style={{
           width: '100%',
           height: '100%',

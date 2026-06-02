@@ -6,17 +6,27 @@ import type {
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
 } from './types'
+import { getToken } from '../auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 type ApiResp<T> = { success: boolean; data: T; error?: string }
 type SseEvent = { type: string; payload: Record<string, unknown> }
 
+function _authHeaders(): Record<string, string> {
+  const token = getToken()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+      headers: { ..._authHeaders(), ...(init?.headers || {}) },
     })
     const json = await res.json() as ApiResp<T> & { detail?: unknown }
     if (!res.ok || !json.success) {
@@ -43,7 +53,7 @@ async function readSSE(
 ) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: _authHeaders(),
     body: JSON.stringify(body),
   })
   if (!res.body) throw new Error('流式响应体为空')
@@ -82,6 +92,35 @@ function toResource(raw: any): Resource {
     progress: raw.progress,
   }
 }
+
+// ─── Auth API ──────────────────────────────────────────────────────────────
+
+export async function sendSmsCode(phone: string, purpose: 'login' | 'register'): Promise<void> {
+  await fetchJson('/api/auth/sms/send', {
+    method: 'POST',
+    body: JSON.stringify({ phone, purpose }),
+  })
+}
+
+export async function checkPhoneRegistered(phone: string): Promise<{ registered: boolean }> {
+  return fetchJson(`/api/auth/check-phone/${phone}`)
+}
+
+export async function smsLogin(phone: string, code: string): Promise<{ token: string; user: { id: string; name: string; phone: string } }> {
+  return fetchJson('/api/auth/sms/login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code }),
+  })
+}
+
+export async function smsRegister(phone: string, code: string, name?: string): Promise<{ token: string; user: { id: string; name: string; phone: string } }> {
+  return fetchJson('/api/auth/sms/register', {
+    method: 'POST',
+    body: JSON.stringify({ phone, code, name }),
+  })
+}
+
+// ─── Tasks API ─────────────────────────────────────────────────────────────
 
 export async function getTodayTasks(): Promise<Task[]> {
   return fetchJson('/api/tasks/today')
@@ -246,10 +285,20 @@ export async function downloadResourceSource(resourceId: string): Promise<void> 
   window.URL.revokeObjectURL(obj)
 }
 
-export async function generateResource(type: Resource['type'], prompt: string, knowledgeFileIds: number[] = []): Promise<Resource> {
+export async function generateResource(
+  type: Resource['type'],
+  prompt: string,
+  knowledgeFileIds: number[] = [],
+  videoOptions?: {
+    durationSec?: number
+    targetLevel?: string
+    styleId?: string
+    onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
+  },
+): Promise<Resource> {
   // 视频类型走专用生成管线
   if (type === 'video') {
-    return generateVideo(prompt)
+    return generateVideo(prompt, videoOptions)
   }
 
   const events = await readSSE('/api/resources/generate', { type, prompt, knowledge_file_ids: knowledgeFileIds })
@@ -1128,17 +1177,24 @@ export async function downloadVideoArtifact(videoId: string, type: 'mp4' | 'audi
   window.URL.revokeObjectURL(a.href)
 }
 
-export async function polishVideoPrompt(prompt: string, durationSec: number = 90): Promise<{
+export async function polishVideoPrompt(
+  prompt: string,
+  durationSec: number = 90,
+  targetLevel: string = 'beginner',
+  styleId: string = 'apple-minimal',
+): Promise<{
   polishId: string
   title: string
   polishedPrompt: string
   scriptOutline: Array<{ segment_id: string; title: string; narration: string; visual_hint: string; duration_ms?: number }>
   estimatedDurationSec: number
   voice: string
+  styleId: string
+  styleName: string
 }> {
   const data = await fetchJson<any>('/api/video/polish', {
     method: 'POST',
-    body: JSON.stringify({ prompt, duration_sec: durationSec }),
+    body: JSON.stringify({ prompt, duration_sec: durationSec, target_level: targetLevel, style_id: styleId }),
   })
   return {
     polishId: data.polish_id,
@@ -1147,15 +1203,27 @@ export async function polishVideoPrompt(prompt: string, durationSec: number = 90
     scriptOutline: data.script_outline || [],
     estimatedDurationSec: data.estimated_duration_sec || durationSec,
     voice: data.voice || '',
+    styleId: data.style_id || styleId,
+    styleName: data.style_name || styleId,
   }
 }
 
 export async function generateVideo(
   prompt: string,
-  onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void,
+  options?: {
+    durationSec?: number
+    targetLevel?: string
+    styleId?: string
+    onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
+  },
 ): Promise<Resource> {
+  const durationSec = options?.durationSec ?? 90
+  const targetLevel = options?.targetLevel ?? 'beginner'
+  const styleId = options?.styleId ?? 'apple-minimal'
+  const onEvent = options?.onEvent
+
   // Step 1: Polish the prompt into a script
-  const polish = await polishVideoPrompt(prompt)
+  const polish = await polishVideoPrompt(prompt, durationSec, targetLevel, styleId)
 
   // Step 2: Create a video generation job
   const job = await fetchJson<any>('/api/video/jobs', {
@@ -1166,6 +1234,9 @@ export async function generateVideo(
       title: polish.title,
       script_outline: polish.scriptOutline,
       video_provider: 'html_ppt',
+      style_id: styleId,
+      target_level: targetLevel,
+      duration_sec: durationSec,
     }),
   })
 
@@ -1341,4 +1412,45 @@ export async function callMcpTool(serviceId: string, toolName: string, args: Rec
     method: 'POST',
     body: JSON.stringify({ tool_name: toolName, args }),
   })
+}
+
+// ─── Digital Human API ─────────────────────────────────────────────────────────
+
+export async function loadMemory(videoId: string): Promise<{
+  memory_id: string
+  video_id: string
+  video_title: string
+  greeting: string
+}> {
+  const data = await fetchJson<any>('/api/num-person/memory/load', {
+    method: 'POST',
+    body: JSON.stringify({ video_id: videoId }),
+  })
+  return {
+    memory_id: data.memory_id,
+    video_id: videoId,
+    video_title: data.video_title || '',
+    greeting: data.greeting || '你好！我是你的数字人学习助手，有什么可以帮你的吗？',
+  }
+}
+
+export async function deleteMemory(memoryId: string): Promise<void> {
+  await fetchJson(`/api/num-person/memory/${memoryId}`, { method: 'DELETE' })
+}
+
+export async function chatWithDigitalHuman(
+  memoryId: string,
+  message: string,
+  history: Array<{ role: string; content: string }>,
+  onEvent?: (evt: SseEvent) => void,
+): Promise<string> {
+  const events = await readSSE('/api/num-person/chat', {
+    memory_id: memoryId,
+    message,
+    history,
+  }, onEvent)
+  return events
+    .filter(e => e.type === 'text')
+    .map(e => String(e.payload.content || ''))
+    .join('')
 }

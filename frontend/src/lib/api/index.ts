@@ -119,11 +119,16 @@ export const api = {
   // Voice TTS
   synthesizeSpeech: impl.synthesizeSpeech,
   getTtsStatus: impl.getTtsStatus,
+
+  // Digital Human
+  loadMemory: impl.loadMemory,
+  deleteMemory: impl.deleteMemory,
+  chatWithDigitalHuman: impl.chatWithDigitalHuman,
 }
 
 export type {
   Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
-  ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
+  ReportData, Recommendation, LearningPath, PathNode, VideoInfo, VideoStyle, VideoScriptSegment, VideoPolishResult, ContributionDay,
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,

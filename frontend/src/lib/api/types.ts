@@ -455,9 +455,36 @@ export interface VideoScriptSegment {
   narration: string
   visual_hint: string
   duration_ms?: number
+  subtitle?: string
+  slide_type?: string
 }
 
 export interface VideoPolishResult {
+  polishId: string
+  title: string
+  polishedPrompt: string
+  scriptOutline: VideoScriptSegment[]
+  estimatedDurationSec: number
+  voice: string
+  styleId?: string
+  styleName?: string
+  contentSource?: string
+}
+
+export interface VideoStyle {
+  id: string
+  name: string
+  description: string
+  accent_color: string
+  bg_gradient: string
+  font_family?: string
+  code_bg?: string
+  code_color?: string
+  card_bg?: string
+  tone?: string
+}
+
+export interface RawVideoPolishResult {
   polish_id: string
   title: string
   polished_prompt: string
