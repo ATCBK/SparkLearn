@@ -1,12 +1,14 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database } from 'lucide-react'
-import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, Zap } from 'lucide-react'
+import { api, KnowledgeFile, Resource, StudentProfile, VideoStyle, VideoScriptSegment, VideoPolishResult } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio, RadioTrack } from '@/components/ui/AudioRadio'
+import { MarkdownCodePreview } from '@/components/ui/MarkdownCodePreview'
+import { CodeExerciseCard, TestCase } from '@/components/ui/CodeExerciseCard'
 import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
@@ -37,7 +39,69 @@ function typeLabel(type: string) {
   return map[type] || type
 }
 
-function GeneratePageContent() {
+interface ParsedCodeExercise {
+  description: string
+  code: string
+  language: string
+  testCases?: TestCase[]
+  hints?: string
+  solution?: string
+  restMarkdown: string
+}
+
+function parseCodeExercise(content: string): ParsedCodeExercise | null {
+  // Check if content has structured markers (## headings or 「」brackets)
+  const hasStructuredMarkers = /^##\s*(问题描述|代码实现|逐行讲解|运行结果|常见错误|扩展练习|配套练习)/m.test(content)
+    || /「(问题描述|代码实现|逐行讲解|运行结果|常见错误|扩展练习|配套练习)」/.test(content)
+  if (!hasStructuredMarkers) {
+    return null
+  }
+
+  const sections: Record<string, string> = {}
+  // Match both "## 标题" and "「标题」" as section headers
+  const sectionRegex = /^##\s*(.+)$|「(.+?)」[:：]?\s*$/gm
+  const matches = [...content.matchAll(sectionRegex)]
+
+  for (let i = 0; i < matches.length; i++) {
+    const sectionName = (matches[i][1] || matches[i][2]).trim()
+    const start = matches[i].index! + matches[i][0].length
+    const end = i + 1 < matches.length ? matches[i + 1].index! : content.length
+    sections[sectionName] = content.slice(start, end).trim()
+  }
+
+  // Extract code from code block
+  const codeSection = sections['代码实现'] || ''
+  const codeMatch = codeSection.match(/```(\w*)\n([\s\S]*?)```/)
+  const code = codeMatch ? codeMatch[2].trim() : codeSection
+  const language = codeMatch?.[1]?.toLowerCase() || 'python'
+
+  // Extract test cases from JSON block
+  let testCases: TestCase[] | undefined
+  const exerciseSection = sections['配套练习'] || ''
+  const jsonMatch = exerciseSection.match(/```json\n([\s\S]*?)```/)
+  if (jsonMatch) {
+    try {
+      testCases = JSON.parse(jsonMatch[1].trim())
+    } catch {
+      // ignore parse error
+    }
+  }
+
+  const description = sections['问题描述'] || ''
+  const hints = sections['常见错误'] || undefined
+  const solution = code // The generated code IS the solution
+
+  // Build remaining markdown from non-extracted sections
+  const extractedKeys = new Set(['问题描述', '代码实现', '配套练习'])
+  const restParts = Object.entries(sections)
+    .filter(([key]) => !extractedKeys.has(key))
+    .map(([key, val]) => `## ${key}\n\n${val}`)
+  const restMarkdown = restParts.join('\n\n')
+
+  return { description, code, language, testCases, hints, solution, restMarkdown }
+}
+
+export default function GeneratePage() {
   const searchParams = useSearchParams()
   const initialView = searchParams.get('view') === 'library' ? 'library' : 'generate'
   const initialResourceId = searchParams.get('id') || ''
@@ -53,7 +117,33 @@ function GeneratePageContent() {
   const [resource, setResource] = useState<Resource | null>(null)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
-  
+
+  // 视频模块专用状态
+  const [videoStyleId, setVideoStyleId] = useState('apple-minimal')
+  const [videoLevel, setVideoLevel] = useState('beginner')
+  const [videoDuration, setVideoDuration] = useState(90)
+  const [polishResult, setPolishResult] = useState<VideoPolishResult | null>(null)
+  const [polishError, setPolishError] = useState('')
+  const [polishing, setPolishing] = useState(false)
+  const [generateError, setGenerateError] = useState('')
+  const [showSegments, setShowSegments] = useState(false)
+  const [sseMessages, setSseMessages] = useState<string[]>([])
+
+  // 代码案例专用状态
+  const [codeLanguage, setCodeLanguage] = useState('python')
+  const [codeLevel, setCodeLevel] = useState('beginner')
+  const [codeIncludeExercise, setCodeIncludeExercise] = useState(true)
+
+  // 视频风格预设（与后端 config.py video_styles 对应）
+  const VIDEO_STYLES: VideoStyle[] = useMemo(() => [
+    { id: 'apple-minimal', name: '苹果极简风', description: '白底+蓝色点缀，系统化技术教学', accent_color: '#0071e3', bg_gradient: 'linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%)', font_family: '', code_bg: '#1d1d1f', code_color: '#f5f5f7', card_bg: 'rgba(255,255,255,.74)', tone: '简洁、现代、克制' },
+    { id: 'dark-tech', name: '暗色科技风', description: '深色+霓虹青绿，进阶编程内容', accent_color: '#00e5a0', bg_gradient: 'linear-gradient(135deg, #0a0e17 0%, #111827 48%, #0d1b2a 100%)', font_family: '', code_bg: '#030712', code_color: '#00e5a0', card_bg: 'rgba(17,24,39,.92)', tone: '科技感、黑客风格' },
+    { id: 'warm-education', name: '温暖教育风', description: '柔和暖色+圆润卡片，入门教学', accent_color: '#f59e0b', bg_gradient: 'linear-gradient(135deg, #fefce8 0%, #fff7ed 48%, #fef3c7 100%)', font_family: '', code_bg: '#292524', code_color: '#fef3c7', card_bg: 'rgba(255,252,240,.88)', tone: '温暖、耐心、鼓励式' },
+    { id: 'business-pro', name: '商务专业风', description: '深蓝基调+金色点缀，企业培训', accent_color: '#d4a853', bg_gradient: 'linear-gradient(135deg, #0c1929 0%, #152238 48%, #0f1f3a 100%)', font_family: '', code_bg: '#020617', code_color: '#e2e8f0', card_bg: 'rgba(21,34,56,.94)', tone: '专业、权威、结构化' },
+    { id: 'cartoon-playful', name: '趣味卡通风', description: '多彩渐变+大圆角，少儿编程', accent_color: '#8b5cf6', bg_gradient: 'linear-gradient(135deg, #faf5ff 0%, #ede9fe 25%, #fce7f3 55%, #e0e7ff 100%)', font_family: '', code_bg: '#2d1b69', code_color: '#e9d5ff', card_bg: 'rgba(255,255,255,.82)', tone: '活泼、有趣、游戏化' },
+    { id: 'academic', name: '学术典雅风', description: '米色底色+衬线字体，大学课程', accent_color: '#8b2500', bg_gradient: 'linear-gradient(135deg, #fdfbf7 0%, #f7f3e8 48%, #faf6ee 100%)', font_family: '', code_bg: '#2c2420', code_color: '#f5e6d3', card_bg: 'rgba(253,251,247,.90)', tone: '学术、严谨、深度' },
+  ], [])
+
   // 资源库相关状态
   const [resources, setResources] = useState<Resource[]>([])
   const [selectedId, setSelectedId] = useState<string>(initialResourceId)
@@ -94,16 +184,73 @@ function GeneratePageContent() {
     setStep(3)
     setGenerating(true)
     setError('')
+    setGenerateError('')
+    setSseMessages([])
     setResource(null)
+
+    // Build code-specific prompt with options
+    let effectivePrompt = prompt
+    if (type === 'code') {
+      const langMap: Record<string, string> = { python: 'Python', javascript: 'JavaScript', html: 'HTML/CSS' }
+      const levelMap: Record<string, string> = { beginner: '入门级（零基础友好）', intermediate: '进阶（有一定基础）', advanced: '高级（深入原理）' }
+      const parts = [
+        `编程语言：${langMap[codeLanguage] || codeLanguage}`,
+        `难度：${levelMap[codeLevel] || codeLevel}`,
+        codeIncludeExercise ? '要求：包含 2-3 道可运行的配套练习题（含测试用例）' : '',
+        `主题需求：${prompt}`,
+      ].filter(Boolean)
+      effectivePrompt = parts.join('\n')
+    }
+
     try {
-      const res = await api.generateResource(type, prompt, selectedKnowledge)
+      const res = await api.generateResource(
+        type,
+        effectivePrompt,
+        selectedKnowledge,
+        type === 'video' ? {
+          durationSec: videoDuration,
+          targetLevel: videoLevel,
+          styleId: videoStyleId,
+          onEvent: (evt) => {
+            if (evt.type === 'progress') {
+              const msg = String(evt.payload.message || '')
+              if (msg) setSseMessages(prev => [...prev, msg])
+            }
+            if (evt.type === 'error') {
+              setGenerateError(String(evt.payload.message || '视频生成失败'))
+            }
+          },
+        } : undefined,
+      )
       setResource(res)
       setStep(4)
     } catch (ex) {
-      setError(ex instanceof Error ? ex.message : '生成失败')
+      const msg = ex instanceof Error ? ex.message : '生成失败'
+      setError(msg)
+      if (type === 'video') setGenerateError(msg)
     } finally {
       setGenerating(false)
     }
+  }
+
+  async function handlePolish() {
+    setPolishing(true)
+    setPolishError('')
+    setPolishResult(null)
+    setShowSegments(false)
+    try {
+      const result = await api.polishVideoPrompt(prompt, videoDuration, videoLevel, videoStyleId)
+      setPolishResult(result)
+    } catch (ex) {
+      setPolishError(ex instanceof Error ? ex.message : '润色失败')
+    } finally {
+      setPolishing(false)
+    }
+  }
+
+  function handleGenerate() {
+    setGenerateError('')
+    startGenerate()
   }
 
   async function removeResource(id: string) {
@@ -209,7 +356,29 @@ function GeneratePageContent() {
                     </div>
                   ) : (
                     <div className="p-5">
-                      <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
+                      {selected.type === 'code' ? (() => {
+                        const parsed = parseCodeExercise(selected.content || '')
+                        return parsed ? (
+                          <div className="space-y-4">
+                            <CodeExerciseCard
+                              title={selected.title}
+                              description={parsed.description}
+                              language={parsed.language}
+                              initialCode={parsed.code}
+                              testCases={parsed.testCases}
+                              hints={parsed.hints}
+                              solution={parsed.solution}
+                            />
+                            {parsed.restMarkdown && (
+                              <MarkdownCodePreview content={parsed.restMarkdown} editable={false} />
+                            )}
+                          </div>
+                        ) : (
+                          <MarkdownCodePreview content={selected.content || '该资源暂无预览内容。'} editable />
+                        )
+                      })() : (
+                        <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
+                      )}
                     </div>
                   )}
                 </div>
@@ -276,7 +445,7 @@ function GeneratePageContent() {
           <div className="flex w-full flex-wrap gap-2 min-[760px]:w-auto">
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
             {step < 3 && <ProtoButton onClick={() => setStep(step + 1)}>下一步</ProtoButton>}
-            {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />开始生成</ProtoButton>}
+            {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />{type === 'video' ? '生成视频' : '开始生成'}</ProtoButton>}
             {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, prompt, selectedKnowledge); setStep(0) }}>后台生成</ProtoButton>}
           </div>
         </div>
@@ -326,12 +495,215 @@ function GeneratePageContent() {
                 <SoftCard><b className="text-ink">错题拆解优先</b><span className="mt-1 block text-small text-muted">逐题解释为什么 print 输出不等于 return。</span></SoftCard>
                 <SoftCard><b className="text-ink">达标练习优先</b><span className="mt-1 block text-small text-muted">先给题，再按错误类型补讲解。</span></SoftCard>
               </div>
+
+              {/* 视频风格选择器 */}
+              {type === 'video' && (
+                <div className="mt-4">
+                  <h3 className="text-h3 font-bold text-ink mb-3">视频风格</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {VIDEO_STYLES.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setVideoStyleId(s.id)}
+                        className={`rounded-[12px] border p-3 text-left transition-all ${videoStyleId === s.id ? 'border-blue bg-blue-light ring-2 ring-blue/20' : 'border-line bg-white hover:border-blue/50'}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="grid h-5 w-5 place-items-center rounded-full border border-white/20 shadow-sm" style={{ background: s.bg_gradient }}>
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.accent_color }} />
+                          </span>
+                          <b className="text-small text-ink">{s.name}</b>
+                          {videoStyleId === s.id && <CheckCircle2 className="ml-auto h-4 w-4 text-blue" />}
+                        </div>
+                        <p className="text-micro text-muted leading-relaxed">{s.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="grid gap-4">
+            {/* 视频专用：难度 & 时长 */}
+            {type === 'video' && (
+              <>
+                <div>
+                  <span className="text-small font-bold text-ink mb-2 block">难度级别</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'beginner', label: '入门', desc: '零基础友好' },
+                      { value: 'intermediate', label: '进阶', desc: '有一定基础' },
+                      { value: 'advanced', label: '精通', desc: '深入原理' },
+                    ].map((lvl) => (
+                      <button
+                        key={lvl.value}
+                        onClick={() => setVideoLevel(lvl.value)}
+                        className={`flex-1 rounded-[12px] border p-3 text-center transition-all ${videoLevel === lvl.value ? 'border-blue bg-blue-light ring-2 ring-blue/20' : 'border-line bg-white hover:border-blue/50'}`}
+                      >
+                        <b className="block text-small text-ink">{lvl.label}</b>
+                        <span className="text-micro text-muted">{lvl.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-small font-bold text-ink">视频时长</span>
+                    <span className="text-small font-bold text-blue">{Math.floor(videoDuration / 60)} 分 {videoDuration % 60} 秒</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={15}
+                    max={180}
+                    step={5}
+                    value={videoDuration}
+                    onChange={(e) => setVideoDuration(Number(e.target.value))}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                    style={{ accentColor: '#2563eb', background: 'linear-gradient(to right, #2563eb 0%, #2563eb ' + ((videoDuration - 15) / 165 * 100) + '%, #e5e7eb ' + ((videoDuration - 15) / 165 * 100) + '%, #e5e7eb 100%)' }}
+                  />
+                  <div className="flex justify-between text-micro text-muted mt-1">
+                    <span>15s</span>
+                    <span>60s</span>
+                    <span>120s</span>
+                    <span>180s</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* 代码案例专用：语言 & 难度 & 配套练习 */}
+            {type === 'code' && (
+              <>
+                <div>
+                  <span className="text-small font-bold text-ink mb-2 block">编程语言</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'python', label: 'Python' },
+                      { value: 'javascript', label: 'JavaScript' },
+                      { value: 'html', label: 'HTML/CSS' },
+                    ].map((lang) => (
+                      <button
+                        key={lang.value}
+                        onClick={() => setCodeLanguage(lang.value)}
+                        className={`flex-1 rounded-[10px] border p-2.5 text-center text-small font-bold transition-all ${codeLanguage === lang.value ? 'border-blue bg-blue-light ring-2 ring-blue/20 text-blue' : 'border-line bg-white hover:border-blue/50 text-ink'}`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-small font-bold text-ink mb-2 block">难度级别</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'beginner', label: '入门', desc: '零基础友好' },
+                      { value: 'intermediate', label: '进阶', desc: '有一定基础' },
+                      { value: 'advanced', label: '高级', desc: '深入原理' },
+                    ].map((lvl) => (
+                      <button
+                        key={lvl.value}
+                        onClick={() => setCodeLevel(lvl.value)}
+                        className={`flex-1 rounded-[10px] border p-2.5 text-center transition-all ${codeLevel === lvl.value ? 'border-blue bg-blue-light ring-2 ring-blue/20' : 'border-line bg-white hover:border-blue/50'}`}
+                      >
+                        <b className="block text-small text-ink">{lvl.label}</b>
+                        <span className="text-micro text-muted">{lvl.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex items-center gap-3 rounded-[10px] border border-line bg-white p-3 cursor-pointer hover:border-blue/50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={codeIncludeExercise}
+                    onChange={(e) => setCodeIncludeExercise(e.target.checked)}
+                    className="h-4 w-4 rounded border-line accent-blue"
+                  />
+                  <div>
+                    <b className="text-small text-ink">生成配套练习题</b>
+                    <span className="block text-micro text-muted">在案例末尾附带 2-3 道可运行的编程练习</span>
+                  </div>
+                </label>
+              </>
+            )}
+
             <label className="grid gap-2">
               <span className="text-small font-bold text-ink">生成要求</span>
-              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={7} className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
+              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={type === 'video' ? 4 : 7} className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
             </label>
+
+            {/* 视频：润色按钮 + 结果 */}
+            {type === 'video' && (
+              <>
+                <button
+                  onClick={handlePolish}
+                  disabled={polishing || !prompt.trim()}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-blue px-4 text-small font-bold text-white transition-colors hover:bg-blue-dark disabled:opacity-50"
+                >
+                  {polishing ? (
+                    <><TypewriterLoader size="sm" /> AI 润色中...</>
+                  ) : (
+                    <><Zap className="h-4 w-4" /> AI 润色脚本</>
+                  )}
+                </button>
+
+                {/* 润色错误卡片 */}
+                {polishError && (
+                  <div className="rounded-[12px] border-2 border-red/30 bg-red-light p-4">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red" />
+                      <div>
+                        <b className="block text-small text-red">润色失败</b>
+                        <p className="mt-1 text-small text-muted">{polishError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 润色结果卡片 */}
+                {polishResult && !polishError && (
+                  <div className="rounded-[14px] border border-line bg-white overflow-hidden">
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-light px-2 py-0.5 text-micro font-bold text-green">
+                          <CheckCircle2 className="h-3 w-3" /> AI 已润色
+                        </span>
+                        <span className="text-micro text-muted">
+                          来源：{polishResult.contentSource === 'ai' ? 'AI 生成' : '本地'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-small text-muted mb-3">
+                        <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 预计 {Math.floor(polishResult.estimatedDurationSec / 60)} 分 {polishResult.estimatedDurationSec % 60} 秒</span>
+                        <span className="flex items-center gap-1"><Layers className="h-3.5 w-3.5" /> {polishResult.scriptOutline?.length || 0} 个分镜</span>
+                        {polishResult.styleName && <span className="flex items-center gap-1">风格：{polishResult.styleName}</span>}
+                      </div>
+                      <button
+                        onClick={() => setShowSegments(!showSegments)}
+                        className="flex items-center gap-1 text-small font-bold text-blue hover:text-blue-dark transition-colors"
+                      >
+                        {showSegments ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        分镜详情
+                      </button>
+                    </div>
+                    {showSegments && (
+                      <div className="border-t border-line divide-y divide-line">
+                        {(polishResult.scriptOutline || []).map((seg: VideoScriptSegment) => (
+                          <div key={seg.segment_id} className="p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Pill tone="blue">{seg.slide_type || 'concept'}</Pill>
+                              <b className="text-small text-ink">{seg.title}</b>
+                            </div>
+                            {seg.subtitle && <p className="text-micro text-muted mb-1">{seg.subtitle}</p>}
+                            <p className="text-micro text-muted line-clamp-2">{seg.narration}</p>
+                            {seg.duration_ms && (
+                              <span className="text-micro text-muted">{Math.round(seg.duration_ms / 1000)}s</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-small font-bold text-ink">选择已整理资料</span>
@@ -360,16 +732,61 @@ function GeneratePageContent() {
 
         {step === 3 && (
           <div className="grid gap-3">
-            {['分析学习画像', '读取路径节点', '加载知识库资料', '多智能体生成内容', '安全检查', '保存资源索引'].map((row, idx) => (
-              <SoftCard key={row} className="flex items-center justify-between">
-                <span className="flex items-center gap-2 text-small font-bold text-ink">
-                  {generating && idx < 4 ? <TypewriterLoader size="sm" /> : <CheckCircle2 className="h-4 w-4 text-green" />}
-                  {row}
-                </span>
-                <Pill tone={generating && idx < 4 ? 'blue' : 'green'}>{generating && idx < 4 ? '处理中' : '完成'}</Pill>
-              </SoftCard>
-            ))}
-            {error && <p className="rounded-[10px] bg-red-light p-3 text-small text-red">{error}</p>}
+            {type === 'video' && sseMessages.length > 0 ? (
+              <>
+                <SoftCard className="bg-blue-light">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: VIDEO_STYLES.find(s => s.id === videoStyleId)?.bg_gradient }}>
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: VIDEO_STYLES.find(s => s.id === videoStyleId)?.accent_color }} />
+                    </span>
+                    <b className="text-small text-ink">{VIDEO_STYLES.find(s => s.id === videoStyleId)?.name || videoStyleId}</b>
+                    <span className="text-micro text-muted">{videoLevel === 'beginner' ? '入门' : videoLevel === 'intermediate' ? '进阶' : '精通'} · {Math.floor(videoDuration / 60)}分{videoDuration % 60}秒</span>
+                  </div>
+                </SoftCard>
+                {sseMessages.map((msg, idx) => (
+                  <SoftCard key={idx} className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-small font-bold text-ink">
+                      {generating && idx >= sseMessages.length - 1 ? <TypewriterLoader size="sm" /> : <CheckCircle2 className="h-4 w-4 text-green" />}
+                      {msg}
+                    </span>
+                    <Pill tone={generating && idx >= sseMessages.length - 1 ? 'blue' : 'green'}>
+                      {generating && idx >= sseMessages.length - 1 ? '处理中' : '完成'}
+                    </Pill>
+                  </SoftCard>
+                ))}
+                {!generating && sseMessages.length > 0 && !generateError && !error && (
+                  <SoftCard className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-small font-bold text-ink">
+                      <CheckCircle2 className="h-4 w-4 text-green" />
+                      视频创作产物已生成
+                    </span>
+                    <Pill tone="green">完成</Pill>
+                  </SoftCard>
+                )}
+              </>
+            ) : (
+              ['分析学习画像', '读取路径节点', '加载知识库资料', '多智能体生成内容', '安全检查', '保存资源索引'].map((row, idx) => (
+                <SoftCard key={row} className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-small font-bold text-ink">
+                    {generating && idx < 4 ? <TypewriterLoader size="sm" /> : <CheckCircle2 className="h-4 w-4 text-green" />}
+                    {row}
+                  </span>
+                  <Pill tone={generating && idx < 4 ? 'blue' : 'green'}>{generating && idx < 4 ? '处理中' : '完成'}</Pill>
+                </SoftCard>
+              ))
+            )}
+            {generateError && (
+              <div className="rounded-[12px] border-2 border-red/30 bg-red-light p-4">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red" />
+                  <div>
+                    <b className="block text-small text-red">生成失败</b>
+                    <p className="mt-1 text-small text-muted">{generateError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {error && !generateError && <p className="rounded-[10px] bg-red-light p-3 text-small text-red">{error}</p>}
           </div>
         )}
 
@@ -415,6 +832,30 @@ function GeneratePageContent() {
                       />
                       <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音讲解。</p>
                     </div>
+                  ) : resource.type === 'code' ? (
+                    <div className="mt-2">
+                      {(() => {
+                        const parsed = parseCodeExercise(resource.content || '')
+                        return parsed ? (
+                          <div className="space-y-4">
+                            <CodeExerciseCard
+                              title={resource.title}
+                              description={parsed.description}
+                              language={parsed.language}
+                              initialCode={parsed.code}
+                              testCases={parsed.testCases}
+                              hints={parsed.hints}
+                              solution={parsed.solution}
+                            />
+                            {parsed.restMarkdown && (
+                              <MarkdownCodePreview content={parsed.restMarkdown} editable={false} />
+                            )}
+                          </div>
+                        ) : (
+                          <MarkdownCodePreview content={resource.content || '该资源暂无预览内容。'} editable />
+                        )
+                      })()}
+                    </div>
                   ) : (
                     <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可在我的资源中查看完整预览。'}</p>
                   )}
@@ -447,13 +888,5 @@ function GeneratePageContent() {
         </div>
       </ProtoCard>
     </div>
-  )
-}
-
-export default function GeneratePage() {
-  return (
-    <Suspense fallback={<div className="p-6 text-small text-muted">资源工作台加载中...</div>}>
-      <GeneratePageContent />
-    </Suspense>
   )
 }
