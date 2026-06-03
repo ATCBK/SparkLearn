@@ -29,7 +29,19 @@ class SparkLiteAdapter:
     def _model_config(self, model: str = "") -> dict:
         """根据模型标识获取 ws_url 和 domain，默认使用 spark_default_model。"""
         key = (model or "").strip().lower() or settings.spark_default_model
-        return settings.spark_model_map.get(key, settings.spark_model_map.get("lite", {}))
+        mc = dict(settings.spark_model_map.get(key, settings.spark_model_map.get("lite", {})))
+        mc["_resolved_key"] = key
+        # 为 OpenAI 兼容模型自动填充缺省的 api_key / base_url
+        if mc.get("provider") == "deepseek":
+            if not mc.get("api_key"):
+                # qwen 系列优先用 dashscope 凭证，其他用 deepseek 凭证
+                if "qwen" in key:
+                    mc["api_key"] = settings.dashscope_api_key
+                    mc["base_url"] = mc.get("base_url") or settings.dashscope_base_url
+                else:
+                    mc["api_key"] = settings.deepseek_api_key
+                    mc["base_url"] = mc.get("base_url") or settings.deepseek_base_url
+        return mc
 
     async def stream_chat(
         self,
@@ -53,8 +65,9 @@ class SparkLiteAdapter:
     ) -> AsyncGenerator[tuple[str, dict], None]:
         # DeepSeek 模型走 OpenAI 兼容 HTTP 协议
         mc = self._model_config(model)
+        resolved_model = mc.get("_resolved_key", model)
         if mc.get("provider") == "deepseek":
-            async for evt in _get_deepseek().stream_chat_events(prompt, mode=mode, history=history, model=model):
+            async for evt in _get_deepseek().stream_chat_events(prompt, mode=mode, history=history, model=resolved_model, model_config=mc):
                 yield evt
             return
 

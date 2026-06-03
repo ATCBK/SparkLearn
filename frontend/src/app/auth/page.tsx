@@ -135,7 +135,7 @@ export default function AuthPage() {
 
       // 保存 token 和用户信息
       setToken(result.token)
-      setUser(result.user)
+      setUser({ user_id: result.user.id, name: result.user.name, phone: result.user.phone })
 
       showToast(mode === 'login' ? '登录成功' : '注册成功')
       setTimeout(() => router.push('/onboarding'), 500)

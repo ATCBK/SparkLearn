@@ -9,9 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..auth import get_current_user
+from ..content_filter import check_keyword, filter_results
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..info_stream import info_aggregator
 from ..schemas import ok
+from ..storage import read_json, write_json
+from ..config import settings
 
 router = APIRouter(prefix="/api/info-stream", tags=["info-stream"])
 
@@ -35,8 +38,17 @@ async def search(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=30),
 ):
-    """搜索外部信息流"""
+    """搜索外部信息流（含敏感内容过滤）"""
+    # 第一层：关键词黑名单检查
+    blocked, reason = check_keyword(keyword)
+    if blocked:
+        return ok({"items": [], "total": 0, "page": page, "blocked": reason})
+
     items = await info_aggregator.search(keyword, source=source, page=page, page_size=page_size)
+
+    # 第二层：结果内容过滤
+    items = filter_results(items)
+
     return ok({"items": items, "total": len(items), "page": page})
 
 
@@ -72,6 +84,9 @@ async def get_recommendations(
     for result in results:
         if isinstance(result, list):
             items.extend(result)
+
+    # 对推荐结果也做过滤
+    items = filter_results(items)
 
     return ok({"items": items[:10], "keywords": keywords})
 
@@ -125,15 +140,17 @@ async def bookmark(
         (user_id, cache_id),
     )
     if existing_bookmark:
-        # 取消收藏
+        # 取消收藏 — 同步从资源中心删除
         execute("DELETE FROM info_stream_bookmarks WHERE id = ?", (existing_bookmark["id"],))
+        _remove_from_resource_center(req.source, req.external_id)
         return ok({"bookmarked": False})
 
-    # 添加收藏
+    # 添加收藏 — 同步写入资源中心
     execute(
         "INSERT INTO info_stream_bookmarks (user_id, cache_id, created_at) VALUES (?, ?, ?)",
         (user_id, cache_id, ts),
     )
+    _sync_to_resource_center(req)
     return ok({"bookmarked": True})
 
 
@@ -156,3 +173,38 @@ async def get_bookmarks(
     )
     items = [dict(r) for r in rows]
     return ok(items)
+
+
+def _sync_to_resource_center(req: BookmarkReq):
+    """将收藏的外部资源同步写入资源中心"""
+    resource_id = f"ext-{req.source}-{req.external_id}"
+    resources = read_json(settings.single_user_id, "resources_index.json", [])
+
+    # 去重
+    if any(r.get("id") == resource_id for r in resources):
+        return
+
+    resource = {
+        "id": resource_id,
+        "title": req.title,
+        "type": "external",
+        "status": "completed",
+        "created_at": datetime.utcnow().strftime("%Y-%m-%d"),
+        "content": f"# {req.title}\n\n{req.summary}",
+        "source_url": req.url,
+        "thumbnail": req.thumbnail,
+        "author": req.author,
+        "tags": req.tags,
+        "extra": {"source": req.source, "external_id": req.external_id},
+        "progress": 100,
+    }
+    resources.append(resource)
+    write_json(settings.single_user_id, "resources_index.json", resources)
+
+
+def _remove_from_resource_center(source: str, external_id: str):
+    """从资源中心删除对应的外部资源"""
+    resource_id = f"ext-{source}-{external_id}"
+    resources = read_json(settings.single_user_id, "resources_index.json", [])
+    resources = [r for r in resources if r.get("id") != resource_id]
+    write_json(settings.single_user_id, "resources_index.json", resources)

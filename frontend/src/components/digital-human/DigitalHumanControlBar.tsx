@@ -46,7 +46,7 @@ export default function DigitalHumanControlBar({
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-t border-white/8">
+    <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-100">
       {asrSupported && (
         <button
           type="button"
@@ -55,7 +55,7 @@ export default function DigitalHumanControlBar({
           className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
             isListening
               ? 'bg-red-500 text-white shadow-[0_0_12px_rgba(239,68,68,0.5)] animate-pulse'
-              : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white/80'
+              : 'bg-gray-100 text-[#6b7280] hover:bg-gray-200 hover:text-[#111827]'
           } disabled:opacity-30 disabled:cursor-not-allowed`}
           title={isListening ? '停止录音' : '语音输入'}
         >
@@ -71,7 +71,7 @@ export default function DigitalHumanControlBar({
         onKeyDown={handleKeyDown}
         disabled={isDisabled}
         placeholder={isListening ? '正在聆听...' : '输入你想问的...'}
-        className="flex-1 min-w-0 bg-white/6 border border-white/10 rounded-full px-4 py-2 text-sm text-white/90 placeholder:text-white/30 outline-none focus:border-white/20 focus:bg-white/8 transition-colors disabled:opacity-30"
+        className="flex-1 min-w-0 bg-[#f9fafb] border border-gray-200 rounded-full px-4 py-2 text-sm text-[#111827] placeholder:text-[#9ca3af] outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10 transition-colors disabled:opacity-30"
       />
 
       <button

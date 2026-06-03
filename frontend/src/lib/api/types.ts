@@ -430,6 +430,27 @@ export interface PathNodeAdvice {
   recommendedResources: string[]
 }
 
+// ============ 路径编辑器类型 ============
+
+export interface EditablePathNode {
+  id: string
+  title: string
+  source: 'ai' | 'user'
+}
+
+export interface EditablePhase {
+  id: 1 | 2 | 3
+  title: string
+  description: string
+  nodes: EditablePathNode[]
+}
+
+export interface SavePathPlanningPayload {
+  pathId: string
+  target: string
+  phases: EditablePhase[]
+}
+
 export interface VideoInfo {
   id: string
   title: string
@@ -449,23 +470,39 @@ export interface VideoInfo {
   muxMessage?: string
 }
 
+export interface VideoStyle {
+  id: string
+  name: string
+  description: string
+  accent_color: string
+  bg_gradient: string
+  font_family: string
+  code_bg: string
+  code_color: string
+  card_bg: string
+  tone: string
+}
+
 export interface VideoScriptSegment {
   segment_id: string
+  slide_type?: string
   title: string
+  subtitle?: string
   narration: string
   visual_hint: string
   duration_ms?: number
 }
 
 export interface VideoPolishResult {
-  polish_id: string
+  polishId: string
   title: string
-  polished_prompt: string
-  script_outline: VideoScriptSegment[]
-  estimated_duration_sec: number
+  polishedPrompt: string
+  scriptOutline: VideoScriptSegment[]
+  estimatedDurationSec: number
   voice: string
-  style_id?: string
-  style_name?: string
+  styleId?: string
+  styleName?: string
+  contentSource?: string
 }
 
 export interface VideoGenerateOptions {

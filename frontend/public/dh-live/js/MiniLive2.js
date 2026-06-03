@@ -5,13 +5,16 @@ let CONFIG = {
     backgroundVideoSrc: "background/bg.mp4",  // 背景视频路径（开启绿幕扣除时使用）
     videoSrc: "assets/01.mp4",                // 默认视频文件路径
     dataSrc: "assets/combined_data.json.gz",   // 默认数据文件路径
-    // 绿幕抠图参数配置
+    // 绿幕抠图参数配置（优化：减少绿色描边）
     chromaKey: {
         keyColor: { r: 0.0, g: 1.0, b: 0.0 },  // 要抠除的颜色（默认绿色）
-        similarity: 0.4,      // 相似度阈值：值越小，抠除范围越严格
-        smoothness: 0.1,      // 平滑度：值越大，边缘过渡越平滑
-        spill: 0.5           // 溢色抑制：减少绿色溢出到保留区域
-    }
+        similarity: 0.35,     // 相似度阈值：降低以更精确抠除（原 0.4）
+        smoothness: 0.15,     // 平滑度：提高以改善边缘过渡（原 0.1）
+        spill: 0.6            // 溢色抑制：增强以减少绿色溢出（原 0.5）
+    },
+    // 表情平滑参数（优化：减少头部频繁晃动）
+    blendShapeSmoothing: 0.5,  // 平滑系数：0=无平滑，1=完全平滑，0.5=较强平滑
+    pauseDrivingWhenIdle: true // 无语音输入时暂停表情驱动
 };
 // ==================================================
 const model_size = 184;
@@ -381,6 +384,28 @@ let lastDataSetIndex = -1;
 let imageDataPtr = null;
 let imageDataGlPtr = null;
 let bsPtr = null;
+let prevBsArray = null; // 用于表情平滑的上一帧 blend shape 数据
+
+// 音频驱动口型同步
+let audioMouthValue = 0;    // 当前口型开合度 (0=闭合, 1=张开)
+let audioMouthTarget = 0;   // 目标口型开合度
+let audioSpeaking = false;  // 是否正在说话
+
+// 接收来自父窗口的音频振幅数据
+window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'dh-audio-amplitude') {
+        audioMouthTarget = Math.min(1.0, (e.data.amplitude || 0) * 2.5);
+        audioSpeaking = e.data.speaking !== false;
+        // 调试日志（生产环境可移除）
+        if (audioSpeaking && audioMouthTarget > 0.05) {
+            console.log('[DH] 口型同步: amplitude=', e.data.amplitude?.toFixed(3), 'target=', audioMouthTarget.toFixed(3));
+        }
+    }
+    if (e.data && e.data.type === 'dh-audio-stop') {
+        audioMouthTarget = 0;
+        audioSpeaking = false;
+    }
+});
 
 // 解析OBJ文件
 function parseObjFile(text) {
@@ -762,7 +787,13 @@ async function processDataSet(currentDataSetIndex) {
         // 如果暂停，直接返回，不处理帧
         return;
     }
+    // 调试：确认渲染循环在运行
+    if (typeof processDataSet._logCount === 'undefined') processDataSet._logCount = 0;
+    if (processDataSet._logCount++ % 120 === 0) {
+        console.log('[DH] processDataSet running, index:', currentDataSetIndex, 'dataSets.length:', dataSets.length, 'audioSpeaking:', audioSpeaking, 'audioMouthValue:', audioMouthValue.toFixed(3));
+    }
     const dataSet = dataSets[currentDataSetIndex];
+    if (!dataSet) return;  // 安全检查：防止索引越界
     const rect = dataSet.rect;
 
     const currentpoints = dataSets[currentDataSetIndex].points;
@@ -772,7 +803,31 @@ async function processDataSet(currentDataSetIndex) {
 
     const subPoints = currentpoints.slice(16);
     Module._updateBlendShape(bsPtr, 12 * 4);
-    const bsArray = new Float32Array(Module.HEAPU8.buffer, bsPtr, 12);
+    let bsArray = new Float32Array(Module.HEAPU8.buffer, bsPtr, 12);
+
+    // 表情平滑：将当前帧与上一帧混合，减少头部频繁晃动
+    if (CONFIG.blendShapeSmoothing > 0 && prevBsArray) {
+        const smoothed = new Float32Array(12);
+        const alpha = CONFIG.blendShapeSmoothing;
+        for (let i = 0; i < 12; i++) {
+            smoothed[i] = prevBsArray[i] * alpha + bsArray[i] * (1 - alpha);
+        }
+        bsArray = smoothed;
+    }
+    prevBsArray = new Float32Array(bsArray);
+
+    // 音频驱动口型：平滑过渡口型开合度
+    audioMouthValue += (audioMouthTarget - audioMouthValue) * 0.4;
+    if (audioSpeaking && audioMouthValue > 0.01) {
+        // 将口型值叠加到 blend shape 的嘴部通道
+        bsArray = new Float32Array(bsArray);
+        bsArray[0] = Math.min(1.0, bsArray[0] + audioMouthValue * 0.8);
+        bsArray[1] = Math.min(1.0, bsArray[1] + audioMouthValue * 0.6);
+        // 调试：每60帧打印一次
+        if (Math.random() < 0.02) {
+            console.log('[DH] bsArray after lip sync:', Array.from(bsArray.slice(0, 4)).map(v => v.toFixed(3)).join(', '));
+        }
+    }
 
     render(matrix, subPoints, bsArray);
     // console.log("bsArray", bsArray);

@@ -27,10 +27,11 @@ export default function VideoPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [dhOpen, setDhOpen] = useState(false)
   const [lowFps, setLowFps] = useState(false)
+  const [ttsAnalyser, setTtsAnalyser] = useState<AnalyserNode | null>(null)
 
   const pageRef = useRef<HTMLDivElement>(null)
   const dhContainerRef = useRef<HTMLDivElement>(null)
-  const { speak, stop: stopTts, getAnalyser, isSupported: ttsSupported } = useTTS()
+  const { speak, stop: stopTts, getAnalyser, isSpeaking: ttsIsSpeaking, isSupported: ttsSupported } = useTTS()
   const asr = useASR({
     onResult: (text) => {
       dh.stopListening()
@@ -99,10 +100,25 @@ export default function VideoPage() {
       // Speak response
       dh.startSpeaking()
       speak(fullText, { lang: 'zh-CN', rate: 1.0 }, {
+        onStart: () => {
+          // TTS 开始后获取分析器用于口型同步
+          const analyser = getAnalyser()
+          console.log('[Video] TTS onStart, analyser:', analyser ? 'available' : 'null')
+          if (analyser) {
+            console.log('[Video] 设置 ttsAnalyser, analyserNode:', analyser.analyserNode, 'state:', analyser.audioContext.state)
+            setTtsAnalyser(analyser.analyserNode)
+          } else {
+            console.warn('[Video] TTS onStart 但 analyser 为 null，口型将使用模拟模式')
+          }
+        },
         onEnd: () => {
+          console.log('[Video] TTS onEnd')
+          setTtsAnalyser(null)
           dh.doneSpeaking()
         },
-        onError: () => {
+        onError: (errMsg) => {
+          console.warn('[Video] TTS onError:', errMsg)
+          setTtsAnalyser(null)
           dh.doneSpeaking()
         },
       })
@@ -159,9 +175,9 @@ export default function VideoPage() {
   const dhPanel = (
     <div className="flex flex-col h-full" ref={dhContainerRef}>
       {/* Status */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/8">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-xs text-white/60">
+        <span className="text-xs text-[#6b7280]">
           {dhState === 'loading_memory' ? '正在学习视频...' :
            dhState === 'ready' || dhState === 'speaking' || dhState === 'thinking' || dhState === 'listening'
             ? `在线 · 已学习${dh.currentVideoTitle ? `《${dh.currentVideoTitle}》` : '当前视频'}`
@@ -173,8 +189,8 @@ export default function VideoPage() {
       <div className="relative h-[320px] shrink-0">
         <DigitalHumanLive
           className="w-full h-full"
-          onReady={() => console.log('数字人就绪')}
-          onError={(msg) => console.error('数字人错误:', msg)}
+          audioAnalyser={ttsAnalyser}
+          isSpeaking={dhState === 'speaking' && !ttsAnalyser}
         />
       </div>
 
@@ -183,9 +199,9 @@ export default function VideoPage() {
 
       {/* Error */}
       {dh.error && (
-        <div className="px-3 py-2 text-xs text-red-400 bg-red-500/10 border-t border-red-500/20">
+        <div className="px-3 py-2 text-xs text-red-600 bg-red-50 border-t border-red-100">
           {dh.error}
-          <button onClick={dh.retry} className="ml-2 underline hover:text-red-300">重试</button>
+          <button onClick={dh.retry} className="ml-2 underline hover:text-red-800">重试</button>
         </div>
       )}
 
@@ -204,18 +220,17 @@ export default function VideoPage() {
   return (
     <div
       ref={pageRef}
-      className="min-h-screen"
-      style={{ background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)' }}
+      className="min-h-screen bg-[#f6f8fb]"
     >
       <div className="space-y-4 p-4">
         <div className="flex items-center gap-4">
-          <Link href="/generate?view=library" className="flex items-center gap-2 text-[#60a5fa] hover:text-[#93bbfd] transition-colors text-sm font-bold">
+          <Link href="/generate?view=library" className="flex items-center gap-2 text-[#2563eb] hover:text-[#1d4ed8] transition-colors text-sm font-bold">
             <ArrowLeft className="h-4 w-4" />返回资源中心
           </Link>
         </div>
         <div>
-          <h1 className="text-h1 text-white/90">视频播放</h1>
-          <p className="text-body text-white/50 mt-1">观看课程视频，提升学习效果</p>
+          <h1 className="text-h1 text-[#111827]">视频播放</h1>
+          <p className="text-body text-[#6b7280] mt-1">观看课程视频，提升学习效果</p>
         </div>
 
         {videos.length === 0 ? (
@@ -224,25 +239,24 @@ export default function VideoPage() {
           <div className="flex gap-4 h-[calc(100vh-180px)]">
             {/* Column 1: Video List */}
             <div className="w-40 shrink-0 overflow-y-auto space-y-2">
-              <h3 className="text-xs font-semibold text-white/40 mb-2 px-1">全部视频</h3>
+              <h3 className="text-xs font-semibold text-[#9ca3af] mb-2 px-1">全部视频</h3>
               {videos.map(video => (
                 <Card
                   key={video.id}
                   hoverable
                   className={cn(
-                    'p-3 cursor-pointer transition-all border-white/5',
-                    selected?.id === video.id && 'ring-2 ring-[#60a5fa] bg-white/8',
+                    'p-3 cursor-pointer transition-all border-gray-100',
+                    selected?.id === video.id && 'ring-2 ring-[#2563eb] bg-[#2563eb]/5',
                   )}
                   onClick={() => setSelected(video)}
-                  style={{ background: selected?.id === video.id ? undefined : 'rgba(255,255,255,0.03)' }}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#2563eb]/20 flex items-center justify-center text-[#60a5fa] shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#2563eb]/10 flex items-center justify-center text-[#2563eb] shrink-0">
                       <Play className="w-3 h-3" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-white/80 truncate">{video.title}</p>
-                      <p className="text-[10px] text-white/30">
+                      <p className="text-xs font-medium text-[#111827] truncate">{video.title}</p>
+                      <p className="text-[10px] text-[#9ca3af]">
                         {formatDuration(Math.round(video.duration / 60))}
                       </p>
                     </div>
@@ -255,7 +269,7 @@ export default function VideoPage() {
             <div className="flex-1 min-w-0 flex flex-col gap-4 overflow-y-auto">
               {selected && (
                 <>
-                  <Card className="overflow-hidden border-white/5" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <Card className="overflow-hidden border-gray-100 shadow-sm">
                     <div className="aspect-video bg-black">
                       {selected.hasMp4 && selected.url ? (
                         <video src={selected.url} controls preload="metadata" className="h-full w-full" />
@@ -268,7 +282,7 @@ export default function VideoPage() {
                       ) : selected.url ? (
                         <video src={selected.url} controls preload="metadata" className="h-full w-full" />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-center text-white/40">
+                        <div className="flex h-full items-center justify-center text-center text-[#9ca3af]">
                           <div>
                             <Play className="w-16 h-16 mx-auto mb-4 opacity-30" />
                             <p className="text-body">视频播放区域</p>
@@ -279,11 +293,11 @@ export default function VideoPage() {
                     </div>
                   </Card>
 
-                  <Card className="p-5 border-white/5" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <Card className="p-5 border-gray-100 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h2 className="text-h3 text-white/90">{selected.title}</h2>
-                        <div className="flex items-center gap-4 mt-2 text-caption text-white/40">
+                        <h2 className="text-h3 text-[#111827]">{selected.title}</h2>
+                        <div className="flex items-center gap-4 mt-2 text-caption text-[#9ca3af]">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {formatDuration(Math.round(selected.duration / 60))}
@@ -318,12 +332,7 @@ export default function VideoPage() {
             </div>
 
             {/* Column 3: Digital Human - Desktop */}
-            <div className="hidden lg:flex w-[360px] shrink-0 flex-col rounded-[20px] overflow-hidden border border-white/8 backdrop-blur-[20px]"
-              style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-              }}
-            >
+            <div className="hidden lg:flex w-[360px] shrink-0 flex-col rounded-[20px] overflow-hidden border border-gray-100 bg-white shadow-sm">
               {dhPanel}
             </div>
 
@@ -337,20 +346,14 @@ export default function VideoPage() {
               </button>
 
               {dhOpen && (
-                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur flex flex-col">
-                  <div className="flex items-center justify-between p-4 border-b border-white/10">
-                    <span className="text-white/80 text-sm font-medium">AI 学习伴侣</span>
-                    <button onClick={() => setDhOpen(false)} className="text-white/60 hover:text-white text-sm px-3 py-1">
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur flex flex-col">
+                  <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+                    <span className="text-[#111827] text-sm font-medium">AI 学习伴侣</span>
+                    <button onClick={() => setDhOpen(false)} className="text-[#6b7280] hover:text-[#111827] text-sm px-3 py-1">
                       关闭
                     </button>
                   </div>
-                  <div className="flex-1 min-h-0 rounded-[20px] overflow-hidden border border-white/8 m-4"
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.04)',
-                      backdropFilter: 'blur(20px)',
-                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                    }}
-                  >
+                  <div className="flex-1 min-h-0 rounded-[20px] overflow-hidden border border-gray-100 bg-white m-4 shadow-sm">
                     {dhPanel}
                   </div>
                 </div>

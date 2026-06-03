@@ -35,13 +35,25 @@ class DeepSeekAdapter:
         mode: str = "general",
         history: list[dict] | None = None,
         model: str = "ds-pro",
+        model_config: dict | None = None,
     ) -> AsyncGenerator[tuple[str, dict], None]:
-        if not settings.deepseek_api_key:
+        # 优先从模型配置读取 api_key / base_url，回退到全局 DeepSeek 配置
+        mc = model_config or {}
+        api_key = (mc.get("api_key") or "").strip() or settings.deepseek_api_key
+        base_url_raw = (mc.get("base_url") or "").strip() or settings.deepseek_base_url
+
+        if not api_key:
             yield ("error", {"code": -1, "message": "DeepSeek API key not configured"})
             yield ("done", {"fallback": True})
             return
 
-        model_name = "deepseek-v4-pro" if model == "ds-pro" else "deepseek-v4-flash"
+        # 模型名称映射：配置 key -> 实际 API model 名称
+        model_name_map = {
+            "ds-pro": "deepseek-v4-pro",
+            "ds-flash": "deepseek-v4-flash",
+            "qwen-plus": "qwen-plus",
+        }
+        model_name = model_name_map.get(model, model)
         messages: list[dict] = []
         for m in (history or [])[-20:]:
             role = m.get("role", "user")
@@ -61,10 +73,10 @@ class DeepSeekAdapter:
             "max_tokens": 4096,
         }
 
-        base_url = settings.deepseek_base_url.rstrip("/")
+        base_url = base_url_raw.rstrip("/")
         url = f"{base_url}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {settings.deepseek_api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "Accept": "text/event-stream",
         }

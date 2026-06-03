@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
-from ..coze import coze_adapter
+# from ..coze import coze_adapter  # 暂时注释：Coze bot_id 未配置，直接走 Spark LLM
 from ..config import settings
 from ..llm import spark_lite
 from ..schemas import ok
@@ -146,6 +146,7 @@ async def generate_resource(req: GenerateReq):
                 "progress": 100,
             }
         else:
+            # 直接走星火大模型生成（Coze 暂时注释，见顶部 import）
             chunks: list[str] = []
             explicit_source_url = ""
             progress = 10
@@ -156,28 +157,63 @@ async def generate_resource(req: GenerateReq):
                 user_prompt = (
                     f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考并保持事实一致：\n{knowledge_context}"
                 )
-            coze_prompt = _build_resource_prompt(req.type, user_prompt)
-            async for evt_type, payload in coze_adapter.stream_resource_text(
-                resource_type=req.type,
-                prompt=coze_prompt,
-                user_id=settings.single_user_id,
-            ):
+            llm_prompt = _build_resource_prompt(req.type, user_prompt)
+
+            yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
+            async for evt_type, payload in spark_lite.stream_chat_events(llm_prompt, mode="general", history=[]):
                 if evt_type == "text":
                     chunk = str(payload.get("content", ""))
                     if chunk:
                         chunks.append(chunk)
-                        progress = min(progress + 8, 90)
+                        progress = min(progress + 5, 90)
                         yield ("text", {"content": chunk, "resource_id": res_id})
                         yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
                 elif evt_type == "error":
                     yield ("error", payload)
-                elif evt_type == "meta":
-                    links = payload.get("links")
-                    if isinstance(links, list):
-                        for item in links:
-                            if isinstance(item, str) and _is_valid_url(item):
-                                explicit_source_url = item
-                                break
+
+            # --- 以下是原 Coze 调用逻辑，暂时注释保留 ---
+            # coze_failed = False
+            # coze_prompt = _build_resource_prompt(req.type, user_prompt)
+            # async for evt_type, payload in coze_adapter.stream_resource_text(
+            #     resource_type=req.type,
+            #     prompt=coze_prompt,
+            #     user_id=settings.single_user_id,
+            # ):
+            #     if evt_type == "text":
+            #         chunk = str(payload.get("content", ""))
+            #         if chunk:
+            #             chunks.append(chunk)
+            #             progress = min(progress + 8, 90)
+            #             yield ("text", {"content": chunk, "resource_id": res_id})
+            #             yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
+            #     elif evt_type == "error":
+            #         if not chunks:
+            #             coze_failed = True
+            #             yield ("progress", {"stage": "fallback", "resource_id": res_id, "progress": 10,
+            #                                 "message": "Coze 服务不可用，正在切换到备用模型..."})
+            #             break
+            #     elif evt_type == "meta":
+            #         links = payload.get("links")
+            #         if isinstance(links, list):
+            #             for item in links:
+            #                 if isinstance(item, str) and _is_valid_url(item):
+            #                     explicit_source_url = item
+            #                     break
+            # if coze_failed:
+            #     chunks = []
+            #     progress = 10
+            #     spark_prompt = _build_resource_prompt(req.type, user_prompt)
+            #     async for evt_type, payload in spark_lite.stream_chat_events(spark_prompt, mode="general", history=[]):
+            #         if evt_type == "text":
+            #             chunk = str(payload.get("content", ""))
+            #             if chunk:
+            #                 chunks.append(chunk)
+            #                 progress = min(progress + 5, 90)
+            #                 yield ("text", {"content": chunk, "resource_id": res_id})
+            #                 yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
+            #         elif evt_type == "error":
+            #             yield ("error", payload)
+            # --- Coze 逻辑结束 ---
 
             content = "".join(chunks).strip()
             if not content:

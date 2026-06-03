@@ -59,6 +59,7 @@ export const api = {
   generatePathPlanning: impl.generatePathPlanning,
   getPathPlanningHistory: impl.getPathPlanningHistory,
   getPathNodeSuggestions: impl.getPathNodeSuggestions,
+  savePathPlanning: impl.savePathPlanning,
 
   getVideos: impl.getVideos,
 
@@ -122,6 +123,7 @@ export const api = {
 
   // Digital Human
   loadMemory: impl.loadMemory,
+  deleteMemory: impl.deleteMemory,
   chatWithDigitalHuman: impl.chatWithDigitalHuman,
 }
 
@@ -129,9 +131,10 @@ export type {
   Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp, EditablePathNode, EditablePhase, SavePathPlanningPayload,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   McpService, McpServicePayload,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
+  VideoStyle, VideoScriptSegment, VideoPolishResult,
 } from './types'

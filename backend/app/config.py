@@ -29,16 +29,22 @@ class Settings(BaseSettings):
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
 
-    # 多模型配置：{模型标识: {provider, url, domain, label}}
+    # DashScope API (阿里云通义千问，OpenAI 兼容接口)
+    dashscope_api_key: str = ""
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+    # 多模型配置：{模型标识: {provider, url, domain, label, api_key, base_url}}
     # provider: "spark" 走 WebSocket 星火协议，"deepseek" 走 OpenAI 兼容 HTTP 协议
+    # api_key / base_url: 可选，模型级别覆盖，不填则回退到全局配置
     spark_model_map: dict = {
         "lite": {"provider": "spark", "url": "wss://spark-api.xf-yun.com/v1.1/chat", "domain": "lite", "label": "Spark Lite"},
         "x1": {"provider": "spark", "url": "wss://spark-api.xf-yun.com/v1/x1", "domain": "spark-x", "label": "Spark X1.5"},
         "x2": {"provider": "spark", "url": "wss://spark-api.xf-yun.com/x2", "domain": "spark-x", "label": "Spark X2"},
         "ds-flash": {"provider": "deepseek", "url": "", "domain": "", "label": "DeepSeek V4 Flash"},
         "ds-pro": {"provider": "deepseek", "url": "", "domain": "", "label": "DeepSeek V4 Pro"},
+        "qwen-plus": {"provider": "deepseek", "url": "", "domain": "", "label": "Qwen Plus (DashScope)", "api_key": "", "base_url": ""},
     }
-    spark_default_model: str = "lite"
+    spark_default_model: str = "qwen-plus"
 
     # Coze (resource generation)
     coze_base_url: str = "https://api.coze.cn"

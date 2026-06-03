@@ -9,6 +9,8 @@ import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio, RadioTrack } from '@/components/ui/AudioRadio'
 import { MarkdownCodePreview } from '@/components/ui/MarkdownCodePreview'
 import { CodeExerciseCard, TestCase } from '@/components/ui/CodeExerciseCard'
+import CodeLearningWizard from '@/components/ui/CodeLearningWizard'
+import { MindMapViewer } from '@/components/ui/MindMapViewer'
 import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
@@ -35,7 +37,7 @@ const TYPE_PROMPTS: Record<string, string> = {
 }
 
 function typeLabel(type: string) {
-  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台' }
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台', external: '外部资源' }
   return map[type] || type
 }
 
@@ -130,7 +132,6 @@ export default function GeneratePage() {
   const [sseMessages, setSseMessages] = useState<string[]>([])
 
   // 代码案例专用状态
-  const [codeLanguage, setCodeLanguage] = useState('python')
   const [codeLevel, setCodeLevel] = useState('beginner')
   const [codeIncludeExercise, setCodeIncludeExercise] = useState(true)
 
@@ -191,13 +192,12 @@ export default function GeneratePage() {
     // Build code-specific prompt with options
     let effectivePrompt = prompt
     if (type === 'code') {
-      const langMap: Record<string, string> = { python: 'Python', javascript: 'JavaScript', html: 'HTML/CSS' }
       const levelMap: Record<string, string> = { beginner: '入门级（零基础友好）', intermediate: '进阶（有一定基础）', advanced: '高级（深入原理）' }
       const parts = [
-        `编程语言：${langMap[codeLanguage] || codeLanguage}`,
+        '编程语言：Python',
         `难度：${levelMap[codeLevel] || codeLevel}`,
-        codeIncludeExercise ? '要求：包含 2-3 道可运行的配套练习题（含测试用例）' : '',
         `主题需求：${prompt}`,
+        '要求：按三级递进模式生成（引导学习 → 填空练习 → 自由编码），每级都要有可运行的代码和测试用例。',
       ].filter(Boolean)
       effectivePrompt = parts.join('\n')
     }
@@ -299,7 +299,7 @@ export default function GeneratePage() {
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-small outline-none" placeholder="搜索资源或知识点" />
               </div>
               <select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-10 rounded-[10px] border border-line bg-white px-3 text-small outline-none">
-                {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video', 'blog'].map(item => <option key={item}>{item}</option>)}
+                {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video', 'blog', 'external'].map(item => <option key={item}>{item}</option>)}
               </select>
             </div>
             <div className="grid gap-2">
@@ -359,10 +359,18 @@ export default function GeneratePage() {
                       <p className="text-sm text-[#6b7280] mb-4">前往视频中心查看完整预览和播放</p>
                       <ProtoButton href="/video">前往视频播放</ProtoButton>
                     </div>
+                  ) : selected.type === 'mindmap' ? (
+                    <MindMapViewer content={selected.content || ''} />
                   ) : (
                     <div className="p-5">
                       {selected.type === 'code' ? (() => {
-                        const parsed = parseCodeExercise(selected.content || '')
+                        const content = selected.content || ''
+                        // 新版三级递进模式
+                        if (content.includes('【第一级：引导学习】')) {
+                          return <CodeLearningWizard content={content} title={selected.title} />
+                        }
+                        // 旧版单练习模式（兼容）
+                        const parsed = parseCodeExercise(content)
                         return parsed ? (
                           <div className="space-y-4">
                             <CodeExerciseCard
@@ -379,7 +387,7 @@ export default function GeneratePage() {
                             )}
                           </div>
                         ) : (
-                          <MarkdownCodePreview content={selected.content || '该资源暂无预览内容。'} editable />
+                          <MarkdownCodePreview content={content || '该资源暂无预览内容。'} editable />
                         )
                       })() : (
                         <pre className="whitespace-pre-wrap break-words text-small leading-7 text-text">{selected.content || '该资源暂无预览内容。'}</pre>
@@ -574,27 +582,9 @@ export default function GeneratePage() {
               </>
             )}
 
-            {/* 代码案例专用：语言 & 难度 & 配套练习 */}
+            {/* 代码案例专用：难度 & 配套练习 */}
             {type === 'code' && (
               <>
-                <div>
-                  <span className="text-small font-bold text-ink mb-2 block">编程语言</span>
-                  <div className="flex gap-2">
-                    {[
-                      { value: 'python', label: 'Python' },
-                      { value: 'javascript', label: 'JavaScript' },
-                      { value: 'html', label: 'HTML/CSS' },
-                    ].map((lang) => (
-                      <button
-                        key={lang.value}
-                        onClick={() => setCodeLanguage(lang.value)}
-                        className={`flex-1 rounded-[10px] border p-2.5 text-center text-small font-bold transition-all ${codeLanguage === lang.value ? 'border-blue bg-blue-light ring-2 ring-blue/20 text-blue' : 'border-line bg-white hover:border-blue/50 text-ink'}`}
-                      >
-                        {lang.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
                 <div>
                   <span className="text-small font-bold text-ink mb-2 block">难度级别</span>
                   <div className="flex gap-2">
@@ -837,6 +827,8 @@ export default function GeneratePage() {
                       />
                       <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音讲解。</p>
                     </div>
+                  ) : resource.type === 'mindmap' ? (
+                    <MindMapViewer content={resource.content || ''} />
                   ) : resource.type === 'code' ? (
                     <div className="mt-2">
                       {(() => {

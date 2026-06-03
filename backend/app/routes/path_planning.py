@@ -36,6 +36,25 @@ class PathPlanningResp(BaseModel):
     created_at: str
 
 
+class PathNodeData(BaseModel):
+    id: str = ''
+    title: str = ''
+    source: str = 'ai'  # 'ai' | 'user'
+
+
+class PhaseData(BaseModel):
+    id: int = 0
+    title: str = ''
+    description: str = ''
+    nodes: list[PathNodeData] = []
+
+
+class SavePathPlanningReq(BaseModel):
+    path_id: str = ''
+    target: str = ''
+    phases: list[PhaseData] = []
+
+
 @router.post('/path-planning/generate')
 async def generate_path_planning(req: PathPlanningReq):
     """
@@ -59,6 +78,11 @@ async def generate_path_planning(req: PathPlanningReq):
         mastery_stats=mastery_rows
     )
     
+    # 给 AI 生成的 node 加 source 标记
+    for phase in phases:
+        for node in phase.get('nodes', []):
+            node['source'] = 'ai'
+
     # 保存路径规划到文件
     path_id = f"path-{now_iso().replace(':', '').replace('-', '').replace('Z', '')}"
     planning_data = {
@@ -67,7 +91,9 @@ async def generate_path_planning(req: PathPlanningReq):
         'suggestions': suggestions,
         'resources': resources,
         'phases': phases,
+        'is_customized': False,
         'created_at': now_iso(),
+        'updated_at': now_iso(),
     }
     
     # 保存到用户数据目录
@@ -171,6 +197,59 @@ async def get_path_planning(path_id: str):
             return ok(planning)
     
     return ok({'error': 'Path planning not found'})
+
+
+@router.post('/path-planning/save')
+async def save_path_planning(req: SavePathPlanningReq):
+    """
+    保存用户编辑后的路径规划（实时保存）
+    """
+    history = read_json(
+        settings.single_user_id,
+        'path_planning_history.json',
+        []
+    )
+
+    # 找到对应 path_id 并更新
+    updated = False
+    for i, planning in enumerate(history):
+        if planning.get('path_id') == req.path_id:
+            history[i]['phases'] = [p.model_dump() for p in req.phases]
+            history[i]['target'] = req.target
+            history[i]['is_customized'] = True
+            history[i]['updated_at'] = now_iso()
+            updated = True
+            break
+
+    # 如果没找到，作为新记录追加
+    if not updated:
+        planning_data = {
+            'path_id': req.path_id or f"path-{now_iso().replace(':', '').replace('-', '').replace('Z', '')}",
+            'target': req.target,
+            'phases': [p.model_dump() for p in req.phases],
+            'suggestions': [],
+            'resources': [],
+            'is_customized': True,
+            'created_at': now_iso(),
+            'updated_at': now_iso(),
+        }
+        history.append(planning_data)
+
+    write_json(settings.single_user_id, 'path_planning_history.json', history)
+
+    # 记录事件
+    append_jsonl(
+        settings.single_user_id,
+        'learning_events.jsonl',
+        {
+            'type': 'path_planning_saved',
+            'path_id': req.path_id,
+            'node_count': sum(len(p.nodes) for p in req.phases),
+            'timestamp': now_iso()
+        }
+    )
+
+    return ok({'saved': True, 'path_id': req.path_id})
 
 
 async def _generate_ai_path_planning(

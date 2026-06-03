@@ -24,7 +24,7 @@ export default function DigitalHumanChat({ messages, isThinking }: DigitalHumanC
       style={{ scrollBehavior: 'smooth' }}
     >
       {messages.length === 0 && !isThinking && (
-        <div className="text-center text-white/40 text-sm py-8">
+        <div className="text-center text-[#9ca3af] text-sm py-8">
           有什么问题可以问我
         </div>
       )}
@@ -38,7 +38,7 @@ export default function DigitalHumanChat({ messages, isThinking }: DigitalHumanC
             className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
               msg.role === 'user'
                 ? 'bg-[#2563eb] text-white rounded-br-md'
-                : 'bg-white/8 text-white/85 rounded-bl-md backdrop-blur border border-white/8'
+                : 'bg-[#f3f4f6] text-[#111827] rounded-bl-md border border-gray-100'
             }`}
           >
             {msg.content}
@@ -48,11 +48,11 @@ export default function DigitalHumanChat({ messages, isThinking }: DigitalHumanC
 
       {isThinking && (
         <div className="flex justify-start">
-          <div className="bg-white/8 text-white/50 rounded-2xl rounded-bl-md px-3 py-2 border border-white/8 backdrop-blur">
+          <div className="bg-[#f3f4f6] text-[#6b7280] rounded-2xl rounded-bl-md px-3 py-2 border border-gray-100">
             <span className="inline-flex gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '0s' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '0.15s' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: '0.3s' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#d1d5db] animate-bounce" style={{ animationDelay: '0s' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#d1d5db] animate-bounce" style={{ animationDelay: '0.15s' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#d1d5db] animate-bounce" style={{ animationDelay: '0.3s' }} />
             </span>
           </div>
         </div>

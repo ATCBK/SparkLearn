@@ -37,11 +37,19 @@ export default function InfoStreamPage() {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
+  const [blockedMsg, setBlockedMsg] = useState<string | null>(null)
 
   useEffect(() => {
     fetchSources()
     fetchBookmarks()
   }, [])
+
+  // 当切换数据源 Tab 时，如果已有搜索词，自动重新搜索
+  useEffect(() => {
+    if (searched && keyword.trim()) {
+      handleSearch()
+    }
+  }, [activeSource])
 
   async function fetchSources() {
     try {
@@ -68,11 +76,19 @@ export default function InfoStreamPage() {
     if (!keyword.trim()) return
     setLoading(true)
     setSearched(true)
+    setBlockedMsg(null)
     try {
       const params = new URLSearchParams({ keyword, source: activeSource, page_size: '15' })
       const res = await fetch(`/api/info-stream/search?${params}`)
       const json = await res.json()
-      if (json.success) setItems(json.data.items || [])
+      if (json.success) {
+        if (json.data.blocked) {
+          setBlockedMsg(json.data.blocked)
+          setItems([])
+        } else {
+          setItems(json.data.items || [])
+        }
+      }
     } catch {
       setItems([])
     } finally {
@@ -169,7 +185,7 @@ export default function InfoStreamPage() {
           return (
             <button
               key={src.id}
-              onClick={() => { setActiveSource(src.id); if (searched) handleSearch() }}
+              onClick={() => setActiveSource(src.id)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                 activeSource === src.id
                   ? 'bg-[#2563eb] text-white shadow-sm'
@@ -182,6 +198,13 @@ export default function InfoStreamPage() {
           )
         })}
       </div>
+
+      {/* Blocked message */}
+      {blockedMsg && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+          {blockedMsg}
+        </div>
+      )}
 
       {/* Results */}
       {loading ? (

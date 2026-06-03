@@ -101,6 +101,7 @@ export function useTTS() {
 
   const speakWithXunfei = useCallback(async (text: string, options: TTSOptions, events?: TTSEvents): Promise<(() => void)> => {
     try {
+      console.log('[TTS] 开始合成语音, text长度:', text.length)
       const { api } = await import('@/lib/api')
       const audioBlob = await api.synthesizeSpeech(text, {
         voice: options.voice,
@@ -108,10 +109,24 @@ export function useTTS() {
         volume: Math.round((options.volume ?? 1.0) * 100),
         pitch: Math.round((options.pitch ?? 1.0) * 50),
       })
+      console.log('[TTS] 语音合成成功, blob大小:', audioBlob.size, 'type:', audioBlob.type)
 
       const ctx = createAudioContext()
+      console.log('[TTS] AudioContext state:', ctx.state)
+
+      // 关键修复：确保 AudioContext 处于运行状态
+      // 由于 createAudioContext 在 await 之后调用，已脱离用户手势范围，
+      // Chrome 等浏览器会将 AudioContext 置于 suspended 状态
+      if (ctx.state === 'suspended') {
+        console.log('[TTS] AudioContext 被挂起，尝试恢复...')
+        await ctx.resume()
+        console.log('[TTS] AudioContext 恢复后 state:', ctx.state)
+      }
+
       const arrayBuffer = await audioBlob.arrayBuffer()
+      console.log('[TTS] arrayBuffer 大小:', arrayBuffer.byteLength)
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
+      console.log('[TTS] 音频解码成功, duration:', audioBuffer.duration.toFixed(2), 's, sampleRate:', audioBuffer.sampleRate)
 
       const sourceNode = ctx.createBufferSource()
       sourceNode.buffer = audioBuffer
@@ -127,6 +142,7 @@ export function useTTS() {
       analyserRef.current = { audioContext: ctx, sourceNode, analyserNode, audioData }
 
       sourceNode.onended = () => {
+        console.log('[TTS] 音频播放结束')
         setIsSpeaking(false)
         analyserRef.current = null
         events?.onEnd?.()
@@ -134,10 +150,12 @@ export function useTTS() {
 
       sourceNode.start(0)
       setIsSpeaking(true)
+      console.log('[TTS] 音频开始播放, analyserRef 已设置')
       events?.onStart?.()
 
       return stop
     } catch (e) {
+      console.error('[TTS] 合成/播放失败:', e)
       // Fallback to browser TTS
       events?.onError?.(`讯飞 TTS 失败，降级到浏览器语音: ${e instanceof Error ? e.message : 'unknown'}`)
       return speakWithBrowser(text, options, events)
