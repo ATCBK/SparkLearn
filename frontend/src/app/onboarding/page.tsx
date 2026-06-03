@@ -45,6 +45,14 @@ interface StepData {
 
 const STEPS: StepData[] = [
   {
+    key: 'major',
+    title: '专业方向',
+    greeting: '你好，我是小星同学。\n为了让后续资源和学习路径更贴合你的专业背景，我们先记录你的专业方向。',
+    question: '你的专业或方向是什么？',
+    tags: ['计算机科学', '软件工程', '人工智能', '数据科学', '信息安全', '网络工程'],
+    multiSelect: false,
+  },
+  {
     key: 'goal',
     title: '学习目标',
     greeting: '你好！我是小星同学 ✨\n为了为你制定最合适的学习计划，\n我们先来聊聊你的学习目标吧~',
@@ -270,11 +278,12 @@ export default function OnboardingPage() {
   async function submitOnboarding() {
     try {
       const body = {
-        goal: selections[0] || [],
-        level: selections[1] || [],
-        weak: selections[2] || [],
-        preference: selections[3] || [],
-        time: selections[4] || [],
+        major: selections[0] || [],
+        goal: selections[1] || [],
+        level: selections[2] || [],
+        weak: selections[3] || [],
+        preference: selections[4] || [],
+        time: selections[5] || [],
       }
       await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/profile/onboarding`,

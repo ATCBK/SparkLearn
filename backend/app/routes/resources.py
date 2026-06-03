@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from ..coze import coze_adapter
 from ..config import settings
+from ..db import fetch_one
 from ..llm import spark_lite
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
@@ -360,6 +361,9 @@ def _default_resources() -> list[dict[str, Any]]:
 
 def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
     base = user_prompt.strip()
+    profile_context = _profile_context_for_generation()
+    if profile_context:
+        base = f"{base}\n\n用户画像上下文:\n{profile_context}"
     if resource_type == "document":
         return (
             "请生成结构化学习文档（Markdown）。包含学习目标、关键概念、示例、常见错误、练习建议。"
@@ -390,6 +394,36 @@ def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
             "主题：" + base
         )
     return base
+
+
+def _profile_context_for_generation() -> str:
+    profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+    if not isinstance(profile, dict) or not profile:
+        return ""
+    parts = []
+    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (settings.single_user_id,))
+    major = str(profile.get("major") or "").strip()
+    if not major and student and student["major"]:
+        major = str(student["major"]).strip()
+    if major:
+        parts.append(f"专业方向: {major}")
+    goal = profile.get("goal", [])
+    if isinstance(goal, list) and goal:
+        parts.append(f"学习目标: {json_like(goal)}")
+    knowledge_level = str(profile.get("knowledge_level") or "").strip()
+    if knowledge_level:
+        parts.append(f"知识基础: {knowledge_level}")
+    weak_points = profile.get("weak_points", [])
+    if isinstance(weak_points, list) and weak_points:
+        parts.append(f"薄弱点: {json_like(weak_points)}")
+    learning_preference = profile.get("learning_preference", [])
+    if isinstance(learning_preference, list) and learning_preference:
+        parts.append(f"学习偏好: {json_like(learning_preference)}")
+    return "\n".join(parts)
+
+
+def json_like(value: Any) -> str:
+    return ", ".join(str(item) for item in value if str(item).strip())
 
 
 def _fallback_resource_content(resource_type: str, prompt: str) -> str:

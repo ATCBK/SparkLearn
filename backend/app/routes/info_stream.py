@@ -49,12 +49,16 @@ async def get_recommendations(
 
     # 从用户画像获取关键词
     profile = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (user_id,))
     keywords = []
+    major = str(student["major"]).strip() if student and student["major"] else ""
+    if major:
+        keywords.append(major)
     if profile:
         import json
         weak_points = json.loads(profile["weak_points"] or "[]")
         current_stage = profile["current_stage"] or ""
-        keywords = weak_points[:2]
+        keywords.extend(weak_points[:2])
         if current_stage:
             keywords.append(current_stage)
 

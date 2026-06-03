@@ -199,6 +199,40 @@ export interface ProfileUpdatePayload {
   currentStage?: string
 }
 
+export interface ProfileHistoryItem {
+  id: string
+  captured_at: string
+  reason: string
+  version: number
+  major: string
+  grade: string
+  goals: string[]
+  knowledge_level: string
+  weak_points: string[]
+  learning_preference: string[]
+  cognitive_style: string
+  daily_time: number
+  practical_ability: string
+  current_stage: string
+  summary: string
+}
+
+export interface ProfileHistoryResp {
+  items: ProfileHistoryItem[]
+  update_interval_days: number
+  next_update_at: string
+}
+
+export interface ProfileAnalysisResp {
+  analysis: string
+  analysis_steps: Array<{
+    title: string
+    detail: string
+    status: string
+  }>
+  updated_at: string
+}
+
 export interface Message {
   id: string
   role: 'user' | 'assistant'

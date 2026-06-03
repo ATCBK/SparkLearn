@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Plus, Trash2, PieChart, ClipboardList, Flame, CheckCircle2, FileText, Brain, BookOpen, Sparkles, Clock, GitBranch } from 'lucide-react'
+import { Check, Plus, Trash2, PieChart, ClipboardList, Flame, CheckCircle2, FileText, Brain, BookOpen, Sparkles, Clock, GitBranch, NotebookPen } from 'lucide-react'
 import { api, Recommendation, Resource, Task } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
@@ -173,7 +173,19 @@ export default function HomePage() {
           </form>
           <div className="mt-5 space-y-2">
             {tasks.map(task => (
-              <TaskRow key={task.id} task={task} busy={busy === task.id} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task.id)} />
+              <TaskRow
+                key={task.id}
+                task={task}
+                busy={busy === task.id}
+                onToggle={() => void toggleTask(task)}
+                onDelete={() => void removeTask(task.id)}
+                onNote={() => openLearningNotes({
+                  type: 'task',
+                  id: task.id,
+                  title: task.title,
+                  href: '/',
+                })}
+              />
             ))}
             {!tasks.length && <SoftCard className="text-small text-muted">暂无任务，先创建一条今日学习任务。</SoftCard>}
           </div>
@@ -208,7 +220,17 @@ export default function HomePage() {
   )
 }
 
-function TaskRow({ task, busy, onToggle, onDelete }: { task: Task; busy: boolean; onToggle: () => void; onDelete: () => void }) {
+function openLearningNotes(source: { type: 'task' | 'resource'; id?: string; title: string; href: string }) {
+  window.dispatchEvent(new CustomEvent('open-learning-notes', {
+    detail: {
+      source,
+      draftTitle: `关于${source.title}的笔记`,
+      openEditor: true,
+    },
+  }))
+}
+
+function TaskRow({ task, busy, onToggle, onDelete, onNote }: { task: Task; busy: boolean; onToggle: () => void; onDelete: () => void; onNote: () => void }) {
   const completed = task.status === 'completed'
   const typeIcons: Record<string, { icon: React.ReactNode; color: string }> = {
     reading: { icon: <FileText className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
@@ -219,7 +241,7 @@ function TaskRow({ task, busy, onToggle, onDelete }: { task: Task; busy: boolean
   const t = typeIcons[task.type] || typeIcons.reading
 
   return (
-    <SoftCard className="grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-3 bg-white">
+    <SoftCard className="grid grid-cols-[auto_auto_1fr_auto_auto_auto] items-center gap-3 bg-white">
       {/* 彩色图标 */}
       <div className={`grid h-9 w-9 place-items-center rounded-xl ${t.color}`}>
         {t.icon}
@@ -238,6 +260,9 @@ function TaskRow({ task, busy, onToggle, onDelete }: { task: Task; busy: boolean
         <span className="text-micro text-muted">{task.duration} 分钟 · {task.type}</span>
       </div>
       <Pill tone={completed ? 'green' : 'orange'}>{completed ? '已完成' : '待完成'}</Pill>
+      <button onClick={onNote} data-testid="task-note-button" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-blue-light hover:text-blue" aria-label="为任务记笔记" title="记笔记">
+        <NotebookPen className="h-4 w-4" />
+      </button>
       <button onClick={onDelete} disabled={busy} className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-red-light hover:text-red" aria-label="删除任务">
         <Trash2 className="h-4 w-4" />
       </button>
@@ -248,7 +273,7 @@ function TaskRow({ task, busy, onToggle, onDelete }: { task: Task; busy: boolean
 function Reco({ title, meta, action, resourceId }: { title: string; meta: string; action: string; resourceId?: string }) {
   const href = resourceId ? `/generate?view=library&id=${resourceId}` : '/generate?view=library'
   return (
-    <SoftCard className="grid grid-cols-[auto_1fr_auto] items-center gap-3 bg-white">
+    <SoftCard className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 bg-white">
       <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#eff6ff] text-[#2563eb]">
         <FileText className="h-4 w-4" />
       </div>
@@ -256,6 +281,15 @@ function Reco({ title, meta, action, resourceId }: { title: string; meta: string
         <b className="block text-small text-ink">{title}</b>
         <span className="mt-1 block text-micro leading-5 text-muted">{meta}</span>
       </div>
+      <button
+        onClick={() => openLearningNotes({ type: 'resource', id: resourceId, title, href })}
+        data-testid="resource-note-button"
+        className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-blue-light hover:text-blue"
+        aria-label="为资源记笔记"
+        title="记笔记"
+      >
+        <NotebookPen className="h-4 w-4" />
+      </button>
       <ProtoButton href={href} variant="tertiary">{action}</ProtoButton>
     </SoftCard>
   )

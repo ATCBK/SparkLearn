@@ -666,6 +666,10 @@ def _build_default_batch(count: int, batch_id: str) -> list[dict[str, Any]]:
 
 def _build_personalized_quiz_context() -> dict[str, Any]:
     profile = read_json(settings.single_user_id, 'profile_snapshot.json', {})
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+    major = str(profile.get('major') or '').strip()
+    if not major and student and student['major']:
+        major = str(student['major']).strip()
     records = read_json(settings.single_user_id, 'quiz_records.json', [])
     if not isinstance(records, list):
         records = []
@@ -712,6 +716,7 @@ def _build_personalized_quiz_context() -> dict[str, Any]:
         difficulty = 'balanced'
 
     return {
+        'major': major,
         'goal': profile.get('goal', []),
         'knowledge_level': profile.get('knowledge_level', ''),
         'learning_preference': profile.get('learning_preference', []),

@@ -5,6 +5,7 @@ import type {
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
+  ProfileHistoryResp, ProfileAnalysisResp,
 } from './types'
 import { getToken } from '../auth'
 
@@ -180,7 +181,7 @@ export async function getProfile(): Promise<StudentProfile> {
     id: p.user_id,
     name: String(p.name || '张同学'),
     email: String(p.email || 'student@sparklearn.ai'),
-    major: String(p.major || '计算机科学'),
+    major: String(p.major || ''),
     grade: String(p.grade || '大二'),
     goals: p.goal,
     knowledgeLevel: p.knowledge_level,
@@ -212,6 +213,14 @@ export async function updateProfile(payload: ProfileUpdatePayload): Promise<void
     method: 'PUT',
     body: JSON.stringify(body),
   })
+}
+
+export async function getProfileHistory(): Promise<ProfileHistoryResp> {
+  return fetchJson('/api/profile/history')
+}
+
+export async function analyzeProfileHistory(): Promise<ProfileAnalysisResp> {
+  return fetchJson('/api/profile/history/analyze', { method: 'POST', body: JSON.stringify({}) })
 }
 
 export async function getResources(): Promise<Resource[]> {

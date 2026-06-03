@@ -82,6 +82,7 @@ export default function AuthPage() {
   function isProfileComplete(profile: any) {
     return Boolean(
       profile
+      && String(profile.major || '').trim()
       && Array.isArray(profile.goals)
       && profile.goals.length > 0
       && String(profile.knowledgeLevel || '').trim()

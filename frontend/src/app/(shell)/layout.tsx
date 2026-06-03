@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { AIAssistant } from '@/components/layout/AIAssistant'
+import { LearningNotesPanel } from '@/components/layout/LearningNotesPanel'
 import { MOBILE_TABS, PAGE_META } from '@/components/layout/navigation'
 import { GenerationTaskProvider } from '@/components/providers/GenerationTaskProvider'
 import { useBreakpoint } from '@/lib/hooks/useMediaQuery'
@@ -58,7 +59,7 @@ function BottomTabBar() {
   const pathname = usePathname()
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[70] border-t border-line bg-white/95 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+4px)]">
-      <div className="grid h-16 grid-cols-5">
+      <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${MOBILE_TABS.length}, minmax(0, 1fr))` }}>
         {MOBILE_TABS.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
           const Icon = item.icon
@@ -131,6 +132,7 @@ export default function ShellLayout({
         >
           <div className="mx-auto max-w-[1360px] px-8 py-7 max-[760px]:px-4">{children}</div>
         </main>
+        <LearningNotesPanel />
         <AIAssistant />
         {sidebarState === 'collapsed' && (
           <button

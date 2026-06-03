@@ -26,6 +26,35 @@ type ChatMessage = {
   timestamp: string
 }
 
+type SpeechRecognitionResultEventLike = {
+  results: {
+    length: number
+    [index: number]: {
+      [index: number]: {
+        transcript: string
+      }
+    }
+  }
+}
+
+type SpeechRecognitionLike = {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
+}
+
 export function AIAssistant() {
   const pathname = usePathname()
   const router = useRouter()
@@ -58,7 +87,7 @@ export function AIAssistant() {
 
   // Voice input
   const [recording, setRecording] = useState(false)
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef<string>('')
 
   // 3D tilt state (global mouse tracking)
@@ -186,7 +215,8 @@ export function AIAssistant() {
       setRecording(false)
       return
     }
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const speechWindow = window as SpeechRecognitionWindow
+    const SpeechRecognition = (speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined
     if (!SpeechRecognition) {
       alert('当前浏览器不支持语音识别，请使用 Chrome 浏览器。')
       return
@@ -196,7 +226,7 @@ export function AIAssistant() {
     recognition.continuous = false
     recognition.interimResults = true
     voiceBaseRef.current = input
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       let transcript = ''
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript

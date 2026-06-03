@@ -187,6 +187,7 @@ async def _generate_ai_path_planning(
     prompt = f"""你是一名专业的学习路径规划师。请根据学生的画像和目标，生成个性化的学习路径规划。
 
 学生目标: {target}
+学生专业方向: {profile.get('major', '未知')}
 学生学习目标: {json.dumps(profile.get('goal', []), ensure_ascii=False)}
 学生薄弱点: {json.dumps(profile.get('weak_points', []), ensure_ascii=False)}
 学生学习偏好: {json.dumps(profile.get('learning_preference', []), ensure_ascii=False)}
@@ -243,7 +244,8 @@ async def _generate_ai_path_planning(
 2. 节点标题要具体、可执行，针对学生目标"{target}"
 3. 第一阶段侧重补弱/基础，第二阶段侧重核心能力达标，第三阶段侧重应用/项目
 4. 建议要具体可行，针对学生的薄弱点
-5. 只返回JSON，不要任何其他文本"""
+5. 学习资源和项目案例要结合学生专业方向，后续可按不同专业沉淀资源模板
+6. 只返回JSON，不要任何其他文本"""
 
     try:
         text = await _collect_llm_text(prompt)
@@ -365,8 +367,12 @@ def _profile_dict(row) -> dict[str, Any]:
     """
     将数据库行转换为字典
     """
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+    major = str(student['major']).strip() if student and student['major'] else ''
+
     if not row:
         return {
+            'major': major,
             'goal': ['提升编程能力'],
             'weak_points': ['函数与模块'],
             'learning_preference': ['实战练习'],
@@ -385,6 +391,7 @@ def _profile_dict(row) -> dict[str, Any]:
             return []
 
     return {
+        'major': major,
         'goal': _loads(row['goal']),
         'weak_points': _loads(row['weak_points']),
         'learning_preference': _loads(row['learning_preference']),
@@ -495,6 +502,7 @@ async def _generate_ai_node_suggestions(
 节点状态: {node_status}
 所属阶段: {phase_title}
 整体路径目标: {target or '提升编程能力'}
+学生专业方向: {profile.get('major', '未知')}
 学生薄弱点: {json.dumps(profile.get('weak_points', []), ensure_ascii=False)}
 学生学习偏好: {json.dumps(profile.get('learning_preference', []), ensure_ascii=False)}
 已有可用资源: {json.dumps(resource_titles, ensure_ascii=False)}

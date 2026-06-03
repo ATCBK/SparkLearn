@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database } from 'lucide-react'
+import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, NotebookPen } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -109,6 +109,21 @@ function GeneratePageContent() {
   async function removeResource(id: string) {
     await api.deleteResource(id)
     await loadResources()
+  }
+
+  function openResourceNotes(res: Resource) {
+    window.dispatchEvent(new CustomEvent('open-learning-notes', {
+      detail: {
+        source: {
+          type: 'resource',
+          id: res.id,
+          title: res.title,
+          href: `/generate?view=library&id=${res.id}`,
+        },
+        draftTitle: `关于${res.title}的笔记`,
+        openEditor: true,
+      },
+    }))
   }
 
   const filtered = resources.filter((r) => {
@@ -220,6 +235,7 @@ function GeneratePageContent() {
                     <ProtoButton href="/practice">学完去练习</ProtoButton>
                   )}
                   <ProtoButton variant="secondary"><MessageCircle className="h-4 w-4" />让 AI 讲解</ProtoButton>
+                  <ProtoButton variant="tertiary" data-testid="resource-detail-note-button" onClick={() => openResourceNotes(selected)}><NotebookPen className="h-4 w-4" />记笔记</ProtoButton>
                   <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
                   <ProtoButton variant="tertiary" onClick={() => void removeResource(selected.id)}><Trash2 className="h-4 w-4" />删除</ProtoButton>
                 </div>
@@ -360,7 +376,7 @@ function GeneratePageContent() {
 
         {step === 3 && (
           <div className="grid gap-3">
-            {['分析学习画像', '读取路径节点', '加载知识库资料', '多智能体生成内容', '安全检查', '保存资源索引'].map((row, idx) => (
+            {['分析学习画像', '读取路径节点', '加载知识库资料', '调用资源生成服务', '安全检查', '保存资源索引'].map((row, idx) => (
               <SoftCard key={row} className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-small font-bold text-ink">
                   {generating && idx < 4 ? <TypewriterLoader size="sm" /> : <CheckCircle2 className="h-4 w-4 text-green" />}

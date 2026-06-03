@@ -95,8 +95,10 @@ def _list_indexed_knowledge_file_ids(limit: int = 20) -> list[int]:
 def _profile_snippet(profile: dict[str, Any]) -> str:
     weak = profile.get("weak_points", [])
     goal = profile.get("goal", [])
+    major = profile.get("major", "")
     stage = profile.get("current_stage", "")
     return (
+        f"专业方向: {major or '未知'}; "
         f"目标: {json.dumps(goal, ensure_ascii=False)}；"
         f"薄弱点: {json.dumps(weak, ensure_ascii=False)}；"
         f"当前阶段: {stage or '未知'}"
