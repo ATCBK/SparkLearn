@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, LogOut } from 'lucide-react'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { AIAssistant } from '@/components/layout/AIAssistant'
@@ -132,7 +132,9 @@ export default function ShellLayout({
         >
           <div className="mx-auto max-w-[1360px] px-8 py-7 max-[760px]:px-4">{children}</div>
         </main>
-        <LearningNotesPanel />
+        <Suspense fallback={null}>
+          <LearningNotesPanel />
+        </Suspense>
         <AIAssistant />
         {sidebarState === 'collapsed' && (
           <button

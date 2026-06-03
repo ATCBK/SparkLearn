@@ -33,7 +33,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   '/tutor/skills': { group: '工具', title: 'Skills 商店' },
   '/tutor/mcp-store': { group: '工具', title: 'MCP 插件商店' },
   '/video': { group: 'SparkLearn', title: '视频资源' },
-  '/info-stream': { group: 'SparkLearn', title: '信息流' },
+  '/info-stream': { group: 'SparkLearn', title: '学习发现' },
 }
 
 export const MOBILE_TABS: MobileTabItem[] = [

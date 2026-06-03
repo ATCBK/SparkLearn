@@ -1,8 +1,9 @@
 ﻿'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart3, BookOpen, Bot, CheckSquare, Database, Globe, Home, LogOut, Map, MessageSquare, User } from 'lucide-react'
+import { BarChart3, BookOpen, Bot, CheckSquare, Database, Globe, Home, LogOut, Map, MessageSquare, Settings2, User, Zap } from 'lucide-react'
 
 interface NavItem {
   label: string
@@ -10,6 +11,16 @@ interface NavItem {
   icon: React.ReactNode
   group: string
   newTab?: boolean
+}
+
+type SparklearnDesktopBridge = {
+  openStudyBuddyConfig?: () => void
+}
+
+declare global {
+  interface Window {
+    sparklearnDesktop?: SparklearnDesktopBridge
+  }
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -20,7 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: '资源中心', href: '/generate', icon: <BookOpen className="h-5 w-5" />, group: '资源与练习' },
   { label: '练习评测', href: '/practice', icon: <CheckSquare className="h-5 w-5" />, group: '资源与练习' },
   { label: '学习伙伴', href: '/agent', icon: <Bot className="h-5 w-5" />, group: '资源与练习' },
-  { label: '信息流', href: '/info-stream', icon: <Globe className="h-5 w-5" />, group: '资源与练习' },
+  { label: '学习发现', href: '/info-stream', icon: <Globe className="h-5 w-5" />, group: '资源与练习' },
   { label: '学习报告', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
 ]
 
@@ -32,6 +43,9 @@ interface SidebarProps {
 export function Sidebar({ state }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const [desktopReady] = useState(() => (
+    typeof window !== 'undefined' && Boolean(window.sparklearnDesktop?.openStudyBuddyConfig)
+  ))
   const isExpanded = state === 'expanded'
   const isIcons = state === 'icons'
 
@@ -55,6 +69,15 @@ export function Sidebar({ state }: SidebarProps) {
       sessionStorage.clear()
     }
     router.push('/auth')
+  }
+
+  const openStudyBuddyConfig = async () => {
+    try {
+      await window.sparklearnDesktop?.openStudyBuddyConfig?.()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      window.alert(`StudyBuddy 配置窗口暂时无法打开。\n\n${message}\n\n请先重启桌面端，再重试。`)
+    }
   }
 
   return (
@@ -120,6 +143,27 @@ export function Sidebar({ state }: SidebarProps) {
       <div className="absolute bottom-4 left-3 right-3 space-y-3">
         {isExpanded ? (
           <>
+            {desktopReady && (
+              <div className="relative">
+                <div className="absolute -right-1 -top-2 z-10 rounded-full bg-[#2563EB] px-2 py-0.5 text-[10px] font-extrabold text-white shadow-sm">
+                  支持多渠道
+                </div>
+                <button
+                  type="button"
+                  onClick={openStudyBuddyConfig}
+                  className="flex w-full items-center gap-3 rounded-[12px] border border-[#BFDBFE] bg-[#F8FBFF] p-3 text-left transition-colors hover:border-[#93C5FD] hover:bg-[#EFF6FF]"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#DBEAFE] text-[#2563EB]">
+                    <Zap className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-small font-bold text-[#1E3A8A]">StudyBuddy 配置</div>
+                    <div className="truncate text-micro text-[#64748B]">配置 StudyBuddy 渠道与本地模型</div>
+                  </div>
+                  <Settings2 className="h-4 w-4 shrink-0 text-[#2563EB]" />
+                </button>
+              </div>
+            )}
             <Link
               href="/plaza"
               target="_blank"
@@ -141,6 +185,17 @@ export function Sidebar({ state }: SidebarProps) {
           </>
         ) : isIcons ? (
           <div className="flex flex-col items-center gap-2">
+            {desktopReady && (
+              <button
+                type="button"
+                onClick={openStudyBuddyConfig}
+                title="StudyBuddy 配置：支持多渠道"
+                className="relative grid h-9 w-9 place-items-center rounded-lg text-[#2563EB] transition-colors hover:bg-[#EEF5FF]"
+              >
+                <Zap className="h-4 w-4" />
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#2563EB]" />
+              </button>
+            )}
             <Link
               href="/plaza"
               target="_blank"

@@ -332,6 +332,7 @@
 
 .auth-form input[type="email"],
 .auth-form input[type="password"],
+.auth-form input[type="tel"],
 .auth-form input[type="text"] {
   width: 100%;
   height: 46px;
@@ -353,6 +354,37 @@
   border-color: rgba(11, 116, 255, .58);
   box-shadow: 0 0 0 4px rgba(11, 116, 255, .1);
   background: white;
+}
+
+.code-field input[type="text"] {
+  padding-right: 128px;
+}
+
+.send-code-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  height: 34px;
+  min-width: 104px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 11px;
+  background: #e8f2ff;
+  color: #0b74ff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+
+.send-code-btn:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.send-code-btn:disabled {
+  color: #8a99b0;
+  cursor: not-allowed;
+  background: #edf2f7;
 }
 
 .eye-btn {
@@ -545,6 +577,13 @@
   .intro-title { font-size: 34px; }
   .intro-desc { font-size: 15px; }
   .login-title { font-size: 24px; }
+  .code-field input[type="text"] {
+    padding-right: 112px;
+  }
+  .send-code-btn {
+    min-width: 92px;
+    font-size: 12px;
+  }
   .form-row {
     align-items: flex-start;
     flex-direction: column;

@@ -114,6 +114,7 @@ const resourceTypeLabel: Record<Resource['type'], string> = {
   code: '代码',
   video: '视频',
   blog: '博客',
+  discovery: '学习发现',
 }
 
 function isResourceRecommendationQuery(text: string) {
@@ -487,8 +488,12 @@ export default function TutorPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const skillImportInputRef = useRef<HTMLInputElement>(null)
+  const messageScrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const autoFollowRef = useRef(true)
   const profilePromiseRef = useRef<Promise<StudentProfile | null> | null>(null)
+  const [autoFollowMessages, setAutoFollowMessages] = useState(true)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
 
   // TTS playback
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null)
@@ -562,6 +567,28 @@ export default function TutorPage() {
     })
   }, [skillLibrary, skillSearch])
   const hasInteracted = messages.length > 0
+
+  const isMessagesNearBottom = useCallback(() => {
+    const scroller = messageScrollRef.current
+    if (!scroller) return true
+    return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 96
+  }, [])
+
+  const scrollToLatestMessage = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    autoFollowRef.current = true
+    setAutoFollowMessages(true)
+    setShowJumpToLatest(false)
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' })
+    })
+  }, [])
+
+  const handleMessagesScroll = useCallback(() => {
+    const nearBottom = isMessagesNearBottom()
+    autoFollowRef.current = nearBottom
+    setAutoFollowMessages(nearBottom)
+    setShowJumpToLatest(!nearBottom)
+  }, [isMessagesNearBottom])
 
   useEffect(() => {
     setSelectedSkillId(localStorage.getItem(SKILL_STORAGE_KEY) || '')
@@ -661,6 +688,9 @@ export default function TutorPage() {
   }
 
   function setHydratedMessages(items: Message[]) {
+    autoFollowRef.current = true
+    setAutoFollowMessages(true)
+    setShowJumpToLatest(false)
     setMessages(items)
     hydrateMessageSidecars(items)
   }
@@ -754,11 +784,12 @@ export default function TutorPage() {
   }, [])
 
   useEffect(() => {
-    // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
-    requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    })
-  }, [messages])
+    if (autoFollowRef.current) {
+      scrollToLatestMessage('smooth')
+      return
+    }
+    setShowJumpToLatest(true)
+  }, [messages, scrollToLatestMessage])
 
   useEffect(() => {
     if (!currentRoleId) return
@@ -996,6 +1027,9 @@ export default function TutorPage() {
     }
 
     const assistantId = `a-${msgUid}`
+    autoFollowRef.current = true
+    setAutoFollowMessages(true)
+    setShowJumpToLatest(false)
     setMessages((prev) => [
       ...prev,
       userMsg,
@@ -1447,7 +1481,7 @@ export default function TutorPage() {
         </div>
 
         {/* 主对话区 */}
-        <main className={cn('min-h-0 flex-1 flex-col overflow-hidden bg-white max-[760px]:overflow-visible', skillStoreOpen ? 'hidden' : 'flex')}>
+        <main className={cn('relative min-h-0 flex-1 flex-col overflow-hidden bg-white max-[760px]:overflow-visible', skillStoreOpen ? 'hidden' : 'flex')}>
           {actionError && <div className="px-6 pt-3"><p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{actionError}</p></div>}
 
           {/* 瀵硅瘽鏍囬鏍?*/}
@@ -1459,7 +1493,7 @@ export default function TutorPage() {
           )}
 
           {/* 娑堟伅鍖哄煙 */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div ref={messageScrollRef} onScroll={handleMessagesScroll} className="flex-1 min-h-0 overflow-y-auto">
             {!hasInteracted ? (
               <div className="h-full flex flex-col items-center justify-center px-6">
                 <div className="max-w-[560px] w-full text-center">
@@ -1766,6 +1800,21 @@ export default function TutorPage() {
               </div>
             )}
           </div>
+
+          {hasInteracted && showJumpToLatest && (
+            <button
+              type="button"
+              onClick={() => scrollToLatestMessage('smooth')}
+              className={cn(
+                'absolute bottom-[104px] left-1/2 z-20 grid h-11 w-11 -translate-x-1/2 place-items-center rounded-full border border-[#e2e8f0] bg-white/95 text-[#111827] shadow-[0_8px_24px_rgba(15,23,42,0.14)] backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[#cbd5e1] hover:shadow-[0_12px_28px_rgba(15,23,42,0.18)] max-[760px]:bottom-[116px]',
+                !autoFollowMessages && 'animate-in fade-in zoom-in-95',
+              )}
+              title={streaming ? '回到正在生成的位置' : '回到最新消息'}
+              aria-label={streaming ? '回到正在生成的位置' : '回到最新消息'}
+            >
+              <ChevronDown className="h-6 w-6" />
+            </button>
+          )}
 
           {/* 搴曢儴杈撳叆鍖?*/}
           <div className="shrink-0 px-6 pb-4 pt-2">

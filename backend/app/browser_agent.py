@@ -33,6 +33,24 @@ class BrowserAgentService:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(_executor, self._summarize_sync, url, on_step)
 
+    async def summarize_url_with_plan(
+        self,
+        url: str,
+        action_plan: list[dict[str, Any]],
+        on_step: Callable[[int, str, str], None] | None = None,
+    ) -> dict[str, Any]:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_executor, self._summarize_with_plan_sync, url, action_plan, on_step)
+
+    async def summarize_from_homepage_search(
+        self,
+        query: str,
+        target_url: str = "",
+        on_step: Callable[[int, str, str], None] | None = None,
+    ) -> dict[str, Any]:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_executor, self._summarize_from_homepage_search_sync, query, target_url, on_step)
+
     async def compare_search(self, query: str, on_step: Callable[[int, str, str], None] | None = None, num_sources: int = 3) -> dict[str, Any]:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(_executor, self._compare_sync, query, on_step, num_sources)
@@ -207,6 +225,207 @@ class BrowserAgentService:
                 context.close()
                 browser.close()
 
+    def _summarize_from_homepage_search_sync(self, query: str, target_url: str, on_step: Callable | None) -> dict[str, Any]:
+        def step(idx: int, action: str, desc: str):
+            if on_step:
+                on_step(idx, action, desc)
+
+        step(1, "start", "正在启动可见浏览器，讯飞星火将通过搜索首页查找页面...")
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=self.headless, slow_mo=self.slow_mo)
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                locale="zh-CN",
+                viewport={"width": 1280, "height": 800},
+            )
+            page = context.new_page()
+            self._inject_ai_border(page)
+
+            try:
+                step(2, "navigate", "打开 Bing 搜索首页")
+                page.goto("https://cn.bing.com", timeout=30000, wait_until="domcontentloaded")
+                self._ensure_ai_glow(page)
+                time.sleep(0.8)
+
+                step(3, "input", f"在搜索框输入：{query[:80]}")
+                search_input = page.locator('input[name="q"], #sb_form_q, textarea[name="q"]').first
+                search_input.click()
+                search_input.fill("")
+                search_input.type(query, delay=80)
+                time.sleep(0.5)
+
+                step(4, "click", "提交搜索")
+                search_input.press("Enter")
+                page.wait_for_load_state("domcontentloaded", timeout=20000)
+                self._ensure_ai_glow(page)
+                time.sleep(1.2)
+
+                step(5, "scroll", "浏览搜索结果列表")
+                for y in [220, 520, 0]:
+                    page.evaluate(f"window.scrollTo(0, {y})")
+                    self._ensure_ai_glow(page)
+                    time.sleep(0.6)
+
+                results = self._extract_bing_results_sync(page, 6)
+                if not results:
+                    results = self._extract_from_page_js(page, 6)
+
+                chosen = None
+                target_domain = self._domain(target_url) if target_url else ""
+                for item in results:
+                    item_url = str(item.get("url") or "")
+                    if target_url and (target_url in item_url or (target_domain and target_domain in self._domain(item_url))):
+                        chosen = item
+                        break
+                if chosen is None and results:
+                    chosen = results[0]
+
+                if chosen and chosen.get("url"):
+                    step(6, "click", f"打开搜索结果：{str(chosen.get('title') or '')[:40]}")
+                    page.goto(str(chosen["url"]), timeout=45000, wait_until="domcontentloaded")
+                    self._ensure_ai_glow(page)
+                elif target_url:
+                    step(6, "navigate", "搜索结果未命中目标页面，打开用户提供的链接")
+                    page.goto(target_url, timeout=45000, wait_until="domcontentloaded")
+                    self._ensure_ai_glow(page)
+                else:
+                    step(6, "extract", "没有可打开的搜索结果，提取搜索页内容")
+
+                title = page.title()
+                step(7, "scroll", "滚动阅读页面内容")
+                for y in [320, 760, 1180, 1560]:
+                    page.evaluate(f"window.scrollTo(0, {y})")
+                    self._ensure_ai_glow(page)
+                    time.sleep(0.7)
+
+                step(8, "extract", "提取当前页面正文")
+                content = self._extract_page_content_sync(page)
+                step(9, "done", f"浏览器操作完成，提取正文 {len(content)} 字")
+                return {"title": title, "content": content[:6000], "url": page.url}
+            except Exception as ex:
+                logger.exception("Homepage search summarize failed")
+                step(9, "error", f"浏览器搜索操作失败: {str(ex)[:100]}")
+                return {"title": "", "content": "", "url": target_url, "error": str(ex)[:200]}
+            finally:
+                time.sleep(1)
+                context.close()
+                browser.close()
+
+    def _summarize_with_plan_sync(self, url: str, action_plan: list[dict[str, Any]], on_step: Callable | None) -> dict[str, Any]:
+        def step(idx: int, action: str, desc: str):
+            if on_step:
+                on_step(idx, action, desc)
+
+        safe_plan = action_plan if isinstance(action_plan, list) and action_plan else [
+            {"action": "navigate", "reason": "打开用户提供的页面"},
+            {"action": "wait", "seconds": 1, "reason": "等待页面主要内容加载"},
+            {"action": "scroll", "y": 400, "reason": "阅读页面上半部分"},
+            {"action": "scroll", "y": 900, "reason": "阅读页面中部内容"},
+            {"action": "scroll", "y": 1400, "reason": "阅读页面下半部分"},
+            {"action": "extract", "reason": "提取正文用于总结"},
+        ]
+
+        step(1, "start", "正在启动可见浏览器，执行 DeepSeek 规划的操作...")
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=self.headless, slow_mo=self.slow_mo)
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                locale="zh-CN",
+                viewport={"width": 1280, "height": 800},
+            )
+            page = context.new_page()
+            self._inject_ai_border(page)
+
+            title = ""
+            content = ""
+            visited = False
+            try:
+                for index, item in enumerate(safe_plan[:8], start=2):
+                    action = str(item.get("action") or "").lower().strip()
+                    reason = str(item.get("reason") or "")
+                    if action == "navigate":
+                        step(index, "navigate", reason or "DeepSeek 指示：打开目标页面")
+                        try:
+                            page.goto(url, timeout=45000, wait_until="domcontentloaded")
+                        except Exception as ex:
+                            step(index, "navigate", f"页面仍在加载，继续执行后续动作: {str(ex)[:80]}")
+                            try:
+                                page.wait_for_load_state("domcontentloaded", timeout=5000)
+                            except Exception:
+                                pass
+                        visited = True
+                        try:
+                            title = page.title()
+                        except Exception:
+                            title = ""
+                        time.sleep(0.8)
+                    elif action == "wait":
+                        seconds = float(item.get("seconds") or 1)
+                        seconds = max(0.3, min(seconds, 3.0))
+                        step(index, "wait", reason or f"DeepSeek 指示：等待 {seconds:.1f} 秒")
+                        time.sleep(seconds)
+                    elif action == "scroll":
+                        if not visited:
+                            step(index, "navigate", "DeepSeek 指示滚动前先打开目标页面")
+                            try:
+                                page.goto(url, timeout=45000, wait_until="domcontentloaded")
+                            except Exception as ex:
+                                step(index, "navigate", f"页面仍在加载，继续滚动观察: {str(ex)[:80]}")
+                            visited = True
+                            try:
+                                title = page.title()
+                            except Exception:
+                                title = ""
+                        y = int(item.get("y") or item.get("pixels") or 600)
+                        y = max(0, min(y, 5000))
+                        step(index, "scroll", reason or f"DeepSeek 指示：滚动到 {y}px 观察页面内容")
+                        page.evaluate(f"window.scrollTo(0, {y})")
+                        time.sleep(0.8)
+                    elif action == "extract":
+                        if not visited:
+                            step(index, "navigate", "DeepSeek 指示提取前先打开目标页面")
+                            try:
+                                page.goto(url, timeout=45000, wait_until="domcontentloaded")
+                            except Exception as ex:
+                                step(index, "navigate", f"页面仍在加载，尝试提取已有内容: {str(ex)[:80]}")
+                            visited = True
+                        try:
+                            title = page.title()
+                        except Exception:
+                            title = ""
+                        step(index, "extract", reason or "DeepSeek 指示：提取页面正文")
+                        content = self._extract_page_content_sync(page)
+                    else:
+                        step(index, "skip", f"跳过不支持的动作：{action or 'unknown'}")
+
+                if not visited:
+                    step(20, "navigate", "DeepSeek 计划未包含导航，自动打开目标页面")
+                    try:
+                        page.goto(url, timeout=45000, wait_until="domcontentloaded")
+                    except Exception as ex:
+                        step(20, "navigate", f"页面仍在加载，尝试继续: {str(ex)[:80]}")
+                    try:
+                        title = page.title()
+                    except Exception:
+                        title = ""
+
+                if not content:
+                    step(21, "extract", "提取页面正文用于 DeepSeek 总结")
+                    content = self._extract_page_content_sync(page)
+
+                step(22, "done", f"浏览器操作完成，提取正文 {len(content)} 字")
+                return {"title": title, "content": content[:6000], "url": url}
+            except Exception as ex:
+                logger.exception("DeepSeek planned browser summarize failed")
+                step(22, "error", f"浏览器操作失败: {str(ex)[:100]}")
+                return {"title": title, "content": content, "url": url, "error": str(ex)[:200]}
+            finally:
+                time.sleep(1)
+                context.close()
+                browser.close()
+
     # ========== COMPARE: Search + visit multiple pages ==========
 
     def _compare_sync(self, query: str, on_step: Callable | None, num_sources: int) -> dict[str, Any]:
@@ -339,6 +558,69 @@ class BrowserAgentService:
         """
         page.on("load", lambda: page.evaluate(f"() => {{ {js_inject} }}"))
         page.add_init_script(js_inject)
+
+    def _ai_glow_script(self) -> str:
+        return """
+            (() => {
+                const styleId = '__sparklearn_ai_agent_glow_style__';
+                const edgePrefix = '__sparklearn_ai_agent_edge_';
+                const oldOverlay = document.getElementById('__sparklearn_ai_agent_glow__');
+                if (oldOverlay) oldOverlay.remove();
+                if (!document.getElementById(styleId)) {
+                    const style = document.createElement('style');
+                    style.id = styleId;
+                    style.textContent = `
+                        @keyframes sparklearnAgentGlowShift {
+                            0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+                            50% { background-position: 100% 50%; filter: hue-rotate(35deg); }
+                            100% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+                        }
+                        @keyframes sparklearnAgentPulse {
+                            0%, 100% { opacity: .82; transform: scale(1); }
+                            50% { opacity: 1; transform: scale(1.006); }
+                        }
+                        .__sparklearn_ai_agent_edge__ {
+                            position: fixed;
+                            z-index: 2147483647;
+                            pointer-events: none;
+                            box-sizing: border-box;
+                            background: linear-gradient(120deg, #22d3ee, #2563eb, #a855f7, #ec4899, #f59e0b, #22d3ee);
+                            background-size: 320% 320%;
+                            animation: sparklearnAgentGlowShift 3.2s linear infinite, sparklearnAgentPulse 1.8s ease-in-out infinite;
+                            box-shadow: 0 0 14px rgba(37,99,235,.22);
+                        }
+                        #${edgePrefix}top { left: 0; top: 0; width: 100vw; height: 5px; }
+                        #${edgePrefix}right { right: 0; top: 0; width: 5px; height: 100vh; }
+                        #${edgePrefix}bottom { left: 0; bottom: 0; width: 100vw; height: 5px; }
+                        #${edgePrefix}left { left: 0; top: 0; width: 5px; height: 100vh; }
+                    `;
+                    document.head.appendChild(style);
+                }
+                for (const side of ['top', 'right', 'bottom', 'left']) {
+                    const id = edgePrefix + side;
+                    if (!document.getElementById(id)) {
+                        const edge = document.createElement('div');
+                        edge.id = id;
+                        edge.className = '__sparklearn_ai_agent_edge__';
+                        document.documentElement.appendChild(edge);
+                    }
+                }
+            })();
+        """
+
+    def _ensure_ai_glow(self, page):
+        try:
+            page.evaluate(self._ai_glow_script())
+        except Exception:
+            pass
+
+    def _inject_ai_border(self, page):
+        """Inject a visible agent-control glow overlay into every page."""
+        script = self._ai_glow_script()
+        page.add_init_script(script)
+        page.on("domcontentloaded", lambda: self._ensure_ai_glow(page))
+        page.on("load", lambda: self._ensure_ai_glow(page))
+        self._ensure_ai_glow(page)
 
     def _extract_bing_results_sync(self, page, max_results: int) -> list[dict]:
         results: list[dict] = []

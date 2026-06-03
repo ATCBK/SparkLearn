@@ -8,6 +8,9 @@ Local services:
 2. `backend`: FastAPI on `127.0.0.1:8000`.
 3. The Electron window loads the existing Next.js pages.
 
+StudyBuddy uses the local Nanobot runtime. Desktop only provides a configuration
+entry and does not replace Nanobot's own Feishu/channel/agent logic.
+
 ## Development
 
 ```powershell
@@ -28,6 +31,29 @@ Startup order:
 Default config is in `config/desktop.config.example.json`.
 
 For local overrides, create `config/desktop.config.json`. This file should not be committed.
+
+StudyBuddy configuration is available from the desktop menu:
+
+```text
+SparkLearn -> StudyBuddy 配置
+```
+
+The window writes to the project Nanobot config path from `NANOBOT_CONFIG_PATH`
+or falls back to:
+
+```text
+nanobot-main\.nanobot\config.json
+```
+
+Use this screen to set the StudyBuddy model provider, model, API key, workspace,
+and Nanobot channel configuration.
+
+Current UI flow:
+
+1. Set model and local service basics.
+2. Choose the target channel inside the StudyBuddy page.
+3. Fill the channel form or edit raw `channels` JSON for advanced fields.
+4. Save, then restart Nanobot to apply the new configuration.
 
 ## Validation
 

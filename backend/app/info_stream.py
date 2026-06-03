@@ -31,6 +31,7 @@ class InfoStreamAggregator:
     """外部信息流聚合器"""
 
     SOURCES = ["bilibili", "github", "arxiv", "juejin"]
+    REQUEST_TIMEOUT_SEC = 5.0
 
     async def search(
         self,
@@ -88,7 +89,7 @@ class InfoStreamAggregator:
             "Referer": "https://www.bilibili.com",
         }
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT_SEC) as client:
             resp = await client.get(url, params=params, headers=headers)
             data = resp.json()
 
@@ -124,7 +125,7 @@ class InfoStreamAggregator:
         }
         headers = {"Accept": "application/vnd.github.v3+json"}
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT_SEC) as client:
             resp = await client.get(url, params=params, headers=headers)
             data = resp.json()
 
@@ -160,7 +161,7 @@ class InfoStreamAggregator:
             "sortOrder": "descending",
         }
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT_SEC) as client:
             resp = await client.get(url, params=params)
             text = resp.text
 
@@ -204,7 +205,7 @@ class InfoStreamAggregator:
             "sort_type": 0,  # 综合排序
         }
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        async with httpx.AsyncClient(timeout=self.REQUEST_TIMEOUT_SEC) as client:
             resp = await client.post(url, json=body)
             data = resp.json()
 

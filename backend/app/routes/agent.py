@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import re
 import uuid
 from typing import Any
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel, field_validator
 
@@ -32,6 +34,8 @@ LEVEL_ABILITIES: dict[int, list[str]] = {
     4: ["search", "summarize", "compare", "recommend"],
     5: ["search", "summarize", "compare", "recommend"],
 }
+
+AGENT_LLM_MODEL = "ds-flash"
 
 PERSONA_PROMPTS = {
     "concise": "You are a concise learning assistant. Keep replies under 80 chars, direct and to the point.",
@@ -212,6 +216,80 @@ def _add_step(task_id: str, step_index: int, action: str, description: str):
     )
 
 
+async def _stream_agent_llm(prompt: str, mode: str = "general"):
+    async for chunk in spark_lite.stream_chat(prompt, mode=mode, model=AGENT_LLM_MODEL):
+        yield chunk
+
+
+def _extract_first_url(text: str) -> str:
+    match = re.search(r"https?://[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+", text.strip())
+    if not match:
+        return ""
+    return match.group(0).rstrip(".,;:!?)]}。！？；，、")
+
+
+def _html_to_readable_text(raw_html: str) -> str:
+    cleaned = re.sub(r"(?is)<(script|style|noscript|svg|canvas).*?>.*?</\1>", " ", raw_html)
+    cleaned = re.sub(r"(?is)</(p|div|section|article|main|header|footer|li|h[1-6]|tr)>", "\n", cleaned)
+    cleaned = re.sub(r"(?is)<[^>]+>", " ", cleaned)
+    cleaned = html.unescape(cleaned)
+    cleaned = re.sub(r"[ \t\r\f\v]+", " ", cleaned)
+    lines = [line.strip() for line in cleaned.split("\n") if len(line.strip()) > 2]
+    seen: set[str] = set()
+    readable: list[str] = []
+    for line in lines:
+        if line in seen:
+            continue
+        seen.add(line)
+        readable.append(line)
+        if len("\n".join(readable)) > 6000:
+            break
+    return "\n".join(readable)
+
+
+async def _fetch_url_text(url: str) -> dict[str, str]:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.7",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.7",
+    }
+    timeout = httpx.Timeout(15.0, connect=8.0, read=15.0)
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, headers=headers) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        content_type = resp.headers.get("content-type", "")
+        body = resp.text
+    title_match = re.search(r"(?is)<title[^>]*>(.*?)</title>", body)
+    title = html.unescape(re.sub(r"\s+", " ", title_match.group(1)).strip()) if title_match else ""
+    text = _html_to_readable_text(body) if "html" in content_type.lower() or "<html" in body[:500].lower() else body.strip()
+    return {"title": title, "content": text[:6000], "url": url}
+
+
+async def _plan_browser_search_query(task_id: str, input_text: str, url: str, user_instruction: str) -> str:
+    _add_step(task_id, 1, "plan", "讯飞星火正在分析用户意图，生成浏览器搜索词...")
+    prompt = f"""请把用户任务改写成适合在搜索引擎中输入的短查询词。
+
+要求：
+- 不要照抄用户原话；
+- 如果有 URL，保留域名或页面标识，加入用户真正想了解的主题；
+- 只输出一行搜索词，不要解释，不要 JSON；
+- 8 到 40 个中文/英文字符左右。
+
+用户任务：{input_text}
+URL：{url or "无"}
+用户意图：{user_instruction or "无"}"""
+    chunks: list[str] = []
+    async for c in _stream_agent_llm(prompt, mode="general"):
+        chunks.append(c)
+    query = re.sub(r"[\r\n\"'`]+", " ", "".join(chunks)).strip()
+    query = re.sub(r"\s+", " ", query).strip(" ：:，,。")
+    if not query or len(query) > 80:
+        domain = re.sub(r"^www\.", "", re.sub(r"^https?://", "", url).split("/")[0]) if url else ""
+        query = " ".join(part for part in [domain, user_instruction or input_text.replace(url, "").strip()] if part).strip()
+    _add_step(task_id, 2, "plan", f"讯飞星火生成搜索词：{query[:80]}")
+    return query[:100]
+
+
 # --- Task Execution (Background) ---
 
 async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: str, personality: str):
@@ -297,7 +375,7 @@ async def _do_search_llm_fallback(task_id: str, query: str, persona: str) -> dic
 - 摘要要精炼有用"""
 
     chunks: list[str] = []
-    async for c in spark_lite.stream_chat(prompt, mode="general"):
+    async for c in _stream_agent_llm(prompt, mode="general"):
         chunks.append(c)
     text = "".join(chunks).strip()
     try:
@@ -312,49 +390,75 @@ async def _do_search_llm_fallback(task_id: str, query: str, persona: str) -> dic
 
 
 async def _do_summarize(task_id: str, input_text: str, persona: str) -> dict:
-    """Real browser visit URL + LLM summarize"""
-    from ..browser_agent import _get_agent
+    """Fetch URL/text content and summarize it with the agent LLM."""
 
-    def on_step(idx: int, action: str, desc: str):
-        _add_step(task_id, idx, action, desc)
-
-    is_url = input_text.strip().startswith("http://") or input_text.strip().startswith("https://")
+    url = _extract_first_url(input_text)
+    is_url = bool(url)
     content_to_summarize = input_text
+    source_title = ""
 
     if is_url:
+        user_instruction = input_text.replace(url, "").strip()
+        search_query = await _plan_browser_search_query(task_id, input_text, url, user_instruction)
+        _add_step(task_id, 3, "browser", "正在启动可见浏览器，通过搜索首页查找页面...")
         try:
+            from ..browser_agent import _get_agent
+
             result = await asyncio.wait_for(
-                _get_agent().summarize_url(input_text.strip(), on_step=on_step),
-                timeout=25,
+                _get_agent().summarize_from_homepage_search(
+                    search_query,
+                    target_url=url,
+                    on_step=lambda idx, action, desc: _add_step(task_id, idx + 1, action, desc),
+                ),
+                timeout=75,
             )
-            if result.get("content") and len(result["content"]) > 50:
+            if result.get("content") and len(result["content"]) > 80:
                 content_to_summarize = result["content"]
-        except (asyncio.TimeoutError, Exception):
-            _add_step(task_id, 6, "extract", "页面访问超时，使用输入文本...")
+                source_title = result.get("title", "")
+                _add_step(task_id, 30, "extract", f"浏览器正文读取完成，共 {len(content_to_summarize)} 字")
+        except Exception as ex:
+            _add_step(task_id, 30, "fetch", f"浏览器读取失败，切换后端直连: {str(ex)[:80]}")
+
+        if content_to_summarize == input_text:
+            try:
+                fetched = await _fetch_url_text(url)
+                if fetched.get("content") and len(fetched["content"]) > 80:
+                    content_to_summarize = fetched["content"]
+                    source_title = fetched.get("title", "")
+                    _add_step(task_id, 31, "extract", f"后端正文读取完成，共 {len(content_to_summarize)} 字")
+            except Exception as ex:
+                _add_step(task_id, 31, "fetch", f"网页正文读取失败，改用输入文本: {str(ex)[:80]}")
+
+        if content_to_summarize == input_text:
+            content_to_summarize = f"用户问题：{input_text}\n\n注意：未能读取链接正文，只能基于用户提供的文字进行说明。"
     else:
         _add_step(task_id, 1, "start", "正在分析文本内容...")
 
-    _add_step(task_id, 7, "extract", "正在生成结构化摘要...")
-    prompt = f"""请对以下内容生成结构化摘要。
+    user_instruction = input_text.replace(url, "").strip() if url else input_text.strip()
+    if not user_instruction:
+        user_instruction = "请总结这段内容讲了什么。"
 
-内容：{content_to_summarize[:3000]}
+    _add_step(task_id, 40, "extract", "讯飞星火正在基于浏览器读取内容生成回答...")
+    prompt = f"""请根据用户问题，对内容进行正常回答，不要强制输出 JSON，不要套模板。
 
-请严格按以下 JSON 格式返回（不要包含其他文字）：
-{{"topic": "一句话概括主题", "key_points": ["要点1", "要点2", "要点3"], "conclusion": "1-2句话总结"}}"""
+用户问题：{user_instruction}
+来源标题：{source_title or "无"}
+来源链接：{url or "无"}
+
+内容：
+{content_to_summarize[:4500]}
+
+请直接用中文回答。根据内容类型组织答案：如果是网页/赛题/通知，说明它讲了什么、核心要求、关键信息和下一步建议；如果是普通文本，就按用户问题自然总结。"""
 
     chunks: list[str] = []
-    async for c in spark_lite.stream_chat(prompt, mode="general"):
+    async for c in _stream_agent_llm(prompt, mode="general"):
         chunks.append(c)
     text = "".join(chunks).strip()
-    try:
-        json_match = re.search(r'\{[\s\S]*\}', text)
-        if json_match:
-            result = json.loads(json_match.group())
-            if "topic" in result:
-                return result
-    except (json.JSONDecodeError, TypeError):
-        pass
-    return {"topic": "Summary", "key_points": [text[:200]], "conclusion": "See above."}
+    return {
+        "answer": text or "已读取内容，但模型没有返回可展示的回答。",
+        "source_title": source_title,
+        "source_url": url,
+    }
 
 
 async def _do_compare(task_id: str, query: str, persona: str) -> dict:
@@ -375,7 +479,7 @@ async def _do_compare(task_id: str, query: str, persona: str) -> dict:
             sources_text = "\n".join([f"Source {i+1} ({s['source']}): {s['explanation'][:150]}" for i, s in enumerate(result["items"])])
             prompt = f"Compare these sources in 50 chars or less:\n{sources_text}"
             chunks: list[str] = []
-            async for c in spark_lite.stream_chat(prompt, mode="general"):
+            async for c in _stream_agent_llm(prompt, mode="general"):
                 chunks.append(c)
             result["comparison"] = "".join(chunks).strip()[:200]
             return result
@@ -395,7 +499,7 @@ async def _do_compare_llm_fallback(task_id: str, query: str, persona: str) -> di
 {{"items": [{{"source": "视角名称", "explanation": "该视角的解释（100字以内）", "url": ""}}], "comparison": "50字以内的对比总结"}}"""
 
     chunks: list[str] = []
-    async for c in spark_lite.stream_chat(prompt, mode="general"):
+    async for c in _stream_agent_llm(prompt, mode="general"):
         chunks.append(c)
     text = "".join(chunks).strip()
     try:
@@ -422,7 +526,7 @@ async def _do_recommend(task_id: str, input_text: str, persona: str) -> dict:
 
     _add_step(task_id, 3, "extract", "正在生成推荐...")
     chunks: list[str] = []
-    async for c in spark_lite.stream_chat(prompt, mode="general"):
+    async for c in _stream_agent_llm(prompt, mode="general"):
         chunks.append(c)
     text = "".join(chunks).strip()
     try:
@@ -624,10 +728,10 @@ async def get_recommendations():
 
     prompt = f"""Recommend 3 learning resources for:
 Stage: {stage}, Weak points: {weak_points}
-Return JSON: {{"items": [{{"title": "t", "summary": "s", "url": "", "reason": "r"}}], "date": "{now_iso()[:10]}"}}"""
+    Return JSON: {{"items": [{{"title": "t", "summary": "s", "url": "", "reason": "r"}}], "date": "{now_iso()[:10]}"}}"""
 
     chunks: list[str] = []
-    async for c in spark_lite.stream_chat(prompt, mode="general"):
+    async for c in _stream_agent_llm(prompt, mode="general"):
         chunks.append(c)
     text = "".join(chunks).strip()
     try:

@@ -21,15 +21,15 @@ export default function McpStoreDocsPage() {
             <BookOpen className="h-5 w-5" />
             <p className="text-sm font-semibold">MCP 服务接入文档</p>
           </div>
-          <h1 className="mt-3 text-2xl font-bold text-[#0f172a]">添加 MCP 服务（HTTP）说明</h1>
-          <p className="mt-2 text-sm text-[#64748b]">本页面用于说明 MCP 商店表单各字段含义和建议接入流程。</p>
+          <h1 className="mt-3 text-2xl font-bold text-[#0f172a]">添加 MCP 服务说明</h1>
+          <p className="mt-2 text-sm text-[#64748b]">本页面用于说明 MCP 商店中 HTTP 与本地 stdio 两种接入方式的字段含义和建议流程。</p>
         </div>
 
         <div className="mt-4 grid gap-4">
           <section className="rounded-xl border border-[#e2e8f0] bg-white p-5">
             <h2 className="text-base font-semibold text-[#0f172a]">1. 基础信息</h2>
             <div className="mt-3 space-y-2 text-sm text-[#334155]">
-              <p><b>服务端点 URL</b>：MCP 服务器 HTTP/HTTPS 地址，例如 `https://example.com/mcp`。</p>
+              <p><b>服务端点 URL</b>：用于 HTTP MCP，填写 HTTP/HTTPS 地址，例如 `https://example.com/mcp`。</p>
               <p><b>名称和图标</b>：用于在 SparkLearn 内区分不同 MCP 服务。</p>
               <p><b>服务器标识符</b>：建议使用全局唯一标识，如 `sparklearn-mcp-server`。</p>
             </div>
@@ -54,6 +54,7 @@ export default function McpStoreDocsPage() {
             <div className="mt-3 space-y-2 text-sm text-[#334155]">
               <p>当使用 `stdio` 方式时，填写 `command`、`args_json`、`env_json`。</p>
               <p>`args_json` 需要是 JSON 数组，`env_json` 需要是 JSON 对象。</p>
+              <p>桌面端允许直接配置本地 stdio MCP；浏览器版仍建议通过桌面端完成本机接入。</p>
             </div>
           </section>
 

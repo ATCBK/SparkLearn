@@ -49,6 +49,16 @@ function isDemoWeatherService(service: McpService) {
   return text.includes('weather') || text.includes('天气')
 }
 
+type SparklearnDesktopBridge = {
+  openStudyBuddyConfig?: () => void
+}
+
+declare global {
+  interface Window {
+    sparklearnDesktop?: SparklearnDesktopBridge
+  }
+}
+
 export default function TutorMcpStorePage() {
   const router = useRouter()
   const [services, setServices] = useState<McpService[]>([])
@@ -60,6 +70,7 @@ export default function TutorMcpStorePage() {
   const [busyId, setBusyId] = useState('')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
+  const [desktopReady] = useState(() => typeof window !== 'undefined' && Boolean(window.sparklearnDesktop))
 
   const stats = useMemo(() => {
     const online = services.filter((item) => item.last_status === 'online').length
@@ -116,6 +127,33 @@ export default function TutorMcpStorePage() {
     window.alert(message)
   }
 
+  function normalizeJsonInputs(payload: McpServicePayload): McpServicePayload {
+    const next = { ...payload }
+    if (typeof next.args_json === 'string') {
+      try {
+        next.args_json = JSON.parse(next.args_json)
+      } catch {
+        throw new Error('args_json 必须是合法 JSON 数组')
+      }
+    }
+    if (!Array.isArray(next.args_json)) {
+      throw new Error('args_json 必须是 JSON 数组')
+    }
+
+    if (typeof next.env_json === 'string') {
+      try {
+        next.env_json = JSON.parse(next.env_json)
+      } catch {
+        throw new Error('env_json 必须是合法 JSON 对象')
+      }
+    }
+    if (!next.env_json || Array.isArray(next.env_json) || typeof next.env_json !== 'object') {
+      throw new Error('env_json 必须是 JSON 对象')
+    }
+
+    return next
+  }
+
   function downloadDesktopConfig() {
     const payload = {
       app: 'SparkLearn Desktop',
@@ -151,7 +189,7 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
     setError('')
     setFeedback('')
     try {
-      if (form.transport === 'stdio') {
+      if (form.transport === 'stdio' && !desktopReady) {
         notifyDesktopOnlyStdio()
         return
       }
@@ -159,11 +197,16 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
         setError('HTTP 服务必须填写服务端点 URL')
         return
       }
+      if (form.transport === 'stdio' && !(form.command || '').trim()) {
+        setError('stdio 服务必须填写 command')
+        return
+      }
+      const normalized = normalizeJsonInputs(form)
       if (editingId) {
-        await api.updateMcpService(editingId, form)
+        await api.updateMcpService(editingId, normalized)
         setFeedback('服务配置已更新')
       } else {
-        const created = await api.createMcpService(form)
+        const created = await api.createMcpService(normalized)
         setActiveServiceId(created.id)
         setEditingId(created.id)
         setFeedback('服务创建成功')
@@ -334,19 +377,25 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                         <button type="button" onClick={() => setForm((p) => ({ ...p, transport: 'http' }))} className={`h-10 rounded-lg border text-sm ${form.transport === 'http' ? 'border-[#5d78f5] bg-[#eef3ff] text-[#1e40af]' : 'border-[#ced7ea] bg-white text-[#334155]'}`}>远程 HTTP MCP</button>
                         <button
                           type="button"
-                          onClick={notifyDesktopOnlyStdio}
-                          className={`relative h-10 rounded-lg border text-sm transition ${form.transport === 'stdio' ? 'border-[#f59e0b] bg-[#fff7ed] text-[#92400e]' : 'border-[#d8dee9] bg-[#f8fafc] text-[#64748b] hover:border-[#f59e0b] hover:bg-[#fff7ed] hover:text-[#92400e]'}`}
-                          title="本地 stdio MCP 需要在桌面端配置"
+                          onClick={() => {
+                            if (!desktopReady) {
+                              notifyDesktopOnlyStdio()
+                              return
+                            }
+                            setForm((p) => ({ ...p, transport: 'stdio' }))
+                          }}
+                          className={`relative h-10 rounded-lg border text-sm transition ${form.transport === 'stdio' ? 'border-[#f59e0b] bg-[#fff7ed] text-[#92400e]' : 'border-[#d8dee9] bg-white text-[#334155]'} ${desktopReady ? 'hover:border-[#f59e0b] hover:bg-[#fff7ed] hover:text-[#92400e]' : 'bg-[#f8fafc] text-[#64748b]'}`}
+                          title={desktopReady ? '在桌面端配置本地 stdio MCP' : '本地 stdio MCP 需要在桌面端配置'}
                         >
                           <span className="inline-flex items-center justify-center gap-1.5">
-                            <Lock className="h-3.5 w-3.5" />
+                            {!desktopReady ? <Lock className="h-3.5 w-3.5" /> : null}
                             本地 stdio MCP
                           </span>
                         </button>
                       </div>
                       <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[#8b96ab]">
-                        <Lock className="h-3.5 w-3.5 text-[#d97706]" />
-                        网页端仅支持远程 HTTP MCP。本地 stdio 需要 SparkLearn 桌面端接管本机进程。
+                        {!desktopReady ? <Lock className="h-3.5 w-3.5 text-[#d97706]" /> : null}
+                        {desktopReady ? '当前为桌面端，可直接配置本地 stdio MCP。' : '浏览器版仅支持远程 HTTP MCP。本地 stdio 需要 SparkLearn 桌面端接管本机进程。'}
                       </p>
                     </StepField>
 
@@ -381,27 +430,57 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                       </StepField>
                     ) : (
                       <StepField index={3} title="本地启动参数" required>
-                        <div className="rounded-xl border border-[#fed7aa] bg-[#fff7ed] p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[#d97706] ring-1 ring-[#fed7aa]">
-                              <Lock className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h3 className="text-sm font-semibold text-[#92400e]">网页端已锁定本地 stdio 配置</h3>
-                              <p className="mt-1 text-xs leading-5 text-[#9a6a2f]">
-                                stdio MCP 会启动本机命令或访问本地文件系统，网页端无法安全接管本机进程。请下载桌面端配置，在 SparkLearn 桌面端中完成接入。
-                              </p>
-                              <button
-                                type="button"
-                                onClick={downloadDesktopConfig}
-                                className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-[#d97706] px-3 text-xs font-semibold text-white hover:bg-[#b45309]"
-                              >
-                                <Download className="h-4 w-4" />
-                                下载桌面端配置
-                              </button>
+                        {desktopReady ? (
+                          <div className="space-y-3">
+                            <PlainField label="Command">
+                              <input
+                                value={form.command || ''}
+                                onChange={(e) => setForm((p) => ({ ...p, command: e.target.value }))}
+                                placeholder="npx / uvx / node / python"
+                                className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#f59e0b]"
+                              />
+                            </PlainField>
+                            <PlainField label="Args JSON">
+                              <textarea
+                                value={JSON.stringify(form.args_json ?? [], null, 2)}
+                                onChange={(e) => setForm((p) => ({ ...p, args_json: e.target.value as unknown as string[] }))}
+                                placeholder={'["-y", "@modelcontextprotocol/server-filesystem", "D:/Project_building/SparkLearn"]'}
+                                className="min-h-[130px] w-full rounded-lg border border-[#ced7ea] bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#f59e0b]"
+                              />
+                            </PlainField>
+                            <PlainField label="Env JSON">
+                              <textarea
+                                value={JSON.stringify(form.env_json ?? {}, null, 2)}
+                                onChange={(e) => setForm((p) => ({ ...p, env_json: e.target.value as unknown as Record<string, string> }))}
+                                placeholder={'{\n  "NODE_ENV": "production"\n}'}
+                                className="min-h-[130px] w-full rounded-lg border border-[#ced7ea] bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#f59e0b]"
+                              />
+                            </PlainField>
+                            <p className="text-xs text-[#8b96ab]">`args_json` 需要是 JSON 数组，`env_json` 需要是 JSON 对象。</p>
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-[#fed7aa] bg-[#fff7ed] p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[#d97706] ring-1 ring-[#fed7aa]">
+                                <Lock className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-semibold text-[#92400e]">浏览器版已锁定本地 stdio 配置</h3>
+                                <p className="mt-1 text-xs leading-5 text-[#9a6a2f]">
+                                  stdio MCP 会启动本机命令或访问本地文件系统，浏览器版无法直接接管本机进程。请在 SparkLearn 桌面端中完成接入。
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={downloadDesktopConfig}
+                                  className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-[#d97706] px-3 text-xs font-semibold text-white hover:bg-[#b45309]"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  下载桌面端配置
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </StepField>
                     )}
                   </div>
@@ -444,19 +523,19 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                           <select
                             value={form.transport}
                             onChange={(e) => {
-                              if (e.target.value === 'stdio') {
+                              if (e.target.value === 'stdio' && !desktopReady) {
                                 notifyDesktopOnlyStdio()
                                 return
                               }
-                              setForm((p) => ({ ...p, transport: 'http' }))
+                              setForm((p) => ({ ...p, transport: e.target.value as 'http' | 'stdio' }))
                             }}
                             className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm"
                           >
                             <option value="http">HTTP</option>
-                            <option value="stdio">STDIO（桌面端）</option>
+                            <option value="stdio">STDIO{desktopReady ? '（本地）' : '（桌面端）'}</option>
                           </select>
                         </PlainField>
-                        <p className="text-xs text-[#8b96ab]">请求头参数将跟随后端字段扩展，目前用于结构占位。</p>
+                        <p className="text-xs text-[#8b96ab]">{form.transport === 'http' ? '请求头参数将跟随后端字段扩展，目前用于结构占位。' : '桌面端本地 stdio 将直接使用 command / args_json / env_json 启动 MCP 进程。'}</p>
                       </div>
                     ) : null}
 
@@ -481,7 +560,7 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
 
                 <div className="shrink-0 border-t border-[#e8edf7] bg-white px-6 py-4 flex justify-end gap-3">
                   <button type="button" onClick={resetForm} className="h-10 rounded-lg border border-[#d4dced] px-4 text-sm text-[#475569]">取消</button>
-                  {form.transport === 'stdio' ? (
+                  {form.transport === 'stdio' && !desktopReady ? (
                     <button type="button" onClick={downloadDesktopConfig} className="h-10 rounded-lg bg-[#d97706] px-4 text-sm font-medium text-white inline-flex items-center gap-1.5 hover:bg-[#b45309]">
                       <Download className="h-4 w-4" /> 下载桌面端配置
                     </button>

@@ -3,15 +3,19 @@
 提供外部信息流搜索、推荐、收藏功能。
 """
 
+import re
 from datetime import datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..auth import get_current_user
+from ..config import settings
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..info_stream import info_aggregator
 from ..schemas import ok
+from ..storage import append_jsonl, read_json, write_json
 
 router = APIRouter(prefix="/api/info-stream", tags=["info-stream"])
 
@@ -91,6 +95,72 @@ class BookmarkReq(BaseModel):
     tags: list[str] = []
 
 
+class InfoImportResourceReq(BaseModel):
+    source: str
+    external_id: str
+    title: str
+    url: str
+    summary: str = ""
+    thumbnail: str = ""
+    author: str = ""
+    tags: list[str] = []
+    extra_data: dict[str, Any] = {}
+
+
+def _safe_resource_key(value: str) -> str:
+    clean = re.sub(r"[^a-zA-Z0-9_-]+", "-", value).strip("-").lower()
+    return clean[:80] or "item"
+
+
+def _upsert_info_resource(resource: dict[str, Any]) -> dict[str, Any]:
+    resources = read_json(settings.single_user_id, "resources_index.json", [])
+    if not isinstance(resources, list):
+        resources = []
+
+    for idx, item in enumerate(resources):
+        if str(item.get("id", "")) == str(resource.get("id", "")):
+            resources[idx] = {**item, **resource}
+            write_json(settings.single_user_id, "resources_index.json", resources)
+            return resources[idx]
+
+    resources.insert(0, resource)
+    write_json(settings.single_user_id, "resources_index.json", resources)
+    return resource
+
+
+def _info_resource(req: InfoImportResourceReq) -> dict[str, Any]:
+    source = req.source.strip().lower()
+    external_id = req.external_id.strip()
+    tags = [str(tag).strip() for tag in req.tags if str(tag).strip()]
+    title = req.title.strip() or "学习发现资源"
+    summary = req.summary.strip()
+    author = req.author.strip()
+    return {
+        "id": f"info-{_safe_resource_key(source)}-{_safe_resource_key(external_id or title)}",
+        "title": f"学习发现：{title[:48]}",
+        "type": "discovery",
+        "status": "completed",
+        "created_at": now_iso()[:10],
+        "content": (
+            f"# {title}\n\n"
+            f"{summary or '该内容来自学习发现，可作为拓展学习资料。'}\n\n"
+            f"---\n来源：学习发现 / {source or 'external'}\n"
+            f"作者：{author or '未知'}\n"
+            f"标签：{'、'.join(tags) if tags else '无'}\n"
+            f"原文链接：{req.url}\n"
+        ),
+        "source_url": req.url,
+        "source_type": "info_stream",
+        "source_id": external_id,
+        "info_source": source,
+        "thumbnail": req.thumbnail,
+        "author": author,
+        "tags": tags,
+        "extra_data": req.extra_data,
+        "progress": 0,
+    }
+
+
 @router.post("/bookmark")
 async def bookmark(
     req: BookmarkReq,
@@ -139,6 +209,30 @@ async def bookmark(
         (user_id, cache_id, ts),
     )
     return ok({"bookmarked": True})
+
+
+@router.post("/import-resource")
+async def import_resource(
+    req: InfoImportResourceReq,
+    current_user: dict = Depends(get_current_user),
+):
+    """将学习发现内容加入我的资源库"""
+    if not req.title.strip() or not req.url.strip():
+        raise HTTPException(status_code=400, detail="title and url are required")
+
+    resource = _upsert_info_resource(_info_resource(req))
+    append_jsonl(
+        settings.single_user_id,
+        "resource_usage.jsonl",
+        {
+            "type": "info_stream_imported",
+            "resource_id": resource["id"],
+            "source": req.source,
+            "external_id": req.external_id,
+            "user_id": current_user["user_id"],
+        },
+    )
+    return ok({"resource": resource})
 
 
 @router.get("/bookmarks")

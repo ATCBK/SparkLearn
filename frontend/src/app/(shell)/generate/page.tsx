@@ -1,12 +1,14 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+/* eslint-disable react/no-unescaped-entities */
+
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, NotebookPen } from 'lucide-react'
+import { CheckCircle2, FileText, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, NotebookPen, ChevronLeft, ChevronRight, MoreHorizontal, Globe } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
-import { AudioRadio, RadioTrack } from '@/components/ui/AudioRadio'
+import { AudioRadio } from '@/components/ui/AudioRadio'
 import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
@@ -33,8 +35,70 @@ const TYPE_PROMPTS: Record<string, string> = {
 }
 
 function typeLabel(type: string) {
-  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台' }
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台', discovery: '学习发现' }
   return map[type] || type
+}
+
+const RESOURCE_TABS = [
+  { value: '全部', label: '全部' },
+  { value: 'document', label: '文档' },
+  { value: 'ppt', label: 'PPT' },
+  { value: 'video', label: '视频' },
+  { value: 'quiz', label: '题目' },
+  { value: 'code', label: '代码' },
+  { value: 'mindmap', label: '思维导图' },
+  { value: 'blog', label: '播客' },
+  { value: 'discovery', label: '学习发现' },
+  { value: 'reading', label: '论坛分享' },
+]
+
+function resourceTypeText(type: string) {
+  const map: Record<string, string> = {
+    document: '文档',
+    ppt: 'PPT',
+    mindmap: '思维导图',
+    quiz: '题目',
+    reading: '阅读',
+    code: '代码',
+    video: '视频',
+    blog: '播客',
+    discovery: '学习发现',
+  }
+  return map[type] || typeLabel(type)
+}
+
+function resourceIcon(type: string) {
+  const map: Record<string, { icon: React.ReactNode; tone: string }> = {
+    document: { icon: <FileText className="h-5 w-5" />, tone: 'bg-[#e8f1ff] text-[#2563eb]' },
+    ppt: { icon: <Presentation className="h-5 w-5" />, tone: 'bg-[#fff1e8] text-[#ea580c]' },
+    video: { icon: <Video className="h-5 w-5" />, tone: 'bg-[#f1e8ff] text-[#7c3aed]' },
+    quiz: { icon: <CheckSquare className="h-5 w-5" />, tone: 'bg-[#e9f9ef] text-[#16a34a]' },
+    code: { icon: <Code className="h-5 w-5" />, tone: 'bg-[#edf4ff] text-[#3b82f6]' },
+    mindmap: { icon: <Brain className="h-5 w-5" />, tone: 'bg-[#fff7e6] text-[#f59e0b]' },
+    blog: { icon: <Radio className="h-5 w-5" />, tone: 'bg-[#e6fbff] text-[#0891b2]' },
+    discovery: { icon: <Globe className="h-5 w-5" />, tone: 'bg-[#f0fdf4] text-[#059669]' },
+    reading: { icon: <BookOpen className="h-5 w-5" />, tone: 'bg-[#eefcf3] text-[#059669]' },
+  }
+  return map[type] || map.document
+}
+
+function resourceDate(value: string) {
+  if (!value) return '未知日期'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10)
+  return date.toISOString().slice(0, 10)
+}
+
+function resourceExcerpt(resource: Resource) {
+  const plain = (resource.content || '')
+    .replace(/[#*_`>\-[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (plain) return plain.slice(0, 52) + (plain.length > 52 ? '...' : '')
+  if (resource.type === 'video') return '视频资源已生成，可前往视频中心播放和复习。'
+  if (resource.type === 'ppt') return '课件资源，适合按章节快速回顾重点内容。'
+  if (resource.type === 'quiz') return '练习题资源，适合完成阶段性自测。'
+  return '已保存到我的资源，可继续查看和学习。'
 }
 
 function GeneratePageContent() {
@@ -58,6 +122,7 @@ function GeneratePageContent() {
   const [resources, setResources] = useState<Resource[]>([])
   const [selectedId, setSelectedId] = useState<string>(initialResourceId)
   const [query, setQuery] = useState('')
+  const [libraryCollapsed, setLibraryCollapsed] = useState(false)
   const [filter, setFilter] = useState('全部')
   const [libraryError, setLibraryError] = useState('')
 
@@ -73,7 +138,7 @@ function GeneratePageContent() {
     }
   }, [])
 
-  async function loadResources() {
+  const loadResources = useCallback(async () => {
     try {
       const data = await api.getResources()
       setResources(data)
@@ -81,13 +146,13 @@ function GeneratePageContent() {
     } catch (ex) {
       setLibraryError(ex instanceof Error ? ex.message : '资源读取失败')
     }
-  }
+  }, [initialResourceId])
 
   useEffect(() => {
     if (view === 'library') {
       void loadResources()
     }
-  }, [view])
+  }, [loadResources, view])
 
   async function startGenerate() {
     console.log('[startGenerate] type:', type, 'prompt:', prompt.slice(0, 50))
@@ -127,13 +192,205 @@ function GeneratePageContent() {
   }
 
   const filtered = resources.filter((r) => {
-    const matchQuery = !query || r.title.includes(query) || r.type.includes(query)
+    const term = query.trim().toLowerCase()
+    const matchQuery = !term || r.title.toLowerCase().includes(term) || r.type.toLowerCase().includes(term)
     const matchFilter = filter === '全部' || r.type === filter
-    return matchQuery && matchFilter
+    return matchQuery && (matchFilter || filter === '全部')
   })
-  const selected = resources.find(r => r.id === selectedId) || filtered[0]
+  const selected = filtered.find(r => r.id === selectedId) || filtered[0]
 
   if (view === 'library') {
+    const selectedIcon = selected ? resourceIcon(selected.type) : resourceIcon('document')
+    const completedCount = resources.filter(r => r.status === 'completed').length
+    const previewUrl = selected?.sourceUrl
+      ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`
+      : ''
+
+    return (
+      <div className="min-h-[calc(100vh-104px)]">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="mb-1 text-small font-extrabold text-soft">资源中心 / 我的资源</div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="m-0 text-[26px] font-bold leading-tight text-ink">我的资源</h1>
+              <button
+                onClick={() => setView('generate')}
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-[8px] border border-[#bfdbfe] bg-white px-3.5 text-small font-bold text-blue transition-colors hover:bg-blue-light"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                返回资源生成
+              </button>
+            </div>
+          </div>
+          <div className="flex min-w-[260px] flex-1 items-center justify-end gap-3">
+            <div className="flex h-10 w-full max-w-[360px] items-center gap-2 rounded-[12px] border border-line bg-white px-3 shadow-sm">
+              <Search className="h-4 w-4 text-muted" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="min-w-0 flex-1 bg-transparent text-small outline-none"
+                placeholder="搜索资源名称"
+              />
+              {query && (
+                <button onClick={() => setQuery('')} className="text-muted transition-colors hover:text-ink" aria-label="清空搜索">
+                  ×
+                </button>
+              )}
+            </div>
+            <ProtoButton href="/generate" variant="secondary"><Sparkles className="h-4 w-4" />生成资源</ProtoButton>
+          </div>
+        </div>
+
+        <div className="mb-5 flex flex-wrap gap-3">
+          {RESOURCE_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setFilter(tab.value)}
+              className={`h-9 rounded-full px-5 text-small font-bold transition-colors ${
+                filter === tab.value || (tab.value === '全部' && filter === '鍏ㄩ儴')
+                  ? 'bg-blue text-white shadow-sm'
+                  : 'bg-transparent text-ink hover:bg-[#eef5ff] hover:text-blue'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={`grid min-h-[680px] overflow-hidden rounded-[14px] border border-line bg-white shadow-md transition-[grid-template-columns] duration-300 max-[980px]:grid-cols-1 ${
+          libraryCollapsed ? 'grid-cols-[76px_minmax(0,1fr)]' : 'grid-cols-[370px_minmax(0,1fr)]'
+        }`}>
+          <aside className="min-h-0 border-r border-line bg-white">
+            <div className="flex h-[62px] items-center justify-between border-b border-line px-4">
+              {!libraryCollapsed && (
+                <div>
+                  <b className="block text-small text-ink">全部资源（{filtered.length}）</b>
+                  <span className="text-micro text-muted">可学习 {completedCount} / 总计 {resources.length}</span>
+                </div>
+              )}
+              <button
+                onClick={() => setLibraryCollapsed(prev => !prev)}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-[9px] border border-line bg-white text-muted transition-colors hover:border-blue hover:text-blue"
+                title={libraryCollapsed ? '展开资源列表' : '折叠资源列表'}
+              >
+                {libraryCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="h-[618px] overflow-y-auto p-3">
+              {filtered.map((res) => {
+                const meta = resourceIcon(res.type)
+                const active = selected?.id === res.id
+                return (
+                  <button
+                    key={res.id}
+                    onClick={() => setSelectedId(res.id)}
+                    className={`mb-3 flex w-full items-start gap-3 rounded-[12px] border p-3 text-left transition-colors ${
+                      active ? 'border-blue bg-[#eef5ff]' : 'border-transparent bg-white hover:border-line hover:bg-[#f8fbff]'
+                    } ${libraryCollapsed ? 'justify-center px-2' : ''}`}
+                    title={res.title}
+                  >
+                    <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[10px] ${meta.tone}`}>
+                      {meta.icon}
+                    </span>
+                    {!libraryCollapsed && (
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <b className="line-clamp-1 min-w-0 text-small text-ink">{res.title}</b>
+                          <span className="shrink-0 rounded-md bg-[#edf4ff] px-2 py-0.5 text-[11px] font-bold text-blue">{resourceTypeText(res.type)}</span>
+                        </span>
+                        <span className="mt-1 block text-micro text-muted">AI 生成 · {resourceDate(res.createdAt)}</span>
+                        <span className="mt-1 block line-clamp-1 text-micro text-muted">{resourceExcerpt(res)}</span>
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+              {!filtered.length && (
+                <div className="rounded-[12px] border border-dashed border-line p-4 text-center text-small text-muted">
+                  暂无匹配资源
+                </div>
+              )}
+            </div>
+          </aside>
+
+          <section className="min-w-0 bg-[#f8fafc]">
+            {libraryError && <p className="m-4 rounded-[10px] bg-red-light p-3 text-small text-red">{libraryError}</p>}
+            {selected ? (
+              <div className="flex h-full min-h-[680px] flex-col">
+                <header className="flex min-h-[92px] flex-wrap items-center justify-between gap-4 border-b border-line bg-white px-6 py-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[12px] ${selectedIcon.tone}`}>{selectedIcon.icon}</span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="line-clamp-1 text-[20px] font-bold text-ink">{selected.title}</h2>
+                        <span className="rounded-md bg-[#edf4ff] px-2 py-1 text-micro font-bold text-blue">{resourceTypeText(selected.type)}</span>
+                      </div>
+                      <p className="mt-1 text-small text-muted">AI 生成 · {resourceDate(selected.createdAt)} · {selected.progress ?? 42}% 进度</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <ProtoButton variant="secondary"><Sparkles className="h-4 w-4" />AI 讲解</ProtoButton>
+                    <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
+                    <ProtoButton variant="tertiary" onClick={() => openResourceNotes(selected)}><NotebookPen className="h-4 w-4" />笔记</ProtoButton>
+                    <button className="grid h-9 w-9 place-items-center rounded-[8px] border border-line bg-white text-muted transition-colors hover:text-blue" title="更多">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </div>
+                </header>
+
+                <div className="min-h-0 flex-1 overflow-hidden bg-white">
+                  <div className="h-full w-full overflow-y-auto px-10 py-9 max-[760px]:px-5">
+                    {selected.type === 'blog' ? (
+                      <AudioRadio
+                        tracks={(() => {
+                          let content = selected.content || ''
+                          content = content.replace(/^#[^\n]*\n+/, '').trim()
+                          if (!content) return [{ id: '1', title: selected.title, text: '播客内容加载中...', subtitle: '' }]
+                          const paragraphs = content.split(/\n{2,}/).filter(p => p.trim().length > 20)
+                          if (paragraphs.length <= 1) return [{ id: '1', title: selected.title, text: content.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000), subtitle: content.slice(0, 50) + '...' }]
+                          return paragraphs.slice(0, 10).map((p, idx) => ({
+                            id: `${idx + 1}`,
+                            title: `第 ${idx + 1} 段`,
+                            text: p.replace(/[#*`>\-|[\]()]/g, '').slice(0, 1000),
+                            subtitle: p.replace(/[#*`>\-|[\]()]/g, '').slice(0, 60) + '...',
+                          }))
+                        })()}
+                      />
+                    ) : previewUrl ? (
+                      <iframe title={selected.title} src={previewUrl} className="h-full min-h-[560px] w-full border-0" />
+                    ) : selected.type === 'video' ? (
+                      <div className="grid min-h-[420px] place-items-center rounded-[12px] bg-[#0f172a] text-white">
+                        <div className="text-center">
+                          <Video className="mx-auto mb-4 h-16 w-16 text-white/70" />
+                          <b className="block text-[22px]">视频资源已生成</b>
+                          <p className="mt-2 text-small text-white/70">前往视频中心查看完整预览和播放。</p>
+                          <ProtoButton href="/video" className="mt-5">进入视频中心</ProtoButton>
+                        </div>
+                      </div>
+                    ) : (
+                      <article className="prose prose-slate max-w-none">
+                        <h1 className="mb-8 text-[30px] font-bold text-ink">{selected.title}</h1>
+                        <pre className="whitespace-pre-wrap break-words rounded-none bg-transparent p-0 text-[16px] leading-8 text-[#1f2937]">{selected.content || '该资源暂无预览内容。'}</pre>
+                      </article>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid min-h-[680px] place-items-center p-6">
+                <div className="max-w-[360px] text-center">
+                  <BookOpen className="mx-auto mb-3 h-10 w-10 text-blue" />
+                  <b className="text-h2 text-ink">暂无资源</b>
+                  <p className="mt-2 text-small text-muted">先生成或从论坛导入资源后，这里会展示资源列表和预览内容。</p>
+                  <ProtoButton href="/generate" className="mt-4">生成资源</ProtoButton>
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    )
     return (
       <div>
         <div className="mb-6 flex items-center gap-3">
@@ -162,7 +419,7 @@ function GeneratePageContent() {
                 <input value={query} onChange={(event) => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-small outline-none" placeholder="搜索资源或知识点" />
               </div>
               <select value={filter} onChange={(event) => setFilter(event.target.value)} className="h-10 rounded-[10px] border border-line bg-white px-3 text-small outline-none">
-                {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video', 'blog'].map(item => <option key={item}>{item}</option>)}
+                {['全部', 'document', 'ppt', 'mindmap', 'quiz', 'reading', 'code', 'video', 'blog', 'discovery'].map(item => <option key={item}>{item}</option>)}
               </select>
             </div>
             <div className="grid gap-2">
@@ -376,7 +633,7 @@ function GeneratePageContent() {
 
         {step === 3 && (
           <div className="grid gap-3">
-            {['分析学习画像', '读取路径节点', '加载知识库资料', '调用资源生成服务', '安全检查', '保存资源索引'].map((row, idx) => (
+            {['分析学习画像', '读取路径节点', '加载知识库资料', '多智能体生成内容', '安全检查', '保存资源索引'].map((row, idx) => (
               <SoftCard key={row} className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-small font-bold text-ink">
                   {generating && idx < 4 ? <TypewriterLoader size="sm" /> : <CheckCircle2 className="h-4 w-4 text-green" />}
