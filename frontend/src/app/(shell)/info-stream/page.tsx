@@ -1,7 +1,24 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Search, Bookmark, BookmarkCheck, ExternalLink, PlayCircle, Code, FileText, PenTool, Globe, Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  ArrowRight,
+  Brain,
+  Check,
+  Code,
+  ExternalLink,
+  FileText,
+  Globe,
+  Loader2,
+  PenTool,
+  PlayCircle,
+  Plus,
+  Search,
+  Sparkles,
+  Target,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { ProtoButton } from '@/components/proto'
 
 interface InfoItem {
   source: string
@@ -12,7 +29,7 @@ interface InfoItem {
   thumbnail: string
   author: string
   tags: string[]
-  extra_data?: Record<string, any>
+  extra_data?: Record<string, unknown>
 }
 
 interface Source {
@@ -21,7 +38,7 @@ interface Source {
   icon: string
 }
 
-const SOURCE_ICONS: Record<string, any> = {
+const SOURCE_ICONS: Record<string, LucideIcon> = {
   globe: Globe,
   'play-circle': PlayCircle,
   github: Code,
@@ -29,27 +46,55 @@ const SOURCE_ICONS: Record<string, any> = {
   'pen-tool': PenTool,
 }
 
+const DISCOVERY_PROMPTS = ['人工智能 函数 模块', 'Python return 作用域', '机器学习 入门 项目']
+
+function numberMeta(value: unknown) {
+  return typeof value === 'number' ? value.toLocaleString() : ''
+}
+
+function authHeaders(json = false) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('sparklearn_token') : ''
+  const headers: Record<string, string> = json ? { 'Content-Type': 'application/json' } : {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
+function getSourceLabel(source: string): string {
+  const map: Record<string, string> = {
+    bilibili: 'B站视频',
+    github: 'GitHub',
+    arxiv: '学术论文',
+    juejin: '掘金文章',
+  }
+  return map[source] || source
+}
+
+function getSourceColor(source: string): string {
+  const map: Record<string, string> = {
+    bilibili: 'bg-[#fff1f2] text-[#e11d48]',
+    github: 'bg-[#f1f5f9] text-[#334155]',
+    arxiv: 'bg-[#fef2f2] text-[#dc2626]',
+    juejin: 'bg-[#eff6ff] text-[#2563eb]',
+  }
+  return map[source] || 'bg-[#f1f5f9] text-[#52627b]'
+}
+
 export default function InfoStreamPage() {
-  const [keyword, setKeyword] = useState('')
+  const [keyword, setKeyword] = useState('人工智能 函数 模块')
   const [activeSource, setActiveSource] = useState('all')
   const [sources, setSources] = useState<Source[]>([])
   const [items, setItems] = useState<InfoItem[]>([])
+  const [recommendKeywords] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
-  const [blockedMsg, setBlockedMsg] = useState<string | null>(null)
+  const [imported, setImported] = useState<Set<string>>(new Set())
+  const [importing, setImporting] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    fetchSources()
-    fetchBookmarks()
+    void fetchSources()
   }, [])
 
-  // 当切换数据源 Tab 时，如果已有搜索词，自动重新搜索
-  useEffect(() => {
-    if (searched && keyword.trim()) {
-      handleSearch()
-    }
-  }, [activeSource])
+  const highlighted = useMemo(() => items[0], [items])
 
   async function fetchSources() {
     try {
@@ -59,36 +104,15 @@ export default function InfoStreamPage() {
     } catch {}
   }
 
-  async function fetchBookmarks() {
-    try {
-      const token = localStorage.getItem('sparklearn_token')
-      const headers: Record<string, string> = {}
-      if (token) headers['Authorization'] = `Bearer ${token}`
-      const res = await fetch('/api/info-stream/bookmarks', { headers })
-      const json = await res.json()
-      if (json.success) {
-        setBookmarks(new Set(json.data.map((b: any) => `${b.source}:${b.external_id}`)))
-      }
-    } catch {}
-  }
-
-  async function handleSearch() {
+  async function handleSearch(nextSource = activeSource) {
     if (!keyword.trim()) return
     setLoading(true)
     setSearched(true)
-    setBlockedMsg(null)
     try {
-      const params = new URLSearchParams({ keyword, source: activeSource, page_size: '15' })
+      const params = new URLSearchParams({ keyword, source: nextSource, page_size: '15' })
       const res = await fetch(`/api/info-stream/search?${params}`)
       const json = await res.json()
-      if (json.success) {
-        if (json.data.blocked) {
-          setBlockedMsg(json.data.blocked)
-          setItems([])
-        } else {
-          setItems(json.data.items || [])
-        }
-      }
+      if (json.success) setItems(json.data.items || [])
     } catch {
       setItems([])
     } finally {
@@ -96,208 +120,239 @@ export default function InfoStreamPage() {
     }
   }
 
-  async function handleBookmark(item: InfoItem) {
+  async function importToLibrary(item: InfoItem) {
+    const key = `${item.source}:${item.external_id}`
+    setImporting(prev => new Set(prev).add(key))
     try {
-      const token = localStorage.getItem('sparklearn_token')
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (token) headers['Authorization'] = `Bearer ${token}`
-      const res = await fetch('/api/info-stream/bookmark', {
+      const res = await fetch('/api/info-stream/import-resource', {
         method: 'POST',
-        headers,
-        body: JSON.stringify({
-          source: item.source,
-          external_id: item.external_id,
-          title: item.title,
-          url: item.url,
-          summary: item.summary,
-          thumbnail: item.thumbnail,
-          author: item.author,
-          tags: item.tags,
-        }),
+        headers: authHeaders(true),
+        body: JSON.stringify(item),
       })
       const json = await res.json()
       if (json.success) {
-        const key = `${item.source}:${item.external_id}`
-        setBookmarks((prev) => {
-          const next = new Set(prev)
-          if (json.data.bookmarked) next.add(key)
-          else next.delete(key)
-          return next
-        })
+        setImported(prev => new Set(prev).add(key))
       }
-    } catch {}
-  }
-
-  function getSourceLabel(source: string): string {
-    const map: Record<string, string> = {
-      bilibili: 'B站',
-      github: 'GitHub',
-      arxiv: 'arXiv',
-      juejin: '掘金',
+    } finally {
+      setImporting(prev => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
     }
-    return map[source] || source
-  }
-
-  function getSourceColor(source: string): string {
-    const map: Record<string, string> = {
-      bilibili: 'bg-pink-100 text-pink-700',
-      github: 'bg-gray-100 text-gray-700',
-      arxiv: 'bg-red-100 text-red-700',
-      juejin: 'bg-blue-100 text-blue-700',
-    }
-    return map[source] || 'bg-gray-100 text-gray-700'
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#111827]">信息流</h1>
-        <p className="text-sm text-[#6b7280] mt-1">搜索和发现学习资源，来自 B站、GitHub、学术论文等多个来源</p>
-      </div>
-
-      {/* Search Bar */}
-      <div className="flex gap-3">
-        <div className="flex-1 relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]" />
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            placeholder="搜索学习资源..."
-            className="w-full h-11 pl-11 pr-4 rounded-xl border border-gray-200 bg-white text-sm focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10 outline-none"
-          />
-        </div>
-        <button
-          onClick={handleSearch}
-          disabled={loading || !keyword.trim()}
-          className="h-11 px-6 rounded-xl bg-gradient-to-r from-[#075ff0] to-[#5aa2ff] text-white text-sm font-semibold hover:shadow-lg transition-all disabled:opacity-50"
-        >
-          {loading ? <Loader2 size={18} className="animate-spin" /> : '搜索'}
-        </button>
-      </div>
-
-      {/* Source Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {sources.map((src) => {
-          const Icon = SOURCE_ICONS[src.icon] || Globe
-          return (
-            <button
-              key={src.id}
-              onClick={() => setActiveSource(src.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                activeSource === src.id
-                  ? 'bg-[#2563eb] text-white shadow-sm'
-                  : 'bg-white text-[#52627b] border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <Icon size={16} />
-              {src.name}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Blocked message */}
-      {blockedMsg && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
-          {blockedMsg}
-        </div>
-      )}
-
-      {/* Results */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={24} className="animate-spin text-[#2563eb]" />
-          <span className="ml-2 text-sm text-[#6b7280]">搜索中...</span>
-        </div>
-      ) : items.length > 0 ? (
-        <div className="grid gap-4">
-          {items.map((item, idx) => (
-            <div
-              key={`${item.source}-${item.external_id}-${idx}`}
-              className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="flex gap-4">
-                {item.thumbnail && (
-                  <img
-                    src={item.thumbnail}
-                    alt={item.title}
-                    className="w-24 h-18 object-cover rounded-xl shrink-0"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${getSourceColor(item.source)}`}>
-                          {getSourceLabel(item.source)}
-                        </span>
-                        {item.tags.slice(0, 2).map((tag) => (
-                          <span key={tag} className="px-2 py-0.5 rounded-md text-xs bg-gray-100 text-gray-600">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-base font-semibold text-[#111827] hover:text-[#2563eb] line-clamp-1"
-                      >
-                        {item.title}
-                      </a>
-                      {item.summary && (
-                        <p className="text-sm text-[#6b7280] mt-1 line-clamp-2">{item.summary}</p>
-                      )}
-                      <div className="flex items-center gap-3 mt-2 text-xs text-[#9ca3af]">
-                        {item.author && <span>{item.author}</span>}
-                        {item.extra_data?.stars && <span>⭐ {item.extra_data.stars.toLocaleString()}</span>}
-                        {item.extra_data?.play && <span>▶ {item.extra_data.play.toLocaleString()}</span>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => handleBookmark(item)}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                        title={bookmarks.has(`${item.source}:${item.external_id}`) ? '取消收藏' : '收藏'}
-                      >
-                        {bookmarks.has(`${item.source}:${item.external_id}`) ? (
-                          <BookmarkCheck size={18} className="text-[#2563eb]" />
-                        ) : (
-                          <Bookmark size={18} className="text-[#9ca3af]" />
-                        )}
-                      </button>
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                        title="打开链接"
-                      >
-                        <ExternalLink size={18} className="text-[#9ca3af]" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
+    <div className="space-y-5">
+      <section className="rounded-[14px] border border-line bg-white p-5 shadow-md">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-small font-extrabold text-soft">
+              <Sparkles className="h-4 w-4 text-blue" />
+              学习发现 / 个性化内容流
             </div>
+            <h1 className="m-0 text-[28px] font-bold leading-tight text-ink">学习发现</h1>
+            <p className="mt-2 max-w-[720px] text-body leading-7 text-muted">
+              根据你的专业方向、当前阶段和薄弱点发现外部学习内容，并沉淀到我的资源库继续学习。
+            </p>
+          </div>
+          <ProtoButton href="/generate?view=library" variant="secondary">
+            我的资源 <ArrowRight className="h-4 w-4" />
+          </ProtoButton>
+        </div>
+
+        <div className="mt-5 grid grid-cols-[1fr_220px] gap-3 max-[760px]:grid-cols-1">
+          <div className="flex h-11 items-center gap-2 rounded-[12px] border border-line bg-[#f8fafc] px-3">
+            <Search className="h-4 w-4 text-muted" />
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && void handleSearch()}
+              placeholder="搜索和当前学习阶段相关的内容"
+              className="min-w-0 flex-1 bg-transparent text-small outline-none"
+            />
+          </div>
+          <button
+            onClick={() => void handleSearch()}
+            disabled={loading || !keyword.trim()}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-[12px] bg-blue px-5 text-small font-bold text-white transition-colors hover:bg-blue-dark disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            发现内容
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(recommendKeywords.length ? recommendKeywords : DISCOVERY_PROMPTS).map((prompt) => (
+            <button
+              key={prompt}
+              onClick={() => setKeyword(prompt)}
+              className="rounded-full border border-line bg-white px-3 py-1.5 text-micro font-bold text-muted transition-colors hover:border-blue hover:text-blue"
+            >
+              {prompt}
+            </button>
           ))}
         </div>
-      ) : searched ? (
-        <div className="text-center py-20">
-          <Search size={48} className="mx-auto mb-4 text-gray-300" />
-          <p className="text-[#6b7280]">未找到相关结果，换个关键词试试</p>
+      </section>
+
+      <div className="mx-auto grid max-w-[1280px] grid-cols-[minmax(0,900px)_300px] gap-5 max-[1100px]:grid-cols-1">
+        <main className="space-y-4">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {sources.map((src) => {
+              const Icon = SOURCE_ICONS[src.icon] || Globe
+              return (
+                <button
+                  key={src.id}
+                  onClick={() => {
+                    setActiveSource(src.id)
+                    if (searched) void handleSearch(src.id)
+                  }}
+                  className={`flex h-9 items-center gap-1.5 rounded-full px-4 text-small font-bold whitespace-nowrap transition-colors ${
+                    activeSource === src.id ? 'bg-blue text-white' : 'bg-white text-[#52627b] ring-1 ring-line hover:bg-[#eef5ff] hover:text-blue'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {src.name}
+                </button>
+              )
+            })}
+          </div>
+
+          {loading ? (
+            <div className="grid min-h-[320px] place-items-center rounded-[14px] border border-line bg-white">
+              <div className="flex items-center gap-2 text-small text-muted">
+                <Loader2 className="h-5 w-5 animate-spin text-blue" />
+                正在发现适合你的学习内容...
+              </div>
+            </div>
+          ) : items.length > 0 ? (
+            <div className="grid gap-3">
+              {items.map((item, idx) => (
+                <DiscoveryCard
+                  key={`${item.source}-${item.external_id}-${idx}`}
+                  item={item}
+                  imported={imported.has(`${item.source}:${item.external_id}`)}
+                  importing={importing.has(`${item.source}:${item.external_id}`)}
+                  onImport={() => void importToLibrary(item)}
+                />
+              ))}
+            </div>
+          ) : searched ? (
+            <EmptyState title="没有找到相关内容" description="换一个关键词，或使用右侧的推荐搜索词。" />
+          ) : (
+            <EmptyState title="开始学习发现" description="输入关键词后，系统会从视频、代码、论文和技术文章中发现学习资料。" />
+          )}
+        </main>
+
+        <aside className="space-y-4 pt-[56px] max-[1100px]:pt-0">
+          <section className="rounded-[14px] border border-line bg-white p-4 shadow-md">
+            <div className="mb-3 flex items-center gap-2">
+              <Target className="h-4 w-4 text-blue" />
+              <b className="text-small text-ink">为什么推荐</b>
+            </div>
+            <div className="space-y-2 text-small leading-6 text-muted">
+              <p>当前发现流优先围绕专业方向、学习阶段和薄弱点检索内容。</p>
+              <p>适合加入资源库的内容，会继续进入“我的资源”进行阅读、下载和 AI 讲解。</p>
+            </div>
+          </section>
+
+          <section className="rounded-[14px] border border-line bg-white p-4 shadow-md">
+            <div className="mb-3 flex items-center gap-2">
+              <Brain className="h-4 w-4 text-purple" />
+              <b className="text-small text-ink">当前精选</b>
+            </div>
+            {highlighted ? (
+              <div>
+                <span className={`rounded-md px-2 py-1 text-micro font-bold ${getSourceColor(highlighted.source)}`}>{getSourceLabel(highlighted.source)}</span>
+                <p className="mt-3 line-clamp-3 text-small font-bold leading-6 text-ink">{highlighted.title}</p>
+                <p className="mt-2 line-clamp-4 text-small leading-6 text-muted">{highlighted.summary || '这条内容适合作为当前阶段的拓展学习资料。'}</p>
+              </div>
+            ) : (
+              <p className="text-small text-muted">搜索后会在这里展示最适合优先学习的一条内容。</p>
+            )}
+          </section>
+        </aside>
+      </div>
+    </div>
+  )
+}
+
+function DiscoveryCard({
+  item,
+  imported,
+  importing,
+  onImport,
+}: {
+  item: InfoItem
+  imported: boolean
+  importing: boolean
+  onImport: () => void
+}) {
+  return (
+    <article className="overflow-hidden rounded-[14px] border border-line bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="grid grid-cols-[148px_minmax(0,1fr)] gap-4 max-[640px]:grid-cols-1">
+        {item.thumbnail && (
+          <img
+            src={item.thumbnail}
+            alt={item.title}
+            className="h-[108px] w-full rounded-[10px] object-cover max-[640px]:h-[180px]"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
+        )}
+        <div className="min-w-0 overflow-hidden">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className={`rounded-md px-2 py-1 text-micro font-bold ${getSourceColor(item.source)}`}>{getSourceLabel(item.source)}</span>
+            <span className="rounded-md bg-[#eef5ff] px-2 py-1 text-micro font-bold text-blue">学习发现</span>
+            {item.tags.slice(0, 2).map((tag) => (
+              <span key={tag} className="rounded-md bg-[#f1f5f9] px-2 py-1 text-micro font-bold text-muted">{tag}</span>
+            ))}
+          </div>
+
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="line-clamp-2 break-words text-[17px] font-bold leading-6 text-ink hover:text-blue">
+            {item.title}
+          </a>
+          <p className="mt-2 line-clamp-2 text-small leading-6 text-muted">{item.summary || '暂无摘要，建议打开原文快速判断是否适合加入学习资源库。'}</p>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 flex flex-wrap items-center gap-3 text-micro text-muted">
+              {item.author && <span className="max-w-[180px] truncate">{item.author}</span>}
+              {numberMeta(item.extra_data?.stars) && <span>Stars {numberMeta(item.extra_data?.stars)}</span>}
+              {numberMeta(item.extra_data?.play) && <span>播放 {numberMeta(item.extra_data?.play)}</span>}
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button
+                onClick={onImport}
+                disabled={importing || imported}
+                className={`inline-flex h-9 items-center gap-2 rounded-[8px] px-3 text-small font-bold transition-colors ${
+                  imported ? 'bg-green-light text-green' : 'bg-blue text-white hover:bg-blue-dark'
+                } disabled:opacity-80`}
+              >
+                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : imported ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {imported ? '已加入' : '加入资源库'}
+              </button>
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center justify-center gap-2 rounded-[8px] border border-line bg-white px-3 text-small font-bold text-muted hover:text-blue" title="打开原文">
+                <ExternalLink className="h-4 w-4" />
+                原文
+              </a>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="text-center py-20">
-          <Globe size={48} className="mx-auto mb-4 text-gray-300" />
-          <p className="text-[#6b7280]">输入关键词搜索学习资源</p>
-          <p className="text-xs text-[#9ca3af] mt-1">支持 B站视频、GitHub 仓库、学术论文、掘金文章</p>
-        </div>
-      )}
+      </div>
+    </article>
+  )
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="grid min-h-[320px] place-items-center rounded-[14px] border border-line bg-white p-6 text-center">
+      <div>
+        <Globe className="mx-auto mb-4 h-11 w-11 text-[#cbd5e1]" />
+        <b className="text-h2 text-ink">{title}</b>
+        <p className="mt-2 text-small text-muted">{description}</p>
+      </div>
     </div>
   )
 }

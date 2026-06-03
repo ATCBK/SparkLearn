@@ -3,16 +3,47 @@
 
 import { useEffect, useState } from 'react'
 import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
-import { Target, Lightbulb, Clock } from 'lucide-react'
-import { api, Resource as ResourceType } from '@/lib/api'
+import { Clock, History, Lightbulb, RefreshCw, Sparkles, Target } from 'lucide-react'
+import { api, ProfileAnalysisResp, ProfileHistoryItem, ProfileHistoryResp, Resource as ResourceType } from '@/lib/api'
 
 export default function ProfilePage() {
   const [gender, setGender] = useState<'male' | 'female'>('male')
   const [recentResources, setRecentResources] = useState<ResourceType[]>([])
+  const [profileHistory, setProfileHistory] = useState<ProfileHistoryResp | null>(null)
+  const [analysis, setAnalysis] = useState<ProfileAnalysisResp | null>(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
 
   useEffect(() => {
     api.getRecentResources().then(data => setRecentResources(data.slice(0, 3))).catch(() => {})
+    setHistoryLoading(true)
+    api.getProfileHistory()
+      .then(setProfileHistory)
+      .catch(() => setProfileHistory({ items: [], update_interval_days: 3, next_update_at: '' }))
+      .finally(() => setHistoryLoading(false))
   }, [])
+
+  async function runProfileAnalysis() {
+    setAnalysisLoading(true)
+    setAnalysisProgress(8)
+    const progressTimer = window.setInterval(() => {
+      setAnalysisProgress(prev => Math.min(prev + 11, 92))
+    }, 180)
+    try {
+      const [result] = await Promise.all([
+        api.analyzeProfileHistory(),
+        new Promise(resolve => setTimeout(resolve, 1200)),
+      ])
+      window.clearInterval(progressTimer)
+      setAnalysisProgress(100)
+      await new Promise(resolve => setTimeout(resolve, 180))
+      setAnalysis(result)
+    } finally {
+      window.clearInterval(progressTimer)
+      setAnalysisLoading(false)
+    }
+  }
 
   const avatarSrc = gender === 'male' ? '/ui-images/profile-male.png' : '/ui-images/profile-female.png'
 
@@ -137,8 +168,203 @@ export default function ProfilePage() {
           <div className="mt-4 flex flex-wrap gap-2.5"><ProtoButton href="/generate?view=library" variant="secondary">继续最近资源</ProtoButton><ProtoButton href="/generate" variant="tertiary">生成补弱资源</ProtoButton></div>
         </ProtoCard>
       </div>
+
+      <ProfileHistoryPanel
+        history={profileHistory}
+        loading={historyLoading}
+        analysis={analysis}
+        analysisLoading={analysisLoading}
+        analysisProgress={analysisProgress}
+        onAnalyze={() => void runProfileAnalysis()}
+      />
     </div>
   )
+}
+
+function ProfileHistoryPanel({
+  history,
+  loading,
+  analysis,
+  analysisLoading,
+  analysisProgress,
+  onAnalyze,
+}: {
+  history: ProfileHistoryResp | null
+  loading: boolean
+  analysis: ProfileAnalysisResp | null
+  analysisLoading: boolean
+  analysisProgress: number
+  onAnalyze: () => void
+}) {
+  const items = history?.items || []
+  const latest = items[0]
+
+  return (
+    <ProtoCard className="mt-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-blue" />
+            <h2 className="text-h2 font-bold text-ink">历史画像</h2>
+          </div>
+          <p className="mt-2 text-small leading-6 text-muted">
+            系统按 {history?.update_interval_days || 3} 天更新一次画像快照，用于观察学习目标、薄弱点和偏好的变化。
+          </p>
+        </div>
+        <ProtoButton variant="secondary" onClick={onAnalyze} disabled={analysisLoading}>
+          {analysisLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {analysisLoading ? 'AI 分析中...' : 'AI 分析画像'}
+        </ProtoButton>
+      </div>
+
+      <div className="mt-5 grid grid-cols-[1.15fr_.85fr] items-stretch gap-4 max-[960px]:grid-cols-1">
+        <div className="h-full rounded-[14px] border border-line bg-[#fbfdff] p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <Pill tone="blue">三天一更新</Pill>
+            <span className="text-micro text-muted">
+              下次可更新：{formatProfileDate(history?.next_update_at) || '暂无'}
+            </span>
+          </div>
+
+          {loading && <div className="py-8 text-center text-small text-muted">正在读取历史画像...</div>}
+
+          {!loading && items.length === 0 && (
+            <div className="rounded-[12px] border border-dashed border-line bg-white p-5 text-small text-muted">
+              暂无历史画像。完成画像采集或修改个人资料后，系统会生成第一条画像快照。
+            </div>
+          )}
+
+          {!loading && items.length > 0 && (
+            <div className="space-y-3">
+              {items.map((item, idx) => (
+                <ProfileHistoryRow key={item.id || `${item.captured_at}-${idx}`} item={item} active={idx === 0} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex h-full min-h-[360px] flex-col rounded-[14px] border border-line bg-white p-4">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <Pill tone="purple">AI 画像分析</Pill>
+            {analysis?.updated_at && <span className="text-micro text-muted">{formatProfileDate(analysis.updated_at)}</span>}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+            {analysisLoading ? (
+              <ProfileAnalysisProgress progress={analysisProgress} />
+            ) : analysis?.analysis_steps?.length ? (
+              <div className="relative space-y-0 pl-8">
+                {analysis.analysis_steps.map((step, idx) => (
+                  <div key={`${step.title}-${idx}`} className="relative border-l border-[#dbe7f5] pb-4 pl-5 last:border-l-transparent last:pb-0">
+                    <span className="absolute -left-[13px] top-0 grid h-6 w-6 place-items-center rounded-full border-2 border-white bg-blue text-[11px] font-bold text-white shadow-sm">
+                      {idx + 1}
+                    </span>
+                    <div className="rounded-r-[10px] bg-[#fbfdff] px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <b className="text-small text-ink">{step.title}</b>
+                        <span className="shrink-0 text-micro text-green">{step.status === 'done' ? '已完成' : step.status}</span>
+                      </div>
+                      <p className="mt-1 text-micro leading-5 text-muted">{step.detail}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="rounded-[10px] border border-purple/20 bg-[#faf7ff] p-3">
+                  <b className="text-small text-ink">最终诊断</b>
+                  <p className="mt-2 text-small leading-7 text-ink">{analysis.analysis}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-small leading-7 text-ink">
+                {analysis?.analysis || buildDefaultProfileAnalysis(latest)}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </ProtoCard>
+  )
+}
+
+function ProfileHistoryRow({ item, active }: { item: ProfileHistoryItem; active: boolean }) {
+  return (
+    <div className={`rounded-[12px] border p-4 ${active ? 'border-blue/40 bg-blue-light' : 'border-line bg-white'}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`h-2.5 w-2.5 rounded-full ${active ? 'bg-blue' : 'bg-[#cbd5e1]'}`} />
+          <b className="text-small text-ink">{formatProfileDate(item.captured_at) || '未记录时间'}</b>
+        </div>
+        <span className="text-micro text-muted">v{item.version} · {reasonLabel(item.reason)}</span>
+      </div>
+      <p className="mt-2 text-small leading-6 text-muted">{item.summary}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {item.major && <Pill tone="blue">{item.major}</Pill>}
+        {item.current_stage && <Pill tone="green">{item.current_stage}</Pill>}
+        {item.knowledge_level && <Pill>{item.knowledge_level}</Pill>}
+        {item.weak_points.slice(0, 3).map(point => <Pill key={point} tone="orange">{point}</Pill>)}
+      </div>
+    </div>
+  )
+}
+
+function ProfileAnalysisProgress({ progress }: { progress: number }) {
+  const stage =
+    progress >= 92 ? '整理最终诊断'
+      : progress >= 68 ? '生成路径建议'
+        : progress >= 46 ? '识别学习风险'
+          : progress >= 24 ? '对比历史变化'
+            : '读取画像快照'
+
+  return (
+    <div className="rounded-[12px] border border-blue/20 bg-blue-light p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <b className="block text-small text-ink">AI 正在分析画像</b>
+          <span className="mt-1 block text-micro text-muted">{stage}</span>
+        </div>
+        <span className="text-small font-bold text-blue">{progress}%</span>
+      </div>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white">
+        <div
+          className="h-full rounded-full bg-blue transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <div className="mt-4 space-y-2">
+        {['读取当前画像', '载入历史快照', '对比变化', '识别风险', '生成建议'].map((label, idx) => {
+          const active = progress >= (idx + 1) * 18
+          return (
+            <div key={label} className="flex items-center gap-2 text-micro">
+              <span className={`h-2 w-2 rounded-full ${active ? 'bg-blue' : 'bg-[#cbd5e1]'}`} />
+              <span className={active ? 'text-ink' : 'text-muted'}>{label}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function buildDefaultProfileAnalysis(item?: ProfileHistoryItem) {
+  if (!item) return '点击“AI 分析画像”后，系统会结合当前画像与历史变化，生成学习风险、资源推荐和路径调整建议。'
+  const weak = item.weak_points.slice(0, 2).join('、') || '当前薄弱点'
+  const goal = item.goals.slice(0, 2).join('、') || '当前目标'
+  return `当前画像围绕“${goal}”推进，重点关注“${weak}”。建议先完成短周期补弱资源，再根据练习结果更新路径节点。`
+}
+
+function formatProfileDate(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
+}
+
+function reasonLabel(reason: string) {
+  const labels: Record<string, string> = {
+    onboarding: '首次采集',
+    dialog: '对话建档',
+    manual_update: '资料更新',
+    history_view: '自动快照',
+  }
+  return labels[reason] || '画像更新'
 }
 
 function Goal({ title, text, done, current }: { title: string; text: string; done?: boolean; current?: boolean }) {

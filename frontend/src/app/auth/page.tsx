@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Smartphone, Shield, KeyRound } from 'lucide-react'
 import { setToken, setUser } from '@/lib/auth'
-import { sendSmsCode, smsLogin, smsRegister, checkPhoneRegistered } from '@/lib/api/real'
+import { sendSmsCode, smsLogin, smsRegister, checkPhoneRegistered, getProfile } from '@/lib/api/real'
 import './auth.css'
 
 export default function AuthPage() {
@@ -71,6 +71,52 @@ export default function AuthPage() {
     setTimeout(() => setToast(null), 2200)
   }, [])
 
+  function profileCollectedKey(userId?: string) {
+    return userId ? `sparklearn_profile_collected_at:${userId}` : 'sparklearn_profile_collected_at'
+  }
+
+  function getAuthUserId(user: any) {
+    return String(user?.user_id || user?.id || '')
+  }
+
+  function isProfileComplete(profile: any) {
+    return Boolean(
+      profile
+      && String(profile.major || '').trim()
+      && Array.isArray(profile.goals)
+      && profile.goals.length > 0
+      && String(profile.knowledgeLevel || '').trim()
+      && Array.isArray(profile.weakPoints)
+      && profile.weakPoints.length > 0
+      && Array.isArray(profile.learningPreference)
+      && profile.learningPreference.length > 0
+    )
+  }
+
+  async function resolvePostAuthRoute(user: any, isNewRegistration: boolean) {
+    if (isNewRegistration) return '/onboarding'
+
+    if (typeof window !== 'undefined') {
+      const userId = getAuthUserId(user)
+      if (
+        localStorage.getItem(profileCollectedKey(userId))
+        || localStorage.getItem(profileCollectedKey())
+      ) {
+        return '/'
+      }
+    }
+
+    try {
+      const profile = await getProfile()
+      if (isProfileComplete(profile)) {
+        return '/'
+      }
+    } catch {
+      // No saved profile yet.
+    }
+    return '/onboarding'
+  }
+
   async function handleSendCode() {
     if (!phone || phone.length !== 11) {
       showToast('请输入正确的11位手机号')
@@ -133,12 +179,18 @@ export default function AuthPage() {
         result = await smsRegister(phone, code, name)
       }
 
+      const authUser = {
+        ...result.user,
+        user_id: getAuthUserId(result.user),
+      }
+
       // 保存 token 和用户信息
       setToken(result.token)
-      setUser({ user_id: result.user.id, name: result.user.name, phone: result.user.phone })
+      setUser(authUser)
 
       showToast(mode === 'login' ? '登录成功' : '注册成功')
-      setTimeout(() => router.push('/onboarding'), 500)
+      const nextRoute = await resolvePostAuthRoute(authUser, mode === 'register')
+      setTimeout(() => router.push(nextRoute), 500)
     } catch (err: any) {
       showToast(err.message || '操作失败')
     } finally {

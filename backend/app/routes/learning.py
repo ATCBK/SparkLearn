@@ -509,6 +509,7 @@ async def _generate_node_advice(node: dict[str, Any], profile: dict[str, Any]) -
         f"阶段: {node['stage']}\\n"
         f"先修: {','.join(node['prerequisites']) or '无'}\\n"
         f"该模块学习内容: {json.dumps(node.get('learning_contents', []), ensure_ascii=False)}\\n"
+        f"专业方向: {profile.get('major', '未知')}\\n"
         f"学习目标: {json.dumps(profile.get('goal', []), ensure_ascii=False)}\\n"
         f"薄弱点: {json.dumps(profile.get('weak_points', []), ensure_ascii=False)}\\n"
         f"偏好: {json.dumps(profile.get('learning_preference', []), ensure_ascii=False)}"
@@ -592,8 +593,11 @@ def _fallback_advice(node: dict[str, Any], profile: dict[str, Any]) -> dict[str,
 
 
 def _profile_dict(row) -> dict[str, Any]:
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+    major = str(student['major']).strip() if student and student['major'] else ''
     if not row:
         return {
+            'major': major,
             'goal': ['提升编程能力'],
             'weak_points': ['函数与模块'],
             'learning_preference': ['实战练习'],
@@ -609,6 +613,7 @@ def _profile_dict(row) -> dict[str, Any]:
             return []
 
     return {
+        'major': major,
         'goal': _loads(row['goal']),
         'weak_points': _loads(row['weak_points']),
         'learning_preference': _loads(row['learning_preference']),

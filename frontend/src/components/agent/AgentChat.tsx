@@ -31,11 +31,14 @@ type AgentResultItem = {
 }
 
 type AgentResultPayload = {
+  answer?: string
   items?: AgentResultItem[]
   topic?: string
   key_points?: string[]
   conclusion?: string
   comparison?: string
+  source_title?: string
+  source_url?: string
 }
 
 type BrowserWithSpeech = Window & {
@@ -403,6 +406,7 @@ function latestStepText(steps?: AgentTaskStep[]) {
 
 function formatResult(task: AgentTask): string {
   if (!task.result) return '任务完成，但没有返回可展示的结果。'
+  if ('answer' in task.result && task.result.answer) return task.result.answer
   if (task.task_type === 'search' && 'items' in task.result) return `找到 ${task.result.items?.length || 0} 条可用学习资料。`
   if (task.task_type === 'summarize' && 'topic' in task.result) return '摘要已生成，请查看要点和建议。'
   if (task.task_type === 'compare' && 'items' in task.result) return '对比分析已完成，请查看不同视角。'
@@ -412,6 +416,7 @@ function formatResult(task: AgentTask): string {
 function TaskResultView({ task, onBookmark }: { task: AgentTask; onBookmark: (task: AgentTask, item: AgentResultItem, index: number) => void }) {
   const result = task.result as AgentResultPayload | null
   if (!result) return null
+  if (result.answer) return null
 
   if ((task.task_type === 'search' || task.task_type === 'recommend') && result.items) {
     return (

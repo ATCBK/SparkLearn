@@ -3,18 +3,19 @@
 提供外部信息流搜索、推荐、收藏功能。
 """
 
+import re
 from datetime import datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from ..auth import get_current_user
-from ..content_filter import check_keyword, filter_results
+from ..config import settings
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..info_stream import info_aggregator
 from ..schemas import ok
-from ..storage import read_json, write_json
-from ..config import settings
+from ..storage import append_jsonl, read_json, write_json
 
 router = APIRouter(prefix="/api/info-stream", tags=["info-stream"])
 
@@ -38,17 +39,8 @@ async def search(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=30),
 ):
-    """搜索外部信息流（含敏感内容过滤）"""
-    # 第一层：关键词黑名单检查
-    blocked, reason = check_keyword(keyword)
-    if blocked:
-        return ok({"items": [], "total": 0, "page": page, "blocked": reason})
-
+    """搜索外部信息流"""
     items = await info_aggregator.search(keyword, source=source, page=page, page_size=page_size)
-
-    # 第二层：结果内容过滤
-    items = filter_results(items)
-
     return ok({"items": items, "total": len(items), "page": page})
 
 
@@ -61,12 +53,16 @@ async def get_recommendations(
 
     # 从用户画像获取关键词
     profile = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (user_id,))
     keywords = []
+    major = str(student["major"]).strip() if student and student["major"] else ""
+    if major:
+        keywords.append(major)
     if profile:
         import json
         weak_points = json.loads(profile["weak_points"] or "[]")
         current_stage = profile["current_stage"] or ""
-        keywords = weak_points[:2]
+        keywords.extend(weak_points[:2])
         if current_stage:
             keywords.append(current_stage)
 
@@ -85,9 +81,6 @@ async def get_recommendations(
         if isinstance(result, list):
             items.extend(result)
 
-    # 对推荐结果也做过滤
-    items = filter_results(items)
-
     return ok({"items": items[:10], "keywords": keywords})
 
 
@@ -100,6 +93,72 @@ class BookmarkReq(BaseModel):
     thumbnail: str = ""
     author: str = ""
     tags: list[str] = []
+
+
+class InfoImportResourceReq(BaseModel):
+    source: str
+    external_id: str
+    title: str
+    url: str
+    summary: str = ""
+    thumbnail: str = ""
+    author: str = ""
+    tags: list[str] = []
+    extra_data: dict[str, Any] = {}
+
+
+def _safe_resource_key(value: str) -> str:
+    clean = re.sub(r"[^a-zA-Z0-9_-]+", "-", value).strip("-").lower()
+    return clean[:80] or "item"
+
+
+def _upsert_info_resource(resource: dict[str, Any]) -> dict[str, Any]:
+    resources = read_json(settings.single_user_id, "resources_index.json", [])
+    if not isinstance(resources, list):
+        resources = []
+
+    for idx, item in enumerate(resources):
+        if str(item.get("id", "")) == str(resource.get("id", "")):
+            resources[idx] = {**item, **resource}
+            write_json(settings.single_user_id, "resources_index.json", resources)
+            return resources[idx]
+
+    resources.insert(0, resource)
+    write_json(settings.single_user_id, "resources_index.json", resources)
+    return resource
+
+
+def _info_resource(req: InfoImportResourceReq) -> dict[str, Any]:
+    source = req.source.strip().lower()
+    external_id = req.external_id.strip()
+    tags = [str(tag).strip() for tag in req.tags if str(tag).strip()]
+    title = req.title.strip() or "学习发现资源"
+    summary = req.summary.strip()
+    author = req.author.strip()
+    return {
+        "id": f"info-{_safe_resource_key(source)}-{_safe_resource_key(external_id or title)}",
+        "title": f"学习发现：{title[:48]}",
+        "type": "discovery",
+        "status": "completed",
+        "created_at": now_iso()[:10],
+        "content": (
+            f"# {title}\n\n"
+            f"{summary or '该内容来自学习发现，可作为拓展学习资料。'}\n\n"
+            f"---\n来源：学习发现 / {source or 'external'}\n"
+            f"作者：{author or '未知'}\n"
+            f"标签：{'、'.join(tags) if tags else '无'}\n"
+            f"原文链接：{req.url}\n"
+        ),
+        "source_url": req.url,
+        "source_type": "info_stream",
+        "source_id": external_id,
+        "info_source": source,
+        "thumbnail": req.thumbnail,
+        "author": author,
+        "tags": tags,
+        "extra_data": req.extra_data,
+        "progress": 0,
+    }
 
 
 @router.post("/bookmark")
@@ -140,18 +199,40 @@ async def bookmark(
         (user_id, cache_id),
     )
     if existing_bookmark:
-        # 取消收藏 — 同步从资源中心删除
+        # 取消收藏
         execute("DELETE FROM info_stream_bookmarks WHERE id = ?", (existing_bookmark["id"],))
-        _remove_from_resource_center(req.source, req.external_id)
         return ok({"bookmarked": False})
 
-    # 添加收藏 — 同步写入资源中心
+    # 添加收藏
     execute(
         "INSERT INTO info_stream_bookmarks (user_id, cache_id, created_at) VALUES (?, ?, ?)",
         (user_id, cache_id, ts),
     )
-    _sync_to_resource_center(req)
     return ok({"bookmarked": True})
+
+
+@router.post("/import-resource")
+async def import_resource(
+    req: InfoImportResourceReq,
+    current_user: dict = Depends(get_current_user),
+):
+    """将学习发现内容加入我的资源库"""
+    if not req.title.strip() or not req.url.strip():
+        raise HTTPException(status_code=400, detail="title and url are required")
+
+    resource = _upsert_info_resource(_info_resource(req))
+    append_jsonl(
+        settings.single_user_id,
+        "resource_usage.jsonl",
+        {
+            "type": "info_stream_imported",
+            "resource_id": resource["id"],
+            "source": req.source,
+            "external_id": req.external_id,
+            "user_id": current_user["user_id"],
+        },
+    )
+    return ok({"resource": resource})
 
 
 @router.get("/bookmarks")
@@ -173,38 +254,3 @@ async def get_bookmarks(
     )
     items = [dict(r) for r in rows]
     return ok(items)
-
-
-def _sync_to_resource_center(req: BookmarkReq):
-    """将收藏的外部资源同步写入资源中心"""
-    resource_id = f"ext-{req.source}-{req.external_id}"
-    resources = read_json(settings.single_user_id, "resources_index.json", [])
-
-    # 去重
-    if any(r.get("id") == resource_id for r in resources):
-        return
-
-    resource = {
-        "id": resource_id,
-        "title": req.title,
-        "type": "external",
-        "status": "completed",
-        "created_at": datetime.utcnow().strftime("%Y-%m-%d"),
-        "content": f"# {req.title}\n\n{req.summary}",
-        "source_url": req.url,
-        "thumbnail": req.thumbnail,
-        "author": req.author,
-        "tags": req.tags,
-        "extra": {"source": req.source, "external_id": req.external_id},
-        "progress": 100,
-    }
-    resources.append(resource)
-    write_json(settings.single_user_id, "resources_index.json", resources)
-
-
-def _remove_from_resource_center(source: str, external_id: str):
-    """从资源中心删除对应的外部资源"""
-    resource_id = f"ext-{source}-{external_id}"
-    resources = read_json(settings.single_user_id, "resources_index.json", [])
-    resources = [r for r in resources if r.get("id") != resource_id]
-    write_json(settings.single_user_id, "resources_index.json", resources)

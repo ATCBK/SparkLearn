@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StudyBuddy 配置</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f8fafc;
+      color: #0f172a;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1, h2, h3 { margin: 0; }
+    p {
+      margin: 8px 0 0;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    section {
+      margin-top: 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      background: #fff;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      margin-bottom: 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      padding: 6px 12px;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 16px;
+      align-items: start;
+    }
+    label {
+      display: grid;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+    }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+      color: #0f172a;
+      background: #fff;
+      outline: none;
+    }
+    input, select { min-height: 42px; }
+    textarea {
+      min-height: 160px;
+      resize: vertical;
+      line-height: 1.6;
+      font-family: Consolas, "Courier New", monospace;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      min-height: 16px;
+      padding: 0;
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .full { grid-column: 1 / -1; }
+    .path, .hint-box {
+      border-radius: 10px;
+      background: #f1f5f9;
+      padding: 12px;
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button {
+      min-height: 40px;
+      border: 0;
+      border-radius: 10px;
+      padding: 0 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .primary { background: #2563eb; color: #fff; }
+    .secondary { background: #e2e8f0; color: #334155; }
+    .ghost {
+      background: transparent;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+    .status {
+      min-height: 20px;
+      font-size: 13px;
+      color: #059669;
+    }
+    .error { color: #dc2626; }
+    .picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .picker-btn {
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      background: #fff;
+      padding: 9px 14px;
+      color: #334155;
+    }
+    .picker-btn.active {
+      border-color: #93c5fd;
+      background: #f8fbff;
+      color: #1d4ed8;
+    }
+    @media (max-width: 860px) {
+      .grid, .split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="pill">桌面端本地配置</div>
+      <h1>StudyBuddy 配置</h1>
+      <p>
+        这里负责本地模型、渠道和 MCP 配置。MCP 默认按本地正常可用处理，不强制上锁。
+      </p>
+    </header>
+
+    <section>
+      <h2>配置文件</h2>
+      <div id="configPath" class="path">读取中...</div>
+      <div class="actions">
+        <button class="secondary" id="openFile" type="button">打开配置文件</button>
+        <button class="secondary" id="reload" type="button">重新读取</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>基础设置</h2>
+      <div class="grid">
+        <label>Provider
+          <select id="provider">
+            <option value="deepseek">deepseek</option>
+            <option value="openai">openai</option>
+            <option value="openrouter">openrouter</option>
+            <option value="siliconflow">siliconflow</option>
+            <option value="ollama">ollama</option>
+            <option value="custom">custom</option>
+          </select>
+        </label>
+        <label>Model
+          <input id="model" placeholder="deepseek-ai/DeepSeek-V3" />
+        </label>
+        <label>Bot Name
+          <input id="botName" placeholder="StudyBuddy" />
+        </label>
+        <label>Timezone
+          <input id="timezone" placeholder="Asia/Shanghai" />
+        </label>
+        <label class="full">API Key
+          <input id="apiKey" type="password" placeholder="sk-..." />
+        </label>
+        <label class="full">API Base
+          <input id="apiBase" placeholder="可留空，按 provider 默认地址运行" />
+        </label>
+        <label class="full">Workspace
+          <input id="workspace" />
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>本地服务</h2>
+      <div class="grid">
+        <label>API Host
+          <input id="apiHost" />
+        </label>
+        <label>API Port
+          <input id="apiPort" type="number" />
+        </label>
+        <label>Gateway Host
+          <input id="gatewayHost" />
+        </label>
+        <label>Gateway Port
+          <input id="gatewayPort" type="number" />
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>本地 MCP</h2>
+      <p>这里控制桌面端本地 MCP 的可用方式。默认值就是本地正常可用：`exec.enable = true`、`exec.sandbox = ""`、`restrictToWorkspace = false`。</p>
+      <div class="grid">
+        <label class="full check">
+          <input id="execEnabled" type="checkbox" />
+          启用本地 exec
+        </label>
+        <label class="full check">
+          <input id="restrictToWorkspace" type="checkbox" />
+          仅限制到 workspace
+        </label>
+        <label>Exec Sandbox
+          <input id="execSandbox" placeholder='留空表示不上锁；Linux 可填 "bwrap"' />
+        </label>
+        <label>Exec Timeout
+          <input id="execTimeout" type="number" placeholder="60" />
+        </label>
+        <label class="full">Exec Path Append
+          <input id="execPathAppend" placeholder="额外 PATH，例如 C:\\tools\\bin" />
+        </label>
+        <label class="full">本地 MCP Servers JSON
+          <textarea id="mcpServersJson" spellcheck="false"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <section>
+      <h2>渠道配置</h2>
+      <p>先选渠道，再编辑对应配置。右侧保留原生 `channels` JSON，表单只负责常用字段。</p>
+      <div class="split">
+        <div>
+          <div id="channelPicker" class="picker"></div>
+          <div id="channelPanel"></div>
+        </div>
+        <div>
+          <h3>原生 channels JSON</h3>
+          <textarea id="channelsJson" spellcheck="false"></textarea>
+          <div class="actions">
+            <button class="ghost" id="syncToJson" type="button">用表单更新 JSON</button>
+            <button class="ghost" id="syncFromJson" type="button">从 JSON 刷新表单</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>使用说明</h2>
+      <div class="hint-box">
+        1. 先配置模型与本地服务。<br />
+        2. 如果需要本地 MCP，直接在 MCP Servers JSON 中填写 stdio/HTTP 配置。<br />
+        3. 默认不启用沙箱；如果后续你要更严的限制，再单独打开。<br />
+        4. 保存后如果本地服务已在运行，需要重启后生效。
+      </div>
+      <div class="actions">
+        <button class="primary" id="save" type="button">保存配置</button>
+        <span id="status" class="status"></span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const BASIC_FIELDS = [
+      'provider', 'model', 'botName', 'timezone', 'apiKey', 'apiBase',
+      'workspace', 'apiHost', 'apiPort', 'gatewayHost', 'gatewayPort',
+      'execSandbox', 'execTimeout', 'execPathAppend', 'mcpServersJson'
+    ];
+    const CHECK_FIELDS = ['execEnabled', 'restrictToWorkspace'];
+
+    const CHANNEL_SPECS = [
+      { key: 'feishu', label: '飞书', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'appId', label: 'App ID', type: 'text', placeholder: 'cli_xxx' },
+        { key: 'appSecret', label: 'App Secret', type: 'password' },
+        { key: 'allowFrom', label: '允许 open_id', type: 'list', placeholder: 'ou_xxx, ou_yyy 或 *' },
+        { key: 'groupPolicy', label: '群聊策略', type: 'select', options: [{ value: 'mention', label: '@时回复' }, { value: 'open', label: '全部回复' }] },
+        { key: 'streaming', label: '流式回复', type: 'checkbox' },
+        { key: 'domain', label: '域名', type: 'select', options: [{ value: 'feishu', label: 'feishu' }, { value: 'lark', label: 'lark' }] }
+      ]},
+      { key: 'dingtalk', label: '钉钉', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'clientId', label: 'App Key / Client ID', type: 'text' },
+        { key: 'clientSecret', label: 'App Secret', type: 'password' },
+        { key: 'allowFrom', label: '允许 staff_id', type: 'list', placeholder: 'staff_xxx 或 *' }
+      ]},
+      { key: 'slack', label: 'Slack', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'botToken', label: 'Bot Token', type: 'password', placeholder: 'xoxb-...' },
+        { key: 'appToken', label: 'App-Level Token', type: 'password', placeholder: 'xapp-...' },
+        { key: 'allowFrom', label: '允许用户 ID', type: 'list', placeholder: 'U123 或 *' },
+        { key: 'groupPolicy', label: '群聊策略', type: 'select', options: [{ value: 'mention', label: '@时回复' }, { value: 'open', label: '全部回复' }, { value: 'allowlist', label: '白名单频道' }] }
+      ]},
+      { key: 'qq', label: 'QQ', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'appId', label: 'App ID', type: 'text' },
+        { key: 'secret', label: 'App Secret', type: 'password' },
+        { key: 'allowFrom', label: '允许 openid', type: 'list', placeholder: 'openid 或 *' }
+      ]},
+      { key: 'wecom', label: '企业微信', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'botId', label: 'Bot ID', type: 'text' },
+        { key: 'secret', label: 'Bot Secret', type: 'password' },
+        { key: 'allowFrom', label: '允许用户 ID', type: 'list', placeholder: 'your_id 或 *' }
+      ]},
+      { key: 'weixin', label: '微信', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'allowFrom', label: '允许用户 ID', type: 'list', placeholder: 'wxid_xxx 或 *' },
+        { key: 'token', label: 'Token', type: 'password' }
+      ]},
+      { key: 'telegram', label: 'Telegram', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'token', label: 'Bot Token', type: 'password' },
+        { key: 'allowFrom', label: '允许用户 ID', type: 'list', placeholder: '12345678 或 *' }
+      ]},
+      { key: 'discord', label: 'Discord', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'token', label: 'Bot Token', type: 'password' },
+        { key: 'allowFrom', label: '允许用户 ID', type: 'list', placeholder: 'discord user id 或 *' },
+        { key: 'allowChannels', label: '允许频道 ID', type: 'list', placeholder: '123, 456' }
+      ]},
+      { key: 'email', label: '邮箱', fields: [
+        { key: 'enabled', label: '启用渠道', type: 'checkbox' },
+        { key: 'consentGranted', label: '允许邮箱访问', type: 'checkbox' },
+        { key: 'imapHost', label: 'IMAP Host', type: 'text' },
+        { key: 'imapPort', label: 'IMAP Port', type: 'number' },
+        { key: 'imapUsername', label: 'IMAP Username', type: 'text' },
+        { key: 'imapPassword', label: 'IMAP Password', type: 'password' },
+        { key: 'smtpHost', label: 'SMTP Host', type: 'text' },
+        { key: 'smtpPort', label: 'SMTP Port', type: 'number' },
+        { key: 'smtpUsername', label: 'SMTP Username', type: 'text' },
+        { key: 'smtpPassword', label: 'SMTP Password', type: 'password' },
+        { key: 'fromAddress', label: 'From Address', type: 'text' },
+        { key: 'allowFrom', label: '允许邮箱地址', type: 'list', placeholder: 'a@example.com 或 *' }
+      ]}
+    ];
+
+    const DEFAULT_CHANNEL_VALUES = {
+      feishu: { enabled: false, allowFrom: ['*'], groupPolicy: 'mention', streaming: true, domain: 'feishu' },
+      dingtalk: { enabled: false, allowFrom: ['*'] },
+      slack: { enabled: false, allowFrom: ['*'], groupPolicy: 'mention' },
+      qq: { enabled: false, allowFrom: ['*'] },
+      wecom: { enabled: false, allowFrom: ['*'] },
+      weixin: { enabled: false, allowFrom: ['*'] },
+      telegram: { enabled: false, allowFrom: ['*'] },
+      discord: { enabled: false, allowFrom: ['*'], allowChannels: [] },
+      email: { enabled: false, consentGranted: false, imapPort: 993, smtpPort: 587, allowFrom: ['*'] }
+    };
+
+    const $ = (id) => document.getElementById(id);
+    let activeChannel = CHANNEL_SPECS[0].key;
+    let channelState = {};
+
+    function setStatus(text, error = false) {
+      $('status').textContent = text;
+      $('status').className = error ? 'status error' : 'status';
+    }
+
+    function parseList(value) {
+      if (Array.isArray(value)) return value;
+      if (typeof value !== 'string') return [];
+      return value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
+    }
+
+    function deepClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function getByPath(obj, path) {
+      return String(path).split('.').reduce((current, part) => current?.[part], obj);
+    }
+
+    function setByPath(obj, path, value) {
+      const parts = String(path).split('.');
+      let cursor = obj;
+      for (let index = 0; index < parts.length - 1; index += 1) {
+        const part = parts[index];
+        cursor[part] = cursor[part] && typeof cursor[part] === 'object' ? cursor[part] : {};
+        cursor = cursor[part];
+      }
+      cursor[parts[parts.length - 1]] = value;
+    }
+
+    function parseChannelsJson() {
+      const text = $('channelsJson').value.trim();
+      return text ? JSON.parse(text) : {};
+    }
+
+    function sanitizeChannel(channelKey, source) {
+      const base = deepClone(DEFAULT_CHANNEL_VALUES[channelKey] || {});
+      const merged = { ...base, ...(source || {}) };
+      const spec = CHANNEL_SPECS.find((item) => item.key === channelKey);
+      if (!spec) return merged;
+      for (const field of spec.fields) {
+        const current = getByPath(merged, field.key);
+        if (field.type === 'list') {
+          setByPath(merged, field.key, parseList(current));
+        } else if (field.type === 'number') {
+          setByPath(merged, field.key, current === '' || current === undefined || current === null ? '' : Number(current));
+        } else if (field.type === 'checkbox') {
+          setByPath(merged, field.key, Boolean(current));
+        } else if (current === undefined || current === null) {
+          setByPath(merged, field.key, getByPath(base, field.key) ?? '');
+        }
+      }
+      return merged;
+    }
+
+    function loadChannelsState(rawChannels) {
+      channelState = {};
+      for (const spec of CHANNEL_SPECS) {
+        channelState[spec.key] = sanitizeChannel(spec.key, rawChannels?.[spec.key]);
+      }
+    }
+
+    function fillBasicFields(data) {
+      $('configPath').textContent = data.configPath || '';
+      for (const id of BASIC_FIELDS) {
+        if ($(id)) $(id).value = data[id] ?? '';
+      }
+      for (const id of CHECK_FIELDS) {
+        if ($(id)) $(id).checked = Boolean(data[id]);
+      }
+      $('mcpServersJson').value = data.mcpServersJson || '{\n}\n';
+      $('channelsJson').value = data.channelsJson || '{\n}\n';
+    }
+
+    function renderChannelPicker() {
+      $('channelPicker').innerHTML = CHANNEL_SPECS.map((spec) => {
+        const classes = ['picker-btn'];
+        if (spec.key === activeChannel) classes.push('active');
+        return `<button type="button" class="${classes.join(' ')}" data-channel="${spec.key}">${spec.label}</button>`;
+      }).join('');
+      document.querySelectorAll('[data-channel]').forEach((button) => {
+        button.addEventListener('click', () => {
+          persistCurrentPanel();
+          activeChannel = button.getAttribute('data-channel');
+          renderChannelPicker();
+          renderChannelPanel();
+        });
+      });
+    }
+
+    function renderField(channelKey, field) {
+      const inputId = `${channelKey}__${field.key.replaceAll('.', '__')}`;
+      const value = getByPath(channelState[channelKey], field.key);
+      const full = field.type === 'list' ? 'full' : '';
+      if (field.type === 'checkbox') {
+        return `<label class="full check"><input id="${inputId}" data-field="${field.key}" data-channel="${channelKey}" type="checkbox" ${value ? 'checked' : ''} />${field.label}</label>`;
+      }
+      if (field.type === 'select') {
+        return `<label class="${full}">${field.label}<select id="${inputId}" data-field="${field.key}" data-channel="${channelKey}">${field.options.map((option) => `<option value="${option.value}" ${String(value ?? '') === option.value ? 'selected' : ''}>${option.label}</option>`).join('')}</select></label>`;
+      }
+      const inputType = field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text';
+      const normalizedValue = field.type === 'list' ? (Array.isArray(value) ? value.join(', ') : value ?? '') : (value ?? '');
+      return `<label class="${full}">${field.label}<input id="${inputId}" data-field="${field.key}" data-channel="${channelKey}" type="${inputType}" value="${String(normalizedValue).replace(/"/g, '&quot;')}" placeholder="${field.placeholder || ''}" /></label>`;
+    }
+
+    function renderChannelPanel() {
+      const spec = CHANNEL_SPECS.find((item) => item.key === activeChannel);
+      if (!spec) return;
+      $('channelPanel').innerHTML = `<div class="grid">${spec.fields.map((field) => renderField(spec.key, field)).join('')}</div>`;
+      document.querySelectorAll(`[data-channel="${spec.key}"]`).forEach((element) => {
+        const sync = () => syncFieldValue(spec.key, element);
+        element.addEventListener('input', sync);
+        element.addEventListener('change', sync);
+      });
+    }
+
+    function syncFieldValue(channelKey, element) {
+      const fieldPath = element.getAttribute('data-field');
+      const spec = CHANNEL_SPECS.find((item) => item.key === channelKey);
+      const field = spec?.fields.find((item) => item.key === fieldPath);
+      if (!field) return;
+      let value;
+      if (field.type === 'checkbox') value = element.checked;
+      else if (field.type === 'list') value = parseList(element.value);
+      else if (field.type === 'number') value = element.value === '' ? '' : Number(element.value);
+      else value = element.value;
+      setByPath(channelState[channelKey], fieldPath, value);
+    }
+
+    function persistCurrentPanel() {
+      const spec = CHANNEL_SPECS.find((item) => item.key === activeChannel);
+      if (!spec) return;
+      for (const field of spec.fields) {
+        const id = `${spec.key}__${field.key.replaceAll('.', '__')}`;
+        const element = $(id);
+        if (element) syncFieldValue(spec.key, element);
+      }
+    }
+
+    function buildMergedChannelsFromForm() {
+      persistCurrentPanel();
+      const base = parseChannelsJson();
+      const merged = { ...base };
+      for (const spec of CHANNEL_SPECS) {
+        merged[spec.key] = sanitizeChannel(spec.key, { ...(base[spec.key] || {}), ...(channelState[spec.key] || {}) });
+      }
+      return merged;
+    }
+
+    function syncFormsToJson() {
+      try {
+        $('channelsJson').value = `${JSON.stringify(buildMergedChannelsFromForm(), null, 2)}\n`;
+        setStatus('已根据表单更新 channels JSON。');
+      } catch (error) {
+        setStatus(error.message || '同步 JSON 失败', true);
+      }
+    }
+
+    function syncJsonToForms() {
+      try {
+        loadChannelsState(parseChannelsJson());
+        renderChannelPicker();
+        renderChannelPanel();
+        setStatus('已根据 channels JSON 刷新表单。');
+      } catch (error) {
+        setStatus(error.message || '解析 channels JSON 失败', true);
+      }
+    }
+
+    function collectPayload() {
+      const payload = {};
+      for (const id of BASIC_FIELDS) payload[id] = $(id).value;
+      for (const id of CHECK_FIELDS) payload[id] = $(id).checked;
+      payload.channelsJson = `${JSON.stringify(buildMergedChannelsFromForm(), null, 2)}\n`;
+      $('channelsJson').value = payload.channelsJson;
+      return payload;
+    }
+
+    async function load() {
+      setStatus('');
+      try {
+        const data = await window.sparklearnDesktop.getStudyBuddyConfig();
+        fillBasicFields(data);
+        loadChannelsState(parseChannelsJson());
+        renderChannelPicker();
+        renderChannelPanel();
+      } catch (error) {
+        setStatus(error.message || '读取配置失败', true);
+      }
+    }
+
+    $('save').addEventListener('click', async () => {
+      setStatus('保存中...');
+      try {
+        const data = await window.sparklearnDesktop.saveStudyBuddyConfig(collectPayload());
+        fillBasicFields(data);
+        loadChannelsState(parseChannelsJson());
+        renderChannelPicker();
+        renderChannelPanel();
+        setStatus('已保存。重启桌面端本地服务后生效。');
+      } catch (error) {
+        setStatus(error.message || '保存失败', true);
+      }
+    });
+
+    $('reload').addEventListener('click', load);
+    $('openFile').addEventListener('click', () => window.sparklearnDesktop.openStudyBuddyConfigFile());
+    $('syncToJson').addEventListener('click', syncFormsToJson);
+    $('syncFromJson').addEventListener('click', syncJsonToForms);
+
+    load();
+  </script>
+</body>
+</html>

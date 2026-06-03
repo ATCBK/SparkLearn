@@ -1,4 +1,5 @@
 import asyncio
+import ipaddress
 import re
 import uuid
 from collections.abc import AsyncGenerator
@@ -8,20 +9,19 @@ from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
-
-from app.templates import build_prompt_from_template
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
-# from ..coze import coze_adapter  # 暂时注释：Coze bot_id 未配置，直接走 Spark LLM
+from ..coze import coze_adapter
 from ..config import settings
+from ..db import fetch_one
 from ..llm import spark_lite
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
 from ..xfyun_ppt import XfyunPptError, xfyun_ppt_client
 from .common import sse_wrap
-from .knowledge import load_knowledge_context
+from .knowledge import load_knowledge_context_async
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 
@@ -106,21 +106,21 @@ async def generate_resource(req: GenerateReq):
                     "source_url": None,
                     "progress": 100,
                 }
-        elif resource_type in ("blog", "code"):
-            # 播客电台 & 代码案例：直接调用星火大模型生成
+        elif resource_type == "blog":
+            # 播客电台：直接调用星火大模型生成播客脚本
             chunks: list[str] = []
             progress = 10
 
-            knowledge_context = load_knowledge_context(req.knowledge_file_ids or [])
+            knowledge_context = await load_knowledge_context_async(req.knowledge_file_ids or [], query=req.prompt)
             user_prompt = req.prompt
             if knowledge_context:
                 user_prompt = (
                     f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考：\n{knowledge_context}"
                 )
-            llm_prompt = _build_resource_prompt(resource_type, user_prompt)
+            blog_prompt = _build_resource_prompt("blog", user_prompt)
 
             yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
-            async for evt_type, payload in spark_lite.stream_chat_events(llm_prompt, mode="general", history=[]):
+            async for evt_type, payload in spark_lite.stream_chat_events(blog_prompt, mode="general", history=[]):
                 if evt_type == "text":
                     chunk = str(payload.get("content", ""))
                     if chunk:
@@ -133,12 +133,12 @@ async def generate_resource(req: GenerateReq):
 
             content = "".join(chunks).strip()
             if not content:
-                content = _fallback_resource_content(resource_type, req.prompt)
+                content = _fallback_resource_content("blog", req.prompt)
 
             resource = {
                 "id": res_id,
-                "title": req.prompt[:20] or ("新生成播客" if resource_type == "blog" else "新生成代码案例"),
-                "type": resource_type,
+                "title": req.prompt[:20] or "新生成播客",
+                "type": "blog",
                 "status": "completed",
                 "created_at": _now_date(),
                 "content": f"# {req.prompt}\n\n{content}",
@@ -146,74 +146,38 @@ async def generate_resource(req: GenerateReq):
                 "progress": 100,
             }
         else:
-            # 直接走星火大模型生成（Coze 暂时注释，见顶部 import）
             chunks: list[str] = []
             explicit_source_url = ""
             progress = 10
 
-            knowledge_context = load_knowledge_context(req.knowledge_file_ids or [])
+            knowledge_context = await load_knowledge_context_async(req.knowledge_file_ids or [], query=req.prompt)
             user_prompt = req.prompt
             if knowledge_context:
                 user_prompt = (
                     f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考并保持事实一致：\n{knowledge_context}"
                 )
-            llm_prompt = _build_resource_prompt(req.type, user_prompt)
-
-            yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
-            async for evt_type, payload in spark_lite.stream_chat_events(llm_prompt, mode="general", history=[]):
+            coze_prompt = _build_resource_prompt(req.type, user_prompt)
+            async for evt_type, payload in coze_adapter.stream_resource_text(
+                resource_type=req.type,
+                prompt=coze_prompt,
+                user_id=settings.single_user_id,
+            ):
                 if evt_type == "text":
                     chunk = str(payload.get("content", ""))
                     if chunk:
                         chunks.append(chunk)
-                        progress = min(progress + 5, 90)
+                        progress = min(progress + 8, 90)
                         yield ("text", {"content": chunk, "resource_id": res_id})
                         yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
                 elif evt_type == "error":
                     yield ("error", payload)
-
-            # --- 以下是原 Coze 调用逻辑，暂时注释保留 ---
-            # coze_failed = False
-            # coze_prompt = _build_resource_prompt(req.type, user_prompt)
-            # async for evt_type, payload in coze_adapter.stream_resource_text(
-            #     resource_type=req.type,
-            #     prompt=coze_prompt,
-            #     user_id=settings.single_user_id,
-            # ):
-            #     if evt_type == "text":
-            #         chunk = str(payload.get("content", ""))
-            #         if chunk:
-            #             chunks.append(chunk)
-            #             progress = min(progress + 8, 90)
-            #             yield ("text", {"content": chunk, "resource_id": res_id})
-            #             yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
-            #     elif evt_type == "error":
-            #         if not chunks:
-            #             coze_failed = True
-            #             yield ("progress", {"stage": "fallback", "resource_id": res_id, "progress": 10,
-            #                                 "message": "Coze 服务不可用，正在切换到备用模型..."})
-            #             break
-            #     elif evt_type == "meta":
-            #         links = payload.get("links")
-            #         if isinstance(links, list):
-            #             for item in links:
-            #                 if isinstance(item, str) and _is_valid_url(item):
-            #                     explicit_source_url = item
-            #                     break
-            # if coze_failed:
-            #     chunks = []
-            #     progress = 10
-            #     spark_prompt = _build_resource_prompt(req.type, user_prompt)
-            #     async for evt_type, payload in spark_lite.stream_chat_events(spark_prompt, mode="general", history=[]):
-            #         if evt_type == "text":
-            #             chunk = str(payload.get("content", ""))
-            #             if chunk:
-            #                 chunks.append(chunk)
-            #                 progress = min(progress + 5, 90)
-            #                 yield ("text", {"content": chunk, "resource_id": res_id})
-            #                 yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
-            #         elif evt_type == "error":
-            #             yield ("error", payload)
-            # --- Coze 逻辑结束 ---
+                elif evt_type == "meta":
+                    links = payload.get("links")
+                    if isinstance(links, list):
+                        for item in links:
+                            if isinstance(item, str) and _is_valid_url(item):
+                                explicit_source_url = item
+                                break
 
             content = "".join(chunks).strip()
             if not content:
@@ -396,8 +360,70 @@ def _default_resources() -> list[dict[str, Any]]:
 
 
 def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
-    """根据资源类型和用户输入构建 prompt，优先使用 YAML 模板。"""
-    return build_prompt_from_template(resource_type, user_prompt.strip())
+    base = user_prompt.strip()
+    profile_context = _profile_context_for_generation()
+    if profile_context:
+        base = f"{base}\n\n用户画像上下文:\n{profile_context}"
+    if resource_type == "document":
+        return (
+            "请生成结构化学习文档（Markdown）。包含学习目标、关键概念、示例、常见错误、练习建议。"
+            "若有网页链接，第一行输出 SOURCE_URL: https://...；若无输出 SOURCE_URL: NONE\n\n需求："
+            + base
+        )
+    if resource_type == "mindmap":
+        return base
+    if resource_type == "quiz":
+        return "请生成练习题（Markdown），包含题目、答案与解析，覆盖简单/中等/困难。\n\n主题：" + base
+    if resource_type == "reading":
+        return "请生成拓展阅读文档（Markdown），包含背景、关键知识、应用场景、延伸阅读建议。\n\n主题：" + base
+    if resource_type == "code":
+        return "请生成代码学习案例（Markdown），包含问题描述、完整代码、讲解与扩展练习。\n\n主题：" + base
+    if resource_type == "blog":
+        return (
+            "SOURCE_URL: NONE\n\n"
+            "你是一位专业的播客主播兼科普作者。请根据以下学习主题，生成一篇适合语音朗读的播客电台脚本。\n\n"
+            "要求：\n"
+            "1. 用口语化、亲切自然的语气，像在和听众聊天一样讲解知识\n"
+            '2. 开头用一句吸引人的引入语（比如"嘿，大家好，欢迎收听今天的 SparkLearn 播客电台"）\n'
+            "3. 把知识点拆成 3-5 个小段落，每段之间用自然的过渡语连接\n"
+            "4. 多用生活化的类比和例子来解释抽象概念\n"
+            "5. 结尾做一个简短总结，并给出一个思考问题\n"
+            "6. 不要使用 Markdown 格式符号（不要 #、*、`、- 等），纯文本即可\n"
+            "7. 每个段落之间用两个空行分隔（方便拆分为多个音频片段）\n"
+            "8. 总长度控制在 800-1500 字，适合 5-8 分钟的音频播放\n\n"
+            "主题：" + base
+        )
+    return base
+
+
+def _profile_context_for_generation() -> str:
+    profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+    if not isinstance(profile, dict) or not profile:
+        return ""
+    parts = []
+    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (settings.single_user_id,))
+    major = str(profile.get("major") or "").strip()
+    if not major and student and student["major"]:
+        major = str(student["major"]).strip()
+    if major:
+        parts.append(f"专业方向: {major}")
+    goal = profile.get("goal", [])
+    if isinstance(goal, list) and goal:
+        parts.append(f"学习目标: {json_like(goal)}")
+    knowledge_level = str(profile.get("knowledge_level") or "").strip()
+    if knowledge_level:
+        parts.append(f"知识基础: {knowledge_level}")
+    weak_points = profile.get("weak_points", [])
+    if isinstance(weak_points, list) and weak_points:
+        parts.append(f"薄弱点: {json_like(weak_points)}")
+    learning_preference = profile.get("learning_preference", [])
+    if isinstance(learning_preference, list) and learning_preference:
+        parts.append(f"学习偏好: {json_like(learning_preference)}")
+    return "\n".join(parts)
+
+
+def json_like(value: Any) -> str:
+    return ", ".join(str(item) for item in value if str(item).strip())
 
 
 def _fallback_resource_content(resource_type: str, prompt: str) -> str:
@@ -413,10 +439,9 @@ def _find_resource(resource_id: str) -> dict[str, Any] | None:
 
 
 async def _fetch_url_text(url: str) -> str:
-    if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="invalid preview link")
+    _validate_public_http_url(url, "preview link")
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, max_redirects=3) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             content_type = resp.headers.get("content-type", "").lower()
@@ -430,16 +455,30 @@ async def _fetch_url_text(url: str) -> str:
 
 
 async def _fetch_url_binary(url: str) -> tuple[bytes, str]:
-    if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="invalid source link")
+    _validate_public_http_url(url, "source link")
     try:
-        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True, verify=False) as client:
+        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True, max_redirects=3) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             ctype = resp.headers.get("content-type", "application/octet-stream").split(";")[0].strip().lower()
             return resp.content, ctype
     except Exception as ex:
         raise HTTPException(status_code=502, detail=f"source fetch failed: {ex}") from ex
+
+
+def _validate_public_http_url(url: str, label: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise HTTPException(status_code=400, detail=f"invalid {label}")
+    host = parsed.hostname.strip().lower()
+    if host in {"localhost", "127.0.0.1", "0.0.0.0"} or host.endswith(".local"):
+        raise HTTPException(status_code=400, detail=f"unsafe {label}")
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return
+    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_reserved:
+        raise HTTPException(status_code=400, detail=f"unsafe {label}")
 
 
 def _safe_filename(name: str) -> str:

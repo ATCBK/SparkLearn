@@ -29,7 +29,7 @@ export function Pill({
   className,
 }: {
   children: React.ReactNode
-  tone?: 'neutral' | 'blue' | 'green' | 'orange' | 'red' | 'purple'
+  tone?: 'neutral' | 'blue' | 'green' | 'orange' | 'red' | 'purple' | 'cyan'
   className?: string
 }) {
   const tones = {
@@ -39,6 +39,7 @@ export function Pill({
     orange: 'bg-orange-light text-orange',
     red: 'bg-red-light text-red',
     purple: 'bg-purple-light text-purple',
+    cyan: 'bg-[#ecfeff] text-[#0891b2]',
   }
   return <span className={cn('inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-micro font-bold whitespace-nowrap', tones[tone], className)}>{children}</span>
 }

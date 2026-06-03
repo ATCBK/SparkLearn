@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Circle,
   Database,
+  Download,
   FileText,
   Lock,
   Paperclip,
@@ -26,7 +27,7 @@ type TabKey = 'auth' | 'headers' | 'config'
 const EMPTY_FORM: McpServicePayload = {
   name: '',
   description: '',
-  transport: 'stdio',
+  transport: 'http',
   endpoint: '',
   command: 'npx',
   args_json: ['-y', '@modelcontextprotocol/server-filesystem', 'D:/Project_building/SparkLearn'],
@@ -43,6 +44,21 @@ const CONF_ITEMS: Record<TabKey, { label: string; icon: ReactNode }> = {
   config: { label: '配置', icon: <Settings className="h-4 w-4" /> },
 }
 
+function isDemoWeatherService(service: McpService) {
+  const text = `${service.name} ${service.description}`.toLowerCase()
+  return text.includes('weather') || text.includes('天气')
+}
+
+type SparklearnDesktopBridge = {
+  openStudyBuddyConfig?: () => void
+}
+
+declare global {
+  interface Window {
+    sparklearnDesktop?: SparklearnDesktopBridge
+  }
+}
+
 export default function TutorMcpStorePage() {
   const router = useRouter()
   const [services, setServices] = useState<McpService[]>([])
@@ -54,6 +70,7 @@ export default function TutorMcpStorePage() {
   const [busyId, setBusyId] = useState('')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
+  const [desktopReady] = useState(() => typeof window !== 'undefined' && Boolean(window.sparklearnDesktop))
 
   const stats = useMemo(() => {
     const online = services.filter((item) => item.last_status === 'online').length
@@ -103,24 +120,93 @@ export default function TutorMcpStorePage() {
     setError('')
   }
 
+  function notifyDesktopOnlyStdio() {
+    const message = '网页端暂不支持配置本地 stdio MCP。请下载桌面端配置，在 SparkLearn 桌面端中完成本机服务接入。'
+    setError('')
+    setFeedback(message)
+    window.alert(message)
+  }
+
+  function normalizeJsonInputs(payload: McpServicePayload): McpServicePayload {
+    const next = { ...payload }
+    if (typeof next.args_json === 'string') {
+      try {
+        next.args_json = JSON.parse(next.args_json)
+      } catch {
+        throw new Error('args_json 必须是合法 JSON 数组')
+      }
+    }
+    if (!Array.isArray(next.args_json)) {
+      throw new Error('args_json 必须是 JSON 数组')
+    }
+
+    if (typeof next.env_json === 'string') {
+      try {
+        next.env_json = JSON.parse(next.env_json)
+      } catch {
+        throw new Error('env_json 必须是合法 JSON 对象')
+      }
+    }
+    if (!next.env_json || Array.isArray(next.env_json) || typeof next.env_json !== 'object') {
+      throw new Error('env_json 必须是 JSON 对象')
+    }
+
+    return next
+  }
+
+  function downloadDesktopConfig() {
+    const payload = {
+      app: 'SparkLearn Desktop',
+      purpose: 'local-stdio-mcp',
+      message: '将该配置导入 SparkLearn 桌面端后，可在本机运行 stdio MCP 服务。',
+      service: {
+        name: form.name || 'Local stdio MCP',
+        description: form.description || 'Local MCP service for SparkLearn Desktop',
+        transport: 'stdio',
+        command: form.command || 'npx',
+        args_json: form.args_json?.length ? form.args_json : ['-y', '@modelcontextprotocol/server-filesystem', 'D:/Project_building/SparkLearn'],
+        env_json: form.env_json || {},
+        enabled: false,
+        startup_timeout_ms: form.startup_timeout_ms ?? 60000,
+        tool_timeout_ms: form.tool_timeout_ms ?? 30000,
+        long_task_timeout_ms: form.long_task_timeout_ms ?? 120000,
+      },
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'sparklearn-desktop-stdio-mcp-config.json'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    setFeedback('桌面端 stdio MCP 配置已下载，请在 SparkLearn 桌面端中导入。')
+  }
+
 async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setFeedback('')
     try {
+      if (form.transport === 'stdio' && !desktopReady) {
+        notifyDesktopOnlyStdio()
+        return
+      }
       if (form.transport === 'http' && !(form.endpoint || '').trim()) {
         setError('HTTP 服务必须填写服务端点 URL')
         return
       }
       if (form.transport === 'stdio' && !(form.command || '').trim()) {
-        setError('stdio 服务必须填写 Command')
+        setError('stdio 服务必须填写 command')
         return
       }
+      const normalized = normalizeJsonInputs(form)
       if (editingId) {
-        await api.updateMcpService(editingId, form)
+        await api.updateMcpService(editingId, normalized)
         setFeedback('服务配置已更新')
       } else {
-        const created = await api.createMcpService(form)
+        const created = await api.createMcpService(normalized)
         setActiveServiceId(created.id)
         setEditingId(created.id)
         setFeedback('服务创建成功')
@@ -160,6 +246,11 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
   }
 
   async function removeService(service: McpService) {
+    if (isDemoWeatherService(service)) {
+      setError('')
+      setFeedback('天气 MCP 是网页端演示服务，已锁定保留，不会删除。')
+      return
+    }
     if (!confirm(`确认删除 ${service.name} 吗？`)) return
     setBusyId(service.id)
     setError('')
@@ -204,6 +295,9 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#2563eb] text-white text-sm font-medium shadow-sm">
             <Puzzle className="w-4 h-4" /> MCP 插件商店
           </div>
+          <button onClick={() => router.push('/tutor/skills')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+            <Sparkles className="w-4 h-4" /> Skills 商店
+          </button>
           <button onClick={() => router.push('/tutor/files')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
             <Paperclip className="w-4 h-4" /> 我的文件
           </button>
@@ -235,6 +329,7 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                   {loading ? <p className="text-sm text-[#64748b] px-2">加载中...</p> : null}
                   {services.map((service) => {
                     const active = activeServiceId === service.id
+                    const demoLocked = isDemoWeatherService(service)
                     return (
                       <button
                         key={service.id}
@@ -250,7 +345,13 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                         <div className="mt-3 flex items-center gap-2 text-[11px]">
                           <span onClick={(e) => { e.stopPropagation(); void testService(service.id) }} className="rounded-md bg-[#eaf0ff] px-2 py-1 text-[#3153db]">测试</span>
                           <span onClick={(e) => { e.stopPropagation(); void toggleService(service) }} className="rounded-md bg-[#ebfdf2] px-2 py-1 text-[#1a8f4a]">{service.enabled ? '停用' : '启用'}</span>
-                          <span onClick={(e) => { e.stopPropagation(); void removeService(service) }} className="rounded-md bg-[#fff1f2] px-2 py-1 text-[#dc2626]">删除</span>
+                          <span
+                            onClick={(e) => { e.stopPropagation(); void removeService(service) }}
+                            className={`rounded-md px-2 py-1 ${demoLocked ? 'bg-[#fff7ed] text-[#92400e]' : 'bg-[#fff1f2] text-[#dc2626]'}`}
+                            title={demoLocked ? '演示服务已锁定保留' : '删除服务'}
+                          >
+                            {demoLocked ? '已锁定' : '删除'}
+                          </span>
                           {busyId === service.id ? <span className="text-[#8792ab]">处理中...</span> : null}
                         </div>
                       </button>
@@ -274,8 +375,28 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                     <StepField index={1} title="连接方式" required>
                       <div className="grid grid-cols-2 gap-3 max-[1280px]:grid-cols-1">
                         <button type="button" onClick={() => setForm((p) => ({ ...p, transport: 'http' }))} className={`h-10 rounded-lg border text-sm ${form.transport === 'http' ? 'border-[#5d78f5] bg-[#eef3ff] text-[#1e40af]' : 'border-[#ced7ea] bg-white text-[#334155]'}`}>远程 HTTP MCP</button>
-                        <button type="button" onClick={() => setForm((p) => ({ ...p, transport: 'stdio' }))} className={`h-10 rounded-lg border text-sm ${form.transport === 'stdio' ? 'border-[#5d78f5] bg-[#eef3ff] text-[#1e40af]' : 'border-[#ced7ea] bg-white text-[#334155]'}`}>本地 stdio MCP</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!desktopReady) {
+                              notifyDesktopOnlyStdio()
+                              return
+                            }
+                            setForm((p) => ({ ...p, transport: 'stdio' }))
+                          }}
+                          className={`relative h-10 rounded-lg border text-sm transition ${form.transport === 'stdio' ? 'border-[#f59e0b] bg-[#fff7ed] text-[#92400e]' : 'border-[#d8dee9] bg-white text-[#334155]'} ${desktopReady ? 'hover:border-[#f59e0b] hover:bg-[#fff7ed] hover:text-[#92400e]' : 'bg-[#f8fafc] text-[#64748b]'}`}
+                          title={desktopReady ? '在桌面端配置本地 stdio MCP' : '本地 stdio MCP 需要在桌面端配置'}
+                        >
+                          <span className="inline-flex items-center justify-center gap-1.5">
+                            {!desktopReady ? <Lock className="h-3.5 w-3.5" /> : null}
+                            本地 stdio MCP
+                          </span>
+                        </button>
                       </div>
+                      <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-[#8b96ab]">
+                        {!desktopReady ? <Lock className="h-3.5 w-3.5 text-[#d97706]" /> : null}
+                        {desktopReady ? '当前为桌面端，可直接配置本地 stdio MCP。' : '浏览器版仅支持远程 HTTP MCP。本地 stdio 需要 SparkLearn 桌面端接管本机进程。'}
+                      </p>
                     </StepField>
 
                     <StepField index={2} title="服务基本信息" required>
@@ -309,13 +430,57 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                       </StepField>
                     ) : (
                       <StepField index={3} title="本地启动参数" required>
-                        <PlainField label="Command（必填）">
-                          <input value={form.command || ''} onChange={(e) => setForm((p) => ({ ...p, command: e.target.value }))} className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm" required />
-                        </PlainField>
-                        <div className="mt-3" />
-                        <PlainField label="Args（JSON 数组）"><textarea value={JSON.stringify(form.args_json || [])} onChange={(e) => setForm((p) => ({ ...p, args_json: parseArray(e.target.value) }))} className="min-h-[90px] w-full rounded-lg border border-[#d5ddef] bg-white px-3 py-2 text-sm" /></PlainField>
-                        <div className="mt-3" />
-                        <PlainField label="Env（JSON 对象）"><textarea value={JSON.stringify(form.env_json || {})} onChange={(e) => setForm((p) => ({ ...p, env_json: parseObject(e.target.value) }))} className="min-h-[90px] w-full rounded-lg border border-[#d5ddef] bg-white px-3 py-2 text-sm" /></PlainField>
+                        {desktopReady ? (
+                          <div className="space-y-3">
+                            <PlainField label="Command">
+                              <input
+                                value={form.command || ''}
+                                onChange={(e) => setForm((p) => ({ ...p, command: e.target.value }))}
+                                placeholder="npx / uvx / node / python"
+                                className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#f59e0b]"
+                              />
+                            </PlainField>
+                            <PlainField label="Args JSON">
+                              <textarea
+                                value={JSON.stringify(form.args_json ?? [], null, 2)}
+                                onChange={(e) => setForm((p) => ({ ...p, args_json: e.target.value as unknown as string[] }))}
+                                placeholder={'["-y", "@modelcontextprotocol/server-filesystem", "D:/Project_building/SparkLearn"]'}
+                                className="min-h-[130px] w-full rounded-lg border border-[#ced7ea] bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#f59e0b]"
+                              />
+                            </PlainField>
+                            <PlainField label="Env JSON">
+                              <textarea
+                                value={JSON.stringify(form.env_json ?? {}, null, 2)}
+                                onChange={(e) => setForm((p) => ({ ...p, env_json: e.target.value as unknown as Record<string, string> }))}
+                                placeholder={'{\n  "NODE_ENV": "production"\n}'}
+                                className="min-h-[130px] w-full rounded-lg border border-[#ced7ea] bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#f59e0b]"
+                              />
+                            </PlainField>
+                            <p className="text-xs text-[#8b96ab]">`args_json` 需要是 JSON 数组，`env_json` 需要是 JSON 对象。</p>
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-[#fed7aa] bg-[#fff7ed] p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[#d97706] ring-1 ring-[#fed7aa]">
+                                <Lock className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-sm font-semibold text-[#92400e]">浏览器版已锁定本地 stdio 配置</h3>
+                                <p className="mt-1 text-xs leading-5 text-[#9a6a2f]">
+                                  stdio MCP 会启动本机命令或访问本地文件系统，浏览器版无法直接接管本机进程。请在 SparkLearn 桌面端中完成接入。
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={downloadDesktopConfig}
+                                  className="mt-3 inline-flex h-9 items-center gap-2 rounded-lg bg-[#d97706] px-3 text-xs font-semibold text-white hover:bg-[#b45309]"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  下载桌面端配置
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </StepField>
                     )}
                   </div>
@@ -355,12 +520,22 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                     {activeTab === 'headers' ? (
                       <div className="rounded-xl border border-[#e8edf7] bg-[#fafcff] p-4 space-y-3">
                         <PlainField label="传输类型">
-                          <select value={form.transport} onChange={(e) => setForm((p) => ({ ...p, transport: e.target.value as 'http' | 'stdio' }))} className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm">
+                          <select
+                            value={form.transport}
+                            onChange={(e) => {
+                              if (e.target.value === 'stdio' && !desktopReady) {
+                                notifyDesktopOnlyStdio()
+                                return
+                              }
+                              setForm((p) => ({ ...p, transport: e.target.value as 'http' | 'stdio' }))
+                            }}
+                            className="h-10 w-full rounded-lg border border-[#d5ddef] bg-white px-3 text-sm"
+                          >
                             <option value="http">HTTP</option>
-                            <option value="stdio">STDIO</option>
+                            <option value="stdio">STDIO{desktopReady ? '（本地）' : '（桌面端）'}</option>
                           </select>
                         </PlainField>
-                        <p className="text-xs text-[#8b96ab]">请求头参数将跟随后端字段扩展，目前用于结构占位。</p>
+                        <p className="text-xs text-[#8b96ab]">{form.transport === 'http' ? '请求头参数将跟随后端字段扩展，目前用于结构占位。' : '桌面端本地 stdio 将直接使用 command / args_json / env_json 启动 MCP 进程。'}</p>
                       </div>
                     ) : null}
 
@@ -385,9 +560,15 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
 
                 <div className="shrink-0 border-t border-[#e8edf7] bg-white px-6 py-4 flex justify-end gap-3">
                   <button type="button" onClick={resetForm} className="h-10 rounded-lg border border-[#d4dced] px-4 text-sm text-[#475569]">取消</button>
-                  <button type="submit" form="mcp-service-form" className="h-10 rounded-lg bg-gradient-to-r from-[#2f63f8] to-[#7a53f6] px-4 text-sm font-medium text-white inline-flex items-center gap-1.5">
-                    <Check className="h-4 w-4" /> 保存并测试连接
-                  </button>
+                  {form.transport === 'stdio' && !desktopReady ? (
+                    <button type="button" onClick={downloadDesktopConfig} className="h-10 rounded-lg bg-[#d97706] px-4 text-sm font-medium text-white inline-flex items-center gap-1.5 hover:bg-[#b45309]">
+                      <Download className="h-4 w-4" /> 下载桌面端配置
+                    </button>
+                  ) : (
+                    <button type="submit" form="mcp-service-form" className="h-10 rounded-lg bg-gradient-to-r from-[#2f63f8] to-[#7a53f6] px-4 text-sm font-medium text-white inline-flex items-center gap-1.5">
+                      <Check className="h-4 w-4" /> 保存并测试连接
+                    </button>
+                  )}
                 </div>
               </section>
 
@@ -453,22 +634,3 @@ function InfoRow({ icon, title, desc }: { icon: ReactNode; title: string; desc: 
   )
 }
 
-function parseArray(value: string): string[] {
-  try {
-    const parsed = JSON.parse(value)
-    if (!Array.isArray(parsed)) return []
-    return parsed.map((item) => String(item))
-  } catch {
-    return []
-  }
-}
-
-function parseObject(value: string): Record<string, string> {
-  try {
-    const parsed = JSON.parse(value)
-    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return {}
-    return Object.fromEntries(Object.entries(parsed).map(([key, val]) => [key, String(val)]))
-  } catch {
-    return {}
-  }
-}

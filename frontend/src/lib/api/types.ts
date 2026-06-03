@@ -11,7 +11,7 @@ export interface Task {
 export interface Resource {
   id: string
   title: string
-  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video' | 'blog'
+  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video' | 'blog' | 'discovery'
   status: 'generating' | 'completed' | 'failed'
   createdAt: string
   content?: string
@@ -40,6 +40,11 @@ export interface ForumAttachment {
   mime_type: string
   size_bytes: number
   created_at: string
+}
+
+export interface ForumResourceImportResult {
+  items: Resource[]
+  count: number
 }
 
 export interface ForumPost {
@@ -197,6 +202,40 @@ export interface ProfileUpdatePayload {
   dailyTime?: number
   practicalAbility?: string
   currentStage?: string
+}
+
+export interface ProfileHistoryItem {
+  id: string
+  captured_at: string
+  reason: string
+  version: number
+  major: string
+  grade: string
+  goals: string[]
+  knowledge_level: string
+  weak_points: string[]
+  learning_preference: string[]
+  cognitive_style: string
+  daily_time: number
+  practical_ability: string
+  current_stage: string
+  summary: string
+}
+
+export interface ProfileHistoryResp {
+  items: ProfileHistoryItem[]
+  update_interval_days: number
+  next_update_at: string
+}
+
+export interface ProfileAnalysisResp {
+  analysis: string
+  analysis_steps: Array<{
+    title: string
+    detail: string
+    status: string
+  }>
+  updated_at: string
 }
 
 export interface Message {
@@ -430,27 +469,6 @@ export interface PathNodeAdvice {
   recommendedResources: string[]
 }
 
-// ============ 路径编辑器类型 ============
-
-export interface EditablePathNode {
-  id: string
-  title: string
-  source: 'ai' | 'user'
-}
-
-export interface EditablePhase {
-  id: 1 | 2 | 3
-  title: string
-  description: string
-  nodes: EditablePathNode[]
-}
-
-export interface SavePathPlanningPayload {
-  pathId: string
-  target: string
-  phases: EditablePhase[]
-}
-
 export interface VideoInfo {
   id: string
   title: string
@@ -470,27 +488,14 @@ export interface VideoInfo {
   muxMessage?: string
 }
 
-export interface VideoStyle {
-  id: string
-  name: string
-  description: string
-  accent_color: string
-  bg_gradient: string
-  font_family: string
-  code_bg: string
-  code_color: string
-  card_bg: string
-  tone: string
-}
-
 export interface VideoScriptSegment {
   segment_id: string
-  slide_type?: string
   title: string
-  subtitle?: string
   narration: string
   visual_hint: string
   duration_ms?: number
+  subtitle?: string
+  slide_type?: string
 }
 
 export interface VideoPolishResult {
@@ -503,6 +508,28 @@ export interface VideoPolishResult {
   styleId?: string
   styleName?: string
   contentSource?: string
+}
+
+export interface VideoStyle {
+  id: string
+  name: string
+  description: string
+  accent_color: string
+  bg_gradient: string
+  font_family?: string
+  code_bg?: string
+  code_color?: string
+  card_bg?: string
+  tone?: string
+}
+
+export interface RawVideoPolishResult {
+  polish_id: string
+  title: string
+  polished_prompt: string
+  script_outline: VideoScriptSegment[]
+  estimated_duration_sec: number
+  voice: string
 }
 
 export interface VideoGenerateOptions {

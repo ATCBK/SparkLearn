@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, CitationItem, ConfidenceInfo, Message, SearchResultItem, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
+import { api, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -23,11 +23,14 @@ import {
   Pencil,
   Plus,
   Puzzle,
+  RefreshCw,
   Save,
+  Search,
   Send,
   Sparkles,
   Trash2,
   UserCog,
+  UserRoundSearch,
   Volume2,
   X,
   ArrowLeft,
@@ -36,6 +39,8 @@ import {
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, SKILL_STORAGE_KEY, type LearningSkill } from '@/lib/skills'
+import { matchPersonalizedNotes, noteSourceTypeLabel, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -72,6 +77,89 @@ type McpCallView = {
   ok: boolean
   error?: string
   args?: Record<string, unknown>
+}
+
+type MatchedGeneratedResource = {
+  resource: Resource
+  score: number
+  keywords: string[]
+}
+
+const RESOURCE_RECOMMENDATION_TERMS = [
+  '推荐',
+  '资源',
+  '资料',
+  '内容',
+  '复习',
+  '预习',
+  '学习',
+  '课程',
+  '任务',
+  '练习',
+  '课件',
+  '文档',
+  '视频',
+  '测验',
+  'resource',
+  'recommend',
+  'review',
+]
+
+const resourceTypeLabel: Record<Resource['type'], string> = {
+  document: '文档',
+  ppt: '课件',
+  mindmap: '思维导图',
+  quiz: '测验',
+  reading: '阅读',
+  code: '代码',
+  video: '视频',
+  blog: '博客',
+  discovery: '学习发现',
+}
+
+function isResourceRecommendationQuery(text: string) {
+  const normalized = text.toLowerCase()
+  return RESOURCE_RECOMMENDATION_TERMS.some((term) => normalized.includes(term))
+}
+
+function buildResourceSearchText(resource: Resource) {
+  const schemaText = resource.pptSchema
+    ? JSON.stringify(resource.pptSchema).slice(0, 600)
+    : ''
+  return [
+    resource.title,
+    resourceTypeLabel[resource.type],
+    resource.content,
+    schemaText,
+    resource.provider,
+    resource.sourceUrl,
+  ].filter(Boolean).join(' ')
+}
+
+function matchGeneratedResources(resources: Resource[], query: string, limit = 5): MatchedGeneratedResource[] {
+  const completed = resources.filter((resource) => resource.status === 'completed')
+  if (completed.length === 0) return []
+
+  const queryTokens = tokenizeLearningText(query)
+  const shouldIncludeRecent = isResourceRecommendationQuery(query)
+
+  return completed
+    .map((resource) => {
+      const resourceText = buildResourceSearchText(resource)
+      const normalizedResourceText = resourceText.toLowerCase()
+      const resourceTokens = tokenizeLearningText(resourceText)
+      const matched = queryTokens.filter((token) => resourceTokens.includes(token) || normalizedResourceText.includes(token))
+      const titleBoost = resource.title && query.includes(resource.title) ? 4 : 0
+      const typeBoost = query.includes(resourceTypeLabel[resource.type]) ? 2 : 0
+      return {
+        resource,
+        score: matched.length + titleBoost + typeBoost,
+        keywords: [...new Set(matched.slice(0, 6))],
+      }
+    })
+    .filter((item) => item.score > 0 || shouldIncludeRecent)
+    .sort((a, b) => b.score - a.score || new Date(b.resource.createdAt).getTime() - new Date(a.resource.createdAt).getTime())
+    .slice(0, limit)
 }
 
 function parseWorkshopSummary(content: string): WorkshopSummary | null {
@@ -121,6 +209,233 @@ function parseWorkshopSummary(content: string): WorkshopSummary | null {
   return { optimizedQuestion, coreConclusion, steps, followUps }
 }
 
+type ProfileLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
+
+type SpeechRecognitionResultEventLike = {
+  results: {
+    length: number
+    [index: number]: {
+      [index: number]: {
+        transcript: string
+      }
+    }
+  }
+}
+
+type SpeechRecognitionLike = {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+  start: () => void
+  stop: () => void
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
+}
+
+function buildProfileSummary(profile: StudentProfile | null) {
+  const weakPoints = profile?.weakPoints?.filter(Boolean).slice(0, 3)
+  const preferences = profile?.learningPreference?.filter(Boolean).slice(0, 3)
+  const goals = profile?.goals?.filter(Boolean).slice(0, 2)
+  return {
+    name: profile?.name || '学习者',
+    stage: profile?.currentStage || profile?.knowledgeLevel || '待分析',
+    weakPoints: weakPoints?.length ? weakPoints.join('、') : '暂无明显薄弱点',
+    preferences: preferences?.length ? preferences.join('、') : '按当前任务动态适配',
+    goals: goals?.length ? goals.join('、') : '根据本次对话动态确认',
+    dailyTime: profile?.dailyTime ? `${profile.dailyTime} 分钟/天` : '待确认',
+  }
+}
+
+function ProfileMessageCard({
+  profile,
+  status,
+}: {
+  profile: StudentProfile | null
+  status: ProfileLoadStatus
+}) {
+  const summary = buildProfileSummary(profile)
+  const isRunning = status === 'loading' || status === 'idle'
+  const isError = status === 'error'
+  const statusText = isRunning ? '执行中' : isError ? '失败' : '完成'
+  const detailText = isRunning
+    ? '读取学生画像、学习阶段、薄弱点和学习偏好'
+    : isError
+      ? '画像读取失败，将按本次问题继续回答'
+      : `${summary.name} · ${summary.stage} · ${summary.dailyTime}`
+
+  return (
+    <div className="flex gap-3 mb-6">
+      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa]">
+        <Sparkles className="h-4 w-4 text-white" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="overflow-hidden rounded-xl border border-[#e0e7f5] bg-[#fafcff] shadow-[0_2px_8px_rgba(37,99,235,0.04)]">
+          <div className="flex items-center gap-2 border-b border-[#eef2f8] bg-[#f4f8ff] px-3.5 py-2">
+            <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#e6eeff] text-[#4f6bf6]">
+              <Cpu className="h-3 w-3" />
+            </div>
+            <span className="text-xs font-semibold text-[#1e293b]">学生画像加载</span>
+            <span className={cn(
+              'ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium',
+              isRunning && 'bg-[#eef4ff] text-[#4f6bf6]',
+              isError && 'bg-rose-50 text-rose-600',
+              !isRunning && !isError && 'bg-emerald-50 text-emerald-600',
+            )}>
+              {isRunning && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4f6bf6]" />}
+              {statusText}
+            </span>
+          </div>
+          <div className="px-1">
+            <div className={cn('flex items-center gap-3 px-2.5 py-2.5 transition-colors', isRunning && 'bg-[#f8fbff]')}>
+              <div className="flex flex-col items-center gap-0.5">
+                <div className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-full',
+                  isRunning && 'bg-[#e6eeff] text-[#4f6bf6]',
+                  isError && 'bg-rose-50 text-rose-500',
+                  !isRunning && !isError && 'bg-emerald-50 text-emerald-500',
+                )}>
+                  {isRunning ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : isError ? (
+                    <X className="h-3 w-3" />
+                  ) : (
+                    <CheckCircle2 className="h-3 w-3" />
+                  )}
+                </div>
+              </div>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#e4eaf5] bg-white">
+                  <Puzzle className="h-3 w-3 text-[#6b7cba]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-xs font-semibold text-[#1e293b]">load_student_profile</span>
+                    <span className="shrink-0 text-[10px] text-[#94a3b8]">· Profile Memory</span>
+                  </div>
+                  <div className={cn('mt-0.5 truncate text-[10px]', isError ? 'text-rose-500' : 'text-[#64748b]')}>
+                    {detailText}
+                  </div>
+                </div>
+              </div>
+              <div className="shrink-0">
+                <span className={cn(
+                  'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
+                  isRunning && 'bg-amber-50 text-amber-600',
+                  isError && 'bg-rose-50 text-rose-600',
+                  !isRunning && !isError && 'bg-emerald-50 text-emerald-600',
+                )}>
+                  {isRunning && <span className="h-1 w-1 animate-pulse rounded-full bg-amber-500" />}
+                  {statusText}
+                </span>
+              </div>
+            </div>
+            {!isRunning && !isError && (
+              <div className="border-t border-[#eef2f8] px-3 py-2 text-[11px] leading-5 text-[#64748b]">
+                <span className="text-[#334155]">薄弱点：</span>{summary.weakPoints}
+                <span className="mx-2 text-[#cbd5e1]">/</span>
+                <span className="text-[#334155]">偏好：</span>{summary.preferences}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProfileToolCallPanel({ calls }: { calls: McpCallView[] }) {
+  if (calls.length === 0) return null
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl border border-[#e0e7f5] bg-[#fafcff] text-left shadow-[0_2px_8px_rgba(37,99,235,0.04)]">
+      <div className="flex items-center gap-2 border-b border-[#eef2f8] bg-[#f4f8ff] px-3.5 py-2">
+        <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#e6eeff] text-[#4f6bf6]">
+          <UserRoundSearch className="h-3 w-3" />
+        </div>
+        <span className="text-xs font-semibold text-[#1e293b]">学生画像加载</span>
+        {calls.some((call) => call.status === 'running' || call.status === 'pending') && (
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#eef4ff] px-2 py-0.5 text-[10px] font-medium text-[#4f6bf6]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4f6bf6]" />
+            执行中
+          </span>
+        )}
+      </div>
+      <div className="divide-y divide-[#eef2f8] px-1">
+        {calls.map((c, i) => {
+          const isRunning = c.status === 'pending' || c.status === 'running' || c.status === 'discovering'
+          const isError = c.status === 'error' || (!c.ok && c.status === 'done')
+          const statusText = c.status === 'pending' ? '等待中' : c.status === 'discovering' ? '发现工具' : isRunning ? '调用中' : isError ? '失败' : '完成'
+          const argsText = c.args && Object.keys(c.args).length > 0 ? JSON.stringify(c.args) : ''
+          return (
+            <div key={`${c.serviceName}-${c.toolName}-${i}`} className={`flex items-center gap-3 px-2.5 py-2.5 transition-colors ${isRunning ? 'bg-[#f8fbff]' : ''}`}>
+              <div className="flex h-5 w-5 items-center justify-center rounded-full">
+                <div className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                  isRunning ? 'bg-[#e6eeff] text-[#4f6bf6]' : isError ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'
+                }`}>
+                  {isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : isError ? <X className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                </div>
+              </div>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#e4eaf5] bg-white">
+                  <UserRoundSearch className="h-3 w-3 text-[#6b7cba]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-xs font-semibold text-[#1e293b]">{c.toolName}</span>
+                    <span className="shrink-0 text-[10px] text-[#94a3b8]">· {c.serviceName}</span>
+                  </div>
+                  {(argsText || c.error) && (
+                    <div className={cn('mt-0.5 truncate text-[10px]', c.error ? 'text-rose-500' : 'text-[#64748b]')}>
+                      {c.error || `参数 ${argsText}`}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="shrink-0">
+                {isRunning ? (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
+                    <span className="h-1 w-1 animate-pulse rounded-full bg-amber-500" />
+                    {statusText}
+                  </span>
+                ) : isError ? (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-medium text-rose-600">
+                    <X className="h-2.5 w-2.5" />
+                    {statusText}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    {statusText}
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function skillToneClass(tone: LearningSkill['tone']) {
+  const tones: Record<LearningSkill['tone'], string> = {
+    blue: 'border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb]',
+    green: 'border-[#bbf7d0] bg-[#ecfdf5] text-[#059669]',
+    orange: 'border-[#fed7aa] bg-[#fff7ed] text-[#d97706]',
+    purple: 'border-[#ddd6fe] bg-[#f5f3ff] text-[#7c3aed]',
+    cyan: 'border-[#a5f3fc] bg-[#ecfeff] text-[#0891b2]',
+    red: 'border-[#fecaca] bg-[#fef2f2] text-[#dc2626]',
+  }
+  return tones[tone]
+}
+
 export default function TutorPage() {
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
@@ -160,9 +475,25 @@ export default function TutorPage() {
   const [trustPanelOpenByMsg, setTrustPanelOpenByMsg] = useState<Record<string, boolean>>({})
   const [mcpCallsByMsg, setMcpCallsByMsg] = useState<Record<string, McpCallView[]>>({})
   const [searchResultsByMsg, setSearchResultsByMsg] = useState<Record<string, SearchResultItem[]>>({})
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null)
+  const [profileStatus, setProfileStatus] = useState<ProfileLoadStatus>('idle')
+  const [selectedSkillId, setSelectedSkillId] = useState('')
+  const [skillStoreOpen, setSkillStoreOpen] = useState(false)
+  const [skillPickerOpen, setSkillPickerOpen] = useState(false)
+  const [skillSearch, setSkillSearch] = useState('')
+  const [customSkills, setCustomSkills] = useState<LearningSkill[]>([])
+  const [skillImportNotice, setSkillImportNotice] = useState('')
+  const [learningNotes, setLearningNotes] = useState<LearningNote[]>([])
+  const [generatedResources, setGeneratedResources] = useState<Resource[]>([])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const skillImportInputRef = useRef<HTMLInputElement>(null)
+  const messageScrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const autoFollowRef = useRef(true)
+  const profilePromiseRef = useRef<Promise<StudentProfile | null> | null>(null)
+  const [autoFollowMessages, setAutoFollowMessages] = useState(true)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
 
   // TTS playback
   const [playingMsgId, setPlayingMsgId] = useState<string | null>(null)
@@ -172,7 +503,7 @@ export default function TutorPage() {
 
   // Voice input
   const [recording, setRecording] = useState(false)
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef<string>('')
 
   const playTts = useCallback(async (msgId: string, text: string) => {
@@ -195,14 +526,15 @@ export default function TutorPage() {
 
   const toggleVoiceInput = useCallback(() => {
     if (recording) { recognitionRef.current?.stop(); setRecording(false); return }
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    const speechWindow = window as SpeechRecognitionWindow
+    const SR = (speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined
     if (!SR) { alert('当前浏览器不支持语音识别，请使用 Chrome。'); return }
     const recognition = new SR()
     recognition.lang = 'zh-CN'
     recognition.continuous = false
     recognition.interimResults = true
     voiceBaseRef.current = input
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       let t = ''
       for (let i = 0; i < event.results.length; i++) t += event.results[i][0].transcript
       setInput(voiceBaseRef.current ? voiceBaseRef.current + t : t)
@@ -224,7 +556,111 @@ export default function TutorPage() {
     [roles, currentRoleId],
   )
 
+  const skillLibrary = useMemo(() => [...customSkills, ...LEARNING_SKILLS], [customSkills])
+  const selectedSkill = useMemo(() => getSkillById(selectedSkillId, skillLibrary), [selectedSkillId, skillLibrary])
+  const configuredSkills = useMemo(() => {
+    const keyword = skillSearch.trim().toLowerCase()
+    if (!keyword) return skillLibrary
+    return skillLibrary.filter((skill) => {
+      const haystack = `${skill.title} ${skill.shortTitle} ${skill.category} ${skill.summary} ${skill.output}`.toLowerCase()
+      return haystack.includes(keyword)
+    })
+  }, [skillLibrary, skillSearch])
   const hasInteracted = messages.length > 0
+
+  const isMessagesNearBottom = useCallback(() => {
+    const scroller = messageScrollRef.current
+    if (!scroller) return true
+    return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 96
+  }, [])
+
+  const scrollToLatestMessage = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    autoFollowRef.current = true
+    setAutoFollowMessages(true)
+    setShowJumpToLatest(false)
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' })
+    })
+  }, [])
+
+  const handleMessagesScroll = useCallback(() => {
+    const nearBottom = isMessagesNearBottom()
+    autoFollowRef.current = nearBottom
+    setAutoFollowMessages(nearBottom)
+    setShowJumpToLatest(!nearBottom)
+  }, [isMessagesNearBottom])
+
+  useEffect(() => {
+    setSelectedSkillId(localStorage.getItem(SKILL_STORAGE_KEY) || '')
+    setCustomSkills(readCustomSkills())
+  }, [])
+
+  useEffect(() => {
+    const refreshCustomSkills = () => setCustomSkills(readCustomSkills())
+    window.addEventListener('sparklearn-custom-skills-updated', refreshCustomSkills)
+    window.addEventListener('storage', refreshCustomSkills)
+    return () => {
+      window.removeEventListener('sparklearn-custom-skills-updated', refreshCustomSkills)
+      window.removeEventListener('storage', refreshCustomSkills)
+    }
+  }, [])
+
+  useEffect(() => {
+    const loadNotes = () => setLearningNotes(readLearningNotes())
+    const loadNotesWhenVisible = () => {
+      if (document.visibilityState === 'visible') loadNotes()
+    }
+    loadNotes()
+    window.addEventListener('learning-notes-updated', loadNotes)
+    window.addEventListener('storage', loadNotes)
+    window.addEventListener('focus', loadNotes)
+    window.addEventListener('pageshow', loadNotes)
+    document.addEventListener('visibilitychange', loadNotesWhenVisible)
+    return () => {
+      window.removeEventListener('learning-notes-updated', loadNotes)
+      window.removeEventListener('storage', loadNotes)
+      window.removeEventListener('focus', loadNotes)
+      window.removeEventListener('pageshow', loadNotes)
+      document.removeEventListener('visibilitychange', loadNotesWhenVisible)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const loadGeneratedResources = () => {
+      api.getResources()
+        .then((resources) => {
+          if (!cancelled) setGeneratedResources(resources)
+        })
+        .catch(() => {
+          if (!cancelled) setGeneratedResources((prev) => prev)
+        })
+    }
+    const loadGeneratedResourcesWhenVisible = () => {
+      if (document.visibilityState === 'visible') loadGeneratedResources()
+    }
+    loadGeneratedResources()
+    window.addEventListener('focus', loadGeneratedResources)
+    window.addEventListener('pageshow', loadGeneratedResources)
+    document.addEventListener('visibilitychange', loadGeneratedResourcesWhenVisible)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', loadGeneratedResources)
+      window.removeEventListener('pageshow', loadGeneratedResources)
+      document.removeEventListener('visibilitychange', loadGeneratedResourcesWhenVisible)
+    }
+  }, [])
+
+  function chooseSkill(skillId: string) {
+    const nextId = selectedSkillId === skillId ? '' : skillId
+    setSelectedSkillId(nextId)
+    setSkillPickerOpen(false)
+    if (nextId) {
+      localStorage.setItem(SKILL_STORAGE_KEY, nextId)
+    } else {
+      localStorage.removeItem(SKILL_STORAGE_KEY)
+    }
+  }
 
   function hydrateMessageSidecars(items: Message[]) {
     const nextMcp: Record<string, McpCallView[]> = {}
@@ -252,6 +688,9 @@ export default function TutorPage() {
   }
 
   function setHydratedMessages(items: Message[]) {
+    autoFollowRef.current = true
+    setAutoFollowMessages(true)
+    setShowJumpToLatest(false)
     setMessages(items)
     hydrateMessageSidecars(items)
   }
@@ -269,6 +708,26 @@ export default function TutorPage() {
       rules: role.rules,
     })
   }
+
+  const loadStudentProfile = useCallback(() => {
+    if (studentProfile) return Promise.resolve(studentProfile)
+    if (profilePromiseRef.current) return profilePromiseRef.current
+    setProfileStatus('loading')
+    profilePromiseRef.current = api.getProfile()
+      .then((profile) => {
+        setStudentProfile(profile)
+        setProfileStatus('ready')
+        return profile
+      })
+      .catch(() => {
+        setProfileStatus('error')
+        return null
+      })
+      .finally(() => {
+        profilePromiseRef.current = null
+      })
+    return profilePromiseRef.current
+  }, [studentProfile])
 
   async function refreshConversations(nextCurrentId?: number | null) {
     const refreshed = await api.getTutorConversations()
@@ -302,18 +761,20 @@ export default function TutorPage() {
 
       setCurrentConversationId(selectedConversation?.id ?? null)
       setCurrentRoleId(selectedRoleId)
+      hydrateRoleDraft(roleData.find((r) => r.id === selectedRoleId) || null)
+      setHydratedMessages([])
+      setLoading(false)
 
       if (selectedConversation) {
-        const history = await api.getChatHistory(selectedConversation.id)
-        setHydratedMessages(history)
-      } else {
-        setHydratedMessages([])
+        try {
+          const history = await api.getChatHistory(selectedConversation.id)
+          setHydratedMessages(history)
+        } catch (e) {
+          setActionError(e instanceof Error ? e.message : '加载历史消息失败')
+        }
       }
-
-      hydrateRoleDraft(roleData.find((r) => r.id === selectedRoleId) || null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败')
-    } finally {
       setLoading(false)
     }
   }
@@ -323,11 +784,12 @@ export default function TutorPage() {
   }, [])
 
   useEffect(() => {
-    // 使用 requestAnimationFrame 确保 DOM 更新后再滚动
-    requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    })
-  }, [messages])
+    if (autoFollowRef.current) {
+      scrollToLatestMessage('smooth')
+      return
+    }
+    setShowJumpToLatest(true)
+  }, [messages, scrollToLatestMessage])
 
   useEffect(() => {
     if (!currentRoleId) return
@@ -337,6 +799,7 @@ export default function TutorPage() {
   async function switchConversation(conversation: TutorConversation) {
     try {
       setActionError(null)
+      setSkillStoreOpen(false)
       setCurrentConversationId(conversation.id)
       setHubMessages([])
       setWorkshopPhase(null)
@@ -356,6 +819,7 @@ export default function TutorPage() {
   async function handleCreateConversation() {
     try {
       setActionError(null)
+      setSkillStoreOpen(false)
       const created = await api.createTutorConversation({ title: '新对话', roleId: currentRoleId || undefined })
       setConversations((prev) => [created, ...prev])
       await switchConversation(created)
@@ -479,6 +943,32 @@ export default function TutorPage() {
     }
   }
 
+  async function handleImportSkillFiles(files: FileList | null) {
+    if (!files || files.length === 0) return
+    try {
+      setActionError(null)
+      setSkillImportNotice('')
+      const markdownFiles = Array.from(files).filter((file) => /\.md$/i.test(file.name))
+      if (markdownFiles.length === 0) {
+        setActionError('请选择 Markdown（.md）技能文件')
+        return
+      }
+
+      let nextSkills = readCustomSkills()
+      for (const file of markdownFiles) {
+        const content = await file.text()
+        if (!content.trim()) continue
+        const skill = markdownToSkill(content, file.name)
+        nextSkills = addCustomSkill(skill)
+      }
+      setCustomSkills(nextSkills)
+      setSkillImportNotice(`已导入 ${markdownFiles.length} 个技能到技能库`)
+      if (skillImportInputRef.current) skillImportInputRef.current.value = ''
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : '导入技能失败，请检查 Markdown 文件')
+    }
+  }
+
   function removePendingFile(fileId: number) {
     setPendingFiles((prev) => prev.filter((f) => f.id !== fileId))
   }
@@ -537,6 +1027,9 @@ export default function TutorPage() {
     }
 
     const assistantId = `a-${msgUid}`
+    autoFollowRef.current = true
+    setAutoFollowMessages(true)
+    setShowJumpToLatest(false)
     setMessages((prev) => [
       ...prev,
       userMsg,
@@ -544,15 +1037,24 @@ export default function TutorPage() {
     ])
     setMcpCallsByMsg((prev) => ({
       ...prev,
-      [assistantId]: mcpEnabled
-        ? [{
+      [assistantId]: [
+        {
+          serviceId: 'student-profile',
+          serviceName: '学生画像',
+          toolName: '读取用户画像',
+          status: 'running',
+          ok: false,
+        },
+        ...(mcpEnabled
+          ? [{
             serviceId: 'pending',
             serviceName: 'MCP',
             toolName: '等待匹配可用工具',
             status: 'pending',
             ok: false,
           }]
-        : [],
+          : []),
+      ],
     }))
     setSearchResultsByMsg((prev) => ({ ...prev, [assistantId]: [] }))
 
@@ -564,8 +1066,76 @@ export default function TutorPage() {
 
     try {
       setActionError(null)
+      const activeProfile = await loadStudentProfile()
+      setMcpCallsByMsg((prev) => ({
+        ...prev,
+        [assistantId]: (prev[assistantId] || []).map((call) =>
+          call.serviceId === 'student-profile'
+            ? {
+                ...call,
+                status: activeProfile ? 'done' : 'error',
+                ok: Boolean(activeProfile),
+                error: activeProfile ? '' : '画像读取失败，将按本次问题继续回答',
+                args: activeProfile
+                  ? {
+                      stage: activeProfile.currentStage || activeProfile.knowledgeLevel,
+                      weak_points: activeProfile.weakPoints?.slice(0, 2),
+                      preference: activeProfile.learningPreference?.slice(0, 2),
+                    }
+                  : undefined,
+              }
+            : call,
+        ),
+      }))
+      const matchedNotes = matchPersonalizedNotes(
+        learningNotes,
+        [userInput, selectedSkill?.title, selectedSkill?.summary, selectedSkill?.prompt].filter(Boolean).join(' '),
+        5,
+      )
+      const defaultNotes = learningNotes
+        .filter((note) => note.personalizationEnabled !== false)
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        .slice(0, 5)
+        .map((note) => ({ note, score: 0, keywords: ['默认注入'] }))
+      const matchedNotesForSend = matchedNotes.length > 0 ? matchedNotes : defaultNotes
+      const noteContextText = matchedNotesForSend.length
+        ? `\n\n自动检索到的用户学习笔记上下文（用于个性化回答，不要逐字复述）：\n${matchedNotesForSend.map((item, index) => {
+            const note = item.note
+            return `${index + 1}. ${note.title}｜来源：${noteSourceTypeLabel[note.source.type]}「${note.source.title}」｜命中：${item.keywords.join('、') || '语义相关'}｜摘录：${note.content.slice(0, 180)}`
+          }).join('\n')}`
+        : ''
+      let resourcesForSend = generatedResources
+      try {
+        resourcesForSend = await api.getResources()
+        setGeneratedResources(resourcesForSend)
+      } catch {
+        resourcesForSend = generatedResources
+      }
+      const matchedResourcesForSend = matchGeneratedResources(
+        resourcesForSend,
+        [userInput, selectedSkill?.title, selectedSkill?.summary, selectedSkill?.prompt].filter(Boolean).join(' '),
+        5,
+      )
+      const defaultResources = resourcesForSend
+        .filter((resource) => resource.status === 'completed')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map((resource) => ({ resource, score: 0, keywords: ['默认注入'] }))
+      const resourcesContextForSend = matchedResourcesForSend.length > 0 ? matchedResourcesForSend : defaultResources
+      const resourceContextText = resourcesContextForSend.length
+        ? `\n\n用户已生成资源库上下文（资源推荐或学习建议时优先引用；只引用下列真实存在的资源，不要编造资源）：\n${resourcesContextForSend.map((item, index) => {
+            const resource = item.resource
+            const excerpt = (resource.content || buildResourceSearchText(resource)).slice(0, 220)
+            return `${index + 1}. ${resource.title}｜类型：${resourceTypeLabel[resource.type]}｜命中：${item.keywords.join('、') || '近期已生成资源'}｜摘要：${excerpt}`
+          }).join('\n')}`
+        : ''
+      const auxiliaryContextText = `${noteContextText}${resourceContextText}`
+      const outboundInput = selectedSkill
+        ? `当前选择的学习技能：${selectedSkill.title}。${selectedSkill.prompt}${auxiliaryContextText}\n\n用户问题：${userInput}`
+        : `${userInput}${auxiliaryContextText}`
+      const trustModeForRequest = !imageMode && !openMode
       const savedMessage = await api.sendMessage(
-        userInput,
+        outboundInput,
         {
           conversationId: convId,
           roleId: currentRoleId || undefined,
@@ -577,15 +1147,62 @@ export default function TutorPage() {
           webSearch,
           mcpEnabled,
           model: selectedModel,
+          pageContext: {
+            page: '/tutor',
+            selected_skill: selectedSkill ? {
+              id: selectedSkill.id,
+              title: selectedSkill.title,
+              category: selectedSkill.category,
+              output: selectedSkill.output,
+            } : null,
+            student_profile: activeProfile ? {
+              name: activeProfile.name,
+              major: activeProfile.major,
+              grade: activeProfile.grade,
+              goals: activeProfile.goals,
+              knowledge_level: activeProfile.knowledgeLevel,
+              weak_points: activeProfile.weakPoints,
+              learning_preference: activeProfile.learningPreference,
+              cognitive_style: activeProfile.cognitiveStyle,
+              daily_time: activeProfile.dailyTime,
+              practical_ability: activeProfile.practicalAbility,
+              current_stage: activeProfile.currentStage,
+            } : null,
+            personalized_notes: matchedNotesForSend.map((item) => ({
+              id: item.note.id,
+              title: item.note.title,
+              source_type: item.note.source.type,
+              source_title: item.note.source.title,
+              tags: item.note.tags,
+              matched_keywords: item.keywords,
+              score: item.score,
+              excerpt: item.note.content.slice(0, 240),
+              updated_at: item.note.updatedAt,
+            })),
+            generated_resources: resourcesContextForSend.map((item) => ({
+              id: item.resource.id,
+              title: item.resource.title,
+              type: item.resource.type,
+              type_label: resourceTypeLabel[item.resource.type],
+              matched_keywords: item.keywords,
+              score: item.score,
+              excerpt: (item.resource.content || buildResourceSearchText(item.resource)).slice(0, 260),
+              source_url: item.resource.sourceUrl || null,
+              created_at: item.resource.createdAt,
+              href: `/generate?view=library&id=${item.resource.id}`,
+            })),
+          },
         },
         {
           onText: (chunk) => {
             setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: `${m.content}${chunk}` } : m)))
           },
           onConfidence: (confidence: ConfidenceInfo) => {
+            if (!trustModeForRequest) return
             setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, confidence } : m)))
           },
           onCitations: (citations: CitationItem[]) => {
+            if (!trustModeForRequest) return
             setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, citations } : m)))
           },
           onTrustMeta: (trustMeta: Record<string, unknown>) => {
@@ -661,10 +1278,6 @@ export default function TutorPage() {
     setTrustPanelOpenByMsg((prev) => ({ ...prev, [messageId]: !prev[messageId] }))
   }
 
-  if (loading) {
-    return null
-  }
-
   if (error) {
     return <ErrorState type="server" onRetry={loadWorkspace} />
   }
@@ -686,9 +1299,9 @@ export default function TutorPage() {
 
           {/* 瀵艰埅鑿滃崟 */}
           <div className="px-3 space-y-0.5 flex-1">
-            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#2563eb] text-white text-sm font-medium shadow-sm">
+            <button onClick={() => setSkillStoreOpen(false)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors', !skillStoreOpen ? 'bg-[#2563eb] text-white font-medium shadow-sm' : 'text-[#475569] hover:bg-white hover:text-[#1e293b]')}>
               <Sparkles className="w-4 h-4" /> 学习空间
-            </div>
+            </button>
             <button onClick={() => router.push('/tutor/roles')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <UserCog className="w-4 h-4" /> 角色工坊
             </button>
@@ -703,6 +1316,9 @@ export default function TutorPage() {
             </button>
             <button onClick={() => router.push('/tutor/mcp-store')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <Puzzle className="w-4 h-4" /> MCP 插件商店
+            </button>
+            <button onClick={() => router.push('/tutor/skills')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-[#475569] hover:bg-white hover:text-[#1e293b] transition-colors">
+              <Sparkles className="w-4 h-4" /> Skills 商店
             </button>
             <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <Paperclip className="w-4 h-4" /> 我的文件
@@ -724,56 +1340,148 @@ export default function TutorPage() {
           </div>
         </nav>
 
-        {/* 中间对话列表栏 */}
-        <div className="flex w-[280px] shrink-0 flex-col border-r border-[#eef1f5] bg-white max-[760px]:w-full max-[760px]:border-b max-[760px]:border-r-0">
-          {/* 搜索 */}
-          <div className="p-3 border-b border-[#eef1f5]">
-            <div className="flex items-center gap-2 h-9 rounded-lg bg-[#f5f7fa] px-3">
-              <MessageSquareText className="w-4 h-4 text-[#94a3b8]" />
-              <input type="text" placeholder="搜索对话" className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#94a3b8]" />
-            </div>
-          </div>
-
-          {/* 角色切换 */}
-          {roles.length > 0 && (
-            <div className="px-3 py-2 border-b border-[#eef1f5]">
-              <div className="flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden">
-                {roles.map((role) => (
-                  <button key={role.id} onClick={() => void handleRoleChange(role.id)} className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors', currentRoleId === role.id ? 'bg-[#2563eb] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]')}>
-                    {role.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 瀵硅瘽鍒楄〃 */}
-          <div className="min-h-0 flex-1 overflow-y-auto max-[760px]:max-h-[42vh]">
-            {conversations.map((conv) => (
-              <div key={conv.id} onClick={() => void switchConversation(conv)} className={cn('group px-4 py-3 border-b border-[#f5f7fa] cursor-pointer transition-colors', currentConversationId === conv.id ? 'bg-[#eff6ff]' : 'hover:bg-[#f8fafc]')}>
-                {renamingConversationId === conv.id ? (
-                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                    <input className="flex-1 min-w-0 border border-[#e2e8f0] rounded px-2 py-1 text-xs" value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleRenameConversation(conv.id) }} autoFocus />
+        {/* 中间侧栏：列表 / Skills 商店 */}
+        <div className={cn('flex shrink-0 flex-col border-r border-[#eef1f5] bg-white transition-[width] duration-300 max-[760px]:w-full max-[760px]:border-b max-[760px]:border-r-0', skillStoreOpen ? 'flex-1 bg-[#fbfcfe]' : 'w-[280px]')}>
+          {skillStoreOpen ? (
+            <div className="min-h-0 flex-1 overflow-y-auto px-10 py-10 max-[900px]:px-5 max-[760px]:max-h-[70vh]">
+              <div className="mx-auto max-w-[980px]">
+                <div className="mb-12 flex items-start justify-between gap-8 max-[920px]:flex-col">
+                  <div className="pt-10 max-[920px]:pt-2">
+                    <h2 className="text-[30px] font-semibold leading-tight text-[#111827]">技能</h2>
+                    <p className="mt-2 text-base leading-7 text-[#8a93a3]">当前技能库共 {skillLibrary.length} 个技能。</p>
                   </div>
-                ) : (
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className={cn('text-sm font-medium truncate', currentConversationId === conv.id ? 'text-[#2563eb]' : 'text-[#1e293b]')}>{conv.title}</p>
-                      <p className="text-xs text-[#94a3b8] mt-0.5">{conv.messageCount} 条消息</p>
+                  <div className="flex flex-wrap items-center justify-end gap-3 max-[920px]:w-full max-[920px]:justify-start">
+                    <button
+                      type="button"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-[#8a93a3] hover:bg-white hover:text-[#475569]"
+                      title="刷新"
+                      onClick={() => setSkillSearch('')}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      刷新
+                    </button>
+                    <div className="flex h-10 w-[280px] items-center gap-2 rounded-xl border border-[#e5e7eb] bg-white px-3 shadow-sm max-[520px]:w-full">
+                      <Search className="h-4 w-4 text-[#94a3b8]" />
+                      <input
+                        value={skillSearch}
+                        onChange={(e) => setSkillSearch(e.target.value)}
+                        placeholder="搜索技能"
+                        className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9ca3af]"
+                      />
                     </div>
-                    <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
-                      <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#e2e8f0] text-[#94a3b8]" onClick={(e) => { e.stopPropagation(); setRenamingConversationId(conv.id); setRenameTitle(conv.title) }}><Pencil className="w-3 h-3" /></button>
-                      <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#e2e8f0] text-red-400" onClick={(e) => { e.stopPropagation(); void handleDeleteConversation(conv.id) }}><Trash2 className="w-3 h-3" /></button>
-                    </div>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#2563eb] px-4 text-sm font-semibold text-white shadow-sm shadow-blue-100 hover:bg-[#1d4ed8]"
+                      title="新建技能"
+                      onClick={() => skillImportInputRef.current?.click()}
+                    >
+                      <Plus className="h-4 w-4" />
+                      新建技能
+                    </button>
+                    <input
+                      ref={skillImportInputRef}
+                      type="file"
+                      accept=".md,text/markdown,text/plain"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => void handleImportSkillFiles(e.target.files)}
+                    />
+                  </div>
+                </div>
+
+                {skillImportNotice && (
+                  <div className="mb-6 rounded-xl border border-[#bfdbfe] bg-[#eff6ff] px-4 py-3 text-sm text-[#1d4ed8]">
+                    {skillImportNotice}
                   </div>
                 )}
+
+                <div className="mb-7 text-sm font-semibold text-[#374151]">已配置</div>
+                <div className="grid grid-cols-2 gap-x-16 gap-y-8 max-[980px]:grid-cols-1">
+                  {configuredSkills.map((skill) => {
+                    const active = selectedSkillId === skill.id
+                    return (
+                      <button
+                        key={skill.id}
+                        type="button"
+                        onClick={() => chooseSkill(skill.id)}
+                        className="group flex min-w-0 items-center gap-4 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white"
+                      >
+                        <div className={cn('grid h-12 w-12 shrink-0 place-items-center rounded-xl border', skillToneClass(skill.tone))}>
+                          <Puzzle className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <p className="truncate text-[15px] font-semibold text-[#1f2937]">{skill.title}</p>
+                          </div>
+                          <p className="mt-1 line-clamp-1 text-[14px] leading-5 text-[#8a93a3]">{skill.summary}</p>
+                        </div>
+                        <CheckCircle2 className={cn('h-5 w-5 shrink-0', active ? 'text-[#2563eb]' : 'text-[#c4cbd5]')} />
+                      </button>
+                    )
+                  })}
+                  {configuredSkills.length === 0 && (
+                    <div className="col-span-2 rounded-xl border border-dashed border-[#cbd5e1] px-4 py-8 text-center text-sm text-[#64748b]">
+                      没有匹配的技能
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <>
+              {/* 搜索 */}
+              <div className="p-3 border-b border-[#eef1f5]">
+                <div className="flex items-center gap-2 h-9 rounded-lg bg-[#f5f7fa] px-3">
+                  <MessageSquareText className="w-4 h-4 text-[#94a3b8]" />
+                  <input type="text" placeholder="搜索对话" className="flex-1 bg-transparent text-sm outline-none placeholder:text-[#94a3b8]" />
+                </div>
+              </div>
+
+              {/* 角色切换 */}
+              {roles.length > 0 && (
+                <div className="px-3 py-2 border-b border-[#eef1f5]">
+                  <div className="flex max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden">
+                    {roles.map((role) => (
+                      <button key={role.id} onClick={() => void handleRoleChange(role.id)} className={cn('shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors', currentRoleId === role.id ? 'bg-[#2563eb] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]')}>
+                        {role.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 对话列表 */}
+              <div className="min-h-0 flex-1 overflow-y-auto max-[760px]:max-h-[42vh]">
+                {loading && conversations.length === 0 && (
+                  <div className="px-4 py-5 text-center text-xs text-[#94a3b8]">正在加载对话...</div>
+                )}
+                {conversations.map((conv) => (
+                  <div key={conv.id} onClick={() => void switchConversation(conv)} className={cn('group px-4 py-3 border-b border-[#f5f7fa] cursor-pointer transition-colors', currentConversationId === conv.id ? 'bg-[#eff6ff]' : 'hover:bg-[#f8fafc]')}>
+                    {renamingConversationId === conv.id ? (
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        <input className="flex-1 min-w-0 border border-[#e2e8f0] rounded px-2 py-1 text-xs" value={renameTitle} onChange={(e) => setRenameTitle(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleRenameConversation(conv.id) }} autoFocus />
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className={cn('text-sm font-medium truncate', currentConversationId === conv.id ? 'text-[#2563eb]' : 'text-[#1e293b]')}>{conv.title}</p>
+                          <p className="text-xs text-[#94a3b8] mt-0.5">{conv.messageCount} 条消息</p>
+                        </div>
+                        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                          <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#e2e8f0] text-[#94a3b8]" onClick={(e) => { e.stopPropagation(); setRenamingConversationId(conv.id); setRenameTitle(conv.title) }}><Pencil className="w-3 h-3" /></button>
+                          <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-[#e2e8f0] text-red-400" onClick={(e) => { e.stopPropagation(); void handleDeleteConversation(conv.id) }}><Trash2 className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* 主对话区 */}
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white max-[760px]:overflow-visible">
+        <main className={cn('relative min-h-0 flex-1 flex-col overflow-hidden bg-white max-[760px]:overflow-visible', skillStoreOpen ? 'hidden' : 'flex')}>
           {actionError && <div className="px-6 pt-3"><p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{actionError}</p></div>}
 
           {/* 瀵硅瘽鏍囬鏍?*/}
@@ -785,7 +1493,7 @@ export default function TutorPage() {
           )}
 
           {/* 娑堟伅鍖哄煙 */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div ref={messageScrollRef} onScroll={handleMessagesScroll} className="flex-1 min-h-0 overflow-y-auto">
             {!hasInteracted ? (
               <div className="h-full flex flex-col items-center justify-center px-6">
                 <div className="max-w-[560px] w-full text-center">
@@ -799,25 +1507,36 @@ export default function TutorPage() {
                 {workshopEnabled && hubMessages.length > 0 && (<div className="rounded-xl border border-[#e2e8f0] bg-[#fafafa] p-3 mb-4"><div className="flex items-center justify-between mb-2"><p className="text-sm font-semibold text-[#1e293b]">研讨会</p></div><div key={`hub-${workshopRunId}`} className="max-h-[180px] overflow-y-auto space-y-2">{hubMessages.map((evt, idx) => (<div key={`${evt.agentId}-${idx}`} className="rounded-lg bg-white border border-[#eef2f7] px-3 py-2"><p className="text-xs font-medium text-[#475569]">{evt.agentName}</p><p className="text-xs text-[#64748b] mt-1 whitespace-pre-wrap">{evt.content}</p></div>))}</div></div>)}
 
                 {messages.map((msg) => {
+                  const isProfileMessage = msg.trustMeta?.kind === 'student_profile'
+                  if (isProfileMessage) {
+                    const status = String(msg.trustMeta?.status || profileStatus) as ProfileLoadStatus
+                    return <ProfileMessageCard key={msg.id} profile={studentProfile} status={status} />
+                  }
                   const summary = msg.role === 'assistant' ? parseWorkshopSummary(msg.content) : null
+                  const showTrustInfo = !openMode
                   const imageDataMatch =
                     msg.role === 'assistant'
                       ? msg.content.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/)
                       : null
+                  const msgMcpCalls = msg.role === 'assistant' ? (mcpCallsByMsg[msg.id] || []) : []
+                  const profileCalls = msgMcpCalls.filter((call) => call.serviceId === 'student-profile')
+                  const visibleMcpCalls = msgMcpCalls.filter((call) => call.serviceId !== 'student-profile')
                   return (
                     <div key={msg.id}>
                       {msg.role === 'user' ? (
-                        <div className="flex justify-end mb-4">
-                          <div className="max-w-[70%] rounded-2xl rounded-tr-sm bg-[#eff6ff] px-4 py-2.5 max-[760px]:max-w-[92%]">
-                            <p className="break-words text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{msg.content}</p>
-                            {msg.fileNames && msg.fileNames.length > 0 && (<div className="mt-2 flex flex-wrap gap-1.5">{msg.fileNames.map((name) => <span key={name} className="text-xs px-2 py-0.5 rounded border border-[#e2e8f0] bg-white">{name}</span>)}</div>)}
+                        <div className="mb-4 flex justify-end">
+                          <div className="max-w-[70%] max-[760px]:max-w-[92%]">
+                            <div className="rounded-2xl rounded-tr-sm bg-[#eff6ff] px-4 py-2.5">
+                              <p className="break-words text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{msg.content}</p>
+                              {msg.fileNames && msg.fileNames.length > 0 && (<div className="mt-2 flex flex-wrap gap-1.5">{msg.fileNames.map((name) => <span key={name} className="text-xs px-2 py-0.5 rounded border border-[#e2e8f0] bg-white">{name}</span>)}</div>)}
+                            </div>
                           </div>
                         </div>
                       ) : (
                         <div className="flex gap-3 mb-6">
                           <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center mt-1"><Sparkles className="w-4 h-4 text-white" /></div>
                           <div className="flex-1 min-w-0">
-                            {streaming && !msg.content.trim() && !mcpCallsByMsg[msg.id]?.length ? (
+                            {streaming && !msg.content.trim() && !msgMcpCalls.length ? (
                               <div className="flex gap-1.5 pt-3">
                                 <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '0ms' }} />
                                 <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '150ms' }} />
@@ -886,7 +1605,7 @@ export default function TutorPage() {
                                 >
                                   {(() => {
                                     let text = msg.content
-                                    const citations = msg.citations || []
+                                    const citations = showTrustInfo ? (msg.citations || []) : []
                                     if (citations.length) {
                                       text = text.replace(/\[来源(\d+)\]/g, (_m: string, n: string) => {
                                         const idx = parseInt(n, 10) - 1
@@ -914,7 +1633,8 @@ export default function TutorPage() {
                                 <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
                               </button>
                             )}
-                            {!!mcpCallsByMsg[msg.id]?.length && (
+                            <ProfileToolCallPanel calls={profileCalls} />
+                            {visibleMcpCalls.length > 0 && (
                               <div className="mt-3 overflow-hidden rounded-xl border border-[#e0e7f5] bg-[#fafcff] shadow-[0_2px_8px_rgba(37,99,235,0.04)]">
                                 <div className="flex items-center gap-2 border-b border-[#eef2f8] bg-[#f4f8ff] px-3.5 py-2">
                                   <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#e6eeff] text-[#4f6bf6]">
@@ -929,7 +1649,7 @@ export default function TutorPage() {
                                   )}
                                 </div>
                                 <div className="divide-y divide-[#eef2f8] px-1">
-                                  {mcpCallsByMsg[msg.id].map((c, i) => {
+                                  {visibleMcpCalls.map((c, i) => {
                                     const isRunning = c.status === 'pending' || c.status === 'running' || c.status === 'discovering'
                                     const isError = c.status === 'error' || (!c.ok && c.status === 'done')
                                     const statusText = c.status === 'pending' ? '等待中' : c.status === 'discovering' ? '发现工具' : isRunning ? '调用中' : isError ? '失败' : '完成'
@@ -952,7 +1672,7 @@ export default function TutorPage() {
                                               <CheckCircle2 className="h-3 w-3" />
                                             )}
                                           </div>
-                                          {i < mcpCallsByMsg[msg.id].length - 1 && (
+                                          {i < visibleMcpCalls.length - 1 && (
                                             <div className="h-3 w-px bg-[#dbe4f0]" />
                                           )}
                                         </div>
@@ -1020,7 +1740,7 @@ export default function TutorPage() {
                                 </div>
                               </div>
                             )}
-                            {!imageDataMatch && (msg.confidence || (msg.citations && msg.citations.length > 0)) && (
+                            {showTrustInfo && !imageDataMatch && (msg.confidence || (msg.citations && msg.citations.length > 0)) && (
                               <div className="mt-3 rounded-xl border border-[#e2e8f0] bg-white">
                                 <button
                                   type="button"
@@ -1080,6 +1800,21 @@ export default function TutorPage() {
               </div>
             )}
           </div>
+
+          {hasInteracted && showJumpToLatest && (
+            <button
+              type="button"
+              onClick={() => scrollToLatestMessage('smooth')}
+              className={cn(
+                'absolute bottom-[104px] left-1/2 z-20 grid h-11 w-11 -translate-x-1/2 place-items-center rounded-full border border-[#e2e8f0] bg-white/95 text-[#111827] shadow-[0_8px_24px_rgba(15,23,42,0.14)] backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[#cbd5e1] hover:shadow-[0_12px_28px_rgba(15,23,42,0.18)] max-[760px]:bottom-[116px]',
+                !autoFollowMessages && 'animate-in fade-in zoom-in-95',
+              )}
+              title={streaming ? '回到正在生成的位置' : '回到最新消息'}
+              aria-label={streaming ? '回到正在生成的位置' : '回到最新消息'}
+            >
+              <ChevronDown className="h-6 w-6" />
+            </button>
+          )}
 
           {/* 搴曢儴杈撳叆鍖?*/}
           <div className="shrink-0 px-6 pb-4 pt-2">
@@ -1157,6 +1892,17 @@ export default function TutorPage() {
                   </div>
                   <button
                     type="button"
+                    onClick={() => setSkillPickerOpen(true)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                      selectedSkill ? 'border-[#7c3aed] bg-[#f5f3ff] text-[#6d28d9]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                    )}
+                  >
+                    <Puzzle className="w-3.5 h-3.5" />
+                    {selectedSkill ? selectedSkill.shortTitle : 'Skills 商店'}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setWebSearch((v) => !v)}
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
@@ -1232,6 +1978,74 @@ export default function TutorPage() {
         </main>
 
       </div>
+
+      {skillPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4" onClick={() => setSkillPickerOpen(false)}>
+          <div className="w-full max-w-[640px] rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-[#eef1f5] px-5 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[#111827]">选择技能</h3>
+                <p className="mt-1 text-sm text-[#8a93a3]">从技能库中选择一个学习技能用于当前对话。</p>
+              </div>
+              <button
+                type="button"
+                className="grid h-8 w-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#334155]"
+                onClick={() => setSkillPickerOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="max-h-[58vh] overflow-y-auto px-4 py-4">
+              <div className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
+                {skillLibrary.map((skill) => {
+                  const active = selectedSkillId === skill.id
+                  return (
+                    <button
+                      key={skill.id}
+                      type="button"
+                      onClick={() => chooseSkill(skill.id)}
+                      className={cn(
+                        'flex min-w-0 items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors',
+                        active ? 'border-[#2563eb] bg-[#eff6ff]' : 'border-[#e5e7eb] bg-white hover:border-[#bfdbfe] hover:bg-[#f8fbff]',
+                      )}
+                    >
+                      <div className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl border', skillToneClass(skill.tone))}>
+                        <Puzzle className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-[#1f2937]">{skill.title}</p>
+                        <p className="mt-0.5 line-clamp-1 text-xs text-[#8a93a3]">{skill.summary}</p>
+                      </div>
+                      <CheckCircle2 className={cn('h-5 w-5 shrink-0', active ? 'text-[#2563eb]' : 'text-[#cbd5e1]')} />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-[#eef1f5] px-5 py-4">
+              <button
+                type="button"
+                className="text-sm font-medium text-[#64748b] hover:text-[#334155]"
+                onClick={() => chooseSkill(selectedSkillId)}
+                disabled={!selectedSkillId}
+              >
+                清除选择
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#2563eb] px-4 text-sm font-semibold text-white shadow-sm shadow-blue-100 hover:bg-[#1d4ed8]"
+                onClick={() => {
+                  setSkillPickerOpen(false)
+                  router.push('/tutor/skills')
+                }}
+              >
+                <Sparkles className="h-4 w-4" />
+                打开商店
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 角色编辑弹窗 */}
       {roleModalOpen && (

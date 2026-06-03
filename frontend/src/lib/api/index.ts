@@ -15,6 +15,8 @@ export const api = {
 
   getProfile: impl.getProfile,
   updateProfile: impl.updateProfile,
+  getProfileHistory: impl.getProfileHistory,
+  analyzeProfileHistory: impl.analyzeProfileHistory,
 
   getResources: impl.getResources,
   deleteResource: impl.deleteResource,
@@ -59,7 +61,6 @@ export const api = {
   generatePathPlanning: impl.generatePathPlanning,
   getPathPlanningHistory: impl.getPathPlanningHistory,
   getPathNodeSuggestions: impl.getPathNodeSuggestions,
-  savePathPlanning: impl.savePathPlanning,
 
   getVideos: impl.getVideos,
 
@@ -69,6 +70,7 @@ export const api = {
   getForumPosts: impl.getForumPosts,
   createForumPost: impl.createForumPost,
   getForumPostDetail: impl.getForumPostDetail,
+  importForumResource: impl.importForumResource,
   deleteForumPost: impl.deleteForumPost,
   getAdminForumPosts: impl.getAdminForumPosts,
   updateAdminForumPostStatus: impl.updateAdminForumPostStatus,
@@ -129,12 +131,11 @@ export const api = {
 
 export type {
   Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
-  ReportData, Recommendation, LearningPath, PathNode, VideoInfo, ContributionDay,
-  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp, EditablePathNode, EditablePhase, SavePathPlanningPayload,
-  ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
+  ReportData, Recommendation, LearningPath, PathNode, VideoInfo, VideoStyle, VideoScriptSegment, VideoPolishResult, ContributionDay,
+  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileHistoryItem, ProfileHistoryResp, ProfileAnalysisResp, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
+  ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   McpService, McpServicePayload,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
-  VideoStyle, VideoScriptSegment, VideoPolishResult,
 } from './types'

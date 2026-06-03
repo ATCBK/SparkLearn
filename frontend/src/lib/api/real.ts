@@ -4,7 +4,8 @@ import type {
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, SavePathPlanningPayload, ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
+  ProfileHistoryResp, ProfileAnalysisResp,
 } from './types'
 import { getToken } from '../auth'
 
@@ -180,7 +181,7 @@ export async function getProfile(): Promise<StudentProfile> {
     id: p.user_id,
     name: String(p.name || '张同学'),
     email: String(p.email || 'student@sparklearn.ai'),
-    major: String(p.major || '计算机科学'),
+    major: String(p.major || ''),
     grade: String(p.grade || '大二'),
     goals: p.goal,
     knowledgeLevel: p.knowledge_level,
@@ -212,6 +213,14 @@ export async function updateProfile(payload: ProfileUpdatePayload): Promise<void
     method: 'PUT',
     body: JSON.stringify(body),
   })
+}
+
+export async function getProfileHistory(): Promise<ProfileHistoryResp> {
+  return fetchJson('/api/profile/history')
+}
+
+export async function analyzeProfileHistory(): Promise<ProfileAnalysisResp> {
+  return fetchJson('/api/profile/history/analyze', { method: 'POST', body: JSON.stringify({}) })
 }
 
 export async function getResources(): Promise<Resource[]> {
@@ -980,19 +989,6 @@ export async function getPathNodeSuggestions(req: {
   }
 }
 
-export async function savePathPlanning(
-  payload: SavePathPlanningPayload
-): Promise<{ saved: boolean; pathId: string }> {
-  return fetchJson<any>('/api/path-planning/save', {
-    method: 'POST',
-    body: JSON.stringify({
-      path_id: payload.pathId,
-      target: payload.target,
-      phases: payload.phases,
-    }),
-  })
-}
-
 export async function getVideos(): Promise<VideoInfo[]> {
   let data: any[]
   try {
@@ -1059,6 +1055,16 @@ export async function createForumPost(payload: { title: string; content: string;
 
 export async function getForumPostDetail(postId: number): Promise<{ post: ForumPost; attachments: ForumAttachment[] }> {
   return fetchJson(`/api/forum/posts/${postId}`)
+}
+
+export async function importForumResource(
+  postId: number,
+  payload: { mode: 'post' | 'attachments' | 'all'; attachment_ids?: number[] },
+): Promise<ForumResourceImportResult> {
+  return fetchJson(`/api/forum/posts/${postId}/import-resource`, {
+    method: 'POST',
+    body: JSON.stringify({ mode: payload.mode, attachment_ids: payload.attachment_ids || [] }),
+  })
 }
 
 export async function deleteForumPost(postId: number): Promise<void> {
@@ -1448,7 +1454,7 @@ export async function loadMemory(videoId: string): Promise<{
 }
 
 export async function deleteMemory(memoryId: string): Promise<void> {
-  await fetchJson<void>(`/api/num-person/memory/${memoryId}`, { method: 'DELETE' })
+  await fetchJson(`/api/num-person/memory/${memoryId}`, { method: 'DELETE' })
 }
 
 export async function chatWithDigitalHuman(
@@ -1463,7 +1469,7 @@ export async function chatWithDigitalHuman(
     history,
   }, onEvent)
   return events
-    .filter(e => e.type === 'token')
-    .map(e => String(e.payload.text || ''))
+    .filter(e => e.type === 'text')
+    .map(e => String(e.payload.content || ''))
     .join('')
 }
