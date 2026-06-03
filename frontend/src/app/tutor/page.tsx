@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, CitationItem, ConfidenceInfo, Message, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
+import { api, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -40,7 +40,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, SKILL_STORAGE_KEY, type LearningSkill } from '@/lib/skills'
-import { matchPersonalizedNotes, noteSourceTypeLabel, readLearningNotes, type LearningNote } from '@/lib/learningNotes'
+import { matchPersonalizedNotes, noteSourceTypeLabel, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -77,6 +77,88 @@ type McpCallView = {
   ok: boolean
   error?: string
   args?: Record<string, unknown>
+}
+
+type MatchedGeneratedResource = {
+  resource: Resource
+  score: number
+  keywords: string[]
+}
+
+const RESOURCE_RECOMMENDATION_TERMS = [
+  '推荐',
+  '资源',
+  '资料',
+  '内容',
+  '复习',
+  '预习',
+  '学习',
+  '课程',
+  '任务',
+  '练习',
+  '课件',
+  '文档',
+  '视频',
+  '测验',
+  'resource',
+  'recommend',
+  'review',
+]
+
+const resourceTypeLabel: Record<Resource['type'], string> = {
+  document: '文档',
+  ppt: '课件',
+  mindmap: '思维导图',
+  quiz: '测验',
+  reading: '阅读',
+  code: '代码',
+  video: '视频',
+  blog: '博客',
+}
+
+function isResourceRecommendationQuery(text: string) {
+  const normalized = text.toLowerCase()
+  return RESOURCE_RECOMMENDATION_TERMS.some((term) => normalized.includes(term))
+}
+
+function buildResourceSearchText(resource: Resource) {
+  const schemaText = resource.pptSchema
+    ? JSON.stringify(resource.pptSchema).slice(0, 600)
+    : ''
+  return [
+    resource.title,
+    resourceTypeLabel[resource.type],
+    resource.content,
+    schemaText,
+    resource.provider,
+    resource.sourceUrl,
+  ].filter(Boolean).join(' ')
+}
+
+function matchGeneratedResources(resources: Resource[], query: string, limit = 5): MatchedGeneratedResource[] {
+  const completed = resources.filter((resource) => resource.status === 'completed')
+  if (completed.length === 0) return []
+
+  const queryTokens = tokenizeLearningText(query)
+  const shouldIncludeRecent = isResourceRecommendationQuery(query)
+
+  return completed
+    .map((resource) => {
+      const resourceText = buildResourceSearchText(resource)
+      const normalizedResourceText = resourceText.toLowerCase()
+      const resourceTokens = tokenizeLearningText(resourceText)
+      const matched = queryTokens.filter((token) => resourceTokens.includes(token) || normalizedResourceText.includes(token))
+      const titleBoost = resource.title && query.includes(resource.title) ? 4 : 0
+      const typeBoost = query.includes(resourceTypeLabel[resource.type]) ? 2 : 0
+      return {
+        resource,
+        score: matched.length + titleBoost + typeBoost,
+        keywords: [...new Set(matched.slice(0, 6))],
+      }
+    })
+    .filter((item) => item.score > 0 || shouldIncludeRecent)
+    .sort((a, b) => b.score - a.score || new Date(b.resource.createdAt).getTime() - new Date(a.resource.createdAt).getTime())
+    .slice(0, limit)
 }
 
 function parseWorkshopSummary(content: string): WorkshopSummary | null {
@@ -401,6 +483,7 @@ export default function TutorPage() {
   const [customSkills, setCustomSkills] = useState<LearningSkill[]>([])
   const [skillImportNotice, setSkillImportNotice] = useState('')
   const [learningNotes, setLearningNotes] = useState<LearningNote[]>([])
+  const [generatedResources, setGeneratedResources] = useState<Resource[]>([])
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const skillImportInputRef = useRef<HTMLInputElement>(null)
@@ -515,6 +598,32 @@ export default function TutorPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    const loadGeneratedResources = () => {
+      api.getResources()
+        .then((resources) => {
+          if (!cancelled) setGeneratedResources(resources)
+        })
+        .catch(() => {
+          if (!cancelled) setGeneratedResources((prev) => prev)
+        })
+    }
+    const loadGeneratedResourcesWhenVisible = () => {
+      if (document.visibilityState === 'visible') loadGeneratedResources()
+    }
+    loadGeneratedResources()
+    window.addEventListener('focus', loadGeneratedResources)
+    window.addEventListener('pageshow', loadGeneratedResources)
+    document.addEventListener('visibilitychange', loadGeneratedResourcesWhenVisible)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', loadGeneratedResources)
+      window.removeEventListener('pageshow', loadGeneratedResources)
+      document.removeEventListener('visibilitychange', loadGeneratedResourcesWhenVisible)
+    }
+  }, [])
+
   function chooseSkill(skillId: string) {
     const nextId = selectedSkillId === skillId ? '' : skillId
     setSelectedSkillId(nextId)
@@ -622,18 +731,20 @@ export default function TutorPage() {
 
       setCurrentConversationId(selectedConversation?.id ?? null)
       setCurrentRoleId(selectedRoleId)
+      hydrateRoleDraft(roleData.find((r) => r.id === selectedRoleId) || null)
+      setHydratedMessages([])
+      setLoading(false)
 
       if (selectedConversation) {
-        const history = await api.getChatHistory(selectedConversation.id)
-        setHydratedMessages(history)
-      } else {
-        setHydratedMessages([])
+        try {
+          const history = await api.getChatHistory(selectedConversation.id)
+          setHydratedMessages(history)
+        } catch (e) {
+          setActionError(e instanceof Error ? e.message : '加载历史消息失败')
+        }
       }
-
-      hydrateRoleDraft(roleData.find((r) => r.id === selectedRoleId) || null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败')
-    } finally {
       setLoading(false)
     }
   }
@@ -959,9 +1070,35 @@ export default function TutorPage() {
             return `${index + 1}. ${note.title}｜来源：${noteSourceTypeLabel[note.source.type]}「${note.source.title}」｜命中：${item.keywords.join('、') || '语义相关'}｜摘录：${note.content.slice(0, 180)}`
           }).join('\n')}`
         : ''
+      let resourcesForSend = generatedResources
+      try {
+        resourcesForSend = await api.getResources()
+        setGeneratedResources(resourcesForSend)
+      } catch {
+        resourcesForSend = generatedResources
+      }
+      const matchedResourcesForSend = matchGeneratedResources(
+        resourcesForSend,
+        [userInput, selectedSkill?.title, selectedSkill?.summary, selectedSkill?.prompt].filter(Boolean).join(' '),
+        5,
+      )
+      const defaultResources = resourcesForSend
+        .filter((resource) => resource.status === 'completed')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map((resource) => ({ resource, score: 0, keywords: ['默认注入'] }))
+      const resourcesContextForSend = matchedResourcesForSend.length > 0 ? matchedResourcesForSend : defaultResources
+      const resourceContextText = resourcesContextForSend.length
+        ? `\n\n用户已生成资源库上下文（资源推荐或学习建议时优先引用；只引用下列真实存在的资源，不要编造资源）：\n${resourcesContextForSend.map((item, index) => {
+            const resource = item.resource
+            const excerpt = (resource.content || buildResourceSearchText(resource)).slice(0, 220)
+            return `${index + 1}. ${resource.title}｜类型：${resourceTypeLabel[resource.type]}｜命中：${item.keywords.join('、') || '近期已生成资源'}｜摘要：${excerpt}`
+          }).join('\n')}`
+        : ''
+      const auxiliaryContextText = `${noteContextText}${resourceContextText}`
       const outboundInput = selectedSkill
-        ? `当前选择的学习技能：${selectedSkill.title}。${selectedSkill.prompt}${noteContextText}\n\n用户问题：${userInput}`
-        : `${userInput}${noteContextText}`
+        ? `当前选择的学习技能：${selectedSkill.title}。${selectedSkill.prompt}${auxiliaryContextText}\n\n用户问题：${userInput}`
+        : `${userInput}${auxiliaryContextText}`
       const trustModeForRequest = !imageMode && !openMode
       const savedMessage = await api.sendMessage(
         outboundInput,
@@ -1007,6 +1144,18 @@ export default function TutorPage() {
               score: item.score,
               excerpt: item.note.content.slice(0, 240),
               updated_at: item.note.updatedAt,
+            })),
+            generated_resources: resourcesContextForSend.map((item) => ({
+              id: item.resource.id,
+              title: item.resource.title,
+              type: item.resource.type,
+              type_label: resourceTypeLabel[item.resource.type],
+              matched_keywords: item.keywords,
+              score: item.score,
+              excerpt: (item.resource.content || buildResourceSearchText(item.resource)).slice(0, 260),
+              source_url: item.resource.sourceUrl || null,
+              created_at: item.resource.createdAt,
+              href: `/generate?view=library&id=${item.resource.id}`,
             })),
           },
         },
@@ -1095,10 +1244,6 @@ export default function TutorPage() {
     setTrustPanelOpenByMsg((prev) => ({ ...prev, [messageId]: !prev[messageId] }))
   }
 
-  if (loading) {
-    return null
-  }
-
   if (error) {
     return <ErrorState type="server" onRetry={loadWorkspace} />
   }
@@ -1138,7 +1283,7 @@ export default function TutorPage() {
             <button onClick={() => router.push('/tutor/mcp-store')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <Puzzle className="w-4 h-4" /> MCP 插件商店
             </button>
-            <button onClick={() => setSkillStoreOpen(true)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors', skillStoreOpen ? 'bg-[#2563eb] text-white font-medium shadow-sm' : 'text-[#475569] hover:bg-white hover:text-[#1e293b]')}>
+            <button onClick={() => router.push('/tutor/skills')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-[#475569] hover:bg-white hover:text-[#1e293b] transition-colors">
               <Sparkles className="w-4 h-4" /> Skills 商店
             </button>
             <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
@@ -1273,6 +1418,9 @@ export default function TutorPage() {
 
               {/* 对话列表 */}
               <div className="min-h-0 flex-1 overflow-y-auto max-[760px]:max-h-[42vh]">
+                {loading && conversations.length === 0 && (
+                  <div className="px-4 py-5 text-center text-xs text-[#94a3b8]">正在加载对话...</div>
+                )}
                 {conversations.map((conv) => (
                   <div key={conv.id} onClick={() => void switchConversation(conv)} className={cn('group px-4 py-3 border-b border-[#f5f7fa] cursor-pointer transition-colors', currentConversationId === conv.id ? 'bg-[#eff6ff]' : 'hover:bg-[#f8fafc]')}>
                     {renamingConversationId === conv.id ? (
@@ -1839,7 +1987,7 @@ export default function TutorPage() {
                 className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#2563eb] px-4 text-sm font-semibold text-white shadow-sm shadow-blue-100 hover:bg-[#1d4ed8]"
                 onClick={() => {
                   setSkillPickerOpen(false)
-                  setSkillStoreOpen(true)
+                  router.push('/tutor/skills')
                 }}
               >
                 <Sparkles className="h-4 w-4" />

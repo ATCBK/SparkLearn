@@ -99,12 +99,14 @@ export function AIAssistant() {
 
   function goToLearningSpace() {
     setTransitioning(true)
-    setTimeout(() => {
-      router.push('/tutor')
-    }, 800)
+    router.push('/tutor')
   }
 
   const ctx = useMemo(() => CONTEXTS[pathname] || CONTEXTS['/'], [pathname])
+
+  useEffect(() => {
+    router.prefetch('/tutor')
+  }, [router])
 
   useEffect(() => {
     requestAnimationFrame(() => {

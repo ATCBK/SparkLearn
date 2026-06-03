@@ -42,6 +42,11 @@ export interface ForumAttachment {
   created_at: string
 }
 
+export interface ForumResourceImportResult {
+  items: Resource[]
+  count: number
+}
+
 export interface ForumPost {
   id: number
   user_id: string

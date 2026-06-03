@@ -1,6 +1,7 @@
 ﻿import json
 import re
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -9,6 +10,7 @@ from pydantic import BaseModel
 from ..config import settings
 from ..db import fetch_all, fetch_one, get_conn, now_iso
 from ..schemas import ok
+from ..storage import append_jsonl, read_json, write_json
 
 router = APIRouter(prefix="/api/forum", tags=["forum"])
 
@@ -32,6 +34,11 @@ class CommentCreateReq(BaseModel):
 class ForumModerationReq(BaseModel):
     status: str
     reason: str = ""
+
+
+class ForumImportResourceReq(BaseModel):
+    mode: str = "post"
+    attachment_ids: list[int] = []
 
 
 def _forum_user_dir() -> Path:
@@ -74,6 +81,86 @@ def _attachment_row_to_dict(row) -> dict:
         "mime_type": row["mime_type"],
         "size_bytes": int(row["size_bytes"]),
         "created_at": row["created_at"],
+    }
+
+
+def _resource_created_date() -> str:
+    return now_iso()[:10]
+
+
+def _resource_type_for_attachment(filename: str) -> str:
+    suffix = Path(filename).suffix.lower()
+    if suffix in {".ppt", ".pptx"}:
+        return "ppt"
+    if suffix == ".zip":
+        return "code"
+    return "document"
+
+
+def _upsert_forum_resource(resource: dict[str, Any]) -> dict[str, Any]:
+    resources = read_json(settings.single_user_id, "resources_index.json", [])
+    if not isinstance(resources, list):
+        resources = []
+
+    for idx, item in enumerate(resources):
+        if str(item.get("id", "")) == str(resource.get("id", "")):
+            resources[idx] = {**item, **resource}
+            write_json(settings.single_user_id, "resources_index.json", resources)
+            return resources[idx]
+
+    resources.insert(0, resource)
+    write_json(settings.single_user_id, "resources_index.json", resources)
+    return resource
+
+
+def _forum_post_resource(row) -> dict[str, Any]:
+    post_id = int(row["id"])
+    tags = json.loads(row["tags"] or "[]")
+    title = str(row["title"] or "").strip()
+    content = str(row["content"] or "").strip()
+    return {
+        "id": f"forum-post-{post_id}",
+        "title": f"论坛分享：{title[:40] or post_id}",
+        "type": "reading",
+        "status": "completed",
+        "created_at": _resource_created_date(),
+        "content": (
+            f"# {title}\n\n"
+            f"{content}\n\n"
+            f"---\n来源：论坛分享 / 帖子 #{post_id}\n"
+            f"标签：{'、'.join(str(tag) for tag in tags) if tags else '无'}"
+        ),
+        "source_url": f"/plaza/{post_id}",
+        "source_type": "forum_post",
+        "source_id": post_id,
+        "forum_tags": tags,
+    }
+
+
+def _forum_attachment_resource(post_row, attachment_row) -> dict[str, Any]:
+    post_id = int(post_row["id"])
+    attachment_id = int(attachment_row["id"])
+    filename = str(attachment_row["filename"] or "附件")
+    download_url = f"/api/forum/attachments/{attachment_id}/download"
+    return {
+        "id": f"forum-attachment-{attachment_id}",
+        "title": f"论坛附件：{filename}",
+        "type": _resource_type_for_attachment(filename),
+        "status": "completed",
+        "created_at": _resource_created_date(),
+        "content": (
+            f"# {filename}\n\n"
+            f"来自论坛帖子《{post_row['title']}》。\n\n"
+            f"- 帖子 ID：{post_id}\n"
+            f"- 附件 ID：{attachment_id}\n"
+            f"- 文件大小：{int(attachment_row['size_bytes'])} bytes\n"
+            f"- 下载地址：{download_url}\n"
+        ),
+        "source_url": download_url,
+        "source_type": "forum_attachment",
+        "source_id": post_id,
+        "source_attachment_id": attachment_id,
+        "mime_type": attachment_row["mime_type"],
     }
 
 
@@ -233,6 +320,47 @@ async def get_post_detail(post_id: int):
 
     attachments = fetch_all("SELECT * FROM forum_attachments WHERE post_id = ? ORDER BY id ASC", (post_id,))
     return ok({"post": _post_row_to_dict(row, include_flags=True), "attachments": [_attachment_row_to_dict(x) for x in attachments]})
+
+
+@router.post("/posts/{post_id}/import-resource")
+async def import_post_resource(post_id: int, req: ForumImportResourceReq):
+    mode = req.mode.strip().lower() or "post"
+    if mode not in {"post", "attachments", "all"}:
+        raise HTTPException(status_code=400, detail="invalid import mode")
+
+    post = fetch_one("SELECT * FROM forum_posts WHERE id = ? AND status = 'published'", (post_id,))
+    if not post:
+        raise HTTPException(status_code=404, detail="post not found")
+
+    imported: list[dict[str, Any]] = []
+
+    if mode in {"post", "all"}:
+        imported.append(_upsert_forum_resource(_forum_post_resource(post)))
+
+    attachment_ids = [int(x) for x in req.attachment_ids if int(x) > 0]
+    if mode == "all":
+        attachments = fetch_all("SELECT * FROM forum_attachments WHERE post_id = ? ORDER BY id ASC", (post_id,))
+    elif mode == "attachments" and attachment_ids:
+        placeholders = ",".join("?" for _ in attachment_ids)
+        attachments = fetch_all(
+            f"SELECT * FROM forum_attachments WHERE post_id = ? AND id IN ({placeholders}) ORDER BY id ASC",
+            tuple([post_id, *attachment_ids]),
+        )
+    else:
+        attachments = []
+
+    for attachment in attachments:
+        path = Path(attachment["stored_path"])
+        if not path.exists():
+            continue
+        imported.append(_upsert_forum_resource(_forum_attachment_resource(post, attachment)))
+
+    append_jsonl(
+        settings.single_user_id,
+        "resource_usage.jsonl",
+        {"type": "forum_resource_imported", "post_id": post_id, "mode": mode, "resource_ids": [item["id"] for item in imported]},
+    )
+    return ok({"items": imported, "count": len(imported)})
 
 
 @router.delete("/posts/{post_id}")

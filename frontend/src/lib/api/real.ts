@@ -4,7 +4,7 @@ import type {
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
 } from './types'
 import { getToken } from '../auth'
@@ -1055,6 +1055,16 @@ export async function createForumPost(payload: { title: string; content: string;
 
 export async function getForumPostDetail(postId: number): Promise<{ post: ForumPost; attachments: ForumAttachment[] }> {
   return fetchJson(`/api/forum/posts/${postId}`)
+}
+
+export async function importForumResource(
+  postId: number,
+  payload: { mode: 'post' | 'attachments' | 'all'; attachment_ids?: number[] },
+): Promise<ForumResourceImportResult> {
+  return fetchJson(`/api/forum/posts/${postId}/import-resource`, {
+    method: 'POST',
+    body: JSON.stringify({ mode: payload.mode, attachment_ids: payload.attachment_ids || [] }),
+  })
 }
 
 export async function deleteForumPost(postId: number): Promise<void> {
