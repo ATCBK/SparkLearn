@@ -949,6 +949,21 @@ export async function getPathPlanningHistory(): Promise<PathPlanningData[]> {
   return (Array.isArray(data) ? data : []).map(toPathPlanning)
 }
 
+export async function savePathPlanning(req: {
+  pathId: string
+  target: string
+  phases: Array<{ id: number; title: string; description?: string; nodes: Array<{ id: string; title: string; source: string }> }>
+}): Promise<{ saved: boolean; pathId: string }> {
+  return fetchJson('/api/path-planning/save', {
+    method: 'POST',
+    body: JSON.stringify({
+      path_id: req.pathId,
+      target: req.target,
+      phases: req.phases,
+    }),
+  })
+}
+
 export async function getPathNodeSuggestions(req: {
   nodeTitle: string
   nodeGoal: string

@@ -225,14 +225,14 @@ export default function VideoPage() {
       ) : (
         <div className="grid h-[calc(100vh-168px)] min-h-[620px] grid-cols-[220px_minmax(0,1fr)_340px] gap-4 max-[1180px]:grid-cols-[220px_minmax(0,1fr)] max-[900px]:h-auto max-[900px]:min-h-0 max-[900px]:grid-cols-1 max-[900px]:pb-24">
           {/* Column 1: Video List */}
-          <Card className="overflow-hidden rounded-[12px] border border-line bg-white shadow-sm">
+          <Card className="flex h-full flex-col overflow-hidden rounded-[12px] border border-line bg-white shadow-sm">
             <div className="border-b border-line px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-small font-bold text-ink">全部视频</h2>
                 <span className="rounded-full bg-blue-light px-2 py-0.5 text-micro font-bold text-blue">{videos.length}</span>
               </div>
             </div>
-            <div className="max-h-full space-y-2 overflow-y-auto p-3 max-[900px]:grid max-[900px]:max-h-none max-[900px]:grid-cols-2 max-[620px]:grid-cols-1">
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 max-[900px]:grid max-[900px]:max-h-none max-[900px]:flex-none max-[900px]:grid-cols-2 max-[620px]:grid-cols-1">
               {videos.map(video => {
                 const active = selected?.id === video.id
                 return (
@@ -269,7 +269,7 @@ export default function VideoPage() {
           </Card>
 
           {/* Column 2: Video Player */}
-          <div className="min-w-0 space-y-4 overflow-y-auto pr-1 max-[900px]:overflow-visible max-[900px]:pr-0">
+          <div className="flex h-full min-w-0 flex-col gap-4 overflow-y-auto pr-1 max-[900px]:overflow-visible max-[900px]:pr-0">
             {selected && (
               <>
                 <Card className="overflow-hidden rounded-[12px] border border-line bg-white shadow-sm">
@@ -338,7 +338,7 @@ export default function VideoPage() {
           </div>
 
           {/* Column 3: Digital Human - Desktop */}
-          <Card className="hidden overflow-hidden rounded-[12px] border border-line bg-white shadow-sm lg:flex lg:flex-col">
+          <Card className="hidden h-full overflow-hidden rounded-[12px] border border-line bg-white shadow-sm max-[1180px]:hidden lg:flex lg:flex-col">
             <div className="flex items-center justify-between border-b border-line px-4 py-3">
               <div className="flex items-center gap-2">
                 <div className="grid h-8 w-8 place-items-center rounded-[10px] bg-[#eff6ff] text-blue">

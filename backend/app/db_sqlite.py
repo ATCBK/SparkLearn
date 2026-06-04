@@ -376,6 +376,47 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_info_stream_bookmarks_user
             ON info_stream_bookmarks(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS knowledge_graph_nodes (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              category TEXT NOT NULL DEFAULT '',
+              subject TEXT NOT NULL DEFAULT 'Python',
+              difficulty INTEGER DEFAULT 1,
+              importance INTEGER DEFAULT 3,
+              description TEXT DEFAULT '',
+              ai_summary TEXT DEFAULT '',
+              created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS knowledge_graph_edges (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              source_id TEXT NOT NULL,
+              target_id TEXT NOT NULL,
+              relation_type TEXT NOT NULL DEFAULT 'prerequisite',
+              weight REAL DEFAULT 1.0,
+              FOREIGN KEY (source_id) REFERENCES knowledge_graph_nodes(id),
+              FOREIGN KEY (target_id) REFERENCES knowledge_graph_nodes(id),
+              UNIQUE(source_id, target_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS user_knowledge_status (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              knowledge_id TEXT NOT NULL,
+              mastery REAL DEFAULT 0,
+              study_hours REAL DEFAULT 0,
+              exercises_done INTEGER DEFAULT 0,
+              exercises_correct INTEGER DEFAULT 0,
+              last_studied TEXT,
+              is_custom INTEGER DEFAULT 0,
+              updated_at TEXT NOT NULL,
+              UNIQUE(user_id, knowledge_id),
+              FOREIGN KEY (knowledge_id) REFERENCES knowledge_graph_nodes(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_user_knowledge_status_user
+            ON user_knowledge_status(user_id);
             """
         )
 

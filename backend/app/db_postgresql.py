@@ -384,6 +384,47 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_info_stream_bookmarks_user
             ON info_stream_bookmarks(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS knowledge_graph_nodes (
+              id VARCHAR(100) PRIMARY KEY,
+              name VARCHAR(200) NOT NULL,
+              category VARCHAR(100) NOT NULL DEFAULT '',
+              subject VARCHAR(50) NOT NULL DEFAULT 'Python',
+              difficulty INTEGER DEFAULT 1,
+              importance INTEGER DEFAULT 3,
+              description TEXT DEFAULT '',
+              ai_summary TEXT DEFAULT '',
+              created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS knowledge_graph_edges (
+              id SERIAL PRIMARY KEY,
+              source_id VARCHAR(100) NOT NULL,
+              target_id VARCHAR(100) NOT NULL,
+              relation_type VARCHAR(20) NOT NULL DEFAULT 'prerequisite',
+              weight NUMERIC(3,2) DEFAULT 1.0,
+              FOREIGN KEY (source_id) REFERENCES knowledge_graph_nodes(id),
+              FOREIGN KEY (target_id) REFERENCES knowledge_graph_nodes(id),
+              UNIQUE(source_id, target_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS user_knowledge_status (
+              id SERIAL PRIMARY KEY,
+              user_id VARCHAR(50) NOT NULL,
+              knowledge_id VARCHAR(100) NOT NULL,
+              mastery NUMERIC(5,2) DEFAULT 0,
+              study_hours NUMERIC(8,2) DEFAULT 0,
+              exercises_done INTEGER DEFAULT 0,
+              exercises_correct INTEGER DEFAULT 0,
+              last_studied TIMESTAMP,
+              is_custom BOOLEAN DEFAULT FALSE,
+              updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+              UNIQUE(user_id, knowledge_id),
+              FOREIGN KEY (knowledge_id) REFERENCES knowledge_graph_nodes(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_user_knowledge_status_user
+            ON user_knowledge_status(user_id);
             """
         )
 

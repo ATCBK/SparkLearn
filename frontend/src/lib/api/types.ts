@@ -420,6 +420,19 @@ export interface PathPlanningData {
   createdAt: string
 }
 
+export interface EditablePathNode {
+  id: string
+  title: string
+  source: 'ai' | 'user'
+}
+
+export interface EditablePhase {
+  id: 1 | 2 | 3
+  title: string
+  description?: string
+  nodes: EditablePathNode[]
+}
+
 export interface PathNodeSuggestionsReq {
   nodeTitle: string
   nodeGoal: string

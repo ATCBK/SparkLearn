@@ -52,9 +52,40 @@ class InfoStreamAggregator:
             for result in results:
                 if isinstance(result, list):
                     items.extend(result)
+            # 过滤不相关的结果
+            items = self._filter_relevant(items, keyword)
             return items[:page_size]
         else:
-            return await self._search_source(source, keyword, page, page_size)
+            items = await self._search_source(source, keyword, page, page_size)
+            return self._filter_relevant(items, keyword)
+
+    def _filter_relevant(self, items: list[dict[str, Any]], keyword: str) -> list[dict[str, Any]]:
+        """过滤不相关的结果，只保留与关键词相关的内容"""
+        if not keyword.strip():
+            return items
+
+        # 将关键词拆分为多个词
+        keywords = keyword.lower().split()
+        filtered = []
+
+        for item in items:
+            title = (item.get("title") or "").lower()
+            summary = (item.get("summary") or "").lower()
+            tags = [t.lower() for t in (item.get("tags") or [])]
+            author = (item.get("author") or "").lower()
+
+            # 检查是否包含任意关键词
+            is_relevant = False
+            for kw in keywords:
+                if (kw in title or kw in summary or
+                    any(kw in tag for tag in tags) or kw in author):
+                    is_relevant = True
+                    break
+
+            if is_relevant:
+                filtered.append(item)
+
+        return filtered
 
     async def _search_source(
         self, source: str, keyword: str, page: int, page_size: int

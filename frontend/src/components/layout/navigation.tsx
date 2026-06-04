@@ -18,6 +18,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   '/profile': { group: 'SparkLearn', title: '学习画像', isMainTab: true },
   '/profile/settings': { group: '个人设置', title: '设置' },
   '/path': { group: 'SparkLearn', title: '个性化路径', isMainTab: true },
+  '/graph': { group: 'SparkLearn', title: '知识图谱' },
   '/generate': { group: 'SparkLearn', title: '资源中心', isMainTab: true },
   '/knowledge': { group: 'SparkLearn', title: '知识库' },
   '/practice': { group: 'SparkLearn', title: '练习评测', isMainTab: true },

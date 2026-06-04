@@ -89,6 +89,7 @@ export default function InfoStreamPage() {
   const [searched, setSearched] = useState(false)
   const [imported, setImported] = useState<Set<string>>(new Set())
   const [importing, setImporting] = useState<Set<string>>(new Set())
+  const [error, setError] = useState('')
 
   useEffect(() => {
     void fetchSources()
@@ -108,12 +109,19 @@ export default function InfoStreamPage() {
     if (!keyword.trim()) return
     setLoading(true)
     setSearched(true)
+    setError('')
     try {
       const params = new URLSearchParams({ keyword, source: nextSource, page_size: '15' })
       const res = await fetch(`/api/info-stream/search?${params}`)
       const json = await res.json()
-      if (json.success) setItems(json.data.items || [])
-    } catch {
+      if (json.success) {
+        setItems(json.data.items || [])
+      } else {
+        setError(json.detail || json.error || '搜索失败')
+        setItems([])
+      }
+    } catch (ex) {
+      setError(ex instanceof Error ? ex.message : '搜索失败')
       setItems([])
     } finally {
       setLoading(false)
@@ -132,7 +140,11 @@ export default function InfoStreamPage() {
       const json = await res.json()
       if (json.success) {
         setImported(prev => new Set(prev).add(key))
+      } else {
+        setError(json.detail || json.error || '导入失败')
       }
+    } catch (ex) {
+      setError(ex instanceof Error ? ex.message : '导入失败')
     } finally {
       setImporting(prev => {
         const next = new Set(prev)
@@ -224,6 +236,13 @@ export default function InfoStreamPage() {
               <div className="flex items-center gap-2 text-small text-muted">
                 <Loader2 className="h-5 w-5 animate-spin text-blue" />
                 正在发现适合你的学习内容...
+              </div>
+            </div>
+          ) : error ? (
+            <div className="grid min-h-[320px] place-items-center rounded-[14px] border border-red-200 bg-red-50 p-6 text-center">
+              <div>
+                <p className="text-body font-bold text-red-600">{error}</p>
+                <p className="mt-2 text-small text-red-400">请修改关键词后重试</p>
               </div>
             </div>
           ) : items.length > 0 ? (

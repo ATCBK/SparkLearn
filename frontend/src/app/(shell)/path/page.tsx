@@ -4,7 +4,12 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
 import { usePathEditor } from '@/hooks/usePathEditor'
+import { useGanttData } from './hooks/useGanttData'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
+import { ViewToggle } from './components/ViewToggle'
+import { GanttContainer } from './components/GanttContainer'
+import { TaskDetailPanel } from './components/TaskDetailPanel'
+import { GanttZoomControl } from './components/GanttZoomControl'
 import type { EditablePhase, EditablePathNode } from '@/lib/api/types'
 
 // ============ 默认数据（静态兜底） ============
@@ -95,10 +100,14 @@ export default function PathPage() {
   const [loading, setLoading] = useState(false)
   const [nodeLoading, setNodeLoading] = useState(false)
   const [pathId, setPathId] = useState('')
+  const [viewMode, setViewMode] = useState<'path' | 'gantt'>('path')
   const requestSeqRef = useRef(0)
 
   // 编辑器 Hook
   const editor = usePathEditor(DEFAULT_PHASES, pathId, targetInput)
+
+  // 甘特图数据 Hook
+  const gantt = useGanttData(editor.phases, { initialZoom: 'week', dailyHours: 2 })
 
   // 加载真实资源作为资源推送
   useEffect(() => {
@@ -192,6 +201,10 @@ export default function PathPage() {
 
         const editablePhases = toEditablePhases(data.phases ?? [])
         editor.replaceAll(editablePhases)
+
+        // 重新生成甘特图
+        gantt.regenerate(editablePhases)
+
         if (editablePhases[0]?.nodes[0]) {
           setSelectedNodeId(editablePhases[0].nodes[0].id)
         }
@@ -201,7 +214,59 @@ export default function PathPage() {
     } finally {
       setLoading(false)
     }
-  }, [targetInput, editor])
+  }, [targetInput, editor, gantt])
+
+  // 甘特图节点选择（同步到左侧）
+  const handleGanttNodeSelect = useCallback(
+    (taskId: string | null) => {
+      if (!taskId) {
+        gantt.selectTask(null)
+        return
+      }
+
+      gantt.selectTask(taskId)
+
+      // 找到对应的节点ID
+      const task = gantt.getTask(taskId)
+      if (task) {
+        setSelectedNodeId(task.nodeId)
+      }
+    },
+    [gantt],
+  )
+
+  // 左侧节点选择（同步到甘特图）
+  const handlePathNodeSelect = useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId)
+
+      // 找到对应的甘特图任务
+      const task = gantt.allTasks.find((t) => t.nodeId === nodeId)
+      if (task) {
+        gantt.selectTask(task.id)
+      }
+
+      // 获取建议
+      handleNodeClick(nodeId)
+    },
+    [gantt, handleNodeClick],
+  )
+
+  // 日期变更处理
+  const handleDateChange = useCallback(
+    (taskId: string, startDate: string, endDate: string) => {
+      gantt.updateTaskDate(taskId, startDate, endDate);
+    },
+    [gantt],
+  )
+
+  // 任务完成状态切换
+  const handleTaskComplete = useCallback(
+    (taskId: string, completed: boolean) => {
+      gantt.updateProgress(taskId, completed ? 100 : 0);
+    },
+    [gantt],
+  )
 
   return (
     <>
@@ -209,35 +274,100 @@ export default function PathPage() {
       <PageHeader />
 
       <div>
-        {/* 摘要条 */}
-        <SummaryBar />
-
-        {/* 主体区域：左右两栏 */}
-        <div className="mt-6 grid grid-cols-[minmax(0,1fr)_320px] gap-2 max-[980px]:grid-cols-1">
-          {/* 左侧：阶段路径回路 */}
-          <div className="min-w-0">
-            <PathCircuitCard
-              editor={editor}
-              targetInput={targetInput}
-              setTargetInput={setTargetInput}
-              selectedNodeId={selectedNodeId}
-              setSelectedNodeId={handleNodeClick}
-              onRegeneratePath={handleRegeneratePath}
-              loading={loading}
-            />
-          </div>
-
-          {/* 右侧：建议栏 */}
-          <div className="min-w-0">
-            <SuggestionPanel
-              selectedNodeId={selectedNodeId}
-              suggestions={generatedSuggestions}
-              resources={generatedResources}
-              loading={nodeLoading}
-              phases={editor.phases}
-            />
-          </div>
+        {/* 摘要条 + 视图切换 */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <SummaryBar />
+          <ViewToggle viewMode={viewMode} onChange={setViewMode} />
         </div>
+
+        {/* 主体区域 */}
+        {viewMode === 'path' ? (
+          /* 原有卡片视图 */
+          <div className="mt-6 grid grid-cols-[minmax(0,1fr)_320px] gap-2 max-[980px]:grid-cols-1">
+            {/* 左侧：阶段路径回路 */}
+            <div className="min-w-0">
+              <PathCircuitCard
+                editor={editor}
+                targetInput={targetInput}
+                setTargetInput={setTargetInput}
+                selectedNodeId={selectedNodeId}
+                setSelectedNodeId={handleNodeClick}
+                onRegeneratePath={handleRegeneratePath}
+                loading={loading}
+              />
+            </div>
+
+            {/* 右侧：建议栏 */}
+            <div className="min-w-0">
+              <SuggestionPanel
+                selectedNodeId={selectedNodeId}
+                suggestions={generatedSuggestions}
+                resources={generatedResources}
+                loading={nodeLoading}
+                phases={editor.phases}
+              />
+            </div>
+          </div>
+        ) : (
+          /* 甘特图视图 */
+          <div
+            className="mt-6 rounded-[14px] border border-[#E5EAF2] bg-white shadow-sm overflow-hidden flex flex-col"
+            style={{ height: 'calc(100vh - 280px)' }}
+          >
+            {/* 甘特图工具栏 */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5EAF2]">
+              <div className="flex items-center gap-4">
+                <h2 className="text-sm font-bold text-[#111827]">学习甘特图</h2>
+                <span className="text-xs text-[#6B7280]">
+                  {gantt.stats.total} 个任务 · 已完成 {gantt.stats.completed} · 进行中{' '}
+                  {gantt.stats.inProgress}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* 总体进度 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#6B7280]">总体进度</span>
+                  <div className="w-24 h-1.5 bg-[#E5EAF2] rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#2563EB] rounded-full transition-all"
+                      style={{ width: `${gantt.overallProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-[#2563EB]">{gantt.overallProgress}%</span>
+                </div>
+                {/* 缩放控制 */}
+                <GanttZoomControl zoom={gantt.zoom} onChange={gantt.setZoom} />
+              </div>
+            </div>
+
+            {/* 甘特图主体（统一容器，左右同步滚动） */}
+            <div className="flex-1 overflow-hidden">
+              <GanttContainer
+                phases={editor.phases}
+                tasks={gantt.allTasks}
+                milestones={gantt.plan?.milestones || []}
+                zoom={gantt.zoom}
+                selectedTaskId={gantt.selectedTaskId}
+                hoveredTaskId={gantt.hoveredTaskId}
+                onTaskSelect={handleGanttNodeSelect}
+                onTaskHover={gantt.hoverTask}
+                onProgressChange={gantt.updateProgress}
+                onDateChange={handleDateChange}
+                onTaskComplete={handleTaskComplete}
+              />
+            </div>
+
+            {/* 任务详情面板 */}
+            {gantt.selectedTask && (
+              <TaskDetailPanel
+                task={gantt.selectedTask}
+                onClose={() => handleGanttNodeSelect(null)}
+                onProgressChange={gantt.updateProgress}
+                onDateChange={handleDateChange}
+              />
+            )}
+          </div>
+        )}
       </div>
     </>
   )
@@ -250,7 +380,7 @@ function PageHeader() {
       <div className="text-xs font-bold text-[#2563EB]">学习路径 / 你现在要走的下一步</div>
       <h1 className="mt-2 text-3xl font-bold text-[#111827]">个性化学习路径</h1>
       <p className="mt-2 text-sm text-[#6B7280]">
-        生成路径后可自由编辑步骤：添加、删除、移动、修改标题，最多 12 步。
+        生成路径后可自由编辑步骤：添加、删除、移动、修改标题，最多 12 步。切换到甘特图视图查看时间安排。
       </p>
     </div>
   )
@@ -259,7 +389,7 @@ function PageHeader() {
 // ============ 摘要条 ============
 function SummaryBar() {
   return (
-    <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm">
+    <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm flex-1">
       <div className="grid grid-cols-5 gap-px max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2 max-[760px]:gap-4">
         <div className="border-r border-[#E5EAF2] pr-6">
           <div className="text-xs text-[#6B7280]">当前目标</div>

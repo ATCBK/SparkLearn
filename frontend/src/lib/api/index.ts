@@ -60,6 +60,7 @@ export const api = {
   getLearningPathNodeAdvice: impl.getLearningPathNodeAdvice,
   generatePathPlanning: impl.generatePathPlanning,
   getPathPlanningHistory: impl.getPathPlanningHistory,
+  savePathPlanning: impl.savePathPlanning,
   getPathNodeSuggestions: impl.getPathNodeSuggestions,
 
   getVideos: impl.getVideos,
@@ -134,6 +135,7 @@ export type {
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, VideoStyle, VideoScriptSegment, VideoPolishResult, ContributionDay,
   TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileHistoryItem, ProfileHistoryResp, ProfileAnalysisResp, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
+  EditablePhase, EditablePathNode,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   McpService, McpServicePayload,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,

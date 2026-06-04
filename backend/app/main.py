@@ -28,6 +28,7 @@ from .routes.sharing import router as sharing_router
 from .routes.info_stream import router as info_stream_router
 from .routes.num_person import router as num_person_router
 from .routes.code_runner import router as code_runner_router
+from .routes.graph import router as graph_router
 
 
 logging.basicConfig(
@@ -106,6 +107,7 @@ def create_app() -> FastAPI:
     app.include_router(info_stream_router)
     app.include_router(num_person_router)
     app.include_router(code_runner_router)
+    app.include_router(graph_router)
     return app
 
 

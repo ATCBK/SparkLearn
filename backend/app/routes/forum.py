@@ -11,6 +11,7 @@ from ..config import settings
 from ..db import fetch_all, fetch_one, get_conn, now_iso
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
+from ..sensitive_words import contains_sensitive_word, get_sensitive_word_message
 
 router = APIRouter(prefix="/api/forum", tags=["forum"])
 
@@ -225,6 +226,15 @@ async def admin_update_post_status(post_id: int, req: ForumModerationReq):
 
 @router.get("/posts")
 async def list_posts(tab: str = "latest", q: str = "", tag: str = "", page: int = 1, page_size: int = 20):
+    # 敏感词检查
+    if q.strip():
+        is_sensitive, category, found_words = contains_sensitive_word(q.strip())
+        if is_sensitive:
+            raise HTTPException(
+                status_code=400,
+                detail=get_sensitive_word_message(category)
+            )
+
     page = max(1, page)
     page_size = min(50, max(1, page_size))
     user_id = settings.single_user_id
@@ -276,6 +286,15 @@ async def create_post(req: PostCreateReq):
         raise HTTPException(status_code=400, detail="content is required")
     if len(content) > _MAX_CONTENT_LEN:
         raise HTTPException(status_code=400, detail="content too long")
+
+    # 敏感词检查 - 标题和内容
+    for text_to_check, field_name in [(title, "标题"), (content, "内容")]:
+        is_sensitive, category, found_words = contains_sensitive_word(text_to_check)
+        if is_sensitive:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{field_name}包含敏感词汇，请修改后重试"
+            )
 
     ts = now_iso()
     with get_conn() as conn:
@@ -399,6 +418,14 @@ async def create_comment(post_id: int, req: CommentCreateReq):
     content = req.content.strip()
     if not content:
         raise HTTPException(status_code=400, detail="content is required")
+
+    # 敏感词检查 - 评论内容
+    is_sensitive, category, found_words = contains_sensitive_word(content)
+    if is_sensitive:
+        raise HTTPException(
+            status_code=400,
+            detail="评论内容包含敏感词汇，请修改后重试"
+        )
 
     ts = now_iso()
     with get_conn() as conn:

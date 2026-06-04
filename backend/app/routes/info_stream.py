@@ -15,6 +15,7 @@ from ..config import settings
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..info_stream import info_aggregator
 from ..schemas import ok
+from ..sensitive_words import contains_sensitive_word, get_sensitive_word_message
 from ..storage import append_jsonl, read_json, write_json
 
 router = APIRouter(prefix="/api/info-stream", tags=["info-stream"])
@@ -40,6 +41,14 @@ async def search(
     page_size: int = Query(default=10, ge=1, le=30),
 ):
     """搜索外部信息流"""
+    # 敏感词检查
+    is_sensitive, category, found_words = contains_sensitive_word(keyword.strip())
+    if is_sensitive:
+        raise HTTPException(
+            status_code=400,
+            detail=get_sensitive_word_message(category)
+        )
+
     items = await info_aggregator.search(keyword, source=source, page=page, page_size=page_size)
     return ok({"items": items, "total": len(items), "page": page})
 
@@ -69,10 +78,19 @@ async def get_recommendations(
     if not keywords:
         keywords = ["Python", "编程入门"]
 
+    # 过滤敏感词关键词
+    safe_keywords = []
+    for kw in keywords:
+        is_sensitive, _, _ = contains_sensitive_word(kw)
+        if not is_sensitive:
+            safe_keywords.append(kw)
+    if not safe_keywords:
+        safe_keywords = ["Python", "编程入门"]
+
     # 从各源搜索推荐
     import asyncio
     tasks = []
-    for kw in keywords[:2]:
+    for kw in safe_keywords[:2]:
         tasks.append(info_aggregator.search(kw, source="all", page=1, page_size=5))
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -81,7 +99,7 @@ async def get_recommendations(
         if isinstance(result, list):
             items.extend(result)
 
-    return ok({"items": items[:10], "keywords": keywords})
+    return ok({"items": items[:10], "keywords": safe_keywords})
 
 
 class BookmarkReq(BaseModel):
@@ -219,6 +237,16 @@ async def import_resource(
     """将学习发现内容加入我的资源库"""
     if not req.title.strip() or not req.url.strip():
         raise HTTPException(status_code=400, detail="title and url are required")
+
+    # 敏感词检查 - 标题和摘要
+    for text_to_check, field_name in [(req.title, "标题"), (req.summary, "摘要")]:
+        if text_to_check.strip():
+            is_sensitive, category, found_words = contains_sensitive_word(text_to_check)
+            if is_sensitive:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{field_name}包含敏感词汇，无法导入"
+                )
 
     resource = _upsert_info_resource(_info_resource(req))
     append_jsonl(
