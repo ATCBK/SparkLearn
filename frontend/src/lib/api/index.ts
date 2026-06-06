@@ -101,6 +101,7 @@ export const api = {
   downloadVideoArtifact: impl.downloadVideoArtifact,
   polishVideoPrompt: impl.polishVideoPrompt,
   generateVideo: impl.generateVideo,
+  getVideoStyles: impl.getVideoStyles,
 
   getKnowledgeFiles: impl.getKnowledgeFiles,
   uploadKnowledgeFiles: impl.uploadKnowledgeFiles,

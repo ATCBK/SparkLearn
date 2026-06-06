@@ -1,0 +1,201 @@
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$bg-color: #F5F5F5;
+$white: #FFFFFF;
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-hint: #999999;
+
+.detail-page {
+  min-height: 100vh;
+  background-color: $bg-color;
+  padding: 24px;
+  padding-bottom: 140px;
+}
+
+/* 题目信息 */
+.question-info {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.info-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.type-tag {
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.type-tag-text {
+  font-size: 22px;
+  color: $white;
+  font-weight: 500;
+}
+
+.difficulty-tag {
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.difficulty-tag-text {
+  font-size: 22px;
+  color: $white;
+  font-weight: 500;
+}
+
+.knowledge-name {
+  font-size: 26px;
+  color: $primary-color;
+}
+
+/* 题目内容 */
+.question-content {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.question-text {
+  font-size: 30px;
+  color: $text-primary;
+  line-height: 1.8;
+}
+
+/* 选项 */
+.options-section {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.option-item {
+  display: flex;
+  padding: 16px;
+  background: $bg-color;
+  border-radius: 12px;
+}
+
+.option-key {
+  font-size: 28px;
+  font-weight: 600;
+  color: $primary-color;
+  margin-right: 12px;
+}
+
+.option-value {
+  font-size: 28px;
+  color: $text-primary;
+  flex: 1;
+}
+
+/* 正确答案 */
+.answer-section {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.answer-content {
+  padding: 16px;
+  background: rgba($success-color, 0.05);
+  border-radius: 12px;
+  border-left: 4px solid $success-color;
+}
+
+.answer-text {
+  font-size: 28px;
+  color: $success-color;
+  font-weight: 600;
+}
+
+/* 解析 */
+.explanation-section {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.explanation-content {
+  padding: 16px;
+  background: $bg-color;
+  border-radius: 12px;
+}
+
+.explanation-text {
+  font-size: 26px;
+  color: $text-secondary;
+  line-height: 1.8;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  background: $white;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn {
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.practice-btn {
+  background: linear-gradient(135deg, $primary-color 0%, #40A9FF 100%);
+  box-shadow: 0 4px 16px rgba($primary-color, 0.3);
+}
+
+.action-btn-text {
+  font-size: 30px;
+  font-weight: 600;
+  color: $white;
+}
+
+/* 加载和空状态 */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  color: $text-hint;
+  font-size: 28px;
+}
+
+.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  color: $text-hint;
+  font-size: 28px;
+}

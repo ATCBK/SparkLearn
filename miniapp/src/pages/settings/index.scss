@@ -1,0 +1,100 @@
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$bg-color: #F5F5F5;
+$white: #FFFFFF;
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-hint: #999999;
+
+.settings-page {
+  min-height: 100vh;
+  background-color: $bg-color;
+  padding: 24px;
+  padding-bottom: 120px;
+}
+
+/* 设置区块 */
+.settings-section {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 26px;
+  color: $text-hint;
+  margin-bottom: 16px;
+  padding-left: 12px;
+  display: block;
+}
+
+.settings-card {
+  background: $white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 24px;
+  transition: background 0.2s ease;
+
+  &.clickable:active {
+    background: $bg-color;
+  }
+}
+
+.item-info {
+  flex: 1;
+  margin-right: 20px;
+}
+
+.item-title {
+  font-size: 28px;
+  color: $text-primary;
+  font-weight: 500;
+  display: block;
+}
+
+.item-desc {
+  font-size: 24px;
+  color: $text-hint;
+  margin-top: 8px;
+  display: block;
+}
+
+.item-arrow {
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid $text-hint;
+  border-right: 2px solid $text-hint;
+  transform: rotate(45deg);
+}
+
+.settings-divider {
+  height: 1px;
+  background: $bg-color;
+  margin-left: 24px;
+}
+
+/* 版本信息 */
+.version-info {
+  text-align: center;
+  padding: 60px 0;
+}
+
+.version-text {
+  font-size: 24px;
+  color: $text-hint;
+  display: block;
+}
+
+.version-copyright {
+  font-size: 22px;
+  color: $text-hint;
+  margin-top: 8px;
+  display: block;
+  opacity: 0.7;
+}

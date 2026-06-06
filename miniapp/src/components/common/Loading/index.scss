@@ -1,0 +1,88 @@
+$primary-color: #1890FF;
+
+.loading-component {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+
+  &.small {
+    padding: 20px;
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+    }
+    .spinner-dot {
+      width: 8px;
+      height: 8px;
+    }
+    .loading-text {
+      font-size: 24px;
+    }
+  }
+
+  &.medium {
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+    }
+    .spinner-dot {
+      width: 12px;
+      height: 12px;
+    }
+    .loading-text {
+      font-size: 28px;
+    }
+  }
+
+  &.large {
+    padding: 60px;
+    .loading-spinner {
+      width: 80px;
+      height: 80px;
+    }
+    .spinner-dot {
+      width: 16px;
+      height: 16px;
+    }
+    .loading-text {
+      font-size: 32px;
+    }
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner-dot {
+  border-radius: 50%;
+  background: $primary-color;
+  animation: loading 1.4s infinite ease-in-out both;
+
+  &:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+}
+
+@keyframes loading {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.loading-text {
+  color: #999999;
+  margin-top: 16px;
+}

@@ -1,0 +1,24 @@
+.progress-bar-component {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-track {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 24px;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: right;
+}

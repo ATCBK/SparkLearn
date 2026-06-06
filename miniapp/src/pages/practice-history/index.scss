@@ -1,0 +1,140 @@
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$bg-color: #F5F5F5;
+$white: #FFFFFF;
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-hint: #999999;
+
+.history-page {
+  min-height: 100vh;
+  background-color: $bg-color;
+  padding: 24px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.history-card {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-time {
+  font-size: 26px;
+  color: $text-hint;
+}
+
+.rate-tag {
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.rate-tag-text {
+  font-size: 24px;
+  color: $white;
+  font-weight: 600;
+}
+
+.card-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.stat-label {
+  font-size: 22px;
+  color: $text-hint;
+  margin-top: 4px;
+}
+
+.card-footer {
+  padding-top: 16px;
+  border-top: 1px solid $bg-color;
+}
+
+.knowledge-point {
+  font-size: 24px;
+  color: $primary-color;
+}
+
+/* 加载更多 */
+.load-more {
+  padding: 24px;
+  text-align: center;
+}
+
+.load-more-text {
+  font-size: 26px;
+  color: $text-hint;
+}
+
+/* 加载状态 */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  color: $text-hint;
+  font-size: 28px;
+}
+
+/* 空状态 */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.empty-icon {
+  width: 200px;
+  height: 200px;
+  background: $bg-color;
+  border-radius: 50%;
+  margin-bottom: 24px;
+}
+
+.empty-text {
+  font-size: 28px;
+  color: $text-hint;
+  margin-bottom: 32px;
+}
+
+.empty-btn {
+  padding: 20px 60px;
+  background: $primary-color;
+  border-radius: 40px;
+}
+
+.empty-btn-text {
+  font-size: 28px;
+  color: $white;
+}

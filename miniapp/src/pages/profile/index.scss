@@ -1,0 +1,320 @@
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$bg-color: #F5F5F5;
+$white: #FFFFFF;
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-hint: #999999;
+
+.profile-page {
+  min-height: 100vh;
+  background-color: $bg-color;
+  padding-bottom: 120px;
+}
+
+/* 用户信息区域 */
+.user-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.user-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 250px;
+  background: linear-gradient(135deg, $primary-color 0%, #40A9FF 100%);
+}
+
+.user-content {
+  position: relative;
+  padding: 60px 24px 40px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  margin-right: 24px;
+}
+
+.user-detail {
+  flex: 1;
+}
+
+.nickname {
+  font-size: 36px;
+  font-weight: 600;
+  color: $white;
+  display: block;
+}
+
+.level {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 22px;
+  color: $white;
+}
+
+.login-prompt {
+  display: flex;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.default-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  margin-right: 24px;
+}
+
+.login-text {
+  font-size: 36px;
+  font-weight: 600;
+  color: $white;
+}
+
+/* 数据统计 */
+.stats-section {
+  margin: -20px 24px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.stats-card {
+  display: flex;
+  align-items: center;
+  background: $white;
+  border-radius: 20px;
+  padding: 30px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.stat-label {
+  font-size: 22px;
+  color: $text-hint;
+  margin-top: 8px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 60px;
+  background: $bg-color;
+}
+
+/* 功能菜单 */
+.menu-section,
+.bottom-section {
+  margin: 0 24px 24px;
+}
+
+.menu-card {
+  background: $white;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 28px 24px;
+  transition: background 0.2s ease;
+
+  &:active {
+    background: $bg-color;
+  }
+
+  &.logout {
+    .menu-text {
+      color: $error-color;
+    }
+  }
+}
+
+.menu-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  margin-right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-icon {
+  background: rgba($primary-color, 0.1);
+  &::after {
+    content: '历';
+    font-size: 24px;
+    color: $primary-color;
+    font-weight: 600;
+  }
+}
+
+.wrong-icon {
+  background: rgba($warning-color, 0.1);
+  &::after {
+    content: '错';
+    font-size: 24px;
+    color: $warning-color;
+    font-weight: 600;
+  }
+}
+
+.ai-icon {
+  background: rgba($success-color, 0.1);
+  &::after {
+    content: 'AI';
+    font-size: 18px;
+    color: $success-color;
+    font-weight: 600;
+  }
+}
+
+.settings-icon {
+  background: rgba($text-secondary, 0.1);
+  &::after {
+    content: '设';
+    font-size: 24px;
+    color: $text-secondary;
+    font-weight: 600;
+  }
+}
+
+.logout-icon {
+  background: rgba($error-color, 0.1);
+  &::after {
+    content: '出';
+    font-size: 24px;
+    color: $error-color;
+    font-weight: 600;
+  }
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 28px;
+  color: $text-primary;
+}
+
+.menu-arrow {
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid $text-hint;
+  border-right: 2px solid $text-hint;
+  transform: rotate(45deg);
+}
+
+.menu-divider {
+  height: 1px;
+  background: $bg-color;
+  margin-left: 88px;
+}
+
+/* 学习分析 */
+.analysis-section {
+  margin: 0 24px 24px;
+}
+
+.section-header {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.analysis-card {
+  background: $white;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.analysis-item {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.analysis-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.analysis-name {
+  font-size: 26px;
+  color: $text-primary;
+}
+
+.analysis-value {
+  font-size: 26px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.analysis-bar {
+  height: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.analysis-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+/* 加载和空状态 */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+  color: $text-hint;
+  font-size: 28px;
+}
+
+.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+  color: $text-hint;
+  font-size: 28px;
+  background: $white;
+  border-radius: 16px;
+}

@@ -1,0 +1,251 @@
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$bg-color: #F5F5F5;
+$white: #FFFFFF;
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-hint: #999999;
+
+.chat-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: $bg-color;
+}
+
+/* 消息列表 */
+.message-list {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* 欢迎区域 */
+.welcome-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 24px;
+}
+
+.welcome-icon {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $primary-color 0%, #40A9FF 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.welcome-icon-text {
+  font-size: 40px;
+  font-weight: 700;
+  color: $white;
+}
+
+.welcome-title {
+  font-size: 36px;
+  font-weight: 600;
+  color: $text-primary;
+  margin-bottom: 16px;
+}
+
+.welcome-desc {
+  font-size: 28px;
+  color: $text-hint;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.quick-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.quick-question {
+  padding: 16px 24px;
+  background: $white;
+  border-radius: 20px;
+  border: 1px solid $primary-color;
+}
+
+.quick-question-text {
+  font-size: 24px;
+  color: $primary-color;
+}
+
+/* 消息项 */
+.message-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 24px;
+
+  &.user {
+    justify-content: flex-end;
+  }
+
+  &.assistant {
+    justify-content: flex-start;
+  }
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin-left: 16px;
+}
+
+.assistant-avatar {
+  background: linear-gradient(135deg, $primary-color 0%, #40A9FF 100%);
+  margin-right: 16px;
+}
+
+.avatar-text {
+  font-size: 24px;
+  font-weight: 600;
+  color: $white;
+}
+
+.message-content {
+  max-width: 70%;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.user-content {
+  background: $primary-color;
+  border-top-right-radius: 4px;
+}
+
+.assistant-content {
+  background: $white;
+  border-top-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.message-text {
+  font-size: 28px;
+  line-height: 1.6;
+  word-break: break-all;
+
+  .user-content & {
+    color: $white;
+  }
+
+  .assistant-content & {
+    color: $text-primary;
+  }
+}
+
+.message-time {
+  font-size: 20px;
+  margin-top: 8px;
+  display: block;
+
+  .user-content & {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: right;
+  }
+
+  .assistant-content & {
+    color: $text-hint;
+  }
+}
+
+/* 打字指示器 */
+.typing-indicator {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.typing-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: $text-hint;
+  animation: typing 1.4s infinite ease-in-out both;
+
+  &:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 输入区域 */
+.input-section {
+  padding: 16px 24px;
+  background: $white;
+  border-top: 1px solid $bg-color;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.input-field {
+  flex: 1;
+  height: 80px;
+  padding: 0 24px;
+  background: $bg-color;
+  border-radius: 40px;
+  font-size: 28px;
+  color: $text-primary;
+}
+
+.send-btn {
+  width: 120px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $text-hint;
+  border-radius: 40px;
+  transition: all 0.3s ease;
+
+  &.active {
+    background: $primary-color;
+  }
+}
+
+.send-btn-text {
+  font-size: 28px;
+  font-weight: 600;
+  color: $white;
+}

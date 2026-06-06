@@ -1,0 +1,229 @@
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$bg-color: #F5F5F5;
+$white: #FFFFFF;
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-hint: #999999;
+
+.detail-page {
+  min-height: 100vh;
+  background-color: $bg-color;
+  padding: 24px;
+  padding-bottom: 140px;
+}
+
+/* 知识点信息 */
+.node-info {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.node-name {
+  font-size: 36px;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.difficulty-tag {
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.difficulty-tag-text {
+  font-size: 22px;
+  color: $white;
+  font-weight: 500;
+}
+
+.node-category {
+  font-size: 26px;
+  color: $text-hint;
+}
+
+/* 掌握度 */
+.mastery-section {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.mastery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.mastery-value {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.mastery-bar {
+  height: 16px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.mastery-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.3s ease;
+}
+
+.mastery-text {
+  font-size: 24px;
+  font-weight: 600;
+  text-align: right;
+  display: block;
+}
+
+/* 统计数据 */
+.stats-section {
+  margin-bottom: 20px;
+}
+
+.stats-card {
+  display: flex;
+  align-items: center;
+  background: $white;
+  border-radius: 20px;
+  padding: 30px 20px;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.stat-label {
+  font-size: 22px;
+  color: $text-hint;
+  margin-top: 8px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 60px;
+  background: $bg-color;
+}
+
+/* 前置和子知识点 */
+.prerequisites-section,
+.children-section {
+  background: $white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.node-list {
+  margin-top: 16px;
+}
+
+.node-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: $bg-color;
+  border-radius: 12px;
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:active {
+    background: darken($bg-color, 5%);
+  }
+}
+
+.node-item-text {
+  font-size: 26px;
+  color: $text-primary;
+}
+
+.node-arrow {
+  width: 16px;
+  height: 16px;
+  border-top: 2px solid $text-hint;
+  border-right: 2px solid $text-hint;
+  transform: rotate(45deg);
+}
+
+/* 操作按钮 */
+.action-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  background: $white;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn {
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.practice-btn {
+  background: linear-gradient(135deg, $primary-color 0%, #40A9FF 100%);
+  box-shadow: 0 4px 16px rgba($primary-color, 0.3);
+}
+
+.action-btn-text {
+  font-size: 30px;
+  font-weight: 600;
+  color: $white;
+}
+
+/* 加载和空状态 */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  color: $text-hint;
+  font-size: 28px;
+}
+
+.empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  color: $text-hint;
+  font-size: 28px;
+}

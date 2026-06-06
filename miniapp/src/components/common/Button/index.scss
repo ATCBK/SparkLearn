@@ -1,0 +1,124 @@
+$primary-color: #1890FF;
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$text-hint: #999999;
+
+.btn-component {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+
+  &.block {
+    display: flex;
+    width: 100%;
+  }
+
+  &.small {
+    padding: 12px 24px;
+    font-size: 24px;
+  }
+
+  &.medium {
+    padding: 16px 32px;
+    font-size: 28px;
+  }
+
+  &.large {
+    padding: 20px 40px;
+    font-size: 32px;
+  }
+
+  // 类型样式
+  &.primary {
+    background: linear-gradient(135deg, $primary-color 0%, #40A9FF 100%);
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
+
+  &.secondary {
+    background: #F5F5F5;
+    color: #333333;
+
+    &:active {
+      background: #E8E8E8;
+    }
+  }
+
+  &.outline {
+    background: transparent;
+    color: $primary-color;
+    border: 2px solid $primary-color;
+
+    &:active {
+      background: rgba($primary-color, 0.05);
+    }
+  }
+
+  &.text {
+    background: transparent;
+    color: $primary-color;
+    padding: 8px 16px;
+
+    &:active {
+      background: rgba($primary-color, 0.05);
+    }
+  }
+
+  // 状态样式
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.loading {
+    .btn-content {
+      opacity: 0;
+    }
+  }
+}
+
+.btn-loading {
+  position: absolute;
+  display: flex;
+  gap: 6px;
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: button-loading 1.4s infinite ease-in-out both;
+
+  &:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+}
+
+@keyframes button-loading {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

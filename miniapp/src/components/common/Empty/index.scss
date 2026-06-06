@@ -1,0 +1,42 @@
+$primary-color: #1890FF;
+$text-hint: #999999;
+
+.empty-component {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+}
+
+.empty-icon {
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.icon-text {
+  font-size: 80px;
+}
+
+.empty-text {
+  font-size: 28px;
+  color: $text-hint;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.empty-button {
+  padding: 16px 48px;
+  background: $primary-color;
+  border-radius: 40px;
+}
+
+.button-text {
+  font-size: 28px;
+  color: #FFFFFF;
+  font-weight: 500;
+}

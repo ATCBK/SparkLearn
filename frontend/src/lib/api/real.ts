@@ -1320,6 +1320,10 @@ export async function generateVideo(
   }
 }
 
+export async function getVideoStyles(): Promise<Array<{ id: string; name: string; description: string; accent_color: string; bg_gradient: string; tone: string }>> {
+  return fetchJson('/api/video/styles')
+}
+
 // ─── Agent Pet API ─────────────────────────────────────────────────────────────
 
 import type {

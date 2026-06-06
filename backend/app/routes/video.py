@@ -21,6 +21,25 @@ from .common import sse_wrap
 router = APIRouter(prefix="/api/video", tags=["video"])
 
 
+@router.get("/styles")
+async def list_video_styles():
+    """返回可用的视频风格模版列表"""
+    styles = settings.video_styles
+    result = []
+    for style_id, cfg in styles.items():
+        if isinstance(cfg, dict):
+            result.append({
+                "id": style_id,
+                "name": cfg.get("name", style_id),
+                "description": cfg.get("description", ""),
+                "accent_color": cfg.get("accent_color", "#0071e3"),
+                "bg_gradient": cfg.get("bg_gradient", ""),
+                "font_family": cfg.get("font_family", ""),
+                "tone": cfg.get("tone", ""),
+            })
+    return ok(result)
+
+
 class VideoPolishReq(BaseModel):
     prompt: str = Field(min_length=1)
     course_id: str = "python_basic"

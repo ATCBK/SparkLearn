@@ -1,0 +1,61 @@
+// 主题色
+$primary-color: #1890FF;
+$primary-color-light: #40A9FF;
+$primary-color-dark: #096DD9;
+
+// 功能色
+$success-color: #52C41A;
+$warning-color: #FAAD14;
+$error-color: #FF4D4F;
+$info-color: #1890FF;
+
+// 中性色
+$text-primary: #333333;
+$text-secondary: #666666;
+$text-hint: #999999;
+$text-disabled: #CCCCCC;
+
+// 背景色
+$bg-color: #F5F5F5;
+$bg-color-light: #FAFAFA;
+$bg-color-dark: #E8E8E8;
+
+// 边框色
+$border-color: #EEEEEE;
+$border-color-light: #F5F5F5;
+
+// 阴影
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+// 圆角
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 20px;
+$radius-full: 50%;
+
+// 字体大小
+$font-xs: 20px;
+$font-sm: 22px;
+$font-base: 24px;
+$font-md: 26px;
+$font-lg: 28px;
+$font-xl: 30px;
+$font-2xl: 32px;
+$font-3xl: 36px;
+$font-4xl: 40px;
+
+// 间距
+$spacing-xs: 8px;
+$spacing-sm: 12px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-2xl: 40px;
+
+// 动画
+$transition-fast: 0.2s ease;
+$transition-normal: 0.3s ease;
+$transition-slow: 0.5s ease;
