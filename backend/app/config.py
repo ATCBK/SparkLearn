@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # DeepSeek API
     deepseek_api_key: str = ""
-    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_base_url: str = "https://api.deepseek.com/v1"
 
     # DashScope API (阿里云通义千问，OpenAI 兼容接口)
     dashscope_api_key: str = ""
@@ -105,10 +105,10 @@ class Settings(BaseSettings):
     video_default_provider: str = "html_ppt"
     video_ai_enabled: bool = True
     video_ai_provider: str = "openai_compatible"
-    video_ai_base_url: str = "https://api.openai.com/v1"
+    video_ai_base_url: str = "https://api.deepseek.com/v1"
     video_ai_chat_path: str = "/chat/completions"
     video_ai_api_key: str = ""
-    video_ai_model: str = ""
+    video_ai_model: str = "deepseek-v4-flash"
     video_ai_agent_url: str = ""
     video_ai_agent_token: str = ""
     video_ai_timeout_sec: int = 45

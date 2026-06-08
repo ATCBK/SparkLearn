@@ -1,45 +1,38 @@
 'use client';
 
-// ============ 甘特图时间轴组件 ============
-
 import { useMemo } from 'react';
 import type { GanttZoom } from '../hooks/gantt';
-import { generateDateRange, groupDatesByMonth, isToday, isWeekend, formatDateCN, getWeekLabel } from '../utils/dateUtils';
+import { generateDateRange, groupDatesByMonth, isToday, isWeekend, formatDateCN } from '../utils/dateUtils';
 
-interface GanttTimelineProps {
+interface Props {
   startDate: Date;
   endDate: Date;
   zoom: GanttZoom;
   cellWidth: number;
 }
 
-export function GanttTimeline({ startDate, endDate, zoom, cellWidth }: GanttTimelineProps) {
-  // 生成日期数组
+export function GanttTimeline({ startDate, endDate, zoom, cellWidth }: Props) {
   const dates = useMemo(() => generateDateRange(startDate, endDate), [startDate, endDate]);
-
-  // 按月分组
   const monthGroups = useMemo(() => groupDatesByMonth(dates), [dates]);
 
-  // 根据缩放级别决定显示哪些日期刻度
   const displayDates = useMemo(() => {
     switch (zoom) {
       case 'day':
-        return dates; // 显示每一天
+        return dates;
       case 'week':
-        return dates.filter((d) => d.getDay() === 1); // 只显示周一
+        return dates.filter((d) => d.getDay() === 1);
       case 'month':
-        return dates.filter((d) => d.getDate() === 1); // 只显示每月1号
+        return dates.filter((d) => d.getDate() === 1);
     }
   }, [dates, zoom]);
 
   return (
-    <div className="sticky top-0 z-10 bg-white border-b border-[#E5EAF2]">
-      {/* 月份行 */}
-      <div className="flex h-8">
+    <div className="sticky top-0 z-10 border-b border-[#E5EAF2] bg-white">
+      <div className="flex h-7">
         {Array.from(monthGroups.entries()).map(([key, monthDates]) => (
           <div
             key={key}
-            className="flex items-center justify-center border-r border-[#E5EAF2] text-xs font-bold text-[#111827]"
+            className="flex items-center justify-center border-r border-[#E5EAF2] text-[10px] font-bold text-[#111827]"
             style={{ width: monthDates.length * cellWidth }}
           >
             {monthDates[0].getFullYear()}年{monthDates[0].getMonth() + 1}月
@@ -47,8 +40,7 @@ export function GanttTimeline({ startDate, endDate, zoom, cellWidth }: GanttTime
         ))}
       </div>
 
-      {/* 日期刻度行 */}
-      <div className="flex h-8 border-t border-[#F3F4F6]">
+      <div className="flex h-7 border-t border-[#F3F4F6]">
         {displayDates.map((date) => {
           const today = isToday(date);
           const weekend = isWeekend(date);
@@ -56,18 +48,14 @@ export function GanttTimeline({ startDate, endDate, zoom, cellWidth }: GanttTime
           return (
             <div
               key={date.toISOString()}
-              className={`flex items-center justify-center text-[10px] border-r border-[#F3F4F6] ${
-                today
-                  ? 'bg-[#EFF6FF] text-[#2563EB] font-bold'
-                  : weekend
-                    ? 'bg-[#FAFBFC] text-[#9CA3AF]'
-                    : 'text-[#6B7280]'
+              className={`flex items-center justify-center border-r border-[#F3F4F6] text-[9px] ${
+                today ? 'bg-[#EFF6FF] font-bold text-[#2563EB]' : weekend ? 'bg-[#FAFBFC] text-[#9CA3AF]' : 'text-[#6B7280]'
               }`}
               style={{ width: cellWidth }}
             >
               {zoom === 'day' ? (
-                <div className="flex flex-col items-center">
-                  <span className="text-[8px]">{getWeekDay(date)}</span>
+                <div className="flex flex-col items-center leading-none">
+                  <span className="text-[8px]">{['日', '一', '二', '三', '四', '五', '六'][date.getDay()]}</span>
                   <span>{date.getDate()}</span>
                 </div>
               ) : zoom === 'week' ? (
@@ -81,10 +69,4 @@ export function GanttTimeline({ startDate, endDate, zoom, cellWidth }: GanttTime
       </div>
     </div>
   );
-}
-
-/** 获取星期几 */
-function getWeekDay(date: Date): string {
-  const days = ['日', '一', '二', '三', '四', '五', '六'];
-  return days[date.getDay()];
 }

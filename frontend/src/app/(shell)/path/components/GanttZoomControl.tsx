@@ -1,34 +1,30 @@
 'use client';
 
-// ============ 甘特图缩放控制组件 ============
-
 import type { GanttZoom } from '../hooks/gantt';
 
-interface GanttZoomControlProps {
+interface Props {
   zoom: GanttZoom;
   onChange: (zoom: GanttZoom) => void;
 }
 
-const ZOOM_OPTIONS: Array<{ value: GanttZoom; label: string; icon: string }> = [
-  { value: 'day', label: '日', icon: 'D' },
-  { value: 'week', label: '周', icon: 'W' },
-  { value: 'month', label: '月', icon: 'M' },
-];
+export function GanttZoomControl({ zoom, onChange }: Props) {
+  const buttons: Array<{ key: GanttZoom; label: string }> = [
+    { key: 'day', label: '日' },
+    { key: 'week', label: '周' },
+    { key: 'month', label: '月' },
+  ];
 
-export function GanttZoomControl({ zoom, onChange }: GanttZoomControlProps) {
   return (
-    <div className="flex items-center gap-1 rounded-[8px] border border-[#E5EAF2] p-0.5 bg-[#F9FAFB]">
-      {ZOOM_OPTIONS.map((option) => (
+    <div className="inline-flex items-center rounded-[10px] border border-[#E5EAF2] bg-white p-1">
+      {buttons.map((item) => (
         <button
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          className={`rounded-[6px] px-3 py-1.5 text-xs font-bold transition-all ${
-            zoom === option.value
-              ? 'bg-[#2563EB] text-white shadow-sm'
-              : 'text-[#6B7280] hover:text-[#111827] hover:bg-white'
+          key={item.key}
+          onClick={() => onChange(item.key)}
+          className={`rounded-[8px] px-3 py-1.5 text-xs font-bold transition-colors ${
+            zoom === item.key ? 'bg-[#2563EB] text-white' : 'text-[#6B7280] hover:text-[#111827]'
           }`}
         >
-          {option.label}
+          {item.label}
         </button>
       ))}
     </div>

@@ -25,6 +25,10 @@ class VideoAIScriptError(RuntimeError):
     pass
 
 
+def _resolve_video_ai_api_key() -> str:
+    return str(settings.video_ai_api_key or settings.deepseek_api_key or "").strip()
+
+
 def generate_video_script_with_ai(
     prompt: str,
     duration_sec: int,
@@ -312,8 +316,9 @@ def _local_slide_segment(
 
 
 def _call_openai_compatible(prompt: str, duration_sec: int, target_level: str, style: str) -> dict[str, Any]:
-    if not settings.video_ai_api_key or not settings.video_ai_model:
-        raise VideoAIScriptError("video_ai_api_key or video_ai_model is empty")
+    api_key = _resolve_video_ai_api_key()
+    if not api_key or not settings.video_ai_model:
+        raise VideoAIScriptError("video_ai_api_key/deepseek_api_key or video_ai_model is empty")
 
     base_url = settings.video_ai_base_url.rstrip("/")
     chat_path = "/" + settings.video_ai_chat_path.strip("/")
@@ -337,7 +342,7 @@ def _call_openai_compatible(prompt: str, duration_sec: int, target_level: str, s
             },
         ],
     }
-    headers = {"Authorization": f"Bearer {settings.video_ai_api_key}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     with httpx.Client(timeout=settings.video_ai_timeout_sec) as client:
         response = client.post(url, headers=headers, json=payload)
         if response.status_code >= 400:
