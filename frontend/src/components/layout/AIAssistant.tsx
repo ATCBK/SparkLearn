@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Minus, Send, ThumbsDown, ThumbsUp, X, Sparkles, Volume2, Mic, MicOff, Loader2, Pause } from 'lucide-react'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils/cn'
+import { BookLoader } from '@/components/ui/BookLoader'
 import styled from 'styled-components'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -312,25 +313,14 @@ export function AIAssistant() {
       {/* 学习空间过场动画 */}
       {transitioning && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
           style={{
-            background: 'linear-gradient(135deg, #1e1b4b, #312e81, #4c1d95)',
+            background: 'radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 34%), linear-gradient(135deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.98))',
             animation: 'fadeIn 0.3s ease forwards',
           }}
         >
-          <div
-            className="flex flex-col items-center gap-4"
-            style={{ animation: 'scaleIn 0.5s ease forwards' }}
-          >
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-white/10 backdrop-blur-sm ring-2 ring-white/20">
-              <Sparkles size={36} className="text-white animate-pulse" />
-            </div>
-            <p className="text-lg font-semibold text-white/90">正在进入学习空间...</p>
-            <div className="flex gap-1.5">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: '0ms' }} />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: '150ms' }} />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-white/60" style={{ animationDelay: '300ms' }} />
-            </div>
+          <div className="flex flex-col items-center gap-6" style={{ animation: 'scaleIn 0.5s ease forwards' }}>
+            <BookLoader text="正在进入学习空间..." />
           </div>
           <style>{`
             @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
