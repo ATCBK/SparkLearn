@@ -92,8 +92,10 @@ def _resource_payload(resource_id: str, manifest: dict[str, Any], status: str = 
     voice_meta = manifest.get("voice") or {}
     if isinstance(voice_meta, dict):
         voice_value = str(voice_meta.get("voice") or "")
+        voice_provider = str(voice_meta.get("provider") or "")
     else:
         voice_value = str(voice_meta or "")
+        voice_provider = ""
     return {
         "id": resource_id,
         "title": str(manifest.get("title") or "AI 讲解视频"),
@@ -112,6 +114,7 @@ def _resource_payload(resource_id: str, manifest: dict[str, Any], status: str = 
         "provider": str(manifest.get("provider") or settings.video_default_provider),
         "content_source": str(manifest.get("content_source") or ""),
         "tts_provider": str(manifest.get("tts_provider") or "local_fallback"),
+        "voice_provider": voice_provider,
         "voice": voice_value,
         "has_mp4": bool(manifest.get("has_mp4")),
         "slides": int(manifest.get("slides") or 0),

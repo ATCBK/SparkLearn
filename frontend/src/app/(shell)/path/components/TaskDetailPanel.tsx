@@ -60,8 +60,8 @@ export function TaskDetailPanel({ task, onClose, onProgressChange, onDateChange 
   const daysLeft = diffDays(new Date(), task.endDate);
 
   return (
-    <div className="border-t border-[#E5EAF2] bg-[#F9FAFB]">
-      <div className="p-4">
+    <div className="flex h-full flex-col bg-[#F9FAFB]">
+      <div className="flex-1 overflow-auto p-4">
         {/* 头部 */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">

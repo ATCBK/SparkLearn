@@ -228,6 +228,10 @@ def _normalize_voice_config(raw: Any) -> dict[str, Any]:
         result["voice"] = voice
     if provider:
         result["provider"] = provider
+    if not provider and voice == settings.cosyvoice_default_voice:
+        result["provider"] = "cosyvoice"
+    elif not provider and voice == settings.xf_tts_default_voice:
+        result["provider"] = "xfyun"
     for key in ("speed", "pitch", "volume"):
         if raw.get(key) is not None:
             result[key] = raw.get(key)

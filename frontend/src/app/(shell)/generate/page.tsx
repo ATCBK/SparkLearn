@@ -2,7 +2,7 @@
 
 /* eslint-disable react/no-unescaped-entities */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, NotebookPen, ChevronLeft, ChevronRight, MoreHorizontal, Globe, Palette, Zap } from 'lucide-react'
 import { api, KnowledgeFile, Resource, StudentProfile, VideoStyle, VideoScriptSegment, VideoPolishResult } from '@/lib/api'
@@ -32,6 +32,40 @@ const TYPE_PROMPTS: Record<string, string> = {
   quiz: '请基于"函数返回值"生成一组练习题，覆盖简单、中等、困难三个难度。',
   reading: '请基于"函数返回值"生成一份拓展阅读材料，包含背景知识和实际应用场景。',
   code: '请基于"函数返回值"生成一个完整的代码案例，包含问题描述、代码实现和详细讲解。',
+}
+
+const DEFAULT_VIDEO_STYLES: VideoStyle[] = [
+  { id: 'apple-minimal', name: '苹果极简风', description: '白底+蓝色点缀，系统化技术教学', accent_color: '#0071e3', bg_gradient: 'linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%)', font_family: '', code_bg: '#1d1d1f', code_color: '#f5f5f7', card_bg: 'rgba(255,255,255,.74)', tone: '简洁、现代、克制' },
+  { id: 'dark-tech', name: '暗色科技风', description: '深色+霓虹青绿，进阶编程内容', accent_color: '#00e5a0', bg_gradient: 'linear-gradient(135deg, #0a0e17 0%, #111827 48%, #0d1b2a 100%)', font_family: '', code_bg: '#030712', code_color: '#00e5a0', card_bg: 'rgba(17,24,39,.92)', tone: '科技感、黑客风格' },
+  { id: 'warm-education', name: '温暖教育风', description: '柔和暖色+圆润卡片，入门教学', accent_color: '#f59e0b', bg_gradient: 'linear-gradient(135deg, #fefce8 0%, #fff7ed 48%, #fef3c7 100%)', font_family: '', code_bg: '#292524', code_color: '#fef3c7', card_bg: 'rgba(255,252,240,.88)', tone: '温暖、耐心、鼓励式' },
+  { id: 'business-pro', name: '商务专业风', description: '深蓝基调+金色点缀，企业培训', accent_color: '#d4a853', bg_gradient: 'linear-gradient(135deg, #0c1929 0%, #152238 48%, #0f1f3a 100%)', font_family: '', code_bg: '#020617', code_color: '#e2e8f0', card_bg: 'rgba(21,34,56,.94)', tone: '专业、权威、结构化' },
+  { id: 'cartoon-playful', name: '趣味卡通风', description: '多彩渐变+大圆角，少儿编程', accent_color: '#8b5cf6', bg_gradient: 'linear-gradient(135deg, #faf5ff 0%, #ede9fe 25%, #fce7f3 55%, #e0e7ff 100%)', font_family: '', code_bg: '#2d1b69', code_color: '#e9d5ff', card_bg: 'rgba(255,255,255,.82)', tone: '活泼、有趣、游戏化' },
+  { id: 'academic', name: '学术典雅风', description: '米色底色+衬线字体，大学课程', accent_color: '#8b2500', bg_gradient: 'linear-gradient(135deg, #fdfbf7 0%, #f7f3e8 48%, #faf6ee 100%)', font_family: '', code_bg: '#2c2420', code_color: '#f5e6d3', card_bg: 'rgba(253,251,247,.90)', tone: '学术、严谨、深度' },
+]
+
+const VOICE_PROVIDER_OPTIONS = [
+  {
+    id: 'cosyvoice',
+    label: 'CosyVoice',
+    description: '阿里云音色，默认推荐',
+    defaultVoice: 'longxiaochun',
+    voiceColumns: [
+      { id: 'longxiaochun', label: '长小春', description: '默认推荐，沉稳清晰' },
+    ],
+  },
+  {
+    id: 'xfyun',
+    label: '讯飞 TTS',
+    description: '兼容老项目音色',
+    defaultVoice: 'xiaoyan',
+    voiceColumns: [
+      { id: 'xiaoyan', label: '小燕', description: '默认推荐，清晰自然' },
+    ],
+  },
+] as const
+
+function getDefaultVoice(providerId: string) {
+  return VOICE_PROVIDER_OPTIONS.find((item) => item.id === providerId)?.defaultVoice || 'longxiaochun'
 }
 
 function typeLabel(type: string) {
@@ -122,23 +156,15 @@ function GeneratePageContent() {
   const [videoStyleId, setVideoStyleId] = useState('apple-minimal')
   const [videoLevel, setVideoLevel] = useState('beginner')
   const [videoDuration, setVideoDuration] = useState(90)
-  const [videoVoice, setVideoVoice] = useState('')
+  const [videoVoiceProvider, setVideoVoiceProvider] = useState<'cosyvoice' | 'xfyun'>('cosyvoice')
+  const [videoVoice, setVideoVoice] = useState(getDefaultVoice('cosyvoice'))
+  const [videoStyles, setVideoStyles] = useState<VideoStyle[]>(DEFAULT_VIDEO_STYLES)
   const [polishResult, setPolishResult] = useState<VideoPolishResult | null>(null)
   const [polishError, setPolishError] = useState('')
   const [polishing, setPolishing] = useState(false)
   const [generateError, setGenerateError] = useState('')
   const [showSegments, setShowSegments] = useState(false)
   const [sseMessages, setSseMessages] = useState<string[]>([])
-
-  // 视频风格预设（与后端 config.py video_styles 对应）
-  const VIDEO_STYLES: VideoStyle[] = useMemo(() => [
-    { id: 'apple-minimal', name: '苹果极简风', description: '白底+蓝色点缀，系统化技术教学', accent_color: '#0071e3', bg_gradient: 'linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%)', font_family: '', code_bg: '#1d1d1f', code_color: '#f5f5f7', card_bg: 'rgba(255,255,255,.74)', tone: '简洁、现代、克制' },
-    { id: 'dark-tech', name: '暗色科技风', description: '深色+霓虹青绿，进阶编程内容', accent_color: '#00e5a0', bg_gradient: 'linear-gradient(135deg, #0a0e17 0%, #111827 48%, #0d1b2a 100%)', font_family: '', code_bg: '#030712', code_color: '#00e5a0', card_bg: 'rgba(17,24,39,.92)', tone: '科技感、黑客风格' },
-    { id: 'warm-education', name: '温暖教育风', description: '柔和暖色+圆润卡片，入门教学', accent_color: '#f59e0b', bg_gradient: 'linear-gradient(135deg, #fefce8 0%, #fff7ed 48%, #fef3c7 100%)', font_family: '', code_bg: '#292524', code_color: '#fef3c7', card_bg: 'rgba(255,252,240,.88)', tone: '温暖、耐心、鼓励式' },
-    { id: 'business-pro', name: '商务专业风', description: '深蓝基调+金色点缀，企业培训', accent_color: '#d4a853', bg_gradient: 'linear-gradient(135deg, #0c1929 0%, #152238 48%, #0f1f3a 100%)', font_family: '', code_bg: '#020617', code_color: '#e2e8f0', card_bg: 'rgba(21,34,56,.94)', tone: '专业、权威、结构化' },
-    { id: 'cartoon-playful', name: '趣味卡通风', description: '多彩渐变+大圆角，少儿编程', accent_color: '#8b5cf6', bg_gradient: 'linear-gradient(135deg, #faf5ff 0%, #ede9fe 25%, #fce7f3 55%, #e0e7ff 100%)', font_family: '', code_bg: '#2d1b69', code_color: '#e9d5ff', card_bg: 'rgba(255,255,255,.82)', tone: '活泼、有趣、游戏化' },
-    { id: 'academic', name: '学术典雅风', description: '米色底色+衬线字体，大学课程', accent_color: '#8b2500', bg_gradient: 'linear-gradient(135deg, #fdfbf7 0%, #f7f3e8 48%, #faf6ee 100%)', font_family: '', code_bg: '#2c2420', code_color: '#f5e6d3', card_bg: 'rgba(253,251,247,.90)', tone: '学术、严谨、深度' },
-  ], [])
 
   // 资源库相关状态
   const [resources, setResources] = useState<Resource[]>([])
@@ -155,6 +181,22 @@ function GeneratePageContent() {
       if (p.status === 'fulfilled') setProfile(p.value)
       if (k.status === 'fulfilled') setKnowledge(k.value)
     })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    void api.getVideoStyles()
+      .then((styles) => {
+        if (!mounted) return
+        setVideoStyles((Array.isArray(styles) && styles.length > 0) ? styles : DEFAULT_VIDEO_STYLES)
+      })
+      .catch(() => {
+        if (!mounted) return
+        setVideoStyles(DEFAULT_VIDEO_STYLES)
+      })
     return () => {
       mounted = false
     }
@@ -237,6 +279,7 @@ function GeneratePageContent() {
       targetLevel: videoLevel,
       styleId: videoStyleId,
       voice: videoVoice,
+      voiceProvider: videoVoiceProvider,
       onEvent: (evt: { type: string; payload: Record<string, unknown> }) => {
         if (evt.type === 'progress') {
           const msg = String(evt.payload.message || '')
@@ -515,7 +558,7 @@ function GeneratePageContent() {
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
             {step < 3 && <ProtoButton onClick={() => setStep(step + 1)}>下一步</ProtoButton>}
             {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />{type === 'video' ? '生成视频' : '开始生成'}</ProtoButton>}
-            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, prompt, selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice } : undefined); setStep(0) }}>后台生成</ProtoButton>}
+            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, prompt, selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice, voiceProvider: videoVoiceProvider } : undefined); setStep(0) }}>后台生成</ProtoButton>}
           </div>
         </div>
 
@@ -568,9 +611,10 @@ function GeneratePageContent() {
               {/* 视频风格选择器 —— 仅在选择"教学视频"时显示 */}
               {type === 'video' && (
                 <div className="mt-4">
-                  <h3 className="text-h3 font-bold text-ink mb-3">视频风格</h3>
+                  <h3 className="text-h3 font-bold text-ink mb-1">视频风格</h3>
+                  <p className="mb-3 text-micro text-muted">模板来自后端 `/api/video/styles`，页面只做展示和选择，避免前后端模板重复维护。</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {VIDEO_STYLES.map((s) => (
+                    {videoStyles.map((s) => (
                       <button
                         key={s.id}
                         onClick={() => setVideoStyleId(s.id)}
@@ -615,38 +659,53 @@ function GeneratePageContent() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-small font-bold text-ink">视频时长</span>
-                    <span className="text-small font-bold text-blue">{Math.floor(videoDuration / 60)} 分 {videoDuration % 60} 秒</span>
+                    <span className="text-small font-bold text-ink">音色选择</span>
+                    <span className="text-micro text-muted">默认 CosyVoice</span>
                   </div>
-                  <input
-                    type="range"
-                    min={15}
-                    max={180}
-                    step={5}
-                    value={videoDuration}
-                    onChange={(e) => setVideoDuration(Number(e.target.value))}
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                    style={{ accentColor: '#2563eb', background: 'linear-gradient(to right, #2563eb 0%, #2563eb ' + ((videoDuration - 15) / 165 * 100) + '%, #e5e7eb ' + ((videoDuration - 15) / 165 * 100) + '%, #e5e7eb 100%)' }}
-                  />
-                  <div className="flex justify-between text-micro text-muted mt-1">
-                    <span>15s</span>
-                    <span>60s</span>
-                    <span>120s</span>
-                    <span>180s</span>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {VOICE_PROVIDER_OPTIONS.map((provider) => {
+                      const active = videoVoiceProvider === provider.id
+                      return (
+                        <div
+                          key={provider.id}
+                          onClick={() => {
+                            setVideoVoiceProvider(provider.id as 'cosyvoice' | 'xfyun')
+                            setVideoVoice(provider.defaultVoice)
+                          }}
+                          className={`cursor-pointer rounded-[14px] border p-4 text-left transition-all ${active ? 'border-blue bg-blue-light ring-2 ring-blue/20' : 'border-line bg-white hover:border-blue/50'}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <b className="block text-small text-ink">{provider.label}</b>
+                              <span className="mt-1 block text-micro text-muted">{provider.description}</span>
+                            </div>
+                            {active && <CheckCircle2 className="h-4 w-4 text-blue" />}
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            {provider.voiceColumns.map((voice) => {
+                              const voiceActive = active && videoVoice === voice.id
+                              return (
+                                <button
+                                  key={voice.id}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setVideoVoiceProvider(provider.id as 'cosyvoice' | 'xfyun')
+                                    setVideoVoice(voice.id)
+                                  }}
+                                  className={`rounded-[12px] border px-3 py-2 text-left transition-all ${voiceActive ? 'border-blue bg-white shadow-sm' : 'border-dashed border-[#dbe3ee] bg-[#f8fafc] hover:border-blue/50'}`}
+                                >
+                                  <span className="block text-small font-bold text-ink">{voice.label}</span>
+                                  <span className="mt-1 block text-micro text-muted">{voice.id}</span>
+                                  <span className="mt-1 block text-micro text-muted">{voice.description}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-small font-bold text-ink">音色 ID</span>
-                    <span className="text-micro text-muted">当前：{videoVoice || '未设置'}</span>
-                  </div>
-                  <input
-                    value={videoVoice}
-                    onChange={(e) => setVideoVoice(e.target.value)}
-                    placeholder="例如：xiaoyan / longxiaochun"
-                    className="w-full rounded-[12px] border border-line bg-white px-3 py-2 text-small text-ink outline-none transition-colors focus:border-blue"
-                  />
-                  <p className="mt-2 text-micro text-muted">留空时使用后端默认音色；填写后会随视频任务一起传给 TTS 合成。</p>
                 </div>
               </>
             )}
@@ -763,10 +822,10 @@ function GeneratePageContent() {
               <>
                 <SoftCard className="bg-blue-light">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: VIDEO_STYLES.find(s => s.id === videoStyleId)?.bg_gradient }}>
-                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: VIDEO_STYLES.find(s => s.id === videoStyleId)?.accent_color }} />
+                    <span className="grid h-6 w-6 place-items-center rounded-full" style={{ background: videoStyles.find(s => s.id === videoStyleId)?.bg_gradient }}>
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: videoStyles.find(s => s.id === videoStyleId)?.accent_color }} />
                     </span>
-                    <b className="text-small text-ink">{VIDEO_STYLES.find(s => s.id === videoStyleId)?.name || videoStyleId}</b>
+                    <b className="text-small text-ink">{videoStyles.find(s => s.id === videoStyleId)?.name || videoStyleId}</b>
                     <span className="text-micro text-muted">{videoLevel === 'beginner' ? '入门' : videoLevel === 'intermediate' ? '进阶' : '精通'} · {Math.floor(videoDuration / 60)}分{videoDuration % 60}秒</span>
                   </div>
                 </SoftCard>

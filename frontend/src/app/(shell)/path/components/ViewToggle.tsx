@@ -1,66 +1,67 @@
 'use client';
 
-// ============ 视图切换按钮组件 ============
-
 interface ViewToggleProps {
   viewMode: 'path' | 'gantt';
   onChange: (mode: 'path' | 'gantt') => void;
 }
 
+const MODE_META = {
+  path: {
+    title: '卡片视图',
+    desc: '编辑步骤结构',
+    icon: (
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  gantt: {
+    title: '甘特图',
+    desc: '查看时间排期',
+    icon: (
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3v18h18" />
+        <path d="M7 8h10" />
+        <path d="M7 12h6" />
+        <path d="M7 16h8" />
+      </svg>
+    ),
+  },
+} as const;
+
 export function ViewToggle({ viewMode, onChange }: ViewToggleProps) {
   return (
-    <div className="flex items-center gap-2 p-1 rounded-[10px] border border-[#E5EAF2] bg-[#F9FAFB]">
-      {/* 卡片视图 */}
-      <button
-        onClick={() => onChange('path')}
-        className={`flex items-center gap-2 rounded-[8px] px-4 py-2 text-sm font-bold transition-all ${
-          viewMode === 'path'
-            ? 'bg-white text-[#2563EB] shadow-sm'
-            : 'text-[#6B7280] hover:text-[#111827]'
-        }`}
-      >
-        <svg
-          className="w-4 h-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+    <div className="w-full max-w-[520px] rounded-[14px] border border-[#D9E4F2] bg-white p-1 shadow-sm">
+      <div className="grid grid-cols-2 gap-1">
+        <button
+          onClick={() => onChange('path')}
+          aria-pressed={viewMode === 'path'}
+          className={`flex items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-sm font-bold transition-all ${
+            viewMode === 'path'
+              ? 'bg-[#2563EB] text-white shadow-sm'
+              : 'bg-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]'
+          }`}
         >
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-        </svg>
-        卡片
-      </button>
+          {MODE_META.path.icon}
+          <span>{MODE_META.path.title}</span>
+        </button>
 
-      {/* 甘特图视图 */}
-      <button
-        onClick={() => onChange('gantt')}
-        className={`flex items-center gap-2 rounded-[8px] px-4 py-2 text-sm font-bold transition-all ${
-          viewMode === 'gantt'
-            ? 'bg-white text-[#2563EB] shadow-sm'
-            : 'text-[#6B7280] hover:text-[#111827]'
-        }`}
-      >
-        <svg
-          className="w-4 h-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+        <button
+          onClick={() => onChange('gantt')}
+          aria-pressed={viewMode === 'gantt'}
+          className={`flex items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-sm font-bold transition-all ${
+            viewMode === 'gantt'
+              ? 'bg-[#2563EB] text-white shadow-sm'
+              : 'bg-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]'
+          }`}
         >
-          <path d="M3 3v18h18" />
-          <path d="M7 8h10" />
-          <path d="M7 12h6" />
-          <path d="M7 16h8" />
-        </svg>
-        甘特图
-      </button>
+          {MODE_META.gantt.icon}
+          <span>{MODE_META.gantt.title}</span>
+        </button>
+      </div>
     </div>
   );
 }

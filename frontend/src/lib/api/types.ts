@@ -496,6 +496,7 @@ export interface VideoInfo {
   status?: 'generating' | 'completed' | 'failed'
   provider?: string
   ttsProvider?: string
+  voiceProvider?: string
   voice?: string
   hasMp4?: boolean
   muxStatus?: string
@@ -550,6 +551,7 @@ export interface VideoGenerateOptions {
   prompt: string
   polish?: VideoPolishResult
   voice?: string
+  voiceProvider?: string
   durationSec?: number
 }
 

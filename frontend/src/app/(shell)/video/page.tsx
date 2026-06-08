@@ -260,6 +260,9 @@ export default function VideoPage() {
                           <Clock className="h-3 w-3" />
                           {formatDuration(Math.round(video.duration / 60))}
                         </p>
+                        {video.voiceProvider && (
+                          <p className="mt-1 text-micro text-muted">TTS：{video.voiceProvider}</p>
+                        )}
                         {video.voice && (
                           <p className="mt-1 text-micro text-muted">音色：{video.voice}</p>
                         )}

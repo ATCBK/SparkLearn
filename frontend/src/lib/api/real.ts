@@ -302,6 +302,8 @@ export async function generateResource(
     durationSec?: number
     targetLevel?: string
     styleId?: string
+    voice?: string
+    voiceProvider?: string
     onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
   },
 ): Promise<Resource> {
@@ -1031,6 +1033,7 @@ export async function getVideos(): Promise<VideoInfo[]> {
       hasMp4: Boolean(rawUrl && (v.has_mp4 || v.hasMp4)),
       provider: v.provider,
       ttsProvider: v.tts_provider || v.ttsProvider,
+      voiceProvider: v.voice_provider || v.voiceProvider,
       voice: rawVoice,
       muxMessage: v.mux_message || v.muxMessage,
     }
@@ -1252,6 +1255,7 @@ export async function generateVideo(
     targetLevel?: string
     styleId?: string
     voice?: string
+    voiceProvider?: string
     onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
   },
 ): Promise<Resource> {
@@ -1259,6 +1263,7 @@ export async function generateVideo(
   const targetLevel = options?.targetLevel ?? 'beginner'
   const styleId = options?.styleId ?? 'apple-minimal'
   const voice = options?.voice ?? ''
+  const voiceProvider = options?.voiceProvider ?? 'cosyvoice'
   const onEvent = options?.onEvent
 
   // Step 1: Polish the prompt into a script
@@ -1276,7 +1281,7 @@ export async function generateVideo(
       style_id: styleId,
       target_level: targetLevel,
       duration_sec: durationSec,
-      voice: voice ? { voice } : {},
+      voice: voice ? { provider: voiceProvider, voice } : { provider: voiceProvider },
     }),
   })
 

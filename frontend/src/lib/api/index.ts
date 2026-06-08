@@ -64,6 +64,7 @@ export const api = {
   getPathNodeSuggestions: impl.getPathNodeSuggestions,
 
   getVideos: impl.getVideos,
+  getVideoStyles: impl.getVideoStyles,
 
   getDailyQuote: impl.getDailyQuote,
 

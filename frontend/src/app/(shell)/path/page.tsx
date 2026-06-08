@@ -275,8 +275,11 @@ export default function PathPage() {
 
       <div>
         {/* 摘要条 + 视图切换 */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="mb-4">
           <SummaryBar />
+        </div>
+
+        <div className="mb-6 flex justify-end">
           <ViewToggle viewMode={viewMode} onChange={setViewMode} />
         </div>
 
@@ -311,7 +314,7 @@ export default function PathPage() {
         ) : (
           /* 甘特图视图 */
           <div
-            className="mt-6 rounded-[14px] border border-[#E5EAF2] bg-white shadow-sm overflow-hidden flex flex-col"
+            className="mt-6 relative rounded-[14px] border border-[#E5EAF2] bg-white shadow-sm overflow-hidden"
             style={{ height: 'calc(100vh - 280px)' }}
           >
             {/* 甘特图工具栏 */}
@@ -341,7 +344,7 @@ export default function PathPage() {
             </div>
 
             {/* 甘特图主体（统一容器，左右同步滚动） */}
-            <div className="flex-1 overflow-hidden">
+            <div className={`h-[calc(100%-56px)] overflow-hidden ${gantt.selectedTask ? 'pr-[392px]' : ''}`}>
               <GanttContainer
                 phases={editor.phases}
                 tasks={gantt.allTasks}
@@ -359,12 +362,14 @@ export default function PathPage() {
 
             {/* 任务详情面板 */}
             {gantt.selectedTask && (
-              <TaskDetailPanel
-                task={gantt.selectedTask}
-                onClose={() => handleGanttNodeSelect(null)}
-                onProgressChange={gantt.updateProgress}
-                onDateChange={handleDateChange}
-              />
+              <div className="absolute right-4 top-[70px] bottom-4 w-[368px] overflow-hidden rounded-[16px] border border-[#E5EAF2] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)]">
+                <TaskDetailPanel
+                  task={gantt.selectedTask}
+                  onClose={() => handleGanttNodeSelect(null)}
+                  onProgressChange={gantt.updateProgress}
+                  onDateChange={handleDateChange}
+                />
+              </div>
             )}
           </div>
         )}
