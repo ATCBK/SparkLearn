@@ -15,7 +15,7 @@ interface GenerationTask {
 
 interface GenerationTaskContextType {
   tasks: GenerationTask[]
-  startBackgroundGeneration: (type: string, prompt: string, knowledgeFileIds?: number[]) => void
+  startBackgroundGeneration: (type: string, prompt: string, knowledgeFileIds?: number[], videoOptions?: { styleId?: string; durationSec?: number; voice?: string }) => void
   dismissTask: (id: string) => void
 }
 
@@ -36,7 +36,7 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
   const router = useRouter()
   const taskIdRef = useRef(0)
 
-  const startBackgroundGeneration = useCallback((type: string, prompt: string, knowledgeFileIds: number[] = []) => {
+  const startBackgroundGeneration = useCallback((type: string, prompt: string, knowledgeFileIds: number[] = [], videoOptions?: { styleId?: string; durationSec?: number; voice?: string }) => {
     const taskId = `bg-${Date.now()}-${++taskIdRef.current}`
     const newTask: GenerationTask = {
       id: taskId,
@@ -46,6 +46,10 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
     }
     setTasks(prev => [...prev, newTask])
 
+    const styleId = videoOptions?.styleId || 'apple-minimal'
+    const durationSec = videoOptions?.durationSec || 90
+    const voice = videoOptions?.voice || ''
+
     // 视频类型走独立管线
     if (type === 'video') {
       (async () => {
@@ -54,7 +58,7 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
           const polishRes = await fetch(`${API_BASE}/api/video/polish`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, duration_sec: 90 }),
+            body: JSON.stringify({ prompt, duration_sec: durationSec, style_id: styleId, voice }),
           })
           const polishJson = await polishRes.json()
           const polish = polishJson.data || polishJson
@@ -69,6 +73,9 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
               title: polish.title || prompt.slice(0, 20),
               script_outline: polish.script_outline || [],
               video_provider: 'html_ppt',
+              style_id: styleId,
+              duration_sec: durationSec,
+              voice: voice ? { voice } : {},
             }),
           })
           const jobJson = await jobRes.json()

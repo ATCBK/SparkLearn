@@ -13,11 +13,31 @@ from pydantic import BaseModel, Field
 from ..config import settings
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
+from ..video_ai import VideoAIScriptError
 from ..video_generator import artifact_dir, build_video_artifacts, make_polished_script, now_iso
 from .common import sse_wrap
 
 
 router = APIRouter(prefix="/api/video", tags=["video"])
+
+
+@router.get("/styles")
+async def list_video_styles():
+    """返回可用的视频风格模版列表"""
+    styles = settings.video_styles
+    result = []
+    for style_id, cfg in styles.items():
+        if isinstance(cfg, dict):
+            result.append({
+                "id": style_id,
+                "name": cfg.get("name", style_id),
+                "description": cfg.get("description", ""),
+                "accent_color": cfg.get("accent_color", "#0071e3"),
+                "bg_gradient": cfg.get("bg_gradient", ""),
+                "font_family": cfg.get("font_family", ""),
+                "tone": cfg.get("tone", ""),
+            })
+    return ok(result)
 
 
 class VideoPolishReq(BaseModel):
@@ -26,6 +46,7 @@ class VideoPolishReq(BaseModel):
     user_id: str = "single_user"
     target_level: str = "beginner"
     duration_sec: int = Field(default=90, ge=15, le=180)
+    style_id: str = "apple-minimal"
     style: str = "清晰、生动、适合课堂讲解"
     voice: str = ""
 
@@ -39,6 +60,9 @@ class VideoJobReq(BaseModel):
     ai_provider: str = ""
     ai_model: str = ""
     video_provider: str = "html_ppt"
+    style_id: str = "apple-minimal"
+    target_level: str = "beginner"
+    duration_sec: int = 90
     voice: dict[str, Any] = Field(default_factory=dict)
     output: dict[str, Any] = Field(default_factory=dict)
 
@@ -65,6 +89,11 @@ def _api_url(path: str) -> str:
 
 def _resource_payload(resource_id: str, manifest: dict[str, Any], status: str = "completed") -> dict[str, Any]:
     duration_ms = int(manifest.get("duration_ms") or 0)
+    voice_meta = manifest.get("voice") or {}
+    if isinstance(voice_meta, dict):
+        voice_value = str(voice_meta.get("voice") or "")
+    else:
+        voice_value = str(voice_meta or "")
     return {
         "id": resource_id,
         "title": str(manifest.get("title") or "AI 讲解视频"),
@@ -83,6 +112,7 @@ def _resource_payload(resource_id: str, manifest: dict[str, Any], status: str = 
         "provider": str(manifest.get("provider") or settings.video_default_provider),
         "content_source": str(manifest.get("content_source") or ""),
         "tts_provider": str(manifest.get("tts_provider") or "local_fallback"),
+        "voice": voice_value,
         "has_mp4": bool(manifest.get("has_mp4")),
         "slides": int(manifest.get("slides") or 0),
         "audio_status": str(manifest.get("audio_status") or ""),
@@ -114,11 +144,12 @@ async def polish_video_prompt(req: VideoPolishReq):
         prompt=req.prompt,
         duration_sec=req.duration_sec,
         target_level=req.target_level,
-        style=req.style,
+        style=req.style_id or req.style or "apple-minimal",
+        voice=req.voice,
     )
     if req.voice:
         result["voice"] = req.voice
-    append_jsonl(settings.single_user_id, "video_events.jsonl", {"type": "video_polished", "polish_id": result["polish_id"]})
+    append_jsonl(settings.single_user_id, "video_events.jsonl", {"type": "video_polished", "polish_id": result["polish_id"], "style_id": req.style_id})
     return ok(result)
 
 
@@ -157,10 +188,14 @@ async def video_job_events(job_id: str):
             yield ("done", {"resource_id": resource_id, "resource": existing})
             return
 
+        style_id = str(job.get("style_id") or job.get("styleId") or "apple-minimal")
+        style_config = settings.video_styles.get(style_id, settings.video_styles.get("apple-minimal", {}))
+        style_name = style_config.get("name", style_id) if isinstance(style_config, dict) else style_id
+
         stages = [
-            ("scripting", 18, "正在整理分镜与讲稿"),
-            ("video_rendering", 42, "正在生成教学场景"),
-            ("tts_synthesizing", 68, "正在生成语音播报降级音轨"),
+            ("scripting", 18, f"正在用 {style_name} 风格整理分镜与讲稿"),
+            ("video_rendering", 42, f"正在以 {style_name} 风格生成教学场景"),
+            ("tts_synthesizing", 68, "正在生成语音播报"),
             ("muxing", 88, "正在写入字幕与时间轴"),
         ]
         for stage, progress, message in stages:
@@ -184,8 +219,10 @@ async def video_job_events(job_id: str):
             yield ("artifact", {"kind": "timeline", "url": resource["timeline_url"], "resource_id": resource_id})
             yield ("progress", {"stage": "completed", "progress": 100, "message": "视频创作产物已生成", "resource_id": resource_id})
             yield ("done", {"resource_id": resource_id, "resource": resource})
+        except VideoAIScriptError as ex:
+            yield ("error", {"code": "VIDEO_SCRIPT_ERROR", "message": str(ex), "retryable": False})
         except Exception as ex:
-            yield ("error", {"code": "VIDEO_GENERATION_FAILED", "message": str(ex), "retryable": True})
+            yield ("error", {"code": "VIDEO_GENERATION_FAILED", "message": f"视频生成失败：{ex}", "retryable": True})
 
     return StreamingResponse(sse_wrap(gen()), media_type="text/event-stream")
 

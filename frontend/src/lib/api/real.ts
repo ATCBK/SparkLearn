@@ -949,6 +949,21 @@ export async function getPathPlanningHistory(): Promise<PathPlanningData[]> {
   return (Array.isArray(data) ? data : []).map(toPathPlanning)
 }
 
+export async function savePathPlanning(req: {
+  pathId: string
+  target: string
+  phases: Array<{ id: number; title: string; description?: string; nodes: Array<{ id: string; title: string; source: string }> }>
+}): Promise<{ saved: boolean; pathId: string }> {
+  return fetchJson('/api/path-planning/save', {
+    method: 'POST',
+    body: JSON.stringify({
+      path_id: req.pathId,
+      target: req.target,
+      phases: req.phases,
+    }),
+  })
+}
+
 export async function getPathNodeSuggestions(req: {
   nodeTitle: string
   nodeGoal: string
@@ -1002,6 +1017,7 @@ export async function getVideos(): Promise<VideoInfo[]> {
     const rawAudio = v.audio_url || v.audioUrl || ''
     const rawSubtitle = v.subtitle_url || v.subtitleUrl || ''
     const rawScene = v.scene_url || v.sceneUrl || ''
+    const rawVoice = typeof v.voice === 'string' ? v.voice : String(v.voice?.voice || '')
     return {
       id: v.id || v.resource_id,
       title: v.title,
@@ -1015,6 +1031,7 @@ export async function getVideos(): Promise<VideoInfo[]> {
       hasMp4: Boolean(rawUrl && (v.has_mp4 || v.hasMp4)),
       provider: v.provider,
       ttsProvider: v.tts_provider || v.ttsProvider,
+      voice: rawVoice,
       muxMessage: v.mux_message || v.muxMessage,
     }
   })
@@ -1201,6 +1218,7 @@ export async function polishVideoPrompt(
   durationSec: number = 90,
   targetLevel: string = 'beginner',
   styleId: string = 'apple-minimal',
+  voice: string = '',
 ): Promise<{
   polishId: string
   title: string
@@ -1213,7 +1231,7 @@ export async function polishVideoPrompt(
 }> {
   const data = await fetchJson<any>('/api/video/polish', {
     method: 'POST',
-    body: JSON.stringify({ prompt, duration_sec: durationSec, target_level: targetLevel, style_id: styleId }),
+    body: JSON.stringify({ prompt, duration_sec: durationSec, target_level: targetLevel, style_id: styleId, voice }),
   })
   return {
     polishId: data.polish_id,
@@ -1233,16 +1251,18 @@ export async function generateVideo(
     durationSec?: number
     targetLevel?: string
     styleId?: string
+    voice?: string
     onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
   },
 ): Promise<Resource> {
   const durationSec = options?.durationSec ?? 90
   const targetLevel = options?.targetLevel ?? 'beginner'
   const styleId = options?.styleId ?? 'apple-minimal'
+  const voice = options?.voice ?? ''
   const onEvent = options?.onEvent
 
   // Step 1: Polish the prompt into a script
-  const polish = await polishVideoPrompt(prompt, durationSec, targetLevel, styleId)
+  const polish = await polishVideoPrompt(prompt, durationSec, targetLevel, styleId, voice)
 
   // Step 2: Create a video generation job
   const job = await fetchJson<any>('/api/video/jobs', {
@@ -1256,6 +1276,7 @@ export async function generateVideo(
       style_id: styleId,
       target_level: targetLevel,
       duration_sec: durationSec,
+      voice: voice ? { voice } : {},
     }),
   })
 
@@ -1303,6 +1324,10 @@ export async function generateVideo(
       createdAt: new Date().toISOString(),
     }
   }
+}
+
+export async function getVideoStyles(): Promise<Array<{ id: string; name: string; description: string; accent_color: string; bg_gradient: string; tone: string }>> {
+  return fetchJson('/api/video/styles')
 }
 
 // ─── Agent Pet API ─────────────────────────────────────────────────────────────

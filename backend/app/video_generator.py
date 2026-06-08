@@ -17,11 +17,10 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 from .config import settings
-from .video_ai import VideoAIScriptError, generate_local_video_script, generate_video_script_with_ai
+from .video_ai import VideoAIScriptError, generate_video_script_with_ai
 
 
 VIDEO_ARTIFACT_ROOT = settings.data_dir / "artifacts" / "video"
-_FFMPEG_ENV_KEYS = ("FFMPEG_BINARY", "FFMPEG_PATH", "VIDEO_FFMPEG_PATH")
 
 
 def now_iso() -> str:
@@ -39,6 +38,7 @@ def make_polished_script(
     duration_sec: int = 90,
     target_level: str = "beginner",
     style: str = "apple-minimal",
+    voice: str = "",
 ) -> dict[str, Any]:
     clean_prompt = " ".join(prompt.strip().split()) or "Python 基础知识讲解"
     polish_id = _make_polish_id(clean_prompt, duration_sec, target_level, style)
@@ -52,27 +52,15 @@ def make_polished_script(
             "polished_prompt": str(ai_script.get("polished_prompt") or clean_prompt),
             "script_outline": ai_script.get("script_outline") or [],
             "estimated_duration_sec": duration_sec,
-            "voice": settings.xf_tts_default_voice,
+            "voice": voice or settings.xf_tts_default_voice,
             "content_source": "ai",
             "ai_provider": str(ai_script.get("ai_provider") or settings.video_ai_provider),
             "ai_model": str(ai_script.get("ai_model") or settings.video_ai_model),
             "style_id": style,
             "style_name": style_config.get("name", style),
         }
-    except Exception:
-        if not settings.video_ai_fallback_enabled:
-            raise VideoAIScriptError("AI 视频脚本生成失败")
-        local_script = generate_local_video_script(clean_prompt, duration_sec, target_level, style)
-        local_script.update(
-            {
-                "polish_id": polish_id,
-                "estimated_duration_sec": duration_sec,
-                "voice": settings.xf_tts_default_voice,
-                "style_id": style,
-                "style_name": style_config.get("name", style),
-            }
-        )
-        return local_script
+    except Exception as ex:
+        raise VideoAIScriptError(f"AI 视频脚本生成失败：{ex}") from ex
 
 
 def _topic_code_sample(topic: str) -> str:
@@ -95,9 +83,10 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
     style_id = str(job.get("style_id") or job.get("styleId") or "apple-minimal")
     style_config = _get_style_config(style_id)
     style_name = style_config.get("name", style_id)
+    voice_config = _normalize_voice_config(job.get("voice") or {})
     generated_script: dict[str, Any] = {}
     if not isinstance(script_outline, list) or not script_outline:
-        generated_script = make_polished_script(prompt, style=style_id)
+        generated_script = make_polished_script(prompt, style=style_id, voice=str(voice_config.get("voice") or ""))
         script_outline = generated_script.get("script_outline", [])
         title = str(generated_script.get("title") or title)
         style_id = str(generated_script.get("style_id") or style_id)
@@ -114,11 +103,12 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
         "ai_model": str(job.get("ai_model") or generated_script.get("ai_model") or settings.video_ai_model),
         "style_id": style_id,
         "style_name": style_name,
+        "voice": voice_config,
         "script_outline": script_outline,
     }
 
     (root / "script.json").write_text(json.dumps(script, ensure_ascii=False, indent=2), encoding="utf-8")
-    audio_result = _write_segment_audio_files(root, segments)
+    audio_result = _write_segment_audio_files(root, segments, voice_config=voice_config)
     _sync_segments_to_audio_durations(root, segments)
     duration_ms = segments[-1]["end_ms"] if segments else 0
 
@@ -225,13 +215,40 @@ def _write_slide_html_files(root: Path, title: str, slides: list[dict[str, Any]]
     return paths
 
 
-def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> dict[str, str]:
+def _normalize_voice_config(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, str):
+        value = raw.strip()
+        return {"voice": value} if value else {}
+    if not isinstance(raw, dict):
+        return {}
+    result: dict[str, Any] = {}
+    voice = str(raw.get("voice") or raw.get("vcn") or raw.get("name") or "").strip()
+    provider = str(raw.get("provider") or raw.get("tts_provider") or "").strip().lower()
+    if voice:
+        result["voice"] = voice
+    if provider:
+        result["provider"] = provider
+    for key in ("speed", "pitch", "volume"):
+        if raw.get(key) is not None:
+            result[key] = raw.get(key)
+    return result
+
+
+def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]], voice_config: dict[str, Any] | None = None) -> dict[str, Any]:
     audio_dir = root / "audio_segments"
     audio_dir.mkdir(parents=True, exist_ok=True)
+    voice_config = voice_config or {}
+    selected_voice = str(voice_config.get("voice") or "")
+    selected_provider = str(voice_config.get("provider") or "").lower()
+    speech_rate = float(voice_config.get("speed") or 0)
+    pitch_rate = float(voice_config.get("pitch") or 0)
+    volume = float(voice_config.get("volume") or 0)
 
     # 根据 tts_provider 配置决定尝试顺序
     provider = settings.tts_provider.lower()
-    if provider == "cosyvoice":
+    if selected_provider in {"cosyvoice", "xfyun", "windows_sapi"}:
+        chain = [selected_provider]
+    elif provider == "cosyvoice":
         chain = ["cosyvoice"]
     elif provider == "xfyun":
         chain = ["xfyun"]
@@ -256,9 +273,23 @@ def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> di
         message = ""
         for p in chain:
             if p == "cosyvoice":
-                ok, message = _try_cosyvoice_tts_wav(wav_path, text)
+                ok, message = _try_cosyvoice_tts_wav(
+                    wav_path,
+                    text,
+                    voice=selected_voice,
+                    speech_rate=speech_rate,
+                    pitch_rate=pitch_rate,
+                    volume=volume,
+                )
             elif p == "xfyun":
-                ok, message = _try_xfyun_tts_wav(wav_path, text)
+                ok, message = _try_xfyun_tts_wav(
+                    wav_path,
+                    text,
+                    voice=selected_voice,
+                    speech_rate=speech_rate,
+                    pitch_rate=pitch_rate,
+                    volume=volume,
+                )
             elif p == "windows_sapi":
                 ok, message = _try_windows_sapi_tts(wav_path, text)
             if ok:
@@ -277,11 +308,12 @@ def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]]) -> di
         "windows_sapi": "已用 Windows SAPI 生成逐页讲解 WAV。",
     }
     if used_provider in provider_messages:
-        return {"provider": used_provider, "status": "completed", "message": provider_messages[used_provider]}
+        return {"provider": used_provider, "status": "completed", "message": provider_messages[used_provider], "voice": selected_voice}
     return {
         "provider": "tone_fallback",
         "status": "fallback",
         "message": "所有 TTS 不可用，已生成可播放提示音轨。 " + "；".join(messages[:2]),
+        "voice": selected_voice,
     }
 
 
@@ -293,7 +325,7 @@ def _has_xfyun_tts_config() -> bool:
     return bool(settings.xf_tts_app_id and settings.xf_tts_api_key and settings.xf_tts_api_secret)
 
 
-def _try_cosyvoice_tts_wav(path: Path, text: str) -> tuple[bool, str]:
+def _try_cosyvoice_tts_wav(path: Path, text: str, voice: str = "", speech_rate: float = 0, pitch_rate: float = 0, volume: float = 0) -> tuple[bool, str]:
     """使用阿里云 CosyVoice 合成语音并写入 WAV 文件"""
     if not text.strip():
         return False, "讲稿为空。"
@@ -312,11 +344,11 @@ def _try_cosyvoice_tts_wav(path: Path, text: str) -> tuple[bool, str]:
 
         synthesizer = SpeechSynthesizer(
             model=settings.cosyvoice_model,
-            voice=settings.cosyvoice_default_voice,
+            voice=voice or settings.cosyvoice_default_voice,
             format=audio_fmt,
-            speech_rate=settings.cosyvoice_speech_rate,
-            pitch_rate=settings.cosyvoice_pitch_rate,
-            volume=int(settings.cosyvoice_volume * 50),
+            speech_rate=speech_rate if speech_rate > 0 else settings.cosyvoice_speech_rate,
+            pitch_rate=pitch_rate if pitch_rate > 0 else settings.cosyvoice_pitch_rate,
+            volume=int((volume if volume > 0 else settings.cosyvoice_volume) * 50),
         )
         audio_bytes = synthesizer.call(text)
         if not audio_bytes:
@@ -327,7 +359,7 @@ def _try_cosyvoice_tts_wav(path: Path, text: str) -> tuple[bool, str]:
         return False, f"CosyVoice 调用失败：{ex}"
 
 
-def _try_xfyun_tts_wav(path: Path, text: str) -> tuple[bool, str]:
+def _try_xfyun_tts_wav(path: Path, text: str, voice: str = "", speech_rate: float = 0, pitch_rate: float = 0, volume: float = 0) -> tuple[bool, str]:
     if not text.strip():
         return False, "讲稿为空。"
     try:
@@ -344,11 +376,11 @@ def _try_xfyun_tts_wav(path: Path, text: str) -> tuple[bool, str]:
             "business": {
                 "aue": "raw",
                 "auf": auf,
-                "vcn": settings.xf_tts_default_voice,
+                "vcn": voice or settings.xf_tts_default_voice,
                 "tte": "utf8",
-                "speed": settings.xf_tts_speed,
-                "volume": settings.xf_tts_volume,
-                "pitch": settings.xf_tts_pitch,
+                "speed": int(speech_rate) if speech_rate > 0 else settings.xf_tts_speed,
+                "volume": int(volume) if volume > 0 else settings.xf_tts_volume,
+                "pitch": int(pitch_rate) if pitch_rate > 0 else settings.xf_tts_pitch,
             },
             "data": {
                 "status": 2,
@@ -644,68 +676,15 @@ def _write_tone_wav(path: Path, duration_ms: int) -> None:
 
 
 def _find_ffmpeg() -> str | None:
-    for key in _FFMPEG_ENV_KEYS:
-        override = os.environ.get(key, "").strip()
-        if override:
-            candidate = Path(override).expanduser()
-            if candidate.exists() and candidate.is_file():
-                return str(candidate)
-
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg:
         return ffmpeg
-
-    if os.name == "nt":
-        where_bin = shutil.which("where")
-        where_exe = shutil.which("where.exe") or where_bin
-        if where_exe:
-            try:
-                completed = subprocess.run(
-                    [where_exe, "ffmpeg"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                    check=False,
-                )
-                for line in (completed.stdout or "").splitlines():
-                    candidate = Path(line.strip())
-                    if candidate.exists() and candidate.is_file():
-                        return str(candidate)
-            except Exception:
-                pass
-
-        common_dirs = [
-            os.environ.get("LOCALAPPDATA"),
-            os.environ.get("ProgramFiles"),
-            os.environ.get("ProgramFiles(x86)"),
-            os.environ.get("ProgramW6432"),
-        ]
-        seen: set[str] = set()
-        for base in common_dirs:
-            if not base:
-                continue
-            base_path = Path(base)
-            for candidate in base_path.rglob("ffmpeg.exe"):
-                if not candidate.exists() or not candidate.is_file():
-                    continue
-                resolved = str(candidate)
-                if resolved in seen:
-                    continue
-                seen.add(resolved)
-                parts = {part.lower() for part in candidate.parts}
-                if "ffmpeg" in parts or "winget" in parts or "packages" in parts:
-                    return resolved
-
     try:
         import imageio_ffmpeg
 
-        candidate = Path(str(imageio_ffmpeg.get_ffmpeg_exe()))
-        if candidate.exists() and candidate.is_file():
-            return str(candidate)
+        return str(imageio_ffmpeg.get_ffmpeg_exe())
     except Exception:
-        pass
-
-    return None
+        return None
 
 
 def _try_mux_mp4(root: Path, segments: list[dict[str, Any]], frames: list[Path]) -> dict[str, Any]:

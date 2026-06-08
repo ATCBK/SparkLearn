@@ -60,6 +60,7 @@ export const api = {
   getLearningPathNodeAdvice: impl.getLearningPathNodeAdvice,
   generatePathPlanning: impl.generatePathPlanning,
   getPathPlanningHistory: impl.getPathPlanningHistory,
+  savePathPlanning: impl.savePathPlanning,
   getPathNodeSuggestions: impl.getPathNodeSuggestions,
 
   getVideos: impl.getVideos,
