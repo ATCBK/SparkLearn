@@ -49,12 +49,266 @@ def generate_video_script_with_ai(
     return script
 
 
+def generate_local_video_script(
+    prompt: str,
+    duration_sec: int,
+    target_level: str,
+    style: str,
+) -> dict[str, Any]:
+    slide_types = expected_slide_types(duration_sec)
+    keywords = _extract_keywords(prompt)
+    topic = keywords[0] if keywords else prompt.strip() or "视频主题"
+    style_label = _style_label(style)
+    segment_duration = max(7000, int(duration_sec * 1000 / max(1, len(slide_types))))
+    outline: list[dict[str, Any]] = []
+
+    for idx, slide_type in enumerate(slide_types, start=1):
+        focus = keywords[(idx - 1) % len(keywords)] if keywords else topic
+        outline.append(
+            _local_slide_segment(
+                idx=idx,
+                slide_type=slide_type,
+                prompt=prompt,
+                topic=topic,
+                focus=focus,
+                target_level=target_level,
+                style_label=style_label,
+                duration_ms=segment_duration,
+            )
+        )
+
+    return {
+        "title": _make_local_title(prompt, topic),
+        "polished_prompt": (
+            f"使用{style_label}风格，面向{target_level}学习者，用通俗语言讲清楚「{prompt.strip() or topic}」，"
+            f"控制在 {duration_sec} 秒左右，突出关键概念、例子、常见错误和总结。"
+        ),
+        "script_outline": outline,
+        "content_source": "local_fallback",
+        "ai_provider": "local_fallback",
+        "ai_model": "",
+    }
+
+
 def expected_slide_types(duration_sec: int) -> list[str]:
     if duration_sec < 60:
         return ["cover", "hook", "concept", "code", "summary"]
     if duration_sec < 120:
         return SLIDE_TYPES_FULL[:8] + ["summary"]
     return SLIDE_TYPES_FULL[:]
+
+
+def _extract_keywords(prompt: str) -> list[str]:
+    tokens = re.findall(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]{2,}", prompt or "")
+    keywords: list[str] = []
+    for token in tokens:
+        cleaned = token.strip()
+        if not cleaned:
+            continue
+        if cleaned not in keywords:
+            keywords.append(cleaned)
+    return keywords[:6]
+
+
+def _style_label(style: str) -> str:
+    return {
+        "apple-minimal": "简洁讲解",
+        "dark-tech": "技术深色",
+        "warm-education": "温暖教学",
+        "business-pro": "商务专业",
+        "cartoon-playful": "轻松卡通",
+        "academic": "学术风格",
+    }.get(style, style or "默认")
+
+
+def _local_code_sample(topic: str, focus: str) -> str:
+    lower = f"{topic} {focus}".lower()
+    if "变量" in topic or "variable" in lower:
+        return 'score = 95\nname = "SparkLearn"\nprint(name, score)'
+    if "函数" in topic or "function" in lower:
+        return 'def greet(name):\n    return f"Hello, {name}"\n\nprint(greet("Ada"))'
+    if "循环" in topic or "loop" in lower:
+        return 'total = 0\nfor n in [1, 2, 3]:\n    total += n\nprint(total)'
+    if "列表" in topic or "list" in lower:
+        return 'items = ["A", "B", "C"]\nitems.append("D")\nprint(items)'
+    return '# 最小示例\nidea = "先理解问题，再写代码"\nprint(idea)'
+
+
+def _make_local_title(prompt: str, topic: str) -> str:
+    text = re.sub(r"\s+", " ", prompt).strip(" ，。,.") or topic
+    return text if len(text) <= 18 else text[:18] + "..."
+
+
+def _local_slide_segment(
+    *,
+    idx: int,
+    slide_type: str,
+    prompt: str,
+    topic: str,
+    focus: str,
+    target_level: str,
+    style_label: str,
+    duration_ms: int,
+) -> dict[str, Any]:
+    level_note = {
+        "beginner": "从最基础的概念开始讲。",
+        "intermediate": "默认听众已经有一点基础，重点讲清连接关系。",
+        "advanced": "直接讲核心机制、边界与实践建议。",
+    }.get(target_level, "从基础到应用逐步展开。")
+
+    if slide_type == "cover":
+        return {
+            "slide_type": "cover",
+            "title": topic,
+            "subtitle": f"{style_label} · {level_note}",
+            "slide_text": [topic, "先讲清概念，再给出例子"],
+            "narration": f"今天我们用{style_label}风格，围绕「{topic}」展开讲解，先建立整体印象，再逐步拆解重点。",
+            "visual_hint": f"封面突出 {topic}，辅以简洁图标和关键词。",
+            "teacher_note": "先抛出学习目标，降低理解门槛。",
+            "interaction": "",
+            "code": "",
+            "mistake": "",
+            "answer": "",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "goals":
+        return {
+            "slide_type": "goals",
+            "title": f"学会 {topic}",
+            "subtitle": "先知道这节课要解决什么",
+            "slide_text": [f"理解 {focus}", "掌握基本用法", "知道常见错误"],
+            "narration": f"这一部分先说明学习目标：我们要理解 {focus}，并把它和实际场景联系起来。",
+            "visual_hint": "用清单式卡片展示学习目标。",
+            "teacher_note": "把复杂任务拆成三个可完成的小目标。",
+            "interaction": "",
+            "code": "",
+            "mistake": "",
+            "answer": "",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "hook":
+        return {
+            "slide_type": "hook",
+            "title": "先想一想",
+            "subtitle": f"如果要解释 {focus}，你会怎么说？",
+            "slide_text": [f"为什么 {focus} 很重要？"],
+            "narration": f"先不要急着记结论，先想一个问题：为什么 {focus} 会影响我们理解整个 {topic}？",
+            "visual_hint": "用问题卡引出主题冲突。",
+            "teacher_note": "通过提问制造认知张力。",
+            "interaction": f"你觉得 {focus} 最容易和什么概念混淆？",
+            "code": "",
+            "mistake": "",
+            "answer": "",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "concept":
+        return {
+            "slide_type": "concept",
+            "title": f"{focus} 的核心概念",
+            "subtitle": "先定义，再理解作用",
+            "slide_text": [f"{focus} 是什么", "它解决什么问题", "它如何工作"],
+            "narration": f"{focus} 可以理解成 {topic} 的核心结构。我们先看它是什么，再看它为什么必要。",
+            "visual_hint": "左侧定义，右侧配流程图。",
+            "teacher_note": "把定义、作用、工作方式分开讲。",
+            "interaction": "",
+            "code": "",
+            "mistake": "",
+            "answer": "",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "analogy":
+        return {
+            "slide_type": "analogy",
+            "title": f"{focus} 的类比",
+            "subtitle": "用生活经验理解抽象概念",
+            "slide_text": [f"把 {focus} 想成一个工具箱", "每一层都有自己的职责"],
+            "narration": f"我们可以把 {focus} 想成一个工具箱：不同的工具负责不同的动作，但最终都服务于 {topic}。",
+            "visual_hint": "用工具箱、路线图或层级结构做类比。",
+            "teacher_note": "类比只负责建立直觉，不要过度展开。",
+            "interaction": "",
+            "code": "",
+            "mistake": "",
+            "answer": "",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "process":
+        return {
+            "slide_type": "process",
+            "title": f"{topic} 的步骤",
+            "subtitle": "按顺序理解执行过程",
+            "slide_text": [
+                f"1. 先识别 {focus}",
+                "2. 再组织输入",
+                "3. 最后得到输出",
+            ],
+            "narration": f"理解 {topic} 最好的方式就是看流程：先识别 {focus}，再组织输入，最后得到结果。",
+            "visual_hint": "用时间轴或步骤卡片展示流程。",
+            "teacher_note": "强调每一步的输入和输出。",
+            "interaction": "",
+            "code": "",
+            "mistake": "",
+            "answer": "",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "code":
+        return {
+            "slide_type": "code",
+            "title": f"{topic} 示例",
+            "subtitle": "用一个最小代码片段说明",
+            "slide_text": [f"看懂 {focus} 的最小例子", "把概念映射到代码"],
+            "narration": f"接下来通过一段最小示例来说明 {focus} 在 {topic} 中到底怎么用。",
+            "visual_hint": "展示高亮代码并配注释。",
+            "teacher_note": "示例尽量短，避免引入太多噪音。",
+            "interaction": "",
+            "code": _local_code_sample(topic, focus),
+            "mistake": "",
+            "answer": "",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "mistake":
+        return {
+            "slide_type": "mistake",
+            "title": "常见误区",
+            "subtitle": "先避免最常见的错误",
+            "slide_text": [f"不要把 {focus} 和相似概念混淆"],
+            "narration": f"学习 {topic} 时最容易犯的错，是把 {focus} 和它相近的概念混在一起。",
+            "visual_hint": "左右对比错误理解与正确理解。",
+            "teacher_note": "通过对比纠正直觉偏差。",
+            "interaction": "",
+            "code": "",
+            "mistake": f"把 {focus} 当成了 {topic} 的全部。",
+            "answer": f"更准确的理解是：{focus} 只是 {topic} 的一个关键组成部分。",
+            "duration_ms": duration_ms,
+        }
+    if slide_type == "quiz":
+        return {
+            "slide_type": "quiz",
+            "title": "快速自测",
+            "subtitle": "用问题巩固记忆",
+            "slide_text": [f"你能用自己的话解释 {focus} 吗？"],
+            "narration": f"现在用一个小问题检查一下：你能不能用自己的话解释 {focus}？",
+            "visual_hint": "用问答卡片收束知识点。",
+            "teacher_note": "给学习者一个马上开口回答的机会。",
+            "interaction": f"请用一句话解释 {focus} 在 {topic} 中的作用。",
+            "code": "",
+            "mistake": "",
+            "answer": f"答案提示：{focus} 是 {topic} 中用于组织理解和行动的关键点。",
+            "duration_ms": duration_ms,
+        }
+    return {
+        "slide_type": "summary",
+        "title": "总结回顾",
+        "subtitle": "把今天的内容收束起来",
+        "slide_text": [f"记住 {focus}", "理解流程", "回到实际场景"],
+        "narration": f"最后我们回顾一下：记住 {focus}，理解整体流程，再把它放回实际场景中复习。",
+        "visual_hint": "用总结卡片强调三个结论。",
+        "teacher_note": "总结页只保留最重要的记忆点。",
+        "interaction": "",
+        "code": "",
+        "mistake": "",
+        "answer": "",
+        "duration_ms": duration_ms,
+    }
 
 
 def _call_openai_compatible(prompt: str, duration_sec: int, target_level: str, style: str) -> dict[str, Any]:

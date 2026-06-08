@@ -37,6 +37,21 @@ logging.basicConfig(
 )
 
 
+def _log_model_config_sanity() -> None:
+    logger = logging.getLogger("startup")
+    default_model = (settings.spark_default_model or "").strip().lower()
+    if default_model in {"qwen-plus"} and not settings.dashscope_api_key:
+        logger.warning(
+            "spark_default_model=%s but dashscope_api_key is empty; requests may return 401 from DashScope.",
+            settings.spark_default_model,
+        )
+    if default_model in {"ds-flash", "ds-pro"} and not settings.deepseek_api_key:
+        logger.warning(
+            "spark_default_model=%s but deepseek_api_key is empty; requests may fall back or fail.",
+            settings.spark_default_model,
+        )
+
+
 def _configure_event_loop_policy() -> None:
     # Windows + Playwright needs Proactor loop for subprocess support.
     if sys.platform.startswith("win"):
@@ -81,6 +96,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def on_startup() -> None:
         init_db()
+        _log_model_config_sanity()
 
     @app.get("/health")
     async def health():

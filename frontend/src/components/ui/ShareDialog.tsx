@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Copy, Check, Link2, Lock, Globe, Users } from 'lucide-react'
+import { getToken } from '@/lib/auth'
 
 interface ShareDialogProps {
   isOpen: boolean
@@ -25,9 +26,13 @@ export function ShareDialog({ isOpen, onClose, resourceType, resourceId, title }
     setLoading(true)
     setError('')
     try {
+      const token = getToken()
       const res = await fetch('/api/sharing/links', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           resource_type: resourceType,
           resource_id: resourceId,
@@ -40,8 +45,8 @@ export function ShareDialog({ isOpen, onClose, resourceType, resourceId, title }
       if (!res.ok || !json.success) throw new Error(json.error || '创建失败')
       const url = `${window.location.origin}/share/${json.data.share_code}`
       setShareUrl(url)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '创建分享链接失败')
     } finally {
       setLoading(false)
     }
