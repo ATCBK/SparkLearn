@@ -29,6 +29,55 @@ def _resolve_video_ai_api_key() -> str:
     return str(settings.video_ai_api_key or settings.deepseek_api_key or "").strip()
 
 
+def _style_content_guidance(style_id: str) -> str:
+    """Generate per-style content guidance for the AI prompt."""
+    guidance_map = {
+        "apple-minimal": (
+            "【措辞】简洁克制，每页不超过3个要点，用「我们」拉近距离。"
+            "【隐喻】用「工具箱」「流水线」「开关」等工业设计类比喻。"
+            "【视觉】白底大图，文字极简，留白充足，强调单一焦点。"
+            "【代码】展示最小可行示例，不展开无关细节。"
+            "【引入】从一个具体的任务场景直接切入，不铺垫。"
+        ),
+        "dark-tech": (
+            "【措辞】直接、技术化，可用「注意」「关键」「核心」等强调词。"
+            "【隐喻】用「引擎」「管线」「信号」「堆栈」等工程隐喻。"
+            "【视觉】深色终端风格，代码是主角，注释用亮色标注。"
+            "【代码】展开关键实现细节，配合行内注释逐步解析。"
+            "【引入】从一段输出结果或错误信息倒推原理。"
+        ),
+        "warm-education": (
+            "【措辞】像老师一对一辅导，用「别担心」「慢慢来」「很好，你已经……」等鼓励语。"
+            "【隐喻】用「做菜」「搭积木」「寄快递」等生活化类比。"
+            "【视觉】暖色卡片，圆角按钮，步骤用大数字标记。"
+            "【代码】先给完整可运行的小例子，再逐步解释每一行。"
+            "【引入】先说「你是不是经常遇到这个问题？」唤醒共鸣。"
+        ),
+        "business-pro": (
+            "【措辞】正式、结构化，用「我们将……」「关键结论」「落地建议」等商务用语。"
+            "【隐喻】用「供应链」「决策树」「仪表盘」等管理类比喻。"
+            "【视觉】深蓝专业感，数据用图表呈现，逻辑用箭头连接。"
+            "【代码】强调工程最佳实践、性能考量、可维护性。"
+            "【引入】先展示业务场景和KPI目标，再引出技术方案。"
+        ),
+        "cartoon-playful": (
+            "【措辞】活泼、拟人化，用「小变量」「函数小助手」「循环大冒险」等角色化表达。"
+            "【隐喻】用「魔法咒语」「探险地图」「通关秘籍」等游戏化类比。"
+            "【视觉】多彩渐变背景，大圆角气泡卡片，表情符号点缀。"
+            "【代码】用故事串联代码片段，每一步都是「关卡」。"
+            "【引入】「嘿！准备好今天的编程冒险了吗？」"
+        ),
+        "academic": (
+            "【措辞】严谨、定义先行，用「根据……」「定理」「推论」等学术用语。"
+            "【隐喻】用数学归纳、逻辑推导替代类比，保持知识密度。"
+            "【视觉】米色学术底色，衬线字体标题，公式居中对齐。"
+            "【代码】先给形式化定义，再给具体实现，最后分析复杂度。"
+            "【引入】「我们先回顾一下前置知识……」建立知识锚点。"
+        ),
+    }
+    return guidance_map.get(style_id, guidance_map["apple-minimal"])
+
+
 def generate_video_script_with_ai(
     prompt: str,
     duration_sec: int,
@@ -378,13 +427,15 @@ def _call_agent_http(prompt: str, duration_sec: int, target_level: str, style: s
 
 def _script_prompt(prompt: str, duration_sec: int, target_level: str, style: str) -> str:
     slide_types = expected_slide_types(duration_sec)
+    style_guidance = _style_content_guidance(style)
     return json.dumps(
         {
-            "task": "根据用户主题生成动态微课视频脚本，不要复用固定模板文案。",
+            "task": "根据用户主题生成动态微课视频脚本，严格按照风格指引撰写每一页内容。",
             "topic": prompt,
             "duration_sec": duration_sec,
             "target_level": target_level,
             "style": style,
+            "style_guidance": style_guidance,
             "required_slide_types": slide_types,
             "output_language": "zh-CN",
             "contract": _schema_contract(),
@@ -394,6 +445,9 @@ def _script_prompt(prompt: str, duration_sec: int, target_level: str, style: str
                 "code 页如主题不适合代码，可给最小案例、公式或伪代码。",
                 "quiz 页必须给 interaction 和 answer。",
                 "mistake 页必须给 mistake 和 answer。",
+                "措辞和语调必须严格遵循 style_guidance 中的指引。",
+                "比喻和视觉描述必须与风格一致，不同风格产出应明显不同。",
+                "代码示例的风格和复杂度必须匹配目标难度级别。",
             ],
         },
         ensure_ascii=False,

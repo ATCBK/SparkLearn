@@ -552,6 +552,9 @@ export interface VideoGenerateOptions {
   polish?: VideoPolishResult
   voice?: string
   voiceProvider?: string
+  voiceSpeed?: number
+  voicePitch?: number
+  voiceVolume?: number
   durationSec?: number
 }
 

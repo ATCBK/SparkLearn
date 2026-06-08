@@ -70,7 +70,7 @@ function toEditablePhases(rawPhases: any[]): EditablePhase[] {
     nodes: Array.isArray(p.nodes)
       ? p.nodes.map((n: any) => ({
           id: String(n.id ?? `node-${Math.random().toString(36).slice(2, 8)}`),
-          title: String(n.title || 'Untitled step'),
+          title: String(n.title || '未命名步骤'),
           source: (n.source === 'user' ? 'user' : 'ai') as 'ai' | 'user',
         }))
       : [],
@@ -91,7 +91,7 @@ function getGlobalIndex(phases: EditablePhase[], nodeId: string): number {
 
 // ============ 涓荤粍浠?============
 export default function PathPage() {
-  const [targetInput, setTargetInput] = useState('I want to build a personalized learning path')
+  const [targetInput, setTargetInput] = useState('我想创建一条个性化学习路径')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>('node-5')
   const [generatedSuggestions, setGeneratedSuggestions] = useState(DEFAULT_SUGGESTIONS)
   const [generatedResources, setGeneratedResources] = useState<
@@ -119,11 +119,11 @@ export default function PathPage() {
           title: r.title,
           tag:
             r.type === 'document'
-              ? '鏂囨。'
+              ? '文档'
               : r.type === 'ppt'
                 ? 'PPT'
                 : r.type === 'mindmap'
-                  ? '鎬濈淮瀵煎浘'
+                  ? '思维导图'
                   : r.type,
           link: `/generate?view=library&id=${r.id}`,
         }))
@@ -313,15 +313,15 @@ export default function PathPage() {
             {/* 鐢樼壒鍥惧伐鍏锋爮 */}
             <div className="flex items-center justify-between border-b border-[#E5EAF2] px-3 py-2.5">
               <div className="flex items-center gap-4">
-                <h2 className="text-sm font-bold text-[#111827]">Learning Gantt</h2>
+                <h2 className="text-sm font-bold text-[#111827]">学习甘特图</h2>
                 <span className="text-xs text-[#6B7280]">
-                  {gantt.stats.total} tasks · completed {gantt.stats.completed} · in progress {gantt.stats.inProgress}
+                  共 {gantt.stats.total} 个任务 · 已完成 {gantt.stats.completed} · 进行中 {gantt.stats.inProgress}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 {/* 鎬讳綋杩涘害 */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#6B7280]">Overall progress</span>
+                  <span className="text-xs text-[#6B7280]">总体进度</span>
                   <div className="w-20 h-1.5 bg-[#E5EAF2] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#2563EB] rounded-full transition-all"
@@ -373,10 +373,10 @@ export default function PathPage() {
 function PageHeader() {
   return (
     <div className="mb-6">
-      <div className="text-xs font-bold text-[#2563EB]">Learning path / your next step</div>
-      <h1 className="mt-2 text-3xl font-bold text-[#111827]">Personalized learning path</h1>
+      <div className="text-xs font-bold text-[#2563EB]">学习路径 / 下一步</div>
+      <h1 className="mt-2 text-3xl font-bold text-[#111827]">个性化学习路径</h1>
       <p className="mt-2 text-sm text-[#6B7280]">
-        After generation you can edit the path freely. Switch to Gantt view to review the time plan.
+        生成后可以自由编辑路径，切换到甘特图查看时间安排。
       </p>
     </div>
   )
@@ -391,13 +391,13 @@ function SummaryBar({
   onChangeViewMode: (mode: 'path' | 'gantt') => void;
 }) {
   return (
-    <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-6 shadow-sm flex-1">
+    <div className="rounded-[18px] border border-[#E5EAF2] bg-white px-6 py-5 shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
       <div className="grid grid-cols-5 gap-px max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2 max-[760px]:gap-4">
-        <div className="border-r border-[#E5EAF2] pr-6">
+        <div className="flex min-h-[96px] flex-col justify-center border-r border-[#E5EAF2] pr-6">
           <div className="text-xs text-[#6B7280]">当前目标</div>
           <div className="mt-2 text-sm font-bold text-[#111827]">Python 函数与模块</div>
         </div>
-        <div className="border-r border-[#E5EAF2] px-6">
+        <div className="flex min-h-[96px] flex-col justify-center border-r border-[#E5EAF2] px-6">
           <div className="text-xs text-[#6B7280]">路径进度</div>
           <div className="mt-2 flex items-center gap-3">
             <div className="relative h-12 w-12">
@@ -421,17 +421,17 @@ function SummaryBar({
             </div>
           </div>
         </div>
-        <div className="border-r border-[#E5EAF2] px-6">
+        <div className="flex min-h-[96px] flex-col justify-center border-r border-[#E5EAF2] px-6">
           <div className="text-xs text-[#6B7280]">当前阶段</div>
           <div className="mt-2 text-sm font-bold text-[#111827]">目标阶段</div>
           <div className="text-xs text-[#6B7280]">第 2 / 3 阶段</div>
         </div>
-        <div className="border-r border-[#E5EAF2] px-6">
+        <div className="flex min-h-[96px] flex-col justify-center border-r border-[#E5EAF2] px-6">
           <div className="text-xs text-[#6B7280]">当前重点</div>
           <div className="mt-2 text-sm font-bold text-[#111827]">先回看返回值</div>
           <div className="text-xs text-[#6B7280]">再进入下一个模块</div>
         </div>
-        <div className="flex flex-col gap-2 pl-6">
+        <div className="flex min-h-[96px] flex-col items-center justify-center pl-6">
           <div className="text-xs font-bold text-[#6B7280]">模式切换</div>
           <ViewToggle viewMode={viewMode} onChange={onChangeViewMode} />
         </div>
@@ -619,7 +619,7 @@ function PhaseStrip({
         ) : (
           phase.nodes.map((node, idx) => (
             <div key={node.id} className="flex items-center gap-4 flex-shrink-0">
-              {/* 鑺傜偣 */}
+              {/* 节点 */}
               <PathNode
                 node={node}
                 index={globalOffset + idx + 1}
@@ -634,20 +634,20 @@ function PhaseStrip({
                 onEditTitle={(newTitle) => editor.editNodeTitle(node.id, newTitle)}
               />
 
-              {/* 杩炴帴绠ご */}
+              {/* 连接符 */}
               {idx < phase.nodes.length - 1 && (
-                <div className="flex-shrink-0 text-[#111827] text-lg font-bold">鈫</div>
+                <div className="flex-shrink-0 text-[#111827] text-lg font-bold">→</div>
               )}
 
-              {/* 鏈€鍚庝竴涓妭鐐规樉绀烘棗瀛?*/}
+              {/* 结束标记 */}
               {idx === phase.nodes.length - 1 && phase.id === 3 && (
-                <div className="flex-shrink-0 text-2xl">馃毄</div>
+                <div className="flex-shrink-0 text-2xl">🏁</div>
               )}
             </div>
           ))
         )}
 
-        {/* 娣诲姞姝ラ鎸夐挳锛堥潪绌洪樁娈碉級 */}
+        {/* 非空阶段的添加步骤按钮 */}
         {phase.nodes.length > 0 && (
           <div className="flex-shrink-0">
             {showAddInput ? (
@@ -663,14 +663,14 @@ function PhaseStrip({
                       setAddInputValue('')
                     }
                   }}
-                  placeholder="姝ラ鍚嶇О"
+                  placeholder="步骤名称"
                   className="h-9 w-36 rounded-[10px] border border-[#2563EB] bg-white px-3 text-sm outline-none"
                 />
                 <button
                   onClick={handleAddConfirm}
                   className="h-9 rounded-[10px] bg-[#2563EB] px-3 text-sm font-bold text-white hover:bg-[#1d4ed8] transition-colors"
                 >
-                  娣诲姞
+                  添加
                 </button>
                 <button
                   onClick={() => {
@@ -679,7 +679,7 @@ function PhaseStrip({
                   }}
                   className="text-xs text-[#6B7280] hover:text-[#111827]"
                 >
-                  鍙栨秷
+                  取消
                 </button>
               </div>
             ) : (
@@ -687,7 +687,7 @@ function PhaseStrip({
                 onClick={() => setShowAddInput(true)}
                 disabled={!editor.canAdd}
                 className="flex h-[96px] w-[56px] flex-shrink-0 items-center justify-center rounded-[12px] border-2 border-dashed border-[#E5EAF2] text-[#D1D5DB] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                title={editor.canAdd ? 'Add step' : 'Reached the 12-step limit'}
+                title={editor.canAdd ? '添加步骤' : '已达到 12 步上限'}
               >
                 <span className="text-2xl leading-none">+</span>
               </button>
@@ -726,7 +726,7 @@ function EmptyPhasePlaceholder({ phaseId, onAdd, disabled }: EmptyPhasePlacehold
   if (disabled) {
     return (
       <div className="flex-1 rounded-[12px] border-2 border-dashed border-[#E5EAF2] bg-[#FAFBFC] p-8 text-center">
-        <span className="text-sm text-[#D1D5DB]">鏆傛棤姝ラ锛堝凡杈句笂闄?12 姝ワ級</span>
+        <span className="text-sm text-[#D1D5DB]">暂无步骤（已达上限 12 步）</span>
       </div>
     )
   }
@@ -746,14 +746,14 @@ function EmptyPhasePlaceholder({ phaseId, onAdd, disabled }: EmptyPhasePlacehold
                 setInputValue('')
               }
             }}
-            placeholder="杈撳叆姝ラ鍚嶇О"
+            placeholder="输入步骤名称"
             className="h-8 w-48 rounded-[8px] border border-[#E5EAF2] px-3 text-sm outline-none focus:border-[#2563EB]"
           />
           <button
             onClick={handleConfirm}
             className="h-8 rounded-[8px] bg-[#2563EB] px-3 text-xs font-bold text-white"
           >
-            娣诲姞
+            添加
           </button>
           <button
             onClick={() => {
@@ -762,7 +762,7 @@ function EmptyPhasePlaceholder({ phaseId, onAdd, disabled }: EmptyPhasePlacehold
             }}
             className="text-xs text-[#6B7280]"
           >
-            鍙栨秷
+            取消
           </button>
         </div>
       ) : (
@@ -770,7 +770,7 @@ function EmptyPhasePlaceholder({ phaseId, onAdd, disabled }: EmptyPhasePlacehold
           onClick={() => setShowInput(true)}
           className="text-sm text-[#9CA3AF] hover:text-[#2563EB] transition-colors"
         >
-          鏆傛棤姝ラ锛岀偣鍑?+ 娣诲姞
+          暂无步骤，点击 + 添加
         </button>
       )}
     </div>
@@ -836,7 +836,7 @@ function PathNode({
         border: '2px solid #2563EB',
         background: '#F8FAFF',
         shadow: isSelected ? '0 8px 20px rgba(37, 99, 235, 0.12)' : 'none',
-        statusText: 'Current step',
+        statusText: '当前步骤',
         statusBg: '#DBEAFE',
         statusColor: '#2563EB',
       }
@@ -844,7 +844,7 @@ function PathNode({
         border: '1px solid #E5EAF2',
         background: '#FFFFFF',
         shadow: 'none',
-        statusText: 'Pending',
+        statusText: '未开始',
         statusBg: '#F3F4F6',
         statusColor: '#94A3B8',
       }
@@ -878,9 +878,9 @@ function PathNode({
               setIsEditing(true)
             }}
             className="flex h-6 w-6 items-center justify-center rounded-full bg-white border border-[#E5EAF2] text-[#6B7280] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shadow-sm"
-            title="缂栬緫鏍囬"
+          title="编辑标题"
           >
-            <span className="text-xs">✓</span>
+            <span className="text-xs">✎</span>
           </button>
           {/* 鍒犻櫎 */}
           <div className="relative">
@@ -895,14 +895,14 @@ function PathNode({
                   ? 'text-[#6B7280] hover:border-[#EF4444] hover:text-[#EF4444]'
                   : 'text-[#D1D5DB] cursor-not-allowed'
               }`}
-              title={canDelete ? 'Delete step' : 'Keep at least one step'}
+              title={canDelete ? '删除步骤' : '至少保留 1 步'}
             >
               <span className="text-xs">×</span>
             </button>
             {/* 鍒犻櫎纭姘旀场 */}
             {showDeleteConfirm && (
               <div className="absolute top-8 right-0 z-20 w-40 rounded-[10px] border border-[#E5EAF2] bg-white p-3 shadow-lg">
-                <div className="text-xs text-[#111827] mb-2">鍒犻櫎姝ゆ楠わ紵</div>
+                <div className="text-xs text-[#111827] mb-2">确定删除该步骤吗？</div>
                 <div className="flex gap-2">
                   <button
                     onClick={(e) => {
@@ -911,7 +911,7 @@ function PathNode({
                     }}
                     className="flex-1 rounded-[6px] bg-[#EF4444] px-2 py-1 text-xs font-bold text-white"
                   >
-                    鍒犻櫎
+                    删除
                   </button>
                   <button
                     onClick={(e) => {
@@ -920,7 +920,7 @@ function PathNode({
                     }}
                     className="flex-1 rounded-[6px] border border-[#E5EAF2] px-2 py-1 text-xs text-[#6B7280]"
                   >
-                    鍙栨秷
+                    取消
                   </button>
                 </div>
               </div>
@@ -950,7 +950,7 @@ function PathNode({
               e.stopPropagation()
               setIsEditing(true)
             }}
-            title="鍙屽嚮缂栬緫"
+            title="双击编辑"
           >
             {node.title}
           </div>
@@ -967,10 +967,10 @@ function PathNode({
         {/* 搴曢儴锛氱紪鍙?+ 鏉ユ簮鏍囪 + 绉诲姩鎸夐挳 */}
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-[#6B7280]">Step {index}</span>
+            <span className="text-xs text-[#6B7280]">第 {index} 步</span>
             {node.source === 'user' && (
               <span className="rounded-full bg-[#EFF6FF] px-1.5 py-0.5 text-[10px] font-bold text-[#2563EB]">
-                鑷畾涔?
+                自定义
               </span>
             )}
           </div>
@@ -982,9 +982,9 @@ function PathNode({
               }}
               disabled={!canMoveUp}
               className="flex h-5 w-5 items-center justify-center rounded text-[10px] text-[#6B7280] hover:bg-[#F3F4F6] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="涓婄Щ"
+              title="上移"
             >
-              鈫?
+              ↑
             </button>
             <button
               onClick={(e) => {
@@ -993,9 +993,9 @@ function PathNode({
               }}
               disabled={!canMoveDown}
               className="flex h-5 w-5 items-center justify-center rounded text-[10px] text-[#6B7280] hover:bg-[#F3F4F6] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="涓嬬Щ"
+              title="下移"
             >
-              鈫?
+              ↓
             </button>
           </div>
         </div>
@@ -1003,7 +1003,7 @@ function PathNode({
         {/* 瀹屾垚鏍囪锛氫粎绗竴涓妭鐐规樉绀?褰撳墠"鐘舵€佹爣璁?*/}
         {isFirstNode && (
           <div className="absolute -right-2 -bottom-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#2563EB] text-white text-xs font-bold">
-            鈫?
+            ✓
           </div>
         )}
       </div>
@@ -1059,13 +1059,13 @@ function SuggestionPanel({
       <div className="rounded-[14px] border border-[#E5EAF2] bg-white p-4 shadow-sm">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
-            <TypewriterLoader text="Generating suggestions..." size="sm" />
+            <TypewriterLoader text="正在生成建议..." size="sm" />
           </div>
         ) : (
           <>
             {/* 琛ュ急璺緞寤鸿 */}
             <div className="mb-6">
-              <h3 className="text-xs font-bold text-[#111827]">璺緞寤鸿</h3>
+              <h3 className="text-xs font-bold text-[#111827]">路径建议</h3>
               <div className="mt-3 space-y-2">
                 {suggestions.map((suggestion) => (
                   <div
@@ -1085,7 +1085,7 @@ function SuggestionPanel({
 
             {/* 瀵瑰簲璧勬簮 */}
             <div>
-              <h3 className="text-xs font-bold text-[#111827]">Resources</h3>
+              <h3 className="text-xs font-bold text-[#111827]">资源推荐</h3>
               <div className="mt-3 space-y-2">
                 {resources.map((resource) => (
                   <a

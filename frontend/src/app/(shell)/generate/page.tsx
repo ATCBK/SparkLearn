@@ -49,6 +49,10 @@ const VOICE_PROVIDER_OPTIONS = [
     label: 'CosyVoice',
     description: '阿里云音色，默认推荐',
     defaultVoice: 'longxiaochun',
+    defaultSpeed: 1.0,
+    defaultPitch: 1.0,
+    defaultVolume: 1.0,
+    toneHint: '自然、连贯、适合讲解',
     voiceColumns: [
       { id: 'longxiaochun', label: '长小春', description: '默认推荐，沉稳清晰' },
     ],
@@ -58,6 +62,10 @@ const VOICE_PROVIDER_OPTIONS = [
     label: '讯飞 TTS',
     description: '兼容老项目音色',
     defaultVoice: 'xiaoyan',
+    defaultSpeed: 45,
+    defaultPitch: 50,
+    defaultVolume: 65,
+    toneHint: '更适合老项目语音风格',
     voiceColumns: [
       { id: 'xiaoyan', label: '小燕', description: '默认推荐，清晰自然' },
     ],
@@ -66,6 +74,15 @@ const VOICE_PROVIDER_OPTIONS = [
 
 function getDefaultVoice(providerId: string) {
   return VOICE_PROVIDER_OPTIONS.find((item) => item.id === providerId)?.defaultVoice || 'longxiaochun'
+}
+
+function getDefaultVoiceTone(providerId: string): { speed: number; pitch: number; volume: number } {
+  const provider = VOICE_PROVIDER_OPTIONS.find((item) => item.id === providerId)
+  return {
+    speed: provider?.defaultSpeed ?? 1.0,
+    pitch: provider?.defaultPitch ?? 1.0,
+    volume: provider?.defaultVolume ?? 1.0,
+  }
 }
 
 function typeLabel(type: string) {
@@ -158,6 +175,10 @@ function GeneratePageContent() {
   const [videoDuration, setVideoDuration] = useState(90)
   const [videoVoiceProvider, setVideoVoiceProvider] = useState<'cosyvoice' | 'xfyun'>('cosyvoice')
   const [videoVoice, setVideoVoice] = useState(getDefaultVoice('cosyvoice'))
+  const defaultVoiceTone = getDefaultVoiceTone('cosyvoice')
+  const [videoVoiceSpeed, setVideoVoiceSpeed] = useState<number>(defaultVoiceTone.speed)
+  const [videoVoicePitch, setVideoVoicePitch] = useState<number>(defaultVoiceTone.pitch)
+  const [videoVoiceVolume, setVideoVoiceVolume] = useState<number>(defaultVoiceTone.volume)
   const [videoStyles, setVideoStyles] = useState<VideoStyle[]>(DEFAULT_VIDEO_STYLES)
   const [polishResult, setPolishResult] = useState<VideoPolishResult | null>(null)
   const [polishError, setPolishError] = useState('')
@@ -280,6 +301,9 @@ function GeneratePageContent() {
       styleId: videoStyleId,
       voice: videoVoice,
       voiceProvider: videoVoiceProvider,
+      voiceSpeed: videoVoiceSpeed,
+      voicePitch: videoVoicePitch,
+      voiceVolume: videoVoiceVolume,
       onEvent: (evt: { type: string; payload: Record<string, unknown> }) => {
         if (evt.type === 'progress') {
           const msg = String(evt.payload.message || '')
@@ -558,7 +582,7 @@ function GeneratePageContent() {
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
             {step < 3 && <ProtoButton onClick={() => setStep(step + 1)}>下一步</ProtoButton>}
             {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />{type === 'video' ? '生成视频' : '开始生成'}</ProtoButton>}
-            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, prompt, selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice, voiceProvider: videoVoiceProvider } : undefined); setStep(0) }}>后台生成</ProtoButton>}
+            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, prompt, selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice, voiceProvider: videoVoiceProvider, voiceSpeed: videoVoiceSpeed, voicePitch: videoVoicePitch, voiceVolume: videoVoiceVolume } : undefined); setStep(0) }}>后台生成</ProtoButton>}
           </div>
         </div>
 
@@ -671,6 +695,9 @@ function GeneratePageContent() {
                           onClick={() => {
                             setVideoVoiceProvider(provider.id as 'cosyvoice' | 'xfyun')
                             setVideoVoice(provider.defaultVoice)
+                            setVideoVoiceSpeed(provider.defaultSpeed)
+                            setVideoVoicePitch(provider.defaultPitch)
+                            setVideoVoiceVolume(provider.defaultVolume)
                           }}
                           className={`cursor-pointer rounded-[14px] border p-4 text-left transition-all ${active ? 'border-blue bg-blue-light ring-2 ring-blue/20' : 'border-line bg-white hover:border-blue/50'}`}
                         >
@@ -678,6 +705,7 @@ function GeneratePageContent() {
                             <div>
                               <b className="block text-small text-ink">{provider.label}</b>
                               <span className="mt-1 block text-micro text-muted">{provider.description}</span>
+                              <span className="mt-1 block text-micro text-muted">{provider.toneHint}</span>
                             </div>
                             {active && <CheckCircle2 className="h-4 w-4 text-blue" />}
                           </div>
@@ -705,6 +733,62 @@ function GeneratePageContent() {
                         </div>
                       )
                     })}
+                  </div>
+                  <div className="mt-4 rounded-[14px] border border-line bg-white p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <b className="block text-small text-ink">语音语调</b>
+                        <span className="block text-micro text-muted">这三个参数会和音色一起传给后端 TTS</span>
+                      </div>
+                      <span className="text-micro text-muted">{videoVoiceProvider === 'cosyvoice' ? 'CosyVoice' : '讯飞 TTS'}</span>
+                    </div>
+                    <div className="grid gap-3">
+                      <label className="grid gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-small font-medium text-ink">语速</span>
+                          <span className="text-micro text-muted">{videoVoiceProvider === 'cosyvoice' ? videoVoiceSpeed.toFixed(1) : Math.round(videoVoiceSpeed)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={videoVoiceProvider === 'cosyvoice' ? 0.7 : 20}
+                          max={videoVoiceProvider === 'cosyvoice' ? 1.5 : 80}
+                          step={videoVoiceProvider === 'cosyvoice' ? 0.1 : 1}
+                          value={videoVoiceSpeed}
+                          onChange={(event) => setVideoVoiceSpeed(Number(event.target.value))}
+                          className="w-full"
+                        />
+                      </label>
+                      <label className="grid gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-small font-medium text-ink">音高</span>
+                          <span className="text-micro text-muted">{videoVoiceProvider === 'cosyvoice' ? videoVoicePitch.toFixed(1) : Math.round(videoVoicePitch)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={videoVoiceProvider === 'cosyvoice' ? 0.7 : 20}
+                          max={videoVoiceProvider === 'cosyvoice' ? 1.5 : 80}
+                          step={videoVoiceProvider === 'cosyvoice' ? 0.1 : 1}
+                          value={videoVoicePitch}
+                          onChange={(event) => setVideoVoicePitch(Number(event.target.value))}
+                          className="w-full"
+                        />
+                      </label>
+                      <label className="grid gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-small font-medium text-ink">音量</span>
+                          <span className="text-micro text-muted">{videoVoiceProvider === 'cosyvoice' ? videoVoiceVolume.toFixed(1) : Math.round(videoVoiceVolume)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={videoVoiceProvider === 'cosyvoice' ? 0.5 : 20}
+                          max={videoVoiceProvider === 'cosyvoice' ? 1.5 : 100}
+                          step={videoVoiceProvider === 'cosyvoice' ? 0.1 : 1}
+                          value={videoVoiceVolume}
+                          onChange={(event) => setVideoVoiceVolume(Number(event.target.value))}
+                          className="w-full"
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </>

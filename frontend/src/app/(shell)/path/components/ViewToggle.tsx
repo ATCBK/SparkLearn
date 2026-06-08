@@ -1,8 +1,8 @@
-'use client';
+'use client'
 
 interface ViewToggleProps {
-  viewMode: 'path' | 'gantt';
-  onChange: (mode: 'path' | 'gantt') => void;
+  viewMode: 'path' | 'gantt'
+  onChange: (mode: 'path' | 'gantt') => void
 }
 
 const MODE_META = {
@@ -30,16 +30,17 @@ const MODE_META = {
       </svg>
     ),
   },
-} as const;
+} as const
 
 export function ViewToggle({ viewMode, onChange }: ViewToggleProps) {
   return (
-    <div className="w-full max-w-[520px] rounded-[14px] border border-[#D9E4F2] bg-white p-1 shadow-sm">
+    <div className="w-full max-w-[340px] rounded-[12px] border border-[#D9E4F2] bg-white p-1 shadow-sm">
       <div className="grid grid-cols-2 gap-1">
         <button
+          type="button"
           onClick={() => onChange('path')}
           aria-pressed={viewMode === 'path'}
-          className={`flex items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-sm font-bold transition-all ${
+          className={`flex items-center justify-center gap-1.5 rounded-[10px] px-3 py-2.5 text-[13px] font-bold transition-all ${
             viewMode === 'path'
               ? 'bg-[#2563EB] text-white shadow-sm'
               : 'bg-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]'
@@ -50,9 +51,10 @@ export function ViewToggle({ viewMode, onChange }: ViewToggleProps) {
         </button>
 
         <button
+          type="button"
           onClick={() => onChange('gantt')}
           aria-pressed={viewMode === 'gantt'}
-          className={`flex items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-sm font-bold transition-all ${
+          className={`flex items-center justify-center gap-1.5 rounded-[10px] px-3 py-2.5 text-[13px] font-bold transition-all ${
             viewMode === 'gantt'
               ? 'bg-[#2563EB] text-white shadow-sm'
               : 'bg-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]'
@@ -62,6 +64,10 @@ export function ViewToggle({ viewMode, onChange }: ViewToggleProps) {
           <span>{MODE_META.gantt.title}</span>
         </button>
       </div>
+      <div className="mt-1 grid grid-cols-2 text-center text-[10px] text-[#94A3B8]">
+        <span>{MODE_META.path.desc}</span>
+        <span>{MODE_META.gantt.desc}</span>
+      </div>
     </div>
-  );
+  )
 }

@@ -304,6 +304,9 @@ export async function generateResource(
     styleId?: string
     voice?: string
     voiceProvider?: string
+    voiceSpeed?: number
+    voicePitch?: number
+    voiceVolume?: number
     onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
   },
 ): Promise<Resource> {
@@ -1256,6 +1259,9 @@ export async function generateVideo(
     styleId?: string
     voice?: string
     voiceProvider?: string
+    voiceSpeed?: number
+    voicePitch?: number
+    voiceVolume?: number
     onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
   },
 ): Promise<Resource> {
@@ -1264,6 +1270,9 @@ export async function generateVideo(
   const styleId = options?.styleId ?? 'apple-minimal'
   const voice = options?.voice ?? ''
   const voiceProvider = options?.voiceProvider ?? 'cosyvoice'
+  const voiceSpeed = options?.voiceSpeed
+  const voicePitch = options?.voicePitch
+  const voiceVolume = options?.voiceVolume
   const onEvent = options?.onEvent
 
   // Step 1: Polish the prompt into a script
@@ -1281,7 +1290,13 @@ export async function generateVideo(
       style_id: styleId,
       target_level: targetLevel,
       duration_sec: durationSec,
-      voice: voice ? { provider: voiceProvider, voice } : { provider: voiceProvider },
+      voice: {
+        provider: voiceProvider,
+        ...(voice ? { voice } : {}),
+        ...(voiceSpeed !== undefined ? { speed: voiceSpeed } : {}),
+        ...(voicePitch !== undefined ? { pitch: voicePitch } : {}),
+        ...(voiceVolume !== undefined ? { volume: voiceVolume } : {}),
+      },
     }),
   })
 

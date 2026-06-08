@@ -15,7 +15,7 @@ interface GenerationTask {
 
 interface GenerationTaskContextType {
   tasks: GenerationTask[]
-  startBackgroundGeneration: (type: string, prompt: string, knowledgeFileIds?: number[], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string }) => void
+  startBackgroundGeneration: (type: string, prompt: string, knowledgeFileIds?: number[], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string; voiceSpeed?: number; voicePitch?: number; voiceVolume?: number }) => void
   dismissTask: (id: string) => void
 }
 
@@ -36,7 +36,7 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
   const router = useRouter()
   const taskIdRef = useRef(0)
 
-  const startBackgroundGeneration = useCallback((type: string, prompt: string, knowledgeFileIds: number[] = [], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string }) => {
+  const startBackgroundGeneration = useCallback((type: string, prompt: string, knowledgeFileIds: number[] = [], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string; voiceSpeed?: number; voicePitch?: number; voiceVolume?: number }) => {
     const taskId = `bg-${Date.now()}-${++taskIdRef.current}`
     const newTask: GenerationTask = {
       id: taskId,
@@ -50,6 +50,9 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
     const durationSec = videoOptions?.durationSec || 90
     const voice = videoOptions?.voice || ''
     const voiceProvider = videoOptions?.voiceProvider || 'cosyvoice'
+    const voiceSpeed = videoOptions?.voiceSpeed
+    const voicePitch = videoOptions?.voicePitch
+    const voiceVolume = videoOptions?.voiceVolume
 
     // 视频类型走独立管线
     if (type === 'video') {
@@ -76,7 +79,13 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
               video_provider: 'html_ppt',
               style_id: styleId,
               duration_sec: durationSec,
-              voice: voice ? { provider: voiceProvider, voice } : { provider: voiceProvider },
+              voice: {
+                provider: voiceProvider,
+                ...(voice ? { voice } : {}),
+                ...(voiceSpeed !== undefined ? { speed: voiceSpeed } : {}),
+                ...(voicePitch !== undefined ? { pitch: voicePitch } : {}),
+                ...(voiceVolume !== undefined ? { volume: voiceVolume } : {}),
+              },
             }),
           })
           const jobJson = await jobRes.json()
