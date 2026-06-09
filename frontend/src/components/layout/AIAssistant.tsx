@@ -97,10 +97,19 @@ export function AIAssistant() {
 
   // 学习空间过场动画
   const [transitioning, setTransitioning] = useState(false)
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function goToLearningSpace() {
+    if (transitionTimerRef.current) {
+      clearTimeout(transitionTimerRef.current)
+      transitionTimerRef.current = null
+    }
+    if (transitioning) return
     setTransitioning(true)
-    router.push('/tutor')
+    transitionTimerRef.current = setTimeout(() => {
+      router.push('/tutor')
+      transitionTimerRef.current = null
+    }, 2000)
   }
 
   const ctx = useMemo(() => CONTEXTS[pathname] || CONTEXTS['/'], [pathname])
@@ -114,6 +123,14 @@ export function AIAssistant() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     })
   }, [messages])
+
+  useEffect(() => {
+    return () => {
+      if (transitionTimerRef.current) {
+        clearTimeout(transitionTimerRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const el = textareaRef.current
@@ -315,7 +332,7 @@ export function AIAssistant() {
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
           style={{
-            background: 'radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 34%), linear-gradient(135deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.98))',
+            background: 'radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 30%), linear-gradient(135deg, #075ff0 0%, #2563eb 48%, #5aa2ff 100%)',
             animation: 'fadeIn 0.3s ease forwards',
           }}
         >

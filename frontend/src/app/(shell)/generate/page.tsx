@@ -140,6 +140,14 @@ function resourceDate(value: string) {
   return date.toISOString().slice(0, 10)
 }
 
+function sortResourcesByLatest(resources: Resource[]) {
+  return [...resources].sort((a, b) => {
+    const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    if (timeDiff !== 0) return timeDiff
+    return String(b.id).localeCompare(String(a.id))
+  })
+}
+
 function resourceExcerpt(resource: Resource) {
   const plain = (resource.content || '')
     .replace(/[#*_`>\-[\]()]/g, ' ')
@@ -240,8 +248,9 @@ function GeneratePageContent() {
   const loadResources = useCallback(async () => {
     try {
       const data = await api.getResources()
-      setResources(data)
-      setSelectedId(prev => prev || initialResourceId || data[0]?.id || '')
+      const sorted = sortResourcesByLatest(data)
+      setResources(sorted)
+      setSelectedId(prev => prev || initialResourceId || sorted[0]?.id || '')
     } catch (ex) {
       setLibraryError(ex instanceof Error ? ex.message : '资源读取失败')
     }

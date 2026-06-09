@@ -7,6 +7,6 @@ export const siteDetails = {
     },
     language: 'zh-cn',
     locale: 'zh-CN',
-    siteLogo: `${process.env.BASE_PATH || ''}/images/logo.png`, // or use a string for the logo e.g. "TechStartup"
+    siteLogo: `${process.env.BASE_PATH || ''}/sparklearn-logo-official.png`, // align with the main platform brand asset
     googleAnalyticsId: '', // e.g. G-XXXXXXX,
 }

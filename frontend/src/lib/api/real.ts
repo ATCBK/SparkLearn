@@ -94,6 +94,14 @@ function toResource(raw: any): Resource {
   }
 }
 
+function sortResourcesByLatest(resources: Resource[]): Resource[] {
+  return [...resources].sort((a, b) => {
+    const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    if (timeDiff !== 0) return timeDiff
+    return String(b.id).localeCompare(String(a.id))
+  })
+}
+
 // ─── Auth API ──────────────────────────────────────────────────────────────
 
 export async function sendSmsCode(phone: string, purpose: 'login' | 'register'): Promise<void> {
@@ -162,7 +170,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 export async function getRecentResources(): Promise<Resource[]> {
   const resources = await fetchJson<any[]>('/api/resources')
-  return resources.slice(0, 3).map(toResource)
+  return sortResourcesByLatest(resources.map(toResource)).slice(0, 3)
 }
 
 export async function getMasteryData(): Promise<MasteryRecord[]> {
@@ -225,7 +233,7 @@ export async function analyzeProfileHistory(): Promise<ProfileAnalysisResp> {
 
 export async function getResources(): Promise<Resource[]> {
   const resources = await fetchJson<any[]>('/api/resources')
-  return resources.map(toResource)
+  return sortResourcesByLatest(resources.map(toResource))
 }
 
 export async function deleteResource(resourceId: string): Promise<void> {
