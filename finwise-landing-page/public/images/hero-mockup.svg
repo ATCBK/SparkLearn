@@ -1,0 +1,123 @@
+<svg width="834" height="1642" viewBox="0 0 834 1642" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="screenBg" x1="114" y1="92" x2="718" y2="1548" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4F8FF"/>
+      <stop offset="1" stop-color="#DDE8FF"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="161" y1="839" x2="691" y2="1438" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F9FCFF"/>
+    </linearGradient>
+    <linearGradient id="pillYellow" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFF4D8"/>
+      <stop offset="1" stop-color="#FFECB7"/>
+    </linearGradient>
+    <linearGradient id="pillBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#E6F0FF"/>
+      <stop offset="1" stop-color="#F3F8FF"/>
+    </linearGradient>
+    <linearGradient id="pillPurple" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F0E7FF"/>
+      <stop offset="1" stop-color="#E8DEFF"/>
+    </linearGradient>
+    <linearGradient id="pillGreen" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#DDFBE6"/>
+      <stop offset="1" stop-color="#ECFFF2"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="834" height="1642" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#0B1D4A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="834" height="1642" fill="#FFFFFF"/>
+
+  <g filter="url(#shadow)">
+    <rect x="37" y="15" width="760" height="1612" rx="114" fill="#090909"/>
+    <rect x="51" y="28" width="732" height="1586" rx="96" fill="#101010"/>
+    <rect x="68" y="46" width="698" height="1550" rx="84" fill="url(#screenBg)"/>
+  </g>
+
+  <rect x="311" y="54" width="213" height="62" rx="31" fill="#050505"/>
+  <circle cx="489" cy="85" r="7" fill="#1E2C59"/>
+  <circle cx="490" cy="85" r="2.4" fill="#6F88FF"/>
+
+  <text x="111" y="116" fill="#101010" font-size="35" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">9:41</text>
+  <g fill="#101010">
+    <rect x="643" y="88" width="10" height="18" rx="5"/>
+    <rect x="659" y="82" width="10" height="24" rx="5"/>
+    <rect x="675" y="75" width="10" height="31" rx="5"/>
+    <path d="M710 97C710 86.5066 718.507 78 729 78C739.493 78 748 86.5066 748 97C748 107.493 739.493 116 729 116C718.507 116 710 107.493 710 97Z" fill="none" stroke="#101010" stroke-width="6"/>
+    <rect x="755" y="83" width="40" height="24" rx="9" fill="none" stroke="#101010" stroke-width="6"/>
+  </g>
+
+  <rect x="105" y="174" width="240" height="58" rx="28" fill="#EDF3FF" fill-opacity="0.86"/>
+  <text x="143" y="214" fill="#2D6DEB" font-size="26" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">优先薄弱点</text>
+
+  <text x="108" y="331" fill="#101420" font-size="74" font-weight="800" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">函数返回值</text>
+  <text x="109" y="430" fill="#4A4F61" font-size="33" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">
+    <tspan x="109" dy="0">先补当前卡点，再做短练习。做完这一轮，</tspan>
+    <tspan x="109" dy="54">今天的路径就能继续往前走。</tspan>
+  </text>
+
+  <rect x="108" y="538" width="151" height="64" rx="18" fill="url(#pillYellow)"/>
+  <text x="126" y="580" fill="#D88D00" font-size="22" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">先补当前卡点</text>
+
+  <rect x="274" y="538" width="149" height="64" rx="18" fill="url(#pillBlue)"/>
+  <text x="304" y="580" fill="#2E69E0" font-size="22" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">再做短练习</text>
+
+  <rect x="435" y="538" width="189" height="64" rx="18" fill="url(#pillPurple)"/>
+  <text x="452" y="580" fill="#8D62E7" font-size="22" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">做完确认下一步</text>
+
+  <rect x="108" y="624" width="154" height="62" rx="18" fill="url(#pillGreen)"/>
+  <text x="126" y="665" fill="#2F9B5A" font-size="23" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">预计 24 分钟</text>
+
+  <rect x="108" y="739" width="212" height="84" rx="18" fill="#2A61E7"/>
+  <text x="144" y="791" fill="#FFFFFF" font-size="31" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">开始回顾资源</text>
+
+  <rect x="337" y="739" width="163" height="84" rx="18" fill="#FFFFFF" stroke="#D6DDEA" stroke-width="2"/>
+  <text x="369" y="791" fill="#1840B8" font-size="30" font-weight="700" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">先做练习</text>
+
+  <rect x="70" y="982" width="692" height="451" rx="27" fill="url(#panel)"/>
+
+  <g>
+    <circle cx="145" cy="1120" r="43" fill="#E8F2FF"/>
+    <path d="M145 1098V1120L160 1132" stroke="#3568D8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M145 1098A22 22 0 1 1 128 1135" stroke="#3568D8" stroke-width="6" stroke-linecap="round"/>
+    <text x="205" y="1104" fill="#101420" font-size="38" font-weight="800" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">0%</text>
+    <text x="205" y="1140" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">今日任务</text>
+    <text x="205" y="1174" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">已完成比例</text>
+  </g>
+
+  <g>
+    <circle cx="503" cy="1120" r="43" fill="#E8F2FF"/>
+    <rect x="490" y="1098" width="26" height="33" rx="4" stroke="#3568D8" stroke-width="5"/>
+    <path d="M497 1105H509M497 1115H509M497 1125H509" stroke="#3568D8" stroke-width="4" stroke-linecap="round"/>
+    <text x="563" y="1104" fill="#101420" font-size="38" font-weight="800" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">3 项</text>
+    <text x="563" y="1140" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">任务池</text>
+    <text x="563" y="1174" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">可创建和删除</text>
+  </g>
+
+  <g>
+    <circle cx="145" cy="1310" r="43" fill="#E4FAEF"/>
+    <path d="M145 1278C145 1278 126 1294 126 1311C126 1327 135 1339 145 1339C155 1339 164 1327 164 1311C164 1294 145 1278 145 1278Z" fill="none" stroke="#1E9A57" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M136 1311L143 1318L155 1301" stroke="#1E9A57" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="205" y="1295" fill="#101420" font-size="38" font-weight="800" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">12 天</text>
+    <text x="205" y="1332" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">连续学习</text>
+    <text x="205" y="1366" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">保持得不错</text>
+  </g>
+
+  <g>
+    <circle cx="503" cy="1310" r="43" fill="#E4FAEF"/>
+    <circle cx="503" cy="1310" r="18" fill="none" stroke="#1E9A57" stroke-width="5"/>
+    <path d="M495 1310L501 1316L513 1303" stroke="#1E9A57" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="563" y="1295" fill="#101420" font-size="38" font-weight="800" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">3 项</text>
+    <text x="563" y="1332" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">待完成</text>
+    <text x="563" y="1366" fill="#555B6D" font-size="27" font-weight="400" font-family="Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif">完成后进入下一步</text>
+  </g>
+
+  <path d="M694 516C731 545 756 617 757 682" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="695" cy="516" r="10" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="757" cy="682" r="10" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="756" y="620" width="27" height="178" rx="13.5" fill="#D7E5FF"/>
+  <rect x="756" y="620" width="27" height="178" rx="13.5" fill="#F6FAFF" opacity="0.42"/>
+</svg>
