@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { assertPortFree } = require('./port-utils');
 const { waitForHealth, checkHealth } = require('./health-checker');
@@ -15,6 +16,72 @@ class ProcessManager {
   async startAll() {
     await this.startService('backend', this.config.backend);
     await this.startService('frontend', this.config.frontend);
+    this.startNanobotGateway().catch((error) => {
+      this.logManager.error(`nanobotGateway startup failed: ${error.message}`);
+    });
+  }
+
+  getNanobotGatewayConfig() {
+    const rootDir = this.config.rootDir || path.resolve(__dirname, '..', '..');
+    const projectDir = this.config.env?.NANOBOT_PROJECT_DIR || path.join(rootDir, 'nanobot-main');
+    const configPath = this.config.env?.NANOBOT_CONFIG_PATH || path.join(projectDir, '.nanobot', 'config.json');
+    const workspace = this.config.env?.NANOBOT_WORKSPACE || path.join(projectDir, '.workspace');
+    const pythonExe = this.config.env?.NANOBOT_PYTHON_EXE || 'python';
+
+    return {
+      enabled: true,
+      required: false,
+      cwd: projectDir,
+      command: pythonExe,
+      args: ['-m', 'nanobot', 'gateway', '--port', '18790', '--config', configPath, '--workspace', workspace],
+      healthUrl: 'http://127.0.0.1:18790/health',
+    };
+  }
+
+  async startNanobotGateway() {
+    const service = this.getNanobotGatewayConfig();
+
+    if (!fs.existsSync(service.cwd)) {
+      this.logManager.warn(`nanobotGateway cwd does not exist: ${service.cwd}; skipping`);
+      return;
+    }
+
+    if (service.command.includes('\\') || service.command.includes('/')) {
+      if (!fs.existsSync(service.command)) {
+        this.logManager.warn(`nanobotGateway command does not exist: ${service.command}; falling back to python`);
+        service.command = 'python';
+      }
+    }
+
+    try {
+      await checkHealth(service.healthUrl);
+      this.logManager.info(`nanobotGateway already healthy at ${service.healthUrl}`);
+      return;
+    } catch (_) {
+      await assertPortFree('nanobotGateway', service);
+    }
+
+    this.logManager.info(`Starting nanobotGateway: ${service.command} ${service.args.join(' ')}`);
+    const child = spawn(service.command, service.args, {
+      cwd: service.cwd,
+      env: {
+        ...process.env,
+        ...(this.config.env || {}),
+      },
+      shell: process.platform === 'win32',
+      windowsHide: true,
+      detached: false,
+    });
+
+    this.children.set('nanobotGateway', child);
+    this.pipeLogs('nanobotGateway', child);
+    this.watchExit('nanobotGateway', service, child);
+
+    await waitForHealth(service.healthUrl, {
+      timeoutMs: this.config.startup.healthTimeoutMs,
+      intervalMs: this.config.startup.healthIntervalMs,
+    });
+    this.logManager.info(`nanobotGateway healthy at ${service.healthUrl}`);
   }
 
   async startService(name, service) {
@@ -50,7 +117,15 @@ class ProcessManager {
         return;
       }
     } catch (_) {
-      await assertPortFree(name, service);
+      try {
+        await assertPortFree(name, service);
+      } catch (error) {
+        if (service.required) {
+          throw error;
+        }
+        this.logManager.warn(`${error.message}; reusing existing ${name} process`);
+        return;
+      }
     }
 
     this.logManager.info(`Starting ${name}: ${service.command} ${(service.args || []).join(' ')}`);
@@ -129,6 +204,7 @@ class ProcessManager {
 
   async stopAll() {
     this.shuttingDown = true;
+    await this.stopService('nanobotGateway');
     await this.stopService('frontend');
     await this.stopService('backend');
   }

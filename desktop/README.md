@@ -38,8 +38,8 @@ StudyBuddy configuration is available from the desktop menu:
 SparkLearn -> StudyBuddy 配置
 ```
 
-The window writes to the project Nanobot config path from `NANOBOT_CONFIG_PATH`
-or falls back to:
+The window reads and writes the project Nanobot config path from
+`NANOBOT_CONFIG_PATH`, or falls back to:
 
 ```text
 nanobot-main\.nanobot\config.json
@@ -54,6 +54,9 @@ Current UI flow:
 2. Choose the target channel inside the StudyBuddy page.
 3. Fill the channel form or edit raw `channels` JSON for advanced fields.
 4. Save, then restart Nanobot to apply the new configuration.
+
+The desktop shell also starts `nanobot gateway` automatically on launch so
+Feishu stays connected without a manual startup step.
 
 ## Validation
 

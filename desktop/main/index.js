@@ -11,9 +11,26 @@ let processManager;
 let logManager;
 let config;
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
+app.on('second-instance', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+    return;
+  }
+  if (config) {
+    createWindow();
+  }
+});
+
 function getNanobotConfigPath() {
-  return process.env.NANOBOT_CONFIG_PATH
-    || config?.env?.NANOBOT_CONFIG_PATH
+  return config?.env?.NANOBOT_CONFIG_PATH
     || path.join(config?.rootDir || path.resolve(__dirname, '..', '..'), 'nanobot-main', '.nanobot', 'config.json');
 }
 
