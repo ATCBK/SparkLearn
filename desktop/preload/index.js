@@ -7,4 +7,8 @@ contextBridge.exposeInMainWorld('sparklearnDesktop', {
   getStudyBuddyConfig: () => ipcRenderer.invoke('desktop:studybuddy-config:get'),
   saveStudyBuddyConfig: (payload) => ipcRenderer.invoke('desktop:studybuddy-config:save', payload),
   openStudyBuddyConfigFile: () => ipcRenderer.invoke('desktop:studybuddy-config:open-file'),
+  getAuthSession: () => ipcRenderer.invoke('desktop:auth:get'),
+  saveAuthSession: (payload) => ipcRenderer.invoke('desktop:auth:save', payload),
+  clearAuthSession: () => ipcRenderer.invoke('desktop:auth:clear'),
+  syncStudyBuddyProfile: (payload) => ipcRenderer.invoke('desktop:studybuddy-profile:sync', payload),
 });

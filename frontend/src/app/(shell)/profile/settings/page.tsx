@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Camera, Mail, GraduationCap, BookOpen, Clock, Target, ArrowLeft } from 'lucide-react'
 import { api, ProfileUpdatePayload, StudentProfile } from '@/lib/api'
+import { syncStudyBuddyProfile } from '@/lib/auth'
 import { PageHead, ProtoButton, ProtoCard } from '@/components/proto'
 
 export default function ProfileSettingsPage() {
-  const router = useRouter()
   const [form, setForm] = useState<StudentProfile | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -46,6 +45,7 @@ export default function ProfileSettingsPage() {
     }
     try {
       await api.updateProfile(payload)
+      await syncStudyBuddyProfile('profile-settings')
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
     } catch (ex) {

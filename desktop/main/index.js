@@ -10,6 +10,11 @@ let configWindow;
 let processManager;
 let logManager;
 let config;
+const AUTH_SESSION_FILE = 'auth-session.json';
+const PROFILE_SYNC_DIRNAME = 'studybuddy';
+const PROFILE_SYNC_FILENAME = 'live-profile.json';
+const PROFILE_MEMORY_START = '<!-- STUDYBUDDY_PROFILE_START -->';
+const PROFILE_MEMORY_END = '<!-- STUDYBUDDY_PROFILE_END -->';
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
@@ -34,6 +39,18 @@ function getNanobotConfigPath() {
     || path.join(config?.rootDir || path.resolve(__dirname, '..', '..'), 'nanobot-main', '.nanobot', 'config.json');
 }
 
+function getNanobotWorkspacePath() {
+  const configPath = getNanobotConfigPath();
+  const raw = readJson(configPath);
+  return raw.agents?.defaults?.workspace
+    || config?.env?.NANOBOT_WORKSPACE
+    || path.join(config?.rootDir || path.resolve(__dirname, '..', '..'), 'nanobot-main', '.workspace');
+}
+
+function getAuthSessionPath() {
+  return path.join(app.getPath('userData'), AUTH_SESSION_FILE);
+}
+
 function readJson(filePath) {
   if (!fs.existsSync(filePath)) {
     return {};
@@ -48,6 +65,121 @@ function writeJson(filePath, data) {
 
 function prettyJson(value) {
   return `${JSON.stringify(value || {}, null, 2)}\n`;
+}
+
+function readAuthSession() {
+  const session = readJson(getAuthSessionPath());
+  if (!session || typeof session !== 'object') {
+    return null;
+  }
+  return session;
+}
+
+function saveAuthSession(payload) {
+  const token = String(payload?.token || '').trim();
+  const user = payload?.user && typeof payload.user === 'object' ? payload.user : null;
+  if (!token || !user) {
+    throw new Error('Invalid auth session payload');
+  }
+  const session = {
+    token,
+    user,
+    updatedAt: new Date().toISOString(),
+  };
+  writeJson(getAuthSessionPath(), session);
+  return session;
+}
+
+function clearAuthSession() {
+  const filePath = getAuthSessionPath();
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+  return { cleared: true };
+}
+
+function getBackendProfileSnapshotPath() {
+  return path.join(config?.rootDir || path.resolve(__dirname, '..', '..'), 'backend', 'data', 'users', 'single_user', 'profile_snapshot.json');
+}
+
+function getStudyBuddyProfilePath() {
+  return path.join(getNanobotWorkspacePath(), PROFILE_SYNC_DIRNAME, PROFILE_SYNC_FILENAME);
+}
+
+function getMemoryFilePath() {
+  return path.join(getNanobotWorkspacePath(), 'memory', 'MEMORY.md');
+}
+
+function formatProfileValue(value) {
+  if (Array.isArray(value)) {
+    const items = value.map((item) => String(item).trim()).filter(Boolean);
+    return items.length ? items.join('、') : '未提供';
+  }
+  const text = String(value || '').trim();
+  return text || '未提供';
+}
+
+function renderStudyBuddyProfileSection(profileBundle) {
+  const authUser = profileBundle.authUser || {};
+  const profile = profileBundle.profile || {};
+  const lines = [
+    '## Current Synced Learner Profile',
+    '',
+    PROFILE_MEMORY_START,
+    `- Synced at: ${profileBundle.syncedAt || new Date().toISOString()}`,
+    `- Source: ${profileBundle.source || 'desktop'}`,
+    `- User ID: ${formatProfileValue(authUser.user_id || profile.user_id)}`,
+    `- Name: ${formatProfileValue(authUser.name || profile.name)}`,
+    `- Phone: ${formatProfileValue(authUser.phone)}`,
+    `- Major: ${formatProfileValue(profile.major)}`,
+    `- Grade: ${formatProfileValue(profile.grade)}`,
+    `- Learning Goal: ${formatProfileValue(profile.goal)}`,
+    `- Current Stage: ${formatProfileValue(profile.current_stage)}`,
+    `- Knowledge Level: ${formatProfileValue(profile.knowledge_level)}`,
+    `- Weak Points: ${formatProfileValue(profile.weak_points)}`,
+    `- Learning Preference: ${formatProfileValue(profile.learning_preference)}`,
+    `- Cognitive Style: ${formatProfileValue(profile.cognitive_style)}`,
+    `- Daily Time: ${profile.daily_time ? `${profile.daily_time} minutes` : '未提供'}`,
+    `- Practical Ability: ${formatProfileValue(profile.practical_ability)}`,
+    `- Profile Version: ${formatProfileValue(profile.version)}`,
+    `- Next Use Rule: prioritize this synced profile when StudyBuddy gives recommendations, path guidance, resource suggestions, and practice follow-up.`,
+    PROFILE_MEMORY_END,
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
+function upsertStudyBuddyProfileSection(memoryPath, sectionText) {
+  const current = fs.existsSync(memoryPath) ? fs.readFileSync(memoryPath, 'utf8') : '# StudyBuddy Long-term Memory\n\n';
+  if (current.includes(PROFILE_MEMORY_START) && current.includes(PROFILE_MEMORY_END)) {
+    const pattern = new RegExp(`${PROFILE_MEMORY_START}[\\s\\S]*?${PROFILE_MEMORY_END}`, 'm');
+    return current.replace(pattern, `${PROFILE_MEMORY_START}\n${sectionText.split(PROFILE_MEMORY_START)[1].split(PROFILE_MEMORY_END)[0].trim()}\n${PROFILE_MEMORY_END}`);
+  }
+  return `${current.trimEnd()}\n\n${sectionText}`;
+}
+
+function syncStudyBuddyProfile(payload) {
+  const backendProfile = readJson(getBackendProfileSnapshotPath());
+  const authSession = readAuthSession();
+  const profileBundle = {
+    source: String(payload?.source || 'desktop'),
+    syncedAt: new Date().toISOString(),
+    authUser: payload?.user && typeof payload.user === 'object' ? payload.user : (authSession?.user || {}),
+    profile: backendProfile && typeof backendProfile === 'object' ? backendProfile : {},
+  };
+
+  const profilePath = getStudyBuddyProfilePath();
+  writeJson(profilePath, profileBundle);
+
+  const memoryPath = getMemoryFilePath();
+  fs.mkdirSync(path.dirname(memoryPath), { recursive: true });
+  const nextMemory = upsertStudyBuddyProfileSection(memoryPath, renderStudyBuddyProfileSection(profileBundle));
+  fs.writeFileSync(memoryPath, nextMemory, 'utf8');
+
+  return {
+    profilePath,
+    memoryPath,
+    syncedAt: profileBundle.syncedAt,
+  };
 }
 
 function readStudyBuddyForm() {
@@ -150,7 +282,7 @@ function createWindow() {
     },
   });
 
-  const startUrl = `${config.frontend.url.replace(/\/$/, '')}/auth?desktop=1&recapture=1`;
+  const startUrl = `${config.frontend.url.replace(/\/$/, '')}/`;
   mainWindow.loadURL(startUrl);
 }
 
@@ -213,6 +345,10 @@ async function bootstrap() {
   ipcMain.handle('desktop:studybuddy-config:get', () => readStudyBuddyForm());
   ipcMain.handle('desktop:studybuddy-config:save', (_event, payload) => saveStudyBuddyForm(payload || {}));
   ipcMain.handle('desktop:studybuddy-config:open-file', () => shell.openPath(getNanobotConfigPath()));
+  ipcMain.handle('desktop:auth:get', () => readAuthSession());
+  ipcMain.handle('desktop:auth:save', (_event, payload) => saveAuthSession(payload || {}));
+  ipcMain.handle('desktop:auth:clear', () => clearAuthSession());
+  ipcMain.handle('desktop:studybuddy-profile:sync', (_event, payload) => syncStudyBuddyProfile(payload || {}));
 
   try {
     await processManager.startAll();

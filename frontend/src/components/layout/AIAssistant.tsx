@@ -332,7 +332,7 @@ export function AIAssistant() {
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
           style={{
-            background: 'radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 30%), linear-gradient(135deg, #075ff0 0%, #2563eb 48%, #5aa2ff 100%)',
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
             animation: 'fadeIn 0.3s ease forwards',
           }}
         >

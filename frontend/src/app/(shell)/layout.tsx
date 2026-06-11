@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft, LogOut } from 'lucide-react'
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { AIAssistant } from '@/components/layout/AIAssistant'
@@ -11,6 +11,7 @@ import { LearningNotesPanel } from '@/components/layout/LearningNotesPanel'
 import { MOBILE_TABS, PAGE_META } from '@/components/layout/navigation'
 import { GenerationTaskProvider } from '@/components/providers/GenerationTaskProvider'
 import { useBreakpoint } from '@/lib/hooks/useMediaQuery'
+import { clearDesktopAuthSession, isAuthenticated, restoreDesktopAuthSession, syncStudyBuddyProfile } from '@/lib/auth'
 
 function MobileTopbar() {
   const pathname = usePathname()
@@ -24,6 +25,7 @@ function MobileTopbar() {
       localStorage.removeItem('sparklearn_token')
       sessionStorage.clear()
     }
+    void clearDesktopAuthSession()
     router.push('/auth')
   }
 
@@ -86,9 +88,38 @@ export default function ShellLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
   const { isMobile } = useBreakpoint()
   const [sidebarState, setSidebarState] = useState<'expanded' | 'icons' | 'collapsed'>('expanded')
+  const [authReady, setAuthReady] = useState(false)
   const sidebarWidth = sidebarState === 'expanded' ? 220 : sidebarState === 'icons' ? 74 : 0
+
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      await restoreDesktopAuthSession()
+      if (cancelled) return
+      if (!isAuthenticated()) {
+        router.replace('/auth')
+        return
+      }
+      await syncStudyBuddyProfile('shell-bootstrap')
+      setAuthReady(true)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (!authReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2563eb] border-t-transparent" />
+      </div>
+    )
+  }
 
   if (isMobile) {
     return (

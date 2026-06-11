@@ -21,6 +21,7 @@ import {
   BarChart3,
   Sparkles,
 } from 'lucide-react'
+import { syncStudyBuddyProfile } from '@/lib/auth'
 
 /* ── 类型 ─────────────────────────────────────────── */
 
@@ -293,6 +294,7 @@ export default function OnboardingPage() {
           body: JSON.stringify(body),
         }
       )
+      await syncStudyBuddyProfile('onboarding')
     } catch {
       // 即使提交失败也跳转
     }

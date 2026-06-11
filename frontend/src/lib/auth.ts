@@ -1,6 +1,25 @@
 const TOKEN_KEY = 'sparklearn_token'
 const USER_KEY = 'sparklearn_user'
 
+type DesktopAuthSession = {
+  token: string
+  user: AuthUser
+  updatedAt?: string
+}
+
+type SparklearnDesktopBridge = {
+  getAuthSession?: () => Promise<DesktopAuthSession | null>
+  saveAuthSession?: (payload: { token: string; user: AuthUser }) => Promise<DesktopAuthSession>
+  clearAuthSession?: () => Promise<{ cleared: boolean }>
+  syncStudyBuddyProfile?: (payload?: { source?: string; user?: AuthUser }) => Promise<unknown>
+}
+
+declare global {
+  interface Window {
+    sparklearnDesktop?: SparklearnDesktopBridge
+  }
+}
+
 export interface AuthUser {
   user_id?: string
   name: string
@@ -39,6 +58,58 @@ export function getUser(): AuthUser | null {
 export function setUser(user: AuthUser): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(USER_KEY, JSON.stringify(user))
+}
+
+export function getDesktopBridge(): SparklearnDesktopBridge | null {
+  if (typeof window === 'undefined') return null
+  return window.sparklearnDesktop || null
+}
+
+export async function persistDesktopAuthSession(token?: string | null, user?: AuthUser | null): Promise<void> {
+  const bridge = getDesktopBridge()
+  if (!bridge?.saveAuthSession || !token || !user) return
+  try {
+    await bridge.saveAuthSession({ token, user })
+  } catch {
+    // Ignore desktop persistence failures; browser localStorage remains the fallback.
+  }
+}
+
+export async function restoreDesktopAuthSession(): Promise<boolean> {
+  const bridge = getDesktopBridge()
+  if (!bridge?.getAuthSession) return false
+  try {
+    const session = await bridge.getAuthSession()
+    if (!session?.token || !session?.user) return false
+    setToken(session.token)
+    setUser(session.user)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function clearDesktopAuthSession(): Promise<void> {
+  const bridge = getDesktopBridge()
+  if (!bridge?.clearAuthSession) return
+  try {
+    await bridge.clearAuthSession()
+  } catch {
+    // Ignore desktop cleanup failures.
+  }
+}
+
+export async function syncStudyBuddyProfile(source: string = 'desktop-ui'): Promise<void> {
+  const bridge = getDesktopBridge()
+  if (!bridge?.syncStudyBuddyProfile) return
+  try {
+    await bridge.syncStudyBuddyProfile({
+      source,
+      user: getUser() || undefined,
+    })
+  } catch {
+    // Ignore sync failures; profile data still lives in backend storage.
+  }
 }
 
 function base64UrlEncode(value: object): string {
@@ -103,6 +174,7 @@ export function isAuthenticated(): boolean {
 
 export function logout(): void {
   removeToken()
+  void clearDesktopAuthSession()
   if (typeof window !== 'undefined') {
     window.location.href = '/auth'
   }

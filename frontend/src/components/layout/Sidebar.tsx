@@ -1,9 +1,10 @@
 ﻿'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { BarChart3, BookOpen, Bot, CheckSquare, Database, Globe, Home, LogOut, Map, MessageSquare, Network, Settings2, User, Zap } from 'lucide-react'
+import { clearDesktopAuthSession } from '@/lib/auth'
 
 interface NavItem {
   label: string
@@ -44,13 +45,13 @@ interface SidebarProps {
 export function Sidebar({ state }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const [desktopReady, setDesktopReady] = useState(false)
+  const desktopReady = useSyncExternalStore(
+    () => () => {},
+    () => Boolean(window.sparklearnDesktop?.openStudyBuddyConfig),
+    () => false,
+  )
   const isExpanded = state === 'expanded'
   const isIcons = state === 'icons'
-
-  useEffect(() => {
-    setDesktopReady(Boolean(window.sparklearnDesktop?.openStudyBuddyConfig))
-  }, [])
 
   const groupedItems = NAV_ITEMS.reduce(
     (acc, item) => {
@@ -71,6 +72,7 @@ export function Sidebar({ state }: SidebarProps) {
       localStorage.removeItem('sparklearn_token')
       sessionStorage.clear()
     }
+    void clearDesktopAuthSession()
     router.push('/auth')
   }
 
