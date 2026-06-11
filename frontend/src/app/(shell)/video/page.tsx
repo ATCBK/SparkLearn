@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   BarChart3,
   Bookmark,
@@ -21,6 +22,8 @@ import {
   MessageCircle,
   Mic,
   MoreHorizontal,
+  NotebookPen,
+  ExternalLink,
   Play,
   RotateCw,
   Send,
@@ -35,6 +38,7 @@ import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { readLearningNotes, writeLearningNotes, type LearningNote } from '@/lib/learningNotes'
 import { cn } from '@/lib/utils/cn'
 
 type AssistantMessage = {
@@ -47,6 +51,14 @@ type MemoryState = {
   title: string
   status: 'idle' | 'loading' | 'ready' | 'error'
   error: string
+}
+
+type VideoDetailTab = 'intro' | 'knowledge' | 'notes' | 'practice'
+
+type KnowledgePoint = {
+  title: string
+  summary: string
+  takeaway: string
 }
 
 const KNOWLEDGE_TAGS = ['函数返回值', 'return 语句', '函数调用', '程序设计基础']
@@ -73,11 +85,6 @@ function getLessonTitle(video: VideoInfo | null) {
   return video?.title || '函数返回值：像自动售货机一样'
 }
 
-function getKnowledgeCount(video: VideoInfo | null) {
-  const minutes = Math.max(1, Math.ceil((video?.duration || 0) / 60))
-  return Math.max(3, Math.min(12, Math.ceil(minutes / 2) + 3))
-}
-
 function getAssistantStatus(memory: MemoryState) {
   if (memory.status === 'loading') return '正在学习当前视频'
   if (memory.status === 'error') return '视频记忆加载失败'
@@ -92,11 +99,60 @@ function buildOpeningMessages(video: VideoInfo): AssistantMessage[] {
       role: 'assistant',
       content: `你好！我是你的 AI 助教小思\n\n你刚刚学习了《${title}》，对这个知识点还有哪些疑问呢？我可以帮你复盘重点。`,
     },
-    {
-      role: 'assistant',
-      content: `你好！我已经学习完了《${title}》这个视频，一共${getKnowledgeCount(video)}个知识点。有什么想深入了解的，尽管问我！`,
-    },
   ]
+}
+
+function buildLessonSummary(video: VideoInfo | null) {
+  const title = getLessonTitle(video)
+
+  if (title.includes('返回') || title.toLowerCase().includes('return')) {
+    return `本节视频围绕《${title}》展开，重点解释 return 的作用、返回值和输出的区别，以及函数调用后结果如何被继续使用。`
+  }
+
+  if (title.includes('循环') || title.includes('遍历')) {
+    return `本节视频围绕《${title}》展开，重点解释循环结构的执行方式、适用场景以及循环中最容易出错的边界条件。`
+  }
+
+  return `本节视频围绕《${title}》展开，会从概念、案例和易错点三个层次帮你建立完整理解。`
+}
+
+function buildKnowledgePoints(video: VideoInfo | null): KnowledgePoint[] {
+  const title = getLessonTitle(video)
+
+  if (title.includes('返回') || title.toLowerCase().includes('return')) {
+    return [
+      {
+        title: '返回值的职责',
+        summary: 'return 用来把函数内部的处理结果交回调用方，它不是展示结果，而是传递结果。',
+        takeaway: '先问“结果要给谁用”，再决定是否需要 return。',
+      },
+      {
+        title: 'return 和 print 的区别',
+        summary: 'print 负责显示，return 负责返回。一个偏输出，一个偏数据流转。',
+        takeaway: '能参与后续计算的是 return，不是 print。',
+      },
+      {
+        title: '多返回值的接收方式',
+        summary: 'Python 可以一次返回多个值，实质上通常是返回一个元组，再由调用方解包。',
+        takeaway: '看到多个返回值，优先检查接收变量的结构是否对应。',
+      },
+    ]
+  }
+
+  return KNOWLEDGE_TAGS.slice(0, 3).map((tag, index) => ({
+    title: tag,
+    summary: `围绕《${title}》拆出的第 ${index + 1} 个核心知识点，适合先理解定义，再结合一个简短案例消化。`,
+    takeaway: '先记住一句话结论，再回到视频对应片段复看。',
+  }))
+}
+
+function buildDefaultNote(video: VideoInfo | null, knowledgePoints: KnowledgePoint[]) {
+  return [
+    `主题：${getLessonTitle(video)}`,
+    '',
+    '本节课我先记住三件事：',
+    ...knowledgePoints.slice(0, 3).map((item, index) => `${index + 1}. ${item.title}：${item.takeaway}`),
+  ].join('\n')
 }
 
 function buildVideoSuggestions(video: VideoInfo | null) {
@@ -169,6 +225,7 @@ function buildContextSuggestions(context: string) {
 }
 
 export default function VideoPage() {
+  const router = useRouter()
   const [videos, setVideos] = useState<VideoInfo[]>([])
   const [selected, setSelected] = useState<VideoInfo | null>(null)
   const [loading, setLoading] = useState(true)
@@ -180,6 +237,11 @@ export default function VideoPage() {
   const [sending, setSending] = useState(false)
   const [messages, setMessages] = useState<AssistantMessage[]>([])
   const [suggestions, setSuggestions] = useState<string[]>([])
+  const [detailTab, setDetailTab] = useState<VideoDetailTab>('intro')
+  const [noteModalOpen, setNoteModalOpen] = useState(false)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [noteSaved, setNoteSaved] = useState(false)
+  const [learningNotes, setLearningNotes] = useState<LearningNote[]>([])
   const [memory, setMemory] = useState<MemoryState>({
     id: null,
     title: '',
@@ -198,6 +260,14 @@ export default function VideoPage() {
   const progressPercent = videos.length ? Math.round(((selectedIndex + 1) / videos.length) * 100) : 0
   const watchedPercent = Math.max(12, Math.min(92, progressPercent))
   const lessonTitle = getLessonTitle(selected)
+  const lessonSummary = useMemo(() => buildLessonSummary(selected), [selected])
+  const knowledgePoints = useMemo(() => buildKnowledgePoints(selected), [selected])
+  const relatedNotes = useMemo(() => {
+    if (!selected) return []
+    return learningNotes
+      .filter((note) => note.source.id === selected.id || note.source.title === selected.title)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  }, [learningNotes, selected])
 
   const fetchData = useCallback(async () => {
     try {
@@ -221,6 +291,13 @@ export default function VideoPage() {
   }, [fetchData])
 
   useEffect(() => {
+    const refreshNotes = () => setLearningNotes(readLearningNotes())
+    refreshNotes()
+    window.addEventListener('learning-notes-updated', refreshNotes)
+    return () => window.removeEventListener('learning-notes-updated', refreshNotes)
+  }, [])
+
+  useEffect(() => {
     if (!selected) {
       setMemory({ id: null, title: '', status: 'idle', error: '' })
       setMessages([])
@@ -229,6 +306,9 @@ export default function VideoPage() {
     }
 
     let alive = true
+    setDetailTab('intro')
+    setNoteSaved(false)
+    setNoteDraft(buildDefaultNote(selected, buildKnowledgePoints(selected)))
     setMemory({ id: null, title: selected.title, status: 'loading', error: '' })
     setMessages(buildOpeningMessages(selected))
     setSuggestions(buildVideoSuggestions(selected))
@@ -269,6 +349,33 @@ export default function VideoPage() {
     if (!chatScrollRef.current) return
     chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
   }, [messages, sending])
+
+  function handleSaveNote() {
+    if (!selected) return
+    const content = noteDraft.trim()
+    if (!content) return
+
+    const now = new Date().toISOString()
+    const nextNote: LearningNote = {
+      id: `video-note-${selected.id}-${Date.now()}`,
+      title: `${selected.title} 学习笔记`,
+      content,
+      source: {
+        type: 'resource',
+        id: selected.id,
+        title: selected.title,
+        href: '/video',
+      },
+      tags: knowledgePoints.map((item) => item.title),
+      personalizationEnabled: true,
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    writeLearningNotes([nextNote, ...learningNotes])
+    setNoteSaved(true)
+    window.setTimeout(() => setNoteSaved(false), 1800)
+  }
 
   async function handleDelete(video: VideoInfo) {
     const confirmed = window.confirm(`确定删除“${video.title}”吗？删除后会清理视频、音频、字幕和时间轴文件。`)
@@ -430,18 +537,20 @@ export default function VideoPage() {
       </div>
 
       <div className="shrink-0 border-t border-[#edf2f8] px-5 pb-4 pt-3">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {suggestions.map((suggestion) => (
-            <button
-              key={suggestion}
-              type="button"
-              onClick={() => handleSend(suggestion)}
-              disabled={!memory.id || sending}
-              className="rounded-[8px] border border-[#dbe7f8] bg-white px-3 py-1.5 text-[12px] font-medium text-blue transition hover:bg-blue-light disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {suggestion}
-            </button>
-          ))}
+        <div className="mb-3 max-h-[132px] overflow-y-auto pr-1">
+          <div className="flex flex-col gap-2">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => handleSend(suggestion)}
+                disabled={!memory.id || sending}
+                className="w-full rounded-[8px] border border-[#dbe7f8] bg-white px-3 py-2 text-left text-[12px] font-medium text-blue transition hover:bg-blue-light disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -624,7 +733,7 @@ export default function VideoPage() {
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <span className="inline-flex items-center rounded-[8px] bg-blue px-2.5 py-1 text-[12px] font-bold text-white">正在学习</span>
-                      <h2 className="mt-3 text-[20px] font-bold text-ink">{selected.title}</h2>
+                      <h2 className="mt-3 text-[20px] font-bold text-ink">{selected?.title}</h2>
                       <div className="mt-3 flex flex-wrap items-center gap-3">
                         <span className="text-[13px] text-muted">学习进度</span>
                         <div className="h-1.5 w-44 rounded-full bg-[#e7eef8]">
@@ -668,6 +777,168 @@ export default function VideoPage() {
                 </Card>
 
                 <Card className="rounded-[8px] border border-[#dbe7f8] bg-white shadow-[0_14px_44px_rgba(15,23,42,0.06)]">
+                  <div className="flex gap-6 overflow-x-auto border-b border-[#edf2f8] px-5 pt-4 text-[14px] font-bold text-[#64748b]">
+                    {[
+                      { id: 'intro', label: '课程简介' },
+                      { id: 'knowledge', label: `知识点 ${knowledgePoints.length}` },
+                      { id: 'notes', label: `学习笔记 ${relatedNotes.length}` },
+                      { id: 'practice', label: '相关练习' },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setDetailTab(tab.id as VideoDetailTab)}
+                        className={cn(
+                          'shrink-0 border-b-2 pb-3 transition',
+                          detailTab === tab.id ? 'border-blue text-blue' : 'border-transparent hover:text-ink',
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="p-5">
+                    {detailTab === 'intro' && (
+                      <>
+                        <p className="text-[14px] leading-7 text-[#334155]">{lessonSummary}</p>
+                        <div className="mt-5 grid grid-cols-4 gap-4 border-t border-[#edf2f8] pt-5 text-[12px] text-[#52627b] max-[760px]:grid-cols-2">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-blue" />
+                            <span>课程时长<br /><b className="font-bold text-ink">{formatDurationText(selected?.duration)}</b></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Gauge className="h-5 w-5 text-blue" />
+                            <span>难度<br /><b className="font-bold text-ink">中等</b></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <GraduationCap className="h-5 w-5 text-blue" />
+                            <span>适合年级<br /><b className="font-bold text-ink">初中及以上</b></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <CalendarDays className="h-5 w-5 text-blue" />
+                            <span>更新时间<br /><b className="font-bold text-ink">{formatDateText(selected?.createdAt)}</b></span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {detailTab === 'knowledge' && (
+                      <div className="space-y-4">
+                        {knowledgePoints.map((item, index) => (
+                          <div key={item.title} className="rounded-[8px] border border-[#e6eef8] bg-[#f8fbff] p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-bold text-blue">知识点 {index + 1}</p>
+                                <h3 className="mt-1 text-[16px] font-bold text-ink">{item.title}</h3>
+                              </div>
+                              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-[#64748b] shadow-sm">核心必会</span>
+                            </div>
+                            <p className="mt-3 text-[14px] leading-7 text-[#334155]">{item.summary}</p>
+                            <div className="mt-3 rounded-[8px] border border-[#dbe7f8] bg-white px-3 py-2 text-[13px] text-[#52627b]">
+                              一句话记忆：{item.takeaway}
+                            </div>
+                          </div>
+                        ))}
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => router.push('/graph')}>
+                            <BookOpen className="h-4 w-4" />
+                            去知识图谱继续看
+                          </Button>
+                          <Button size="sm" variant="secondary" onClick={() => setDetailTab('notes')}>
+                            <NotebookPen className="h-4 w-4" />
+                            记到学习笔记
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {detailTab === 'notes' && (
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-[#dbe7f8] bg-[#f8fbff] p-4">
+                          <div>
+                            <h3 className="text-[16px] font-bold text-ink">本视频学习笔记</h3>
+                            <p className="mt-1 text-[13px] text-[#64748b]">支持把当前视频的重点沉淀到本地学习笔记，后续可被 AI 辅导引用。</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button size="sm" onClick={() => setNoteModalOpen(true)}>
+                              <NotebookPen className="h-4 w-4" />
+                              新建笔记
+                            </Button>
+                            <Button size="sm" variant="secondary" onClick={() => setNoteDraft(buildDefaultNote(selected, knowledgePoints))}>
+                              重置模板
+                            </Button>
+                          </div>
+                        </div>
+
+                        {relatedNotes.length > 0 ? (
+                          <div className="space-y-3">
+                            {relatedNotes.slice(0, 3).map((note) => (
+                              <div key={note.id} className="rounded-[8px] border border-[#e6eef8] bg-white p-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <h4 className="text-[14px] font-bold text-ink">{note.title}</h4>
+                                  <span className="text-[11px] text-[#94a3b8]">{formatDateText(note.updatedAt)}</span>
+                                </div>
+                                <p className="mt-2 whitespace-pre-line text-[13px] leading-6 text-[#475569]">
+                                  {note.content.length > 180 ? `${note.content.slice(0, 180)}...` : note.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-[8px] border border-dashed border-[#cbdcf4] bg-white px-4 py-6 text-[13px] text-[#64748b]">
+                            这节视频还没有正式学习笔记。可以直接点“新建笔记”，系统会先带出一份按知识点生成的模板。
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {detailTab === 'practice' && (
+                      <div className="space-y-4">
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div className="rounded-[8px] border border-[#e6eef8] bg-[#f8fbff] p-4">
+                            <h3 className="text-[15px] font-bold text-ink">进入练习评测</h3>
+                            <p className="mt-2 text-[13px] leading-6 text-[#52627b]">去做配套题，系统会记录正确率和掌握度变化。</p>
+                            <Button size="sm" className="mt-4" onClick={() => router.push('/practice')}>
+                              <ExternalLink className="h-4 w-4" />
+                              去做练习
+                            </Button>
+                          </div>
+                          <div className="rounded-[8px] border border-[#e6eef8] bg-white p-4">
+                            <h3 className="text-[15px] font-bold text-ink">查看错题本</h3>
+                            <p className="mt-2 text-[13px] leading-6 text-[#52627b]">如果这类知识点经常出错，可以直接回看已有错题。</p>
+                            <Button size="sm" variant="secondary" className="mt-4" onClick={() => router.push('/practice/mistakes')}>
+                              <ExternalLink className="h-4 w-4" />
+                              打开错题本
+                            </Button>
+                          </div>
+                          <div className="rounded-[8px] border border-[#e6eef8] bg-white p-4">
+                            <h3 className="text-[15px] font-bold text-ink">答题记录</h3>
+                            <p className="mt-2 text-[13px] leading-6 text-[#52627b]">查看最近练习结果，确认这节课的知识点是否已经吃透。</p>
+                            <Button size="sm" variant="secondary" className="mt-4" onClick={() => router.push('/practice/records')}>
+                              <ExternalLink className="h-4 w-4" />
+                              查看记录
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-[8px] border border-[#dbe7f8] bg-[#f8fbff] p-4">
+                          <h3 className="text-[15px] font-bold text-ink">建议先练这几个方向</h3>
+                          <div className="mt-3 space-y-2 text-[13px] leading-6 text-[#475569]">
+                            {knowledgePoints.map((item) => (
+                              <div key={item.title} className="flex items-start gap-2">
+                                <span className="mt-1 text-blue">•</span>
+                                <span>{item.title}：围绕这个知识点各做 1 到 2 道短题，先验证概念，再验证迁移能力。</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {false && (
+                <Card className="rounded-[8px] border border-[#dbe7f8] bg-white shadow-[0_14px_44px_rgba(15,23,42,0.06)]">
                   <div className="flex gap-8 border-b border-[#edf2f8] px-5 pt-4 text-[14px] font-bold text-[#64748b]">
                     {['课程简介', '知识点', '学习笔记', '相关练习'].map((tab, index) => (
                       <button key={tab} className={cn('border-b-2 pb-3 transition', index === 0 ? 'border-blue text-blue' : 'border-transparent hover:text-ink')}>
@@ -683,7 +954,7 @@ export default function VideoPage() {
                     <div className="mt-5 grid grid-cols-4 gap-4 border-t border-[#edf2f8] pt-5 text-[12px] text-[#52627b] max-[760px]:grid-cols-2">
                       <div className="flex items-center gap-2">
                         <Clock className="h-5 w-5 text-blue" />
-                        <span>课程时长<br /><b className="font-bold text-ink">{formatDurationText(selected.duration)}</b></span>
+                        <span>课程时长<br /><b className="font-bold text-ink">{formatDurationText(selected?.duration)}</b></span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Gauge className="h-5 w-5 text-blue" />
@@ -695,11 +966,12 @@ export default function VideoPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <CalendarDays className="h-5 w-5 text-blue" />
-                        <span>更新时间<br /><b className="font-bold text-ink">{formatDateText(selected.createdAt)}</b></span>
+                        <span>更新时间<br /><b className="font-bold text-ink">{formatDateText(selected?.createdAt)}</b></span>
                       </div>
                     </div>
                   </div>
                 </Card>
+                )}
               </div>
             )}
           </div>
@@ -729,6 +1001,53 @@ export default function VideoPage() {
                   <X className="h-5 w-5" />
                 </button>
                 {assistantPanel}
+              </div>
+            </div>
+          )}
+
+          {noteModalOpen && selected && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0f172a]/55 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-[760px] rounded-[12px] border border-[#dbe7f8] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+                <div className="flex items-center justify-between border-b border-[#edf2f8] px-5 py-4">
+                  <div>
+                    <h3 className="text-[18px] font-bold text-ink">学习笔记</h3>
+                    <p className="mt-1 text-[13px] text-[#64748b]">当前视频：{selected?.title}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNoteModalOpen(false)}
+                    className="grid h-10 w-10 place-items-center rounded-full text-[#64748b] transition hover:bg-[#f3f7fc] hover:text-ink"
+                    aria-label="关闭学习笔记"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="px-5 py-4">
+                  <textarea
+                    value={noteDraft}
+                    onChange={(event) => setNoteDraft(event.target.value)}
+                    className="min-h-[260px] w-full rounded-[8px] border border-[#dbe7f8] bg-[#fbfdff] px-4 py-3 text-[14px] leading-7 text-ink outline-none transition focus:border-blue focus:bg-white focus:ring-4 focus:ring-blue/10"
+                    placeholder="记录你的理解、疑问和例题总结"
+                  />
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-[12px] text-[#94a3b8]">保存后会写入本地学习笔记，供后续 AI 辅导引用。</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => setNoteDraft(buildDefaultNote(selected, knowledgePoints))}>
+                        重置模板
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveNote}
+                        disabled={!noteDraft.trim()}
+                      >
+                        <NotebookPen className="h-4 w-4" />
+                        保存笔记
+                      </Button>
+                    </div>
+                  </div>
+                  {noteSaved && <p className="mt-3 text-[12px] font-medium text-green">学习笔记已保存。</p>}
+                </div>
               </div>
             </div>
           )}

@@ -1,13 +1,14 @@
 import Taro from '@tarojs/taro'
 import { Text, View } from '@tarojs/components'
+import AppIcon, { type AppIconName } from '../AppIcon'
 import './index.scss'
 
 type TabKey = 'tutor' | 'quiz' | 'mine'
 
-const tabs: Array<{ key: TabKey; label: string; path: string; icon: string }> = [
-  { key: 'tutor', label: 'AI助学', path: '/pages/tutor/index', icon: 'ai' },
-  { key: 'quiz', label: '刷题', path: '/pages/quiz/index', icon: 'quiz' },
-  { key: 'mine', label: '我的', path: '/pages/mine/index', icon: 'mine' }
+const tabs: Array<{ key: TabKey; label: string; path: string; icon: AppIconName }> = [
+  { key: 'tutor', label: 'AI助学', path: '/pages/tutor/index', icon: 'bot' },
+  { key: 'quiz', label: '练习', path: '/pages/quiz/index', icon: 'quiz' },
+  { key: 'mine', label: '我的', path: '/pages/mine/index', icon: 'user' },
 ]
 
 type AppTabBarProps = {
@@ -29,9 +30,7 @@ export default function AppTabBar({ current }: AppTabBarProps) {
           hoverClass='tap-active'
           onClick={() => handleTap(tab.path, tab.key)}
         >
-          <View className={`tab-line-icon tab-line-icon--${tab.icon}`}>
-            <View className='tab-line-icon__mark' />
-          </View>
+          <AppIcon name={tab.icon} className='app-tabbar__icon' />
           <Text className='app-tabbar__label'>{tab.label}</Text>
         </View>
       ))}
