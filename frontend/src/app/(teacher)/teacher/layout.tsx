@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { AlertTriangle, BarChart3, BellRing, Bot, GraduationCap, LayoutDashboard, LogOut, MessageSquare, Monitor, Users } from 'lucide-react'
 
 const NAV = [
@@ -14,31 +14,39 @@ const NAV = [
   { label: '学习报告', href: '/teacher/reports', icon: BarChart3 },
 ]
 
+const AUTH_EVENT = 'teacher-auth-changed'
+
+function subscribeTeacherToken(onStoreChange: () => void) {
+  window.addEventListener('storage', onStoreChange)
+  window.addEventListener(AUTH_EVENT, onStoreChange)
+  return () => {
+    window.removeEventListener('storage', onStoreChange)
+    window.removeEventListener(AUTH_EVENT, onStoreChange)
+  }
+}
+
+function getTeacherTokenSnapshot() {
+  if (typeof window === 'undefined') return false
+  return !!window.localStorage.getItem('teacher_token')
+}
+
 export default function TeacherShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [isReady, setIsReady] = useState(false)
-  const [hasToken, setHasToken] = useState(false)
+  const hasToken = useSyncExternalStore(subscribeTeacherToken, getTeacherTokenSnapshot, () => false)
 
   useEffect(() => {
-    setHasToken(!!window.localStorage.getItem('teacher_token'))
-    setIsReady(true)
-  }, [])
-
-  useEffect(() => {
-    if (!isReady) return
     if (!hasToken && pathname !== '/teacher/login') {
       router.replace('/teacher/login')
     }
-  }, [hasToken, isReady, pathname, router])
+  }, [hasToken, pathname, router])
 
   if (pathname === '/teacher/login') return <>{children}</>
-  if (!isReady) return null
   if (!hasToken) return null
 
   const handleLogout = () => {
     localStorage.removeItem('teacher_token')
-    setHasToken(false)
+    window.dispatchEvent(new Event(AUTH_EVENT))
     router.push('/teacher/login')
   }
 

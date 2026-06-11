@@ -20,6 +20,7 @@ export default function TeacherLoginPage() {
     // 演示用：固定账号密码
     if (username === 'teacher' && password === '123456') {
       localStorage.setItem('teacher_token', 'demo_teacher_token')
+      window.dispatchEvent(new Event('teacher-auth-changed'))
       router.push('/teacher/dashboard')
     } else {
       setError('账号或密码错误，演示账号：teacher / 123456')
