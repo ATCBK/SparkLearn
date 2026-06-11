@@ -1,0 +1,128 @@
+import asyncio
+import logging
+import sys
+import time
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+
+from .config import settings
+from .db import init_db
+from .auth import router as auth_router
+from .routes.learning import router as learning_router
+from .routes.memory import router as memory_router
+from .routes.knowledge import router as knowledge_router
+from .routes.path_planning import router as path_planning_router
+from .routes.ppt import router as ppt_router
+from .routes.profile import router as profile_router
+from .routes.quiz import router as quiz_router
+from .routes.resources import router as resources_router
+from .routes.tutor_eval import router as tutor_eval_router
+from .routes.video import router as video_router
+from .routes.voice_admin import router as voice_admin_router
+from .routes.agent import router as agent_router
+from .routes.teacher import router as teacher_router
+from .routes.forum import router as forum_router
+from .routes.mcp import router as mcp_router
+from .routes.sharing import router as sharing_router
+from .routes.info_stream import router as info_stream_router
+from .routes.num_person import router as num_person_router
+from .routes.code_runner import router as code_runner_router
+
+
+logging.basicConfig(
+    level=logging.DEBUG if settings.debug.lower() == "true" else logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+def _log_model_config_sanity() -> None:
+    logger = logging.getLogger("startup")
+    default_model = (settings.spark_default_model or "").strip().lower()
+    if default_model in {"qwen-plus"} and not settings.dashscope_api_key:
+        logger.warning(
+            "spark_default_model=%s but dashscope_api_key is empty; requests may return 401 from DashScope.",
+            settings.spark_default_model,
+        )
+    if default_model in {"ds-flash", "ds-pro"} and not settings.deepseek_api_key:
+        logger.warning(
+            "spark_default_model=%s but deepseek_api_key is empty; requests may fall back or fail.",
+            settings.spark_default_model,
+        )
+
+
+def _configure_event_loop_policy() -> None:
+    # Windows + Playwright needs Proactor loop for subprocess support.
+    if sys.platform.startswith("win"):
+        try:
+            policy = asyncio.get_event_loop_policy()
+            if not isinstance(policy, asyncio.WindowsProactorEventLoopPolicy):
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        except Exception:
+            # Keep startup resilient; route-level errors will still surface if env is incompatible.
+            pass
+
+
+_configure_event_loop_policy()
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(title=settings.app_name, version=settings.app_version)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    request_logger = logging.getLogger("request")
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.monotonic()
+        response = await call_next(request)
+        elapsed = time.monotonic() - start
+        request_logger.info(
+            "%s %s -> %d (%.3fs)",
+            request.method,
+            request.url.path,
+            response.status_code,
+            elapsed,
+        )
+        return response
+
+    @app.on_event("startup")
+    async def on_startup() -> None:
+        init_db()
+        _log_model_config_sanity()
+
+    @app.get("/health")
+    async def health():
+        return {"ok": True}
+
+    app.include_router(auth_router)
+    app.include_router(profile_router)
+    app.include_router(memory_router)
+    app.include_router(learning_router)
+    app.include_router(knowledge_router)
+    app.include_router(path_planning_router)
+    app.include_router(ppt_router)
+    app.include_router(resources_router)
+    app.include_router(quiz_router)
+    app.include_router(tutor_eval_router)
+    app.include_router(video_router)
+    app.include_router(voice_admin_router)
+    app.include_router(agent_router)
+    app.include_router(teacher_router)
+    app.include_router(forum_router)
+    app.include_router(mcp_router)
+    app.include_router(sharing_router)
+    app.include_router(info_stream_router)
+    app.include_router(num_person_router)
+    app.include_router(code_runner_router)
+    return app
+
+
+app = create_app()

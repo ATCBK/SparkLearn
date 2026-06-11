@@ -1,0 +1,1344 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学而思｜资源生成SOP流式页面原型</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --sidebar: rgba(255, 255, 255, 0.78);
+      --card: #ffffff;
+      --hover: #f2f4f7;
+      --ink: #1d2939;
+      --secondary: #667085;
+      --tertiary: #98a2b3;
+      --line: rgba(16, 24, 40, 0.08);
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --blue-light: #eaf1ff;
+      --green: #16a34a;
+      --green-light: #eaf8ef;
+      --amber: #d97706;
+      --amber-light: #fff3d8;
+      --purple: #7c3aed;
+      --purple-light: #f2ebff;
+      --shadow-sm: 0 2px 8px rgba(16, 24, 40, 0.06);
+      --shadow-md: 0 14px 34px rgba(16, 24, 40, 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, textarea, select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 18px 12px;
+      border-right: 1px solid var(--line);
+      background: var(--sidebar);
+      backdrop-filter: blur(40px) saturate(180%);
+    }
+
+    .brand {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px;
+      margin-bottom: 14px;
+    }
+
+    .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), #38bdf8);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+
+    .brand b {
+      font-size: 15px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+    }
+
+    .nav a {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 0 12px;
+      border-radius: 12px;
+      color: var(--secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .nav a.active {
+      color: var(--blue);
+      background: var(--blue-light);
+    }
+
+    .nav a span:first-child {
+      width: 20px;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .nav-sep {
+      height: 1px;
+      margin: 10px 12px;
+      background: var(--line);
+    }
+
+    .quote {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 18px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(242, 244, 247, 0.75);
+      color: var(--tertiary);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .main {
+      padding: 26px 28px 34px;
+      min-width: 0;
+    }
+
+    .page {
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      position: relative;
+      min-height: 238px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.9) 38%, rgba(255,255,255,0.22) 70%),
+        url("assets/resource-workbench-flow-bg.png") right center / cover no-repeat;
+      box-shadow: var(--shadow-md);
+      padding: 26px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.18;
+      font-weight: 800;
+    }
+
+    .hero p {
+      max-width: 610px;
+      margin: 10px 0 0;
+      color: var(--secondary);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .loop {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .loop-chip {
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 11px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .loop-chip.active {
+      color: var(--blue);
+      background: var(--blue-light);
+      border-color: rgba(37, 99, 235, 0.14);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .quick-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .summary-card {
+      min-height: 82px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .summary-card b {
+      display: block;
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .summary-card span {
+      display: block;
+      margin-top: 6px;
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .sop-layout {
+      display: grid;
+      grid-template-columns: 308px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+      margin-top: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .rail {
+      position: sticky;
+      top: 22px;
+      padding: 16px;
+    }
+
+    .rail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .rail-head b {
+      font-size: 15px;
+    }
+
+    .rail-head span {
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .step-nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step-link {
+      width: 100%;
+      min-height: 70px;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      padding: 10px;
+      background: transparent;
+      text-align: left;
+      color: var(--secondary);
+      cursor: pointer;
+    }
+
+    .step-link.done {
+      background: var(--green-light);
+      color: var(--green);
+    }
+
+    .step-link.active {
+      background: var(--blue-light);
+      border-color: rgba(37, 99, 235, 0.16);
+      color: var(--blue);
+    }
+
+    .step-num {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: currentColor;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .step-link strong {
+      display: block;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .step-link.active strong {
+      color: var(--blue);
+    }
+
+    .step-link.done strong {
+      color: var(--green);
+    }
+
+    .step-link small {
+      display: block;
+      margin-top: 4px;
+      color: currentColor;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .rail-context {
+      margin-top: 14px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfcff;
+    }
+
+    .rail-context p {
+      margin: 0 0 10px;
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .tag {
+      min-height: 25px;
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--hover);
+      color: var(--secondary);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tag.blue { color: var(--blue); background: var(--blue-light); }
+    .tag.green { color: var(--green); background: var(--green-light); }
+    .tag.amber { color: var(--amber); background: var(--amber-light); }
+    .tag.purple { color: var(--purple); background: var(--purple-light); }
+
+    .flow {
+      display: grid;
+      gap: 18px;
+    }
+
+    .stage {
+      min-height: 620px;
+      padding: 22px;
+    }
+
+    .stage-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .kicker {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .stage h2 {
+      margin: 6px 0 0;
+      font-size: 24px;
+      line-height: 1.26;
+    }
+
+    .stage-desc {
+      max-width: 720px;
+      margin: 8px 0 0;
+      color: var(--secondary);
+      font-size: 14px;
+      line-height: 1.68;
+    }
+
+    .pill {
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 11px;
+      border-radius: 999px;
+      color: var(--blue);
+      background: var(--blue-light);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .context-grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 14px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfcff;
+      padding: 16px;
+    }
+
+    .panel h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .panel p {
+      margin: 9px 0 0;
+      color: var(--secondary);
+      font-size: 13px;
+      line-height: 1.68;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .metric {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 20px;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 5px;
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 8px;
+      margin-top: 13px;
+      border-radius: 999px;
+      background: #e8edf4;
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block;
+      width: 42%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--amber), var(--blue));
+    }
+
+    .source-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .source-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .type-group {
+      margin-top: 16px;
+    }
+
+    .type-group:first-child {
+      margin-top: 0;
+    }
+
+    .group-title {
+      margin: 0 0 9px;
+      color: var(--secondary);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .type-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .type-card {
+      min-height: 136px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfcff;
+      padding: 15px;
+      text-align: left;
+      cursor: pointer;
+      transition: 160ms ease;
+    }
+
+    .type-card:hover,
+    .type-card.active {
+      border-color: rgba(37, 99, 235, 0.36);
+      background: var(--blue-light);
+      transform: translateY(-2px);
+    }
+
+    .icon-box {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      margin-bottom: 11px;
+      background: #fff;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: 0 1px 0 rgba(16,24,40,0.06);
+    }
+
+    .type-card b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .type-card p {
+      margin: 7px 0 0;
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 1.48;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 306px;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 13px;
+    }
+
+    .field label {
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 190px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      outline: 0;
+      background: #fbfcff;
+      color: var(--ink);
+      line-height: 1.68;
+      font-size: 14px;
+    }
+
+    textarea:focus,
+    select:focus {
+      border-color: rgba(37, 99, 235, 0.45);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .select-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    select {
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fbfcff;
+      color: var(--ink);
+      outline: 0;
+      padding: 0 10px;
+    }
+
+    .template-panel {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fbfcff;
+    }
+
+    .template-panel h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .template {
+      width: 100%;
+      margin-bottom: 9px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .template b {
+      display: block;
+      font-size: 13px;
+    }
+
+    .template span {
+      display: block;
+      margin-top: 4px;
+      color: var(--secondary);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .generate-layout {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 14px;
+    }
+
+    .process-card {
+      position: relative;
+      overflow: hidden;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.98)),
+        url("assets/resource-workbench-flow-bg.png") center / cover no-repeat;
+    }
+
+    .process-line {
+      display: grid;
+      gap: 10px;
+    }
+
+    .process-step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 11px;
+      min-height: 70px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255,255,255,0.86);
+      backdrop-filter: blur(8px);
+    }
+
+    .state {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--green-light);
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .state.active {
+      position: relative;
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+
+    .state.active::after {
+      content: "";
+      position: absolute;
+      inset: -5px;
+      border: 2px solid rgba(37, 99, 235, 0.18);
+      border-radius: 999px;
+      animation: pulse 1.5s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(0.8); opacity: 1; }
+      to { transform: scale(1.35); opacity: 0; }
+    }
+
+    .state.wait {
+      background: var(--hover);
+      color: var(--tertiary);
+    }
+
+    .process-step b {
+      display: block;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .process-step span {
+      display: block;
+      margin-top: 4px;
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .preview {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .preview-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcff;
+    }
+
+    .preview-head h3 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .preview-head p {
+      margin: 5px 0 0;
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .preview-doc {
+      min-height: 392px;
+      padding: 22px;
+    }
+
+    .preview-doc h4 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.28;
+    }
+
+    .preview-doc > p {
+      color: var(--secondary);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+
+    .outline {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .outline div {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfcff;
+    }
+
+    .outline b {
+      display: block;
+      font-size: 13px;
+    }
+
+    .outline span {
+      display: block;
+      margin-top: 5px;
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .action-left,
+    .action-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 0;
+      border-radius: 12px;
+      padding: 0 14px;
+      background: var(--blue);
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 760;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn.secondary {
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    .resources {
+      margin-top: 18px;
+      padding: 16px;
+    }
+
+    .resources-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .resources h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .resources p {
+      margin: 5px 0 0;
+      color: var(--secondary);
+      font-size: 13px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      gap: 3px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: #fbfcff;
+    }
+
+    .tab {
+      height: 30px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--secondary);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .tab.active {
+      color: var(--blue);
+      background: var(--blue-light);
+    }
+
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 11px;
+    }
+
+    .resource {
+      min-height: 146px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfcff;
+      transition: 160ms ease;
+    }
+
+    .resource:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .resource-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .resource h3 {
+      min-height: 40px;
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .resource p {
+      margin: 8px 0 0;
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1200px) {
+      .app { grid-template-columns: 72px minmax(0, 1fr); }
+      .sidebar { padding: 18px 8px; }
+      .brand b, .nav a span:last-child, .quote { display: none; }
+      .brand { justify-content: center; padding: 0; }
+      .nav a { justify-content: center; padding: 0; }
+      .sop-layout { grid-template-columns: 1fr; }
+      .rail { position: relative; top: auto; }
+      .step-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 900px) {
+      .context-grid,
+      .config-grid,
+      .generate-layout {
+        grid-template-columns: 1fr;
+      }
+      .type-grid,
+      .resource-grid,
+      .quick-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .step-nav {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app { display: block; }
+      .sidebar { display: none; }
+      .main { padding: 16px; }
+      .hero { padding: 18px; min-height: 280px; }
+      .stage { min-height: auto; padding: 16px; }
+      .stage-head,
+      .resources-head,
+      .actions {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .type-grid,
+      .resource-grid,
+      .quick-summary,
+      .metric-grid,
+      .select-grid,
+      .outline {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">S</div>
+        <b>SparkLearn</b>
+      </div>
+      <nav class="nav">
+        <a href="#"><span>⌂</span><span>学习工作台</span></a>
+        <a href="#"><span>◎</span><span>学习画像</span></a>
+        <a href="#"><span>↗</span><span>学习路径</span></a>
+        <a class="active" href="#"><span>✦</span><span>资源生成</span></a>
+        <a href="#"><span>✓</span><span>练习评估</span></a>
+        <a href="#"><span>▥</span><span>学习报告</span></a>
+      </nav>
+      <div class="nav-sep"></div>
+      <nav class="nav">
+        <a href="#"><span>✧</span><span>AI 精灵助手</span></a>
+        <a href="#"><span>◫</span><span>资源库</span></a>
+        <a href="#"><span>▻</span><span>视频预览</span></a>
+      </nav>
+      <div class="quote">资源生成不是终点，生成后的学习、练习和评估会继续回流到画像与路径。</div>
+    </aside>
+
+    <main class="main">
+      <div class="page">
+        <section class="hero">
+          <h1>资源生成 SOP</h1>
+          <p>按顺序完成资源生成：先确认学习上下文，再选择资源类型，随后配置生成需求，最后查看生成过程与资源预览。</p>
+          <div class="loop">
+            <span class="loop-chip"><i class="dot"></i>学习画像</span>
+            <span class="loop-chip active"><i class="dot"></i>路径节点</span>
+            <span class="loop-chip active"><i class="dot"></i>资源生成</span>
+            <span class="loop-chip"><i class="dot"></i>练习评估</span>
+            <span class="loop-chip"><i class="dot"></i>报告回流</span>
+          </div>
+          <div class="quick-summary">
+            <div class="summary-card"><b>Python 函数参数</b><span>当前知识点</span></div>
+            <div class="summary-card"><b>42%</b><span>节点掌握度</span></div>
+            <div class="summary-card"><b>3 道</b><span>关联错题</span></div>
+            <div class="summary-card"><b>视频/动画</b><span>已纳入资源类型</span></div>
+          </div>
+        </section>
+
+        <section class="sop-layout">
+          <aside class="card rail">
+            <div class="rail-head">
+              <b>生成流程</b>
+              <span>4 步</span>
+            </div>
+            <div class="step-nav">
+              <button class="step-link done">
+                <span class="step-num">1</span>
+                <span><strong>确认学习上下文</strong><small>知识点、掌握度、薄弱来源</small></span>
+              </button>
+              <button class="step-link active">
+                <span class="step-num">2</span>
+                <span><strong>选择资源类型</strong><small>讲解、练习、拓展、多模态</small></span>
+              </button>
+              <button class="step-link">
+                <span class="step-num">3</span>
+                <span><strong>配置生成需求</strong><small>目标、难度、时长、风格</small></span>
+              </button>
+              <button class="step-link">
+                <span class="step-num">4</span>
+                <span><strong>生成与预览</strong><small>过程、预览、下一步动作</small></span>
+              </button>
+            </div>
+            <div class="rail-context">
+              <p>本次生成服务于“Python 函数参数与返回值”的错题补弱。</p>
+              <div class="tags">
+                <span class="tag amber">错题补弱</span>
+                <span class="tag blue">掌握度 42%</span>
+                <span class="tag green">路径节点</span>
+              </div>
+            </div>
+          </aside>
+
+          <section class="flow">
+            <section class="card stage">
+              <div class="stage-head">
+                <div>
+                  <div class="kicker">Step 1</div>
+                  <h2>确认学习上下文</h2>
+                  <p class="stage-desc">资源生成必须先说明“为什么生成”。这里把路径节点、画像偏好和错题反馈合并为本次生成依据。</p>
+                </div>
+                <span class="pill">已确认</span>
+              </div>
+              <div class="context-grid">
+                <div class="panel">
+                  <h3>Python 函数参数与返回值</h3>
+                  <p>当前处于“编程基础巩固”阶段。系统检测到你在默认参数、关键字参数和返回值理解上存在连续错误。</p>
+                  <div class="metric-grid">
+                    <div class="metric"><b>42%</b><span>节点掌握度</span></div>
+                    <div class="metric"><b>3</b><span>相关错题</span></div>
+                    <div class="metric"><b>10min</b><span>建议学习时长</span></div>
+                  </div>
+                  <div class="bar"><i></i></div>
+                </div>
+                <div class="panel">
+                  <h3>推荐生成目标</h3>
+                  <p>先补概念，再做练习。推荐生成课程文档、练习题和视频/动画脚本。</p>
+                  <div class="source-list">
+                    <div class="source-row"><span>来源：练习评估</span><b>错题补弱</b></div>
+                    <div class="source-row"><span>来源：学习路径</span><b>当前节点</b></div>
+                    <div class="source-row"><span>来源：学习画像</span><b>偏好代码示例</b></div>
+                  </div>
+                </div>
+              </div>
+              <div class="actions">
+                <div class="action-left">
+                  <button class="btn secondary">切换知识点</button>
+                  <button class="btn secondary">手动生成</button>
+                </div>
+                <div class="action-right">
+                  <button class="btn">使用当前上下文</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="card stage">
+              <div class="stage-head">
+                <div>
+                  <div class="kicker">Step 2</div>
+                  <h2>选择资源类型</h2>
+                  <p class="stage-desc">按学习目的组织入口，避免把资源类型平铺成无差别按钮。视频/动画归入资源生成体系，作为多模态资源的一种。</p>
+                </div>
+                <span class="pill">当前步骤</span>
+              </div>
+
+              <div class="type-group">
+                <p class="group-title">讲解理解</p>
+                <div class="type-grid">
+                  <button class="type-card active">
+                    <span class="icon-box">DOC</span>
+                    <b>课程文档</b>
+                    <p>结构化讲义、示例代码、常见错误和练习建议。</p>
+                  </button>
+                  <button class="type-card">
+                    <span class="icon-box">PPT</span>
+                    <b>PPT</b>
+                    <p>生成课堂讲解或答辩展示用演示文稿。</p>
+                  </button>
+                  <button class="type-card">
+                    <span class="icon-box">MAP</span>
+                    <b>思维导图</b>
+                    <p>梳理概念关系、先修依赖和复习路径。</p>
+                  </button>
+                  <button class="type-card">
+                    <span class="icon-box">VID</span>
+                    <b>视频/动画</b>
+                    <p>生成讲解脚本、分镜、字幕和动画方案。</p>
+                  </button>
+                </div>
+              </div>
+
+              <div class="type-group">
+                <p class="group-title">练习巩固</p>
+                <div class="type-grid">
+                  <button class="type-card">
+                    <span class="icon-box">QUIZ</span>
+                    <b>练习题</b>
+                    <p>基于错题和掌握度生成分层练习。</p>
+                  </button>
+                  <button class="type-card">
+                    <span class="icon-box">CODE</span>
+                    <b>代码案例</b>
+                    <p>用完整案例解释知识点的实际用法。</p>
+                  </button>
+                </div>
+              </div>
+
+              <div class="type-group">
+                <p class="group-title">拓展提升</p>
+                <div class="type-grid">
+                  <button class="type-card">
+                    <span class="icon-box">READ</span>
+                    <b>拓展阅读</b>
+                    <p>补充应用场景、延伸概念和阅读建议。</p>
+                  </button>
+                </div>
+              </div>
+
+              <div class="actions">
+                <div class="action-left">
+                  <button class="btn secondary">上一步</button>
+                </div>
+                <div class="action-right">
+                  <button class="btn">下一步：配置需求</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="card stage">
+              <div class="stage-head">
+                <div>
+                  <div class="kicker">Step 3</div>
+                  <h2>配置生成需求</h2>
+                  <p class="stage-desc">系统根据上下文预填需求，用户只调整难度、学习时长和风格。高级设置收起，避免主流程过载。</p>
+                </div>
+                <span class="pill">待操作</span>
+              </div>
+              <div class="config-grid">
+                <div>
+                  <div class="field">
+                    <label for="prompt">生成目标</label>
+                    <textarea id="prompt">为“Python 函数参数与返回值”生成一份补弱讲义，重点解释默认参数、关键字参数、返回值和常见错误，包含示例代码与练习建议。</textarea>
+                  </div>
+                  <div class="select-grid">
+                    <select><option>难度：基础巩固</option></select>
+                    <select><option>时长：10 分钟学习</option></select>
+                    <select><option>风格：讲解型</option></select>
+                  </div>
+                </div>
+                <div class="template-panel">
+                  <h3>快捷模板</h3>
+                  <button class="template"><b>生成补弱讲义</b><span>适合先补概念和常见错误。</span></button>
+                  <button class="template"><b>生成配套练习</b><span>适合完成资源学习后验证掌握。</span></button>
+                  <button class="template"><b>生成视频讲解脚本</b><span>用于后续视频/动画资源生成。</span></button>
+                  <button class="template"><b>让精灵优化需求</b><span>根据画像和错题自动补充约束。</span></button>
+                </div>
+              </div>
+              <div class="actions">
+                <div class="action-left">
+                  <button class="btn secondary">上一步</button>
+                  <button class="btn secondary">高级设置</button>
+                </div>
+                <div class="action-right">
+                  <button class="btn">开始生成</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="card stage">
+              <div class="stage-head">
+                <div>
+                  <div class="kicker">Step 4</div>
+                  <h2>生成与预览</h2>
+                  <p class="stage-desc">生成过程区展示画像分析、路径对齐、资源生成和审核入库。完成后直接给出下一步学习动作。</p>
+                </div>
+                <span class="pill">预览结果</span>
+              </div>
+              <div class="generate-layout">
+                <div class="process-card">
+                  <div class="process-line">
+                    <div class="process-step">
+                      <span class="state">✓</span>
+                      <span><b>画像分析</b><span>识别基础薄弱、偏好代码示例。</span></span>
+                    </div>
+                    <div class="process-step">
+                      <span class="state">✓</span>
+                      <span><b>路径对齐</b><span>绑定当前知识图谱节点和先修依赖。</span></span>
+                    </div>
+                    <div class="process-step">
+                      <span class="state active">3</span>
+                      <span><b>资源生成</b><span>生成讲义、示例、常见错误和练习建议。</span></span>
+                    </div>
+                    <div class="process-step">
+                      <span class="state wait">4</span>
+                      <span><b>审核入库</b><span>保存资源索引，记录资源使用事件。</span></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="preview">
+                  <div class="preview-head">
+                    <div>
+                      <h3>Python 函数参数补弱讲义</h3>
+                      <p>课程文档 · 来源：错题补弱推荐</p>
+                    </div>
+                    <span class="tag green">已完成</span>
+                  </div>
+                  <div class="preview-doc">
+                    <h4>函数参数与返回值：补弱学习文档</h4>
+                    <p>这份资源用于解决默认参数、关键字参数和返回值理解上的错题问题。建议先读概念，再运行示例代码，最后完成配套练习。</p>
+                    <div class="outline">
+                      <div><b>参数传递方式</b><span>位置参数、关键字参数、默认参数和可变参数。</span></div>
+                      <div><b>返回值理解</b><span>return 与 print 的区别，多返回值拆包。</span></div>
+                      <div><b>常见错误</b><span>参数顺序错误、可变默认参数、遗漏返回值。</span></div>
+                      <div><b>配套练习</b><span>5 道由浅入深的练习用于检测掌握。</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="actions">
+                <div class="action-left">
+                  <button class="btn secondary">下载 PDF</button>
+                  <button class="btn secondary">让精灵讲解</button>
+                  <button class="btn secondary">生成配套练习</button>
+                </div>
+                <div class="action-right">
+                  <button class="btn">开始学习</button>
+                </div>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <section class="card resources">
+          <div class="resources-head">
+            <div>
+              <h2>资源库快捷入口</h2>
+              <p>主流程只显示最近和推荐资源，完整资源库进入详情页查看。</p>
+            </div>
+            <div class="tabs">
+              <button class="tab active">推荐资源</button>
+              <button class="tab">最近生成</button>
+              <button class="tab">多模态</button>
+              <button class="tab">查看全部</button>
+            </div>
+          </div>
+          <div class="resource-grid">
+            <article class="resource">
+              <div class="resource-meta"><span class="tag amber">错题补弱</span><span class="tag green">推荐</span></div>
+              <h3>函数默认参数常见错误讲义</h3>
+              <p>来源：最近 3 道错题。适合先补概念。</p>
+            </article>
+            <article class="resource">
+              <div class="resource-meta"><span class="tag blue">路径节点</span><span class="tag purple">PPT</span></div>
+              <h3>Python 函数基础演示课件</h3>
+              <p>来源：当前路径节点。适合快速复盘。</p>
+            </article>
+            <article class="resource">
+              <div class="resource-meta"><span class="tag blue">多模态</span><span class="tag">视频/动画</span></div>
+              <h3>函数调用过程动画脚本</h3>
+              <p>包含分镜、字幕和讲解稿。</p>
+            </article>
+            <article class="resource">
+              <div class="resource-meta"><span class="tag green">已生成</span><span class="tag">代码案例</span></div>
+              <h3>用函数封装成绩统计逻辑</h3>
+              <p>包含完整代码、讲解和扩展练习。</p>
+            </article>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
