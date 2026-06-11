@@ -9,6 +9,8 @@ import { api, KnowledgeFile, Resource, StudentProfile, VideoStyle, VideoScriptSe
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio } from '@/components/ui/AudioRadio'
+import { MarkdownCodePreview } from '@/components/ui/MarkdownCodePreview'
+import { CodePracticePanel } from '@/components/ui/CodePracticePanel'
 import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
@@ -523,9 +525,13 @@ function GeneratePageContent() {
                         </div>
                       </div>
                     ) : (
-                      <article className="prose prose-slate max-w-none">
+                      <article className="prose prose-slate max-h-[calc(100vh-300px)] max-w-none overflow-y-auto pr-3">
                         <h1 className="mb-8 text-[30px] font-bold text-ink">{selected.title}</h1>
-                        <pre className="whitespace-pre-wrap break-words rounded-none bg-transparent p-0 text-[16px] leading-8 text-[#1f2937]">{selected.content || '该资源暂无预览内容。'}</pre>
+                        <MarkdownCodePreview
+                          content={selected.content || '该资源暂无预览内容。'}
+                          editable={selected.type === 'code'}
+                        />
+                        {selected.type === 'code' && <CodePracticePanel resource={selected} />}
                       </article>
                     )}
                   </div>
@@ -1012,7 +1018,13 @@ function GeneratePageContent() {
                       <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音讲解。</p>
                     </div>
                   ) : (
-                    <p className="mt-2 whitespace-pre-line text-small leading-6 text-muted">{resource.content?.slice(0, 700) || '资源已生成，可在我的资源中查看完整预览。'}</p>
+                    <div className="mt-3 max-h-[calc(100vh-360px)] overflow-y-auto pr-3">
+                      <MarkdownCodePreview
+                        content={resource.content || '资源已生成，可在我的资源中查看完整预览。'}
+                        editable={resource.type === 'code'}
+                      />
+                      {resource.type === 'code' && <CodePracticePanel resource={resource} />}
+                    </div>
                   )}
                 </SoftCard>
                 <div className="flex gap-2">

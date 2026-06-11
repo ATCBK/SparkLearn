@@ -8,6 +8,7 @@
     "dev": "electron .",
     "start": "electron .",
     "doctor": "node scripts/doctor.js",
+    "build:weapp": "npm --prefix ../miniapp run build:weapp",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win nsis"
   },

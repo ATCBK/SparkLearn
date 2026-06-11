@@ -3,6 +3,21 @@
 <title>教师数据大屏</title>
 <link href="css/style.css"  rel="stylesheet" type="text/css" media="all" />
 <script src="js/echarts.min.js" charset="utf-8"></script>
+<style>
+  .pulefttop .lefttoday_bar li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.15;
+    transform: translate(-50%, -50%);
+  }
+
+  .pulefttop .lefttoday_bar li span {
+    display: block;
+    padding-top: 0;
+    text-align: center;
+  }
+</style>
 
 
 <body>
@@ -12,7 +27,7 @@
       <li class="active"><a href="index.html">班级总览</a></li>
       <li><a href="students.html">学生画像</a></li>
       <li><a href="activity.html">学习活动</a></li>
-      <li><a href="knowledge.html">知识图谱</a></li>
+      <li><a href="knowledge.html">学生知识详情</a></li>
    </ul>
   </div>
   <h1 class="tith1 fl">教师数据大屏</h1>
@@ -32,15 +47,15 @@
     <div class="box pbox">
       <div class="lefttoday_bar pulefttoday_bar fl">
         <ul>
-          <li class="c1 big1" style="top: 25%;left: 16%;"><span>基础语法3</span></li>
-          <li class="c2 big2" style="top: 35%;left: 65%;"><span>高级特性1</span></li>
-          <li class="c3 big4" style="top: 25%;left: 35%;"><span>面向对象2</span></li>
-          <li class="c4 big5" style="top: 65%;left: 65%;"><span>文件处理1</span></li>
-          <li class="c5 big6" style="top: 65%;left: 25%;"><span>函数模块3</span></li>
-          <li class="c6 big1" style="top: 45%;left: 15%;"><span>待学习1</span></li>
-          <li class="c1 big0" style="top: 35%;left: 75%;"></li>
-          <li class="c2 big0" style="top: 85%;left: 55%;"></li>
-          <li class="c3 big0" style="top: 85%;left: 15%;"></li>
+          <li class="c1 big1" style="top: 22%;left: 18%;"><span>基</span></li>
+          <li class="c2 big2" style="top: 37%;left: 78%;"><span>高级<br>1</span></li>
+          <li class="c3 big4" style="top: 28%;left: 48%;"><span>面向对象<br>2</span></li>
+          <li class="c4 big5" style="top: 72%;left: 78%;"><span>文件处理<br>1</span></li>
+          <li class="c5 big6" style="top: 72%;left: 38%;"><span>函数模块<br>3</span></li>
+          <li class="c6 big1" style="top: 50%;left: 18%;"><span>待</span></li>
+          <li class="c1 big0" style="top: 54%;left: 10%;"></li>
+          <li class="c2 big0" style="top: 77%;left: 58%;"></li>
+          <li class="c3 big0" style="top: 22%;left: 88%;"></li>
         </ul>
       </div>
       <div class="pvr fr pulefttoday_bar2" >

@@ -26,6 +26,7 @@ Thumbs.db
 memory/
 backup_data.json
 frontend/test-results/
+miniapp/.swc/
 
 # Temp browser profiles
 .tmp-chrome-profile/

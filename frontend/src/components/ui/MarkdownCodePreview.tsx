@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Components } from 'react-markdown'
@@ -45,7 +45,7 @@ function CodeBlock({ code, language, editable = false }: { code: string; languag
   const [isEditing, setIsEditing] = useState(false)
   const [currentCode, setCurrentCode] = useState(code)
   const [copied, setCopied] = useState(false)
-  const originalCode = useRef(code)
+  const [originalCode] = useState(code)
 
   const handleCopy = useCallback(async () => {
     try {
@@ -66,9 +66,9 @@ function CodeBlock({ code, language, editable = false }: { code: string; languag
   }, [currentCode])
 
   const handleReset = useCallback(() => {
-    setCurrentCode(originalCode.current)
+    setCurrentCode(originalCode)
     setIsEditing(false)
-  }, [])
+  }, [originalCode])
 
   const langExt = getLanguageExtension(language)
   const langLabel = getLanguageLabel(language)
@@ -91,7 +91,7 @@ function CodeBlock({ code, language, editable = false }: { code: string; languag
               {isEditing ? <Eye className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
             </button>
           )}
-          {editable && isEditing && currentCode !== originalCode.current && (
+          {editable && isEditing && currentCode !== originalCode && (
             <button
               type="button"
               onClick={handleReset}
