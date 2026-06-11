@@ -1,5 +1,6 @@
 import asyncio
 import ipaddress
+import json
 import re
 import uuid
 from collections.abc import AsyncGenerator
@@ -30,6 +31,12 @@ class GenerateReq(BaseModel):
     type: str = "document"
     prompt: str
     knowledge_file_ids: list[int] = []
+
+
+class CodeEvaluateReq(BaseModel):
+    question: str
+    student_code: str
+    hint: str = ""
 
 
 def _now_date() -> str:
@@ -147,6 +154,7 @@ async def generate_resource(req: GenerateReq):
             }
         else:
             chunks: list[str] = []
+            provider_errors: list[str] = []
             explicit_source_url = ""
             progress = 10
 
@@ -170,6 +178,8 @@ async def generate_resource(req: GenerateReq):
                         yield ("text", {"content": chunk, "resource_id": res_id})
                         yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
                 elif evt_type == "error":
+                    message = str(payload.get("message") or payload.get("msg") or "Coze 生成失败")
+                    provider_errors.append(message)
                     yield ("error", payload)
                 elif evt_type == "meta":
                     links = payload.get("links")
@@ -181,7 +191,24 @@ async def generate_resource(req: GenerateReq):
 
             content = "".join(chunks).strip()
             if not content:
-                content = _fallback_resource_content(req.type, req.prompt)
+                yield ("progress", {"stage": "fallback", "resource_id": res_id, "progress": 45})
+                spark_chunks: list[str] = []
+                async for evt_type, payload in spark_lite.stream_chat_events(coze_prompt, mode="general", history=[]):
+                    if evt_type == "text":
+                        chunk = str(payload.get("content", ""))
+                        if chunk:
+                            spark_chunks.append(chunk)
+                            progress = min(progress + 6, 90)
+                            yield ("text", {"content": chunk, "resource_id": res_id})
+                            yield ("progress", {"stage": "fallback", "resource_id": res_id, "progress": progress})
+                    elif evt_type == "error":
+                        message = str(payload.get("message") or payload.get("msg") or "Spark 生成失败")
+                        provider_errors.append(message)
+                        yield ("error", payload)
+                content = "".join(spark_chunks).strip()
+            generation_failed = not content
+            if generation_failed:
+                content = _fallback_resource_content(req.type, req.prompt, provider_errors)
             marker_url = _extract_marked_url(content)
             source_url = explicit_source_url or marker_url
             content = _strip_marked_url(content).strip()
@@ -193,7 +220,7 @@ async def generate_resource(req: GenerateReq):
                 "id": res_id,
                 "title": req.prompt[:20] or "新生成资源",
                 "type": req.type,
-                "status": "completed",
+                "status": "failed" if generation_failed else "completed",
                 "created_at": _now_date(),
                 "content": f"# {req.prompt}\n\n{content}",
                 "source_url": source_url or None,
@@ -207,6 +234,35 @@ async def generate_resource(req: GenerateReq):
         yield ("done", {"resource_id": res_id, "resource": resource})
 
     return StreamingResponse(sse_wrap(gen()), media_type="text/event-stream")
+
+
+@router.post("/code/evaluate/{resource_id}")
+async def evaluate_code_resource(resource_id: str, req: CodeEvaluateReq):
+    item = _find_resource(resource_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="resource not found")
+    if str(item.get("type", "")) != "code":
+        raise HTTPException(status_code=400, detail="only code resources can be evaluated")
+
+    student_code = req.student_code.strip()
+    if not student_code:
+        raise HTTPException(status_code=400, detail="student_code is required")
+
+    result = await _evaluate_code_with_ai(
+        resource_title=str(item.get("title") or "代码练习"),
+        resource_content=str(item.get("content") or ""),
+        question=req.question.strip(),
+        hint=req.hint.strip(),
+        student_code=student_code,
+    )
+    append_jsonl(settings.single_user_id, "resource_code_evaluations.jsonl", {
+        "resource_id": resource_id,
+        "question": req.question.strip(),
+        "student_code": student_code,
+        "correct": result["correct"],
+        "reason": result["reason"],
+    })
+    return ok(result)
 
 
 @router.get("/{resource_id}")
@@ -426,8 +482,71 @@ def json_like(value: Any) -> str:
     return ", ".join(str(item) for item in value if str(item).strip())
 
 
-def _fallback_resource_content(resource_type: str, prompt: str) -> str:
-    return f"# {prompt}\n\n{resource_type} 生成结果为空，请稍后重试。"
+def _fallback_resource_content(resource_type: str, prompt: str, errors: list[str] | None = None) -> str:
+    details = ""
+    clean_errors = [err.strip() for err in (errors or []) if err.strip()]
+    if clean_errors:
+        details = "\n\n失败原因：\n" + "\n".join(f"- {err}" for err in clean_errors[-3:])
+    return f"# {prompt}\n\n{resource_type} 生成失败，请检查模型服务配置后重试。{details}"
+
+
+async def _evaluate_code_with_ai(
+    *,
+    resource_title: str,
+    resource_content: str,
+    question: str,
+    hint: str,
+    student_code: str,
+) -> dict[str, Any]:
+    prompt = (
+        "你是编程导师，请只做静态代码批改，不要运行代码。\n"
+        "请根据题目要求、资源上下文和提示，判断学生代码是否满足要求。\n"
+        "只输出 JSON，不要输出 Markdown，不要输出额外解释。\n"
+        "JSON 格式必须是：{\"correct\": true/false, \"result\": \"正确\"或\"错误\", \"reason\": \"一句简短中文原因\"}\n\n"
+        f"资源标题：{resource_title}\n\n"
+        f"资源上下文：\n{resource_content[:6000]}\n\n"
+        f"题目：\n{question or '请根据资源主题完成代码练习。'}\n\n"
+        f"提示或参考：\n{hint or '无'}\n\n"
+        f"学生代码：\n```python\n{student_code}\n```\n\n"
+        "判定要求：\n"
+        "1. 如果学生代码基本满足题目目标，即使写法和参考不同，也判为正确。\n"
+        "2. 如果函数名/返回值/核心逻辑不满足题目，或明显语法错误，判为错误。\n"
+        "3. reason 必须简短，最多 30 个汉字。"
+    )
+
+    chunks: list[str] = []
+    async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode="general", history=[]):
+        if evt_type == "text":
+            chunk = str(payload.get("content", ""))
+            if chunk:
+                chunks.append(chunk)
+    raw = "".join(chunks).strip()
+    parsed = _parse_code_evaluation_json(raw)
+    if parsed:
+        return parsed
+    return {"correct": False, "result": "错误", "reason": "AI 暂时无法判断，请稍后重试。"}
+
+
+def _parse_code_evaluation_json(raw: str) -> dict[str, Any] | None:
+    if not raw:
+        return None
+    text = raw.strip()
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        text = fenced.group(1).strip()
+    else:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start >= 0 and end > start:
+            text = text[start:end + 1]
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    correct = bool(data.get("correct"))
+    result = "正确" if correct else "错误"
+    reason = str(data.get("reason") or ("代码满足题目要求。" if correct else "代码未满足题目要求。")).strip()
+    return {"correct": correct, "result": result, "reason": reason[:80]}
 
 
 def _find_resource(resource_id: str) -> dict[str, Any] | None:

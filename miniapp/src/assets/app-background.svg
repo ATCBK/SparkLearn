@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="1624" viewBox="0 0 750 1624" fill="none">
+  <rect width="750" height="1624" fill="#F6F9FD"/>
+  <rect width="750" height="1624" fill="url(#baseGlow)"/>
+  <rect width="750" height="1624" fill="url(#topWash)" opacity=".74"/>
+  <ellipse cx="696" cy="142" rx="260" ry="350" fill="#BFD9FF" opacity=".44"/>
+  <ellipse cx="708" cy="462" rx="190" ry="420" fill="#D8EAFF" opacity=".5"/>
+  <ellipse cx="342" cy="660" rx="470" ry="560" fill="#FFFFFF" opacity=".52"/>
+  <path d="M603 -20C618 130 698 209 815 265" stroke="url(#lineA)" stroke-width="2" opacity=".38"/>
+  <path d="M555 112C651 196 720 312 780 464" stroke="url(#lineB)" stroke-width="1.6" opacity=".28"/>
+  <path d="M637 510C692 448 735 402 806 370" stroke="#FFFFFF" stroke-width="1.8" opacity=".45"/>
+  <path d="M514 286C596 276 676 242 748 178" stroke="#FFFFFF" stroke-width="1.4" opacity=".36"/>
+  <path d="M551 380C612 426 689 450 766 452" stroke="#B8D8FF" stroke-width="1.3" opacity=".28"/>
+  <g opacity=".36" filter="url(#softBlur)">
+    <path d="M592 226C650 220 690 199 730 164" stroke="#FFFFFF" stroke-width="3"/>
+    <path d="M608 556C655 498 706 467 764 449" stroke="#FFFFFF" stroke-width="2.4"/>
+  </g>
+  <g opacity=".32">
+    <circle cx="641" cy="226" r="3" fill="#FFFFFF"/>
+    <circle cx="688" cy="451" r="2.6" fill="#FFFFFF"/>
+    <circle cx="581" cy="382" r="2.2" fill="#D7E9FF"/>
+  </g>
+  <defs>
+    <radialGradient id="baseGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(710 190) rotate(111) scale(605 404)">
+      <stop stop-color="#CFE3FF"/>
+      <stop offset=".42" stop-color="#EAF4FF" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#F6F9FD" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="topWash" x1="750" y1="0" x2="116" y2="770" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9EAFF"/>
+      <stop offset=".38" stop-color="#EEF6FF" stop-opacity=".58"/>
+      <stop offset=".78" stop-color="#FFFFFF" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lineA" x1="603" y1="-20" x2="815" y2="265" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".48" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#A9CDFF" stop-opacity=".55"/>
+    </linearGradient>
+    <linearGradient id="lineB" x1="555" y1="112" x2="780" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B8D8FF" stop-opacity="0"/>
+      <stop offset=".45" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#C5DEFF" stop-opacity=".5"/>
+    </linearGradient>
+    <filter id="softBlur" x="500" y="120" width="310" height="500" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.2"/>
+    </filter>
+  </defs>
+</svg>

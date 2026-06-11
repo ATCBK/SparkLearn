@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import inspect
 import io
 import json
 import ssl
@@ -69,6 +70,18 @@ def _pcm_to_wav(pcm: bytes, sample_rate: int = 16000) -> bytes:
     return buf.getvalue()
 
 
+def _connect_kwargs(connect, timeout_sec: float, ssl_ctx: ssl.SSLContext) -> dict:
+    params = inspect.signature(connect).parameters
+    kwargs: dict = {"open_timeout": timeout_sec}
+    if "proxy" in params:
+        kwargs["proxy"] = None
+    if "ssl" in params:
+        kwargs["ssl"] = ssl_ctx
+    elif "ssl_context" in params:
+        kwargs["ssl_context"] = ssl_ctx
+    return kwargs
+
+
 def _synthesize(text: str, voice: str = "", speed: int = 50, volume: int = 60, pitch: int = 50) -> tuple[bool, bytes | None, str]:
     """Call iFlytek TTS WebSocket and return (success, wav_bytes, message)."""
     if not text.strip():
@@ -111,7 +124,7 @@ def _synthesize(text: str, voice: str = "", speed: int = 50, volume: int = 60, p
             ssl_ctx = ssl.create_default_context()
             ssl_ctx.check_hostname = False
             ssl_ctx.verify_mode = ssl.CERT_NONE
-            with connect(auth_url, open_timeout=timeout_sec, ssl=ssl_ctx) as ws:
+            with connect(auth_url, **_connect_kwargs(connect, timeout_sec, ssl_ctx)) as ws:
                 ws.send(json.dumps(payload, ensure_ascii=False))
                 while True:
                     raw = ws.recv(timeout=timeout_sec)

@@ -3,6 +3,16 @@
 <title>学习活动分析</title>
 <link href="css/style.css"  rel="stylesheet" type="text/css" media="all" />
 <script src="js/echarts.min.js" charset="utf-8"></script>
+<style>
+  .pleftbox2midd .hdtop > ul {
+    display: none;
+  }
+
+  .pleftbox2midd .hdtop,
+  .pleftbox2midd .hdtop .pleftbox2middcont {
+    width: 100%;
+  }
+</style>
 
 
 <body>
@@ -12,7 +22,7 @@
       <li><a href="index.html">班级总览</a></li>
       <li><a href="students.html">学生画像</a></li>
       <li class="active"><a href="activity.html">学习活动</a></li>
-      <li><a href="knowledge.html">知识图谱</a></li>
+      <li><a href="knowledge.html">学生知识详情</a></li>
    </ul>
   </div>
   <h1 class="tith1 fl">学习活动分析</h1>
@@ -1117,6 +1127,140 @@
                                     myChart.setOption(option);
                                 </script>
 
+
+<script type="text/javascript">
+        (function () {
+          function repaintCompactLeftCharts() {
+            if (typeof echarts === 'undefined') return;
+
+            var phaseDom = document.getElementById('pleftbox2top');
+            if (phaseDom) {
+              var phaseChart = echarts.getInstanceByDom(phaseDom) || echarts.init(phaseDom);
+              phaseChart.clear();
+              phaseChart.setOption({
+                backgroundColor: 'rgba(1,202,217,.2)',
+                tooltip: {
+                  trigger: 'item',
+                  formatter: function (p) {
+                    return p.data.label.replace(/\n/g, '') + '：' + p.data.count + '人';
+                  }
+                },
+                grid: { left: 8, right: 8, top: 8, bottom: 8 },
+                xAxis: { min: 0, max: 100, show: false },
+                yAxis: { min: 0, max: 100, show: false },
+                series: [{
+                  type: 'scatter',
+                  data: [
+                    { value: [18, 70, 22], label: '基础', count: 1, color: '#a855f7', labelColor: '#fff' },
+                    { value: [44, 70, 58], label: '面向对象\n2', count: 2, color: '#1687ff', labelColor: '#00162f' },
+                    { value: [70, 61, 34], label: '高级', count: 1, color: '#fff200', labelColor: '#061023' },
+                    { value: [22, 51, 26], label: '待提升', count: 1, color: '#7dd3fc', labelColor: '#061023' },
+                    { value: [39, 30, 80], label: '函数模块\n3', count: 3, color: '#ff7a00', labelColor: '#061023' },
+                    { value: [76, 31, 62], label: '文件处理\n1', count: 1, color: '#9cff00', labelColor: '#061023' },
+                    { value: [15, 25, 12], label: '', count: 0, color: '#1e90ff', labelColor: '#fff' },
+                    { value: [57, 26, 12], label: '', count: 0, color: '#fff200', labelColor: '#061023' },
+                    { value: [78, 64, 12], label: '', count: 0, color: '#a855f7', labelColor: '#fff' }
+                  ],
+                  symbolSize: function (value) { return value[2]; },
+                  label: {
+                    show: true,
+                    position: 'inside',
+                    formatter: function (p) { return p.data.label; },
+                    color: '#061023',
+                    textBorderColor: 'rgba(255, 255, 255, .55)',
+                    textBorderWidth: 2,
+                    fontSize: 11,
+                    lineHeight: 14,
+                    fontWeight: 500,
+                    align: 'center'
+                  },
+                  itemStyle: {
+                    color: function (p) { return p.data.color; },
+                    shadowBlur: 12,
+                    shadowColor: 'rgba(0, 255, 255, .2)'
+                  },
+                  emphasis: {
+                    scale: 1.06,
+                    label: { fontSize: 12, fontWeight: 700 }
+                  }
+                }]
+              }, true);
+            }
+
+            var masteryDom = document.getElementById('pleftbox2bott_cont');
+            if (masteryDom) {
+              var masteryChart = echarts.getInstanceByDom(masteryDom) || echarts.init(masteryDom);
+              masteryChart.clear();
+              masteryChart.setOption({
+                backgroundColor: 'rgba(1,202,217,.2)',
+                tooltip: { trigger: 'item' },
+                radar: {
+                  center: ['50%', '54%'],
+                  radius: '48%',
+                  splitNumber: 4,
+                  startAngle: 90,
+                  nameGap: 16,
+                  name: {
+                    textStyle: {
+                      color: 'rgba(230, 250, 255, .92)',
+                      fontSize: 11,
+                      lineHeight: 14,
+                      backgroundColor: 'rgba(3, 26, 72, .72)',
+                      borderRadius: 3,
+                      padding: [2, 4]
+                    }
+                  },
+                  axisName: {
+                    color: 'rgba(230, 250, 255, .92)',
+                    fontSize: 11,
+                    lineHeight: 14,
+                    padding: [2, 4],
+                    backgroundColor: 'rgba(3, 26, 72, .72)',
+                    borderRadius: 3
+                  },
+                  splitArea: {
+                    areaStyle: {
+                      color: ['rgba(1,202,217,.04)', 'rgba(1,202,217,.1)']
+                    }
+                  },
+                  splitLine: {
+                    lineStyle: { color: 'rgba(126, 206, 244, .22)' }
+                  },
+                  axisLine: {
+                    lineStyle: { color: 'rgba(126, 206, 244, .32)' }
+                  },
+                  indicator: [
+                    { name: '类对象', max: 100 },
+                    { name: '变量类型', max: 100 },
+                    { name: '循环控制', max: 100 },
+                    { name: '函数定义', max: 100 },
+                    { name: '模块包', max: 100 }
+                  ]
+                },
+                series: [{
+                  name: '知识点掌握分布',
+                  type: 'radar',
+                  symbol: 'circle',
+                  symbolSize: 4,
+                  lineStyle: { width: 2, color: '#7ecef4' },
+                  itemStyle: { color: '#7ecef4' },
+                  areaStyle: { color: 'rgba(126, 206, 244, .34)' },
+                  data: [
+                    { value: [78, 86, 64, 58, 72], name: '全班数据' }
+                  ]
+                }]
+              }, true);
+            }
+          }
+
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', repaintCompactLeftCharts);
+          } else {
+            repaintCompactLeftCharts();
+          }
+          window.addEventListener('resize', repaintCompactLeftCharts);
+        })();
+    </script>
 
 </body>
 </html>

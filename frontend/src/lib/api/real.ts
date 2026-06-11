@@ -6,6 +6,7 @@ import type {
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
+  CodeEvaluatePayload, CodeEvaluateResult,
 } from './types'
 import { getToken } from '../auth'
 
@@ -332,6 +333,22 @@ export async function generateResource(
     status: 'generating',
     createdAt: new Date().toISOString(),
     progress: 0,
+  }
+}
+
+export async function evaluateCodeResource(resourceId: string, payload: CodeEvaluatePayload): Promise<CodeEvaluateResult> {
+  const data = await fetchJson<any>(`/api/resources/code/evaluate/${resourceId}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      question: payload.question,
+      hint: payload.hint || '',
+      student_code: payload.studentCode,
+    }),
+  })
+  return {
+    correct: Boolean(data.correct),
+    result: String(data.result || (data.correct ? '正确' : '错误')),
+    reason: String(data.reason || ''),
   }
 }
 

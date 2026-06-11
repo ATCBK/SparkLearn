@@ -457,21 +457,21 @@ async def _generate_quiz_with_llm(chapter: str | None, count: int, batch_id: str
     max_retries = 2
     for attempt in range(max_retries):
         try:
-            # 添加超时保护（3秒）
-            text = await asyncio.wait_for(_collect_llm_text(prompt), timeout=3.0)
+            # 题目生成需要完整 JSON 数组，给流式大模型留出足够时间。
+            text = await asyncio.wait_for(_collect_llm_text(prompt), timeout=12.0)
             
             if not text:
                 print(f"DEBUG: LLM returned empty text on attempt {attempt + 1}/{max_retries}")
                 if attempt < max_retries - 1:
                     continue
-                return None
+                return _build_default_batch(count, batch_id)
 
             raw_list = _extract_json_list(text)
             if not raw_list:
                 print(f"DEBUG: Failed to extract JSON list from LLM response on attempt {attempt + 1}/{max_retries}")
                 if attempt < max_retries - 1:
                     continue
-                return None
+                return _build_default_batch(count, batch_id)
 
             result: list[dict[str, Any]] = []
             for i, raw in enumerate(raw_list[:count], start=1):
@@ -487,16 +487,16 @@ async def _generate_quiz_with_llm(chapter: str | None, count: int, batch_id: str
                 continue
             else:
                 print(f"DEBUG: Failed to generate valid questions after {max_retries} attempts")
-                return None
+                return _build_default_batch(count, batch_id)
                 
         except asyncio.TimeoutError:
             print(f"DEBUG: LLM generation timeout on attempt {attempt + 1}/{max_retries}, falling back to default")
-            return None
+            return _build_default_batch(count, batch_id)
         except Exception as e:
             print(f"DEBUG: LLM generation error on attempt {attempt + 1}/{max_retries}: {e}")
-            return None
+            return _build_default_batch(count, batch_id)
     
-    return None
+    return _build_default_batch(count, batch_id)
 
 
 async def _judge_with_llm(question: dict[str, Any], answer: str | list[str]) -> dict[str, Any] | None:

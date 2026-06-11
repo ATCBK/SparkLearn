@@ -24,6 +24,7 @@ export const api = {
   downloadResource: impl.downloadResource,
   downloadResourceSource: impl.downloadResourceSource,
   generateResource: impl.generateResource,
+  evaluateCodeResource: impl.evaluateCodeResource,
 
   sendMessage: impl.sendMessage,
   getChatHistory: impl.getChatHistory,
@@ -138,6 +139,7 @@ export type {
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   McpService, McpServicePayload,
+  CodeEvaluatePayload, CodeEvaluateResult,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
 } from './types'

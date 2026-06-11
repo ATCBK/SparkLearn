@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks, ClipboardList, Target, TrendingUp } from 'lucide-react'
 import { api, QuizQuestion } from '@/lib/api'
-import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 interface ExtendedQuizQuestion extends QuizQuestion {
@@ -23,6 +23,41 @@ interface AnswerRecord {
   timestamp: string
 }
 
+type RawQuizQuestion = Partial<QuizQuestion> & {
+  id?: string
+  title?: string
+  question?: string
+  codeSnippet?: string
+  correct_answer?: string | string[]
+  knowledge_point_id?: string
+  knowledge_point_name?: string
+}
+
+interface SubmitQuizAnswerResult {
+  correct: boolean
+  correctAnswer?: string | string[]
+  correct_answer?: string | string[]
+  explanation?: string
+}
+
+function enrichQuestion(q: RawQuizQuestion): ExtendedQuizQuestion {
+  const content = String(q.content || q.question || q.title || '')
+
+  return {
+    id: String(q.id || ''),
+    type: q.type || 'single',
+    content,
+    options: q.options,
+    correctAnswer: q.correctAnswer ?? q.correct_answer ?? '',
+    explanation: q.explanation || '',
+    title: content || q.title || '题目',
+    question: content || q.question || '',
+    codeSnippet: q.codeSnippet,
+    knowledge_point_id: q.knowledge_point_id,
+    knowledge_point_name: q.knowledge_point_name,
+  }
+}
+
 export default function PracticePage() {
   const [questions, setQuestions] = useState<ExtendedQuizQuestion[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -37,6 +72,10 @@ export default function PracticePage() {
   const [progressPage, setProgressPage] = useState(0)
   const [answerRecords, setAnswerRecords] = useState<AnswerRecord[]>([]) // 答题记录
 
+  function hasAnswer(answer: string | string[] | null): boolean {
+    return Array.isArray(answer) ? answer.length > 0 : Boolean(answer)
+  }
+
   // 初始加载题目 - 自动生成4道题
   useEffect(() => {
     let cancelled = false
@@ -48,11 +87,7 @@ export default function PracticePage() {
         const data = await api.getQuizQuestions('函数返回值', 4)
         if (cancelled) return
         if (data && data.length > 0) {
-          const enriched = data.map((q: any) => ({
-            ...q,
-            title: q.content || q.title || '题目',
-            question: q.content || q.question || '',
-          }))
+          const enriched = data.map(enrichQuestion)
           setQuestions(enriched)
           setCurrentIndex(0)
           setSubmitted(false)
@@ -74,35 +109,6 @@ export default function PracticePage() {
     return () => { cancelled = true }
   }, [])
 
-  async function initializeQuestions() {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await api.getQuizQuestions(topic, parseInt(count) || 4)
-      if (data && data.length > 0) {
-        const enriched = data.map((q: any) => ({
-          ...q,
-          title: q.content || q.title || '题目',
-          question: q.content || q.question || '',
-        }))
-        setQuestions(enriched)
-        setCurrentIndex(0)
-        setSubmitted(false)
-        setSelectedAnswer(null)
-        setAnswerRecords([])
-        setProgressPage(0)
-      } else {
-        setError('未获取到题目数据，请稍后重试')
-        setQuestions([])
-      }
-    } catch (ex) {
-      setError(ex instanceof Error ? ex.message : '初始化题目失败')
-      setQuestions([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
   async function generateQuestions() {
     if (!topic.trim()) {
       setError('请输入题目主题')
@@ -120,11 +126,7 @@ export default function PracticePage() {
     try {
       const data = await api.getQuizQuestions(topic, countNum)
       if (data && data.length > 0) {
-        const enriched = data.map((q: any) => ({
-          ...q,
-          title: q.content || q.title || '题目',
-          question: q.content || q.question || '',
-        }))
+        const enriched = data.map(enrichQuestion)
         // 追加新题目而不是替换
         setQuestions(prev => [...prev, ...enriched])
         setError('')
@@ -143,7 +145,9 @@ export default function PracticePage() {
     
     setLoading(true)
     try {
-      const result = await api.submitQuizAnswer(currentQuestion.id, selectedAnswer)
+      const result = await api.submitQuizAnswer(currentQuestion.id, selectedAnswer) as SubmitQuizAnswerResult
+      const correctAnswer = result.correctAnswer ?? result.correct_answer ?? currentQuestion.correctAnswer
+      const explanation = result.explanation || currentQuestion.explanation || ''
       setSubmitted(true)
       
       // 保存答题记录
@@ -151,11 +155,23 @@ export default function PracticePage() {
         quizId: currentQuestion.id,
         answer: selectedAnswer,
         correct: result.correct,
-        correctAnswer: result.correctAnswer,
-        explanation: result.explanation,
+        correctAnswer,
+        explanation,
         timestamp: new Date().toISOString(),
       }
-      setAnswerRecords([...answerRecords, record])
+      setAnswerRecords(prev => [
+        ...prev.filter(item => item.quizId !== currentQuestion.id),
+        record,
+      ])
+      setQuestions(prev => prev.map(item => (
+        item.id === currentQuestion.id
+          ? {
+              ...item,
+              correctAnswer,
+              explanation,
+            }
+          : item
+      )))
       
       console.log('Answer submitted:', result)
     } catch (ex) {
@@ -205,11 +221,6 @@ export default function PracticePage() {
     
     const newPage = Math.floor(idx / 8)
     setProgressPage(newPage)
-  }
-
-  // 检查某道题是否已答过
-  function isQuestionAnswered(idx: number): boolean {
-    return answerRecords.some(r => r.quizId === questions[idx]?.id)
   }
 
   // 获取某道题的答题结果
@@ -504,7 +515,7 @@ export default function PracticePage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2.5">
-                    <ProtoButton onClick={submitAnswer} disabled={!selectedAnswer || submitted || loading}>
+                    <ProtoButton onClick={submitAnswer} disabled={!hasAnswer(selectedAnswer) || submitted || loading}>
                       {submitted ? '已提交' : '提交判题'}
                     </ProtoButton>
                     <div className="flex gap-2 ml-auto">
@@ -520,12 +531,10 @@ export default function PracticePage() {
                   {submitted && (
                     <SoftCard className="mt-5 bg-white">
                       {(() => {
-                        const isMultiple = currentQuestion.type === 'multiple'
-                        const isCorrect = isMultiple
-                          ? Array.isArray(selectedAnswer) && Array.isArray(currentQuestion.correctAnswer) &&
-                            selectedAnswer.length === currentQuestion.correctAnswer.length &&
-                            selectedAnswer.every(a => currentQuestion.correctAnswer.includes(a))
-                          : selectedAnswer === currentQuestion.correctAnswer
+                        const record = answerRecords.find(r => r.quizId === currentQuestion.id)
+                        const correctAnswer = record?.correctAnswer ?? currentQuestion.correctAnswer
+                        const explanation = record?.explanation || currentQuestion.explanation
+                        const isCorrect = record?.correct ?? false
                         
                         return (
                           <>
@@ -533,12 +542,12 @@ export default function PracticePage() {
                               判题结果：{isCorrect ? '正确' : '错误'}
                             </Pill>
                             <h2 className="mt-3 text-h2 font-bold text-ink">
-                              正确答案是 {Array.isArray(currentQuestion.correctAnswer) ? currentQuestion.correctAnswer.join('、') : currentQuestion.correctAnswer}
+                              正确答案是 {Array.isArray(correctAnswer) ? correctAnswer.join('、') : correctAnswer}
                             </h2>
+                            <p className="mt-3 text-small leading-6 text-muted">{explanation || '暂无解析'}</p>
                           </>
                         )
                       })()}
-                      <p className="mt-3 text-small leading-6 text-muted">{currentQuestion.explanation || '暂无解析'}</p>
                       <div className="mt-4 flex flex-wrap gap-2.5">
                         <ProtoButton href="/generate">一键生成补弱资源</ProtoButton>
                         <ProtoButton href="/generate" variant="secondary">查看推荐资源</ProtoButton>
@@ -678,7 +687,6 @@ export default function PracticePage() {
                 <div className="mt-4 grid grid-cols-4 gap-2">
                   {currentPageQuestions.map((_, idx) => {
                     const actualIdx = startIdx + idx
-                    const isAnswered = isQuestionAnswered(actualIdx)
                     const result = getQuestionResult(actualIdx)
                     const isCurrent = actualIdx === currentIndex
                     

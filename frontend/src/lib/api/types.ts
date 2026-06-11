@@ -33,6 +33,18 @@ export interface Resource {
   progress?: number // 0-100
 }
 
+export interface CodeEvaluatePayload {
+  question: string
+  hint?: string
+  studentCode: string
+}
+
+export interface CodeEvaluateResult {
+  correct: boolean
+  result: '正确' | '错误' | string
+  reason: string
+}
+
 export interface ForumAttachment {
   id: number
   post_id: number
