@@ -1,0 +1,292 @@
+.app-icon {
+  position: relative;
+  width: 32rpx;
+  height: 32rpx;
+  flex: 0 0 32rpx;
+  color: currentColor;
+}
+
+.app-icon::before,
+.app-icon::after,
+.app-icon__mark,
+.app-icon__mark::before,
+.app-icon__mark::after {
+  position: absolute;
+  content: '';
+  box-sizing: border-box;
+  border-color: currentColor;
+}
+
+.app-icon--plus::before,
+.app-icon--plus::after {
+  top: 14rpx;
+  left: 5rpx;
+  width: 22rpx;
+  height: 4rpx;
+  background: currentColor;
+  border-radius: 999rpx;
+}
+
+.app-icon--plus::after {
+  top: 5rpx;
+  left: 14rpx;
+  width: 4rpx;
+  height: 22rpx;
+}
+
+.app-icon--send::before {
+  top: 4rpx;
+  left: 6rpx;
+  width: 20rpx;
+  height: 20rpx;
+  border-top: 4rpx solid currentColor;
+  border-right: 4rpx solid currentColor;
+  transform: rotate(45deg) skew(-6deg, -6deg);
+}
+
+.app-icon--send::after {
+  top: 14rpx;
+  left: 6rpx;
+  width: 14rpx;
+  height: 4rpx;
+  background: currentColor;
+  border-radius: 999rpx;
+  transform: rotate(-28deg);
+}
+
+.app-icon--mic::before {
+  top: 2rpx;
+  left: 10rpx;
+  width: 12rpx;
+  height: 18rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 10rpx;
+}
+
+.app-icon--mic::after {
+  right: 5rpx;
+  bottom: 2rpx;
+  left: 5rpx;
+  height: 11rpx;
+  border-right: 3rpx solid currentColor;
+  border-bottom: 3rpx solid currentColor;
+  border-left: 3rpx solid currentColor;
+  border-radius: 0 0 14rpx 14rpx;
+}
+
+.app-icon--image::before {
+  inset: 3rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 6rpx;
+}
+
+.app-icon--image::after {
+  right: 5rpx;
+  bottom: 5rpx;
+  width: 14rpx;
+  height: 10rpx;
+  border-left: 3rpx solid currentColor;
+  border-bottom: 3rpx solid currentColor;
+  transform: skew(-18deg);
+}
+
+.app-icon--shield::before {
+  top: 2rpx;
+  left: 7rpx;
+  width: 18rpx;
+  height: 22rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 12rpx 12rpx 16rpx 16rpx;
+}
+
+.app-icon--shield::after {
+  top: 10rpx;
+  left: 13rpx;
+  width: 6rpx;
+  height: 8rpx;
+  background: currentColor;
+  border-radius: 999rpx;
+}
+
+.app-icon--globe::before {
+  inset: 2rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.app-icon--globe::after {
+  top: 4rpx;
+  right: 9rpx;
+  bottom: 4rpx;
+  left: 9rpx;
+  border-right: 2rpx solid currentColor;
+  border-left: 2rpx solid currentColor;
+  border-radius: 50%;
+  box-shadow: 0 7rpx 0 -5rpx currentColor, 0 -7rpx 0 -5rpx currentColor;
+}
+
+.app-icon--cpu::before {
+  inset: 4rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 6rpx;
+}
+
+.app-icon--cpu::after {
+  top: 0;
+  left: 14rpx;
+  width: 4rpx;
+  height: 32rpx;
+  background: currentColor;
+  border-radius: 999rpx;
+  box-shadow: -9rpx 8rpx 0 -1rpx currentColor, 9rpx -8rpx 0 -1rpx currentColor;
+}
+
+.app-icon--sparkles::before {
+  top: 2rpx;
+  left: 14rpx;
+  width: 4rpx;
+  height: 28rpx;
+  background: currentColor;
+  border-radius: 999rpx;
+}
+
+.app-icon--sparkles::after {
+  top: 14rpx;
+  left: 2rpx;
+  width: 28rpx;
+  height: 4rpx;
+  background: currentColor;
+  border-radius: 999rpx;
+}
+
+.app-icon--sparkles .app-icon__mark {
+  top: 6rpx;
+  left: 6rpx;
+  width: 20rpx;
+  height: 20rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+
+.app-icon--users::before {
+  top: 4rpx;
+  left: 4rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.app-icon--users::after {
+  top: 2rpx;
+  right: 4rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.app-icon--users .app-icon__mark::before {
+  bottom: 3rpx;
+  left: 3rpx;
+  width: 12rpx;
+  height: 9rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 10rpx 10rpx 6rpx 6rpx;
+}
+
+.app-icon--users .app-icon__mark::after {
+  right: 2rpx;
+  bottom: 3rpx;
+  width: 14rpx;
+  height: 10rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 12rpx 12rpx 6rpx 6rpx;
+}
+
+.app-icon--bot::before {
+  top: 7rpx;
+  left: 5rpx;
+  width: 22rpx;
+  height: 18rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 10rpx;
+}
+
+.app-icon--bot::after {
+  top: 1rpx;
+  left: 14rpx;
+  width: 4rpx;
+  height: 8rpx;
+  background: currentColor;
+  border-radius: 999rpx;
+}
+
+.app-icon--bot .app-icon__mark {
+  top: 14rpx;
+  left: 11rpx;
+  width: 4rpx;
+  height: 4rpx;
+  background: currentColor;
+  border-radius: 50%;
+  box-shadow: 8rpx 0 0 currentColor;
+}
+
+.app-icon--book::before,
+.app-icon--quiz::before {
+  top: 4rpx;
+  left: 7rpx;
+  width: 18rpx;
+  height: 22rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 6rpx;
+}
+
+.app-icon--book::after,
+.app-icon--quiz::after {
+  top: 12rpx;
+  left: 11rpx;
+  width: 10rpx;
+  height: 3rpx;
+  background: currentColor;
+  box-shadow: 0 8rpx 0 currentColor;
+  border-radius: 999rpx;
+}
+
+.app-icon--user::before {
+  top: 4rpx;
+  left: 10rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.app-icon--user::after {
+  right: 5rpx;
+  bottom: 4rpx;
+  left: 5rpx;
+  height: 12rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 12rpx 12rpx 8rpx 8rpx;
+}
+
+.app-icon--folder::before {
+  top: 8rpx;
+  left: 4rpx;
+  width: 24rpx;
+  height: 17rpx;
+  border: 3rpx solid currentColor;
+  border-radius: 6rpx;
+}
+
+.app-icon--folder::after {
+  top: 4rpx;
+  left: 8rpx;
+  width: 10rpx;
+  height: 6rpx;
+  border: 3rpx solid currentColor;
+  border-bottom: 0;
+  border-radius: 4rpx 4rpx 0 0;
+}
