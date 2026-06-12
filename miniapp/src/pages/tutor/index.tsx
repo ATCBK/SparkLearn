@@ -369,7 +369,7 @@ export default function TutorPage() {
         </View>
       </AppHeader>
 
-      <ScrollView scrollX enhanced showScrollbar={false} className='mode-strip-scroll'>
+      <ScrollView scrollX showScrollbar={false} className='mode-strip-scroll'>
         <View className='mode-strip'>
           <View className={`mode-pill ${workshopEnabled ? 'is-active' : ''}`} hoverClass='tap-active' onClick={() => setWorkshopEnabled((value) => !value)}>
             <AppIcon name='users' className='mode-pill__icon' />
@@ -403,7 +403,7 @@ export default function TutorPage() {
         <Text className='mode-hint__text'>{workshopStateText(workshopEnabled)}</Text>
       </View>
 
-      <ScrollView scrollY enhanced showScrollbar={false} className='tutor-scroll' scrollIntoView={lastAssistant?.id}>
+      <ScrollView scrollY showScrollbar={false} className='tutor-scroll' scrollIntoView={lastAssistant?.id}>
         <View className='message-stack'>
           {messages.map((message) => (
             message.role === 'user' ? (
@@ -535,7 +535,7 @@ export default function TutorPage() {
           </View>
         </View>
 
-        <ScrollView scrollX enhanced showScrollbar={false} className='composer-options'>
+        <ScrollView scrollX showScrollbar={false} className='composer-options'>
           <View className='option-strip'>
             <View className='option-chip option-chip--model' hoverClass='tap-active' onClick={handleModelSelect}>
               <AppIcon name='sparkles' className='option-chip__icon' />
