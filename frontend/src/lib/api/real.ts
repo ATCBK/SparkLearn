@@ -6,7 +6,7 @@ import type {
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
-  CodeEvaluatePayload, CodeEvaluateResult,
+  CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
 } from './types'
 import { getToken } from '../auth'
 
@@ -357,6 +357,27 @@ export async function evaluateCodeResource(resourceId: string, payload: CodeEval
     correct: Boolean(data.correct),
     result: String(data.result || (data.correct ? '正确' : '错误')),
     reason: String(data.reason || ''),
+  }
+}
+
+export async function evaluateResourceQuality(resourceId: string): Promise<ResourceQualityResult> {
+  const data = await fetchJson<any>(`/api/resources/${resourceId}/quality-evaluate`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  return {
+    label: String(data.label || '可补充'),
+    summary: String(data.summary || ''),
+    advice: String(data.advice || ''),
+    dimensions: Array.isArray(data.dimensions)
+      ? data.dimensions.map((item: any) => ({
+          key: item.key,
+          label: String(item.label || ''),
+          score: Number(item.score || 0),
+          level: item.level === 'high' || item.level === 'low' ? item.level : 'medium',
+          detail: String(item.detail || ''),
+        }))
+      : [],
   }
 }
 

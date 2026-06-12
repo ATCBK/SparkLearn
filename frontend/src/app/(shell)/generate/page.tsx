@@ -4,8 +4,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, NotebookPen, ChevronLeft, ChevronRight, MoreHorizontal, Globe, Palette, Zap } from 'lucide-react'
-import { api, KnowledgeFile, Resource, StudentProfile, VideoStyle, VideoScriptSegment, VideoPolishResult } from '@/lib/api'
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, NotebookPen, ChevronLeft, ChevronRight, MoreHorizontal, Globe, Palette, Zap, ShieldCheck, CircleGauge, X, Info } from 'lucide-react'
+import { api, KnowledgeFile, Resource, ResourceQualityResult, StudentProfile, VideoStyle, VideoScriptSegment, VideoPolishResult } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio } from '@/components/ui/AudioRadio'
@@ -15,10 +15,10 @@ import { useGenerationTasks } from '@/components/providers/GenerationTaskProvide
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '保存学习']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
-  { type: 'document', label: '讲解文档', desc: '结构化概念讲义' },
+  { type: 'document', label: '文档', desc: '结构化概念讲义' },
   { type: 'ppt', label: 'PPT', desc: '课堂式演示稿' },
   { type: 'mindmap', label: '思维导图', desc: '知识关系梳理' },
-  { type: 'video', label: '教学视频', desc: 'AI 合成讲解视频' },
+  { type: 'video', label: '教学视频', desc: 'AI 合成视频' },
   { type: 'blog', label: '播客电台', desc: 'AI 生成音频播客' },
   { type: 'quiz', label: '练习题', desc: '达标检测题组' },
   { type: 'reading', label: '拓展阅读', desc: '延伸材料' },
@@ -29,11 +29,11 @@ const TYPE_PROMPTS: Record<string, string> = {
   document: '请基于当前薄弱点"函数返回值"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。',
   ppt: '请基于"函数返回值"生成一份课堂演示PPT，包含核心概念、代码示例和课堂互动环节。',
   mindmap: '请基于"函数返回值"生成一份思维导图，梳理函数定义、参数传递、返回值、作用域之间的关系。',
-  video: '请基于"函数返回值"生成一段教学视频脚本，用生活化类比讲解 return 的作用。',
-  blog: '请用通俗易懂的方式讲解"函数返回值"这个概念，像播客节目一样轻松有趣地科普，让零基础的人也能听懂。',
+  video: '请基于"函数返回值"生成一段教学视频脚本，用生活化类比 return 的作用。',
+  blog: '请用通俗易懂的方式"函数返回值"这个概念，像播客节目一样轻松有趣地科普，让零基础的人也能听懂。',
   quiz: '请基于"函数返回值"生成一组练习题，覆盖简单、中等、困难三个难度。',
   reading: '请基于"函数返回值"生成一份拓展阅读材料，包含背景知识和实际应用场景。',
-  code: '请基于"函数返回值"生成一个完整的代码案例，包含问题描述、代码实现和详细讲解。',
+  code: '请基于"函数返回值"生成一个完整的代码案例，包含问题描述、代码实现和详细。',
 }
 
 const DEFAULT_VIDEO_STYLES: VideoStyle[] = [
@@ -54,7 +54,7 @@ const VOICE_PROVIDER_OPTIONS = [
     defaultSpeed: 1.0,
     defaultPitch: 1.0,
     defaultVolume: 1.0,
-    toneHint: '自然、连贯、适合讲解',
+    toneHint: '自然、连贯、适合',
     voiceColumns: [
       { id: 'longxiaochun', label: '长小春', description: '默认推荐，沉稳清晰' },
     ],
@@ -204,6 +204,9 @@ function GeneratePageContent() {
   const [libraryCollapsed, setLibraryCollapsed] = useState(false)
   const [filter, setFilter] = useState('全部')
   const [libraryError, setLibraryError] = useState('')
+  const [qualityLoadingId, setQualityLoadingId] = useState('')
+  const [qualityResults, setQualityResults] = useState<Record<string, ResourceQualityResult>>({})
+  const [qualityDialogResourceId, setQualityDialogResourceId] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -347,6 +350,20 @@ function GeneratePageContent() {
     }))
   }
 
+  async function handleEvaluateResourceQuality(res: Resource) {
+    if (!res?.id || qualityLoadingId === res.id) return
+    setQualityLoadingId(res.id)
+    try {
+      const result = await api.evaluateResourceQuality(res.id)
+      setQualityResults(prev => ({ ...prev, [res.id]: result }))
+      setQualityDialogResourceId(res.id)
+    } catch (ex) {
+      setLibraryError(ex instanceof Error ? ex.message : '资源质量评估失败')
+    } finally {
+      setQualityLoadingId('')
+    }
+  }
+
   const filtered = resources.filter((r) => {
     const term = query.trim().toLowerCase()
     const matchQuery = !term || r.title.toLowerCase().includes(term) || r.type.toLowerCase().includes(term)
@@ -354,6 +371,12 @@ function GeneratePageContent() {
     return matchQuery && (matchFilter || filter === '全部')
   })
   const selected = filtered.find(r => r.id === selectedId) || filtered[0]
+  const selectedQuality = selected ? qualityResults[selected.id] : null
+  const generatedQuality = resource ? qualityResults[resource.id] : null
+  const activeQualityResource = (resource && resource.id === qualityDialogResourceId)
+    ? resource
+    : resources.find(item => item.id === qualityDialogResourceId) || null
+  const activeQualityResult = qualityDialogResourceId ? qualityResults[qualityDialogResourceId] || null : null
 
   if (view === 'library') {
     const selectedIcon = selected ? resourceIcon(selected.type) : resourceIcon('document')
@@ -363,7 +386,7 @@ function GeneratePageContent() {
       : ''
 
     return (
-      <div className="min-h-[calc(100vh-104px)]">
+      <div className="min-h-[calc(100vh-112px)]">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="mb-1 text-small font-extrabold text-soft">资源中心 / 我的资源</div>
@@ -413,10 +436,10 @@ function GeneratePageContent() {
           ))}
         </div>
 
-        <div className={`grid min-h-[680px] overflow-hidden rounded-[14px] border border-line bg-white shadow-md transition-[grid-template-columns] duration-300 max-[980px]:grid-cols-1 ${
+        <div className={`grid h-[calc(100vh-180px)] min-h-[720px] overflow-hidden rounded-[14px] border border-line bg-white shadow-md transition-[grid-template-columns] duration-300 max-[980px]:h-auto max-[980px]:min-h-0 max-[980px]:grid-cols-1 ${
           libraryCollapsed ? 'grid-cols-[76px_minmax(0,1fr)]' : 'grid-cols-[370px_minmax(0,1fr)]'
         }`}>
-          <aside className="min-h-0 border-r border-line bg-white">
+          <aside className="flex h-full min-h-0 flex-col border-r border-line bg-white">
             <div className="flex h-[62px] items-center justify-between border-b border-line px-4">
               {!libraryCollapsed && (
                 <div>
@@ -433,7 +456,7 @@ function GeneratePageContent() {
               </button>
             </div>
 
-            <div className="h-[618px] overflow-y-auto p-3">
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {filtered.map((res) => {
                 const meta = resourceIcon(res.type)
                 const active = selected?.id === res.id
@@ -470,10 +493,10 @@ function GeneratePageContent() {
             </div>
           </aside>
 
-          <section className="min-w-0 bg-[#f8fafc]">
+          <section className="flex h-full min-h-0 min-w-0 flex-col bg-[#f8fafc]">
             {libraryError && <p className="m-4 rounded-[10px] bg-red-light p-3 text-small text-red">{libraryError}</p>}
             {selected ? (
-              <div className="flex h-full min-h-[680px] flex-col">
+              <div className="flex h-full min-h-0 flex-col">
                 <header className="flex min-h-[92px] flex-wrap items-center justify-between gap-4 border-b border-line bg-white px-6 py-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[12px] ${selectedIcon.tone}`}>{selectedIcon.icon}</span>
@@ -485,8 +508,18 @@ function GeneratePageContent() {
                       <p className="mt-1 text-small text-muted">AI 生成 · {resourceDate(selected.createdAt)} · {selected.progress ?? 42}% 进度</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <ProtoButton variant="secondary"><Sparkles className="h-4 w-4" />AI 讲解</ProtoButton>
+                  <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [&>*:last-child]:shrink-0 [&>*:nth-child(3)]:hidden [&>*:nth-child(5)]:hidden">
+                    <ProtoButton
+                      variant="secondary"
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-ai-assistant', { detail: { prompt: `请讲解这份资源《${selected.title}》的核心内容，并结合我当前的学习情况告诉我应该怎么学。` } }))}
+                    ><Sparkles className="h-4 w-4" />AI 讲解</ProtoButton>
+                    <ResourceQualityTrigger
+                      result={selectedQuality}
+                      loading={qualityLoadingId === selected.id}
+                      onEvaluate={() => void handleEvaluateResourceQuality(selected)}
+                      onOpen={() => setQualityDialogResourceId(selected.id)}
+                    />
+                    <ProtoButton variant="secondary"><Sparkles className="h-4 w-4" />AI </ProtoButton>
                     <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
                     <ProtoButton variant="tertiary" onClick={() => openResourceNotes(selected)}><NotebookPen className="h-4 w-4" />笔记</ProtoButton>
                     <button className="grid h-9 w-9 place-items-center rounded-[8px] border border-line bg-white text-muted transition-colors hover:text-blue" title="更多">
@@ -548,6 +581,12 @@ function GeneratePageContent() {
               </div>
             )}
           </section>
+          <ResourceQualityDialog
+            open={Boolean(activeQualityResource && activeQualityResult)}
+            resource={activeQualityResource}
+            result={activeQualityResult}
+            onClose={() => setQualityDialogResourceId('')}
+          />
         </div>
       </div>
     )
@@ -644,7 +683,7 @@ function GeneratePageContent() {
               <div className="mt-3 grid gap-3">
                 <SoftCard className="bg-blue-light"><b className="text-ink">项目案例优先</b><span className="mt-1 block text-small text-muted">用"成绩统计小程序"承载函数参数、返回值和局部变量。</span></SoftCard>
                 <SoftCard><b className="text-ink">错题拆解优先</b><span className="mt-1 block text-small text-muted">逐题解释为什么 print 输出不等于 return。</span></SoftCard>
-                <SoftCard><b className="text-ink">达标练习优先</b><span className="mt-1 block text-small text-muted">先给题，再按错误类型补讲解。</span></SoftCard>
+                <SoftCard><b className="text-ink">达标练习优先</b><span className="mt-1 block text-small text-muted">先给题，再按错误类型补。</span></SoftCard>
               </div>
 
               {/* 视频风格选择器 —— 仅在选择"教学视频"时显示 */}
@@ -1015,7 +1054,7 @@ function GeneratePageContent() {
                           }))
                         })()}
                       />
-                      <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音讲解。</p>
+                      <p className="mt-3 text-small text-muted">播客已生成，点击播放按钮收听 AI 语音。</p>
                     </div>
                   ) : (
                     <div className="mt-3 max-h-[calc(100vh-360px)] overflow-y-auto pr-3">
@@ -1028,6 +1067,12 @@ function GeneratePageContent() {
                   )}
                 </SoftCard>
                 <div className="flex gap-2">
+                  <ResourceQualityTrigger
+                    result={generatedQuality}
+                    loading={Boolean(resource?.id) && qualityLoadingId === resource?.id}
+                    onEvaluate={() => resource && void handleEvaluateResourceQuality(resource)}
+                    onOpen={() => resource && setQualityDialogResourceId(resource.id)}
+                  />
                   {resource.type === 'video' ? (
                     <button onClick={() => setView('library')} className="px-4 py-2 rounded-[10px] bg-blue text-small font-bold text-white hover:bg-blue-dark transition-colors">我的资源</button>
                   ) : (
@@ -1054,8 +1099,218 @@ function GeneratePageContent() {
         )}
         </div>
       </ProtoCard>
+      <ResourceQualityDialog
+        open={Boolean(activeQualityResource && activeQualityResult)}
+        resource={activeQualityResource}
+        result={activeQualityResult}
+        onClose={() => setQualityDialogResourceId('')}
+      />
     </div>
   )
+}
+
+function ResourceQualityTrigger({
+  result,
+  loading,
+  onEvaluate,
+  onOpen,
+}: {
+  result: ResourceQualityResult | null
+  loading: boolean
+  onEvaluate: () => void
+  onOpen: () => void
+}) {
+  if (!result) {
+    return (
+      <ProtoButton variant="tertiary" onClick={onEvaluate} disabled={loading}>
+        <ShieldCheck className={`h-4 w-4 ${loading ? 'animate-pulse' : ''}`} />
+        {loading ? '评估中...' : '评估质量'}
+      </ProtoButton>
+    )
+  }
+
+  return (
+    <div className="inline-flex items-center gap-2 rounded-[10px] border border-[#dbe7f5] bg-[#f8fbff] px-2.5 py-1.5">
+      <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${qualityLabelTone(result.label)}`}>
+        {result.label}
+      </span>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="grid h-7 w-7 place-items-center rounded-full bg-white text-[#2563eb] shadow-sm ring-1 ring-[#dbe7f5] transition hover:bg-[#eff6ff]"
+        aria-label="查看资源质量分析"
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+}
+
+function ResourceQualityDialog({
+  open,
+  resource,
+  result,
+  onClose,
+}: {
+  open: boolean
+  resource: Resource | null
+  result: ResourceQualityResult | null
+  onClose: () => void
+}) {
+  if (!open || !resource || !result) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/28 px-4 py-8 backdrop-blur-[2px]">
+      <div className="max-h-[88vh] w-full max-w-[860px] overflow-hidden rounded-[24px] border border-[#dbe7f5] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-3 py-1 text-[12px] font-bold ${qualityLabelTone(result.label)}`}>{result.label}</span>
+              <span className="rounded-full bg-[#eff6ff] px-3 py-1 text-[12px] font-bold text-[#2563eb]">{resourceTypeText(resource.type)}</span>
+            </div>
+            <h3 className="mt-3 text-[22px] font-bold text-ink">{resource.title}</h3>
+            <p className="mt-2 max-w-[560px] text-small leading-6 text-muted">{result.summary}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#f8fafc] text-muted transition hover:bg-[#eef2f7] hover:text-ink"
+            aria-label="关闭资源质量分析"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-5 overflow-y-auto px-6 py-6 min-[900px]:grid-cols-[320px_1fr]">
+          <div className="rounded-[20px] border border-[#e6eef9] bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] p-5">
+            <div className="mb-3 flex items-center gap-2 text-small font-bold text-ink">
+              <CircleGauge className="h-4 w-4 text-[#2563eb]" />
+              资源质量雷达
+            </div>
+            <QualityRadarChart dimensions={result.dimensions} />
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {result.dimensions.map((dimension) => (
+                <div key={dimension.key} className="rounded-[14px] border border-[#e7eef8] bg-white px-3 py-2">
+                  <span className="block text-[12px] font-bold text-ink">{dimension.label}</span>
+                  <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${dimensionLevelTone(dimension.level)}`}>
+                    {dimension.level === 'high' ? '高' : dimension.level === 'low' ? '低' : '中'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {result.dimensions.map((dimension) => (
+              <div key={dimension.key} className="rounded-[18px] border border-[#e6eef9] bg-[#fbfdff] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-9 w-9 place-items-center rounded-[12px] bg-[#eff6ff] text-[#2563eb]">
+                      {dimensionIcon(dimension.key)}
+                    </span>
+                    <div>
+                      <b className="block text-small text-ink">{dimension.label}</b>
+                      <span className="block text-micro text-muted">{dimension.detail}</span>
+                    </div>
+                  </div>
+                  <span className="text-small font-bold text-[#2563eb]">{dimension.score}</span>
+                </div>
+              </div>
+            ))}
+
+            <div className="rounded-[18px] border border-[#e2ebfb] bg-[linear-gradient(135deg,#eff6ff_0%,#f8fbff_100%)] p-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[#2563eb]" />
+                <b className="text-small text-ink">AI 建议</b>
+              </div>
+              <p className="mt-2 text-small leading-7 text-ink">{result.advice}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QualityRadarChart({ dimensions }: { dimensions: ResourceQualityResult['dimensions'] }) {
+  const size = 240
+  const center = size / 2
+  const radius = 82
+  const levels = [0.25, 0.5, 0.75, 1]
+  const normalized = dimensions.length ? dimensions : [
+    { key: 'fit', label: '学情匹配', score: 0, level: 'low', detail: '' },
+    { key: 'clarity', label: '内容清晰', score: 0, level: 'low', detail: '' },
+    { key: 'practice', label: '练习支撑', score: 0, level: 'low', detail: '' },
+    { key: 'priority', label: '当前优先级', score: 0, level: 'low', detail: '' },
+  ]
+
+  const pointAt = (index: number, scale: number) => {
+    const angle = (-Math.PI / 2) + (Math.PI * 2 * index / normalized.length)
+    return {
+      x: center + Math.cos(angle) * radius * scale,
+      y: center + Math.sin(angle) * radius * scale,
+    }
+  }
+
+  const polygon = normalized
+    .map((dimension, index) => {
+      const point = pointAt(index, Math.max(0, Math.min(1, dimension.score / 100)))
+      return `${point.x},${point.y}`
+    })
+    .join(' ')
+
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} className="mx-auto block h-[240px] w-[240px]">
+      {levels.map((level) => (
+        <polygon
+          key={level}
+          points={normalized.map((_, index) => {
+            const point = pointAt(index, level)
+            return `${point.x},${point.y}`
+          }).join(' ')}
+          fill={level === 1 ? '#f8fbff' : 'none'}
+          stroke="#dbe7f5"
+          strokeWidth="1"
+        />
+      ))}
+      {normalized.map((dimension, index) => {
+        const edge = pointAt(index, 1)
+        const label = pointAt(index, 1.18)
+        return (
+          <g key={dimension.key}>
+            <line x1={center} y1={center} x2={edge.x} y2={edge.y} stroke="#dbe7f5" strokeWidth="1" />
+            <text x={label.x} y={label.y} fill="#64748b" fontSize="11" textAnchor="middle">
+              {dimension.label}
+            </text>
+          </g>
+        )
+      })}
+      <polygon points={polygon} fill="rgba(37,99,235,0.18)" stroke="#2563eb" strokeWidth="2" />
+      {normalized.map((dimension, index) => {
+        const point = pointAt(index, Math.max(0, Math.min(1, dimension.score / 100)))
+        return <circle key={dimension.key} cx={point.x} cy={point.y} r="4" fill="#2563eb" />
+      })}
+    </svg>
+  )
+}
+
+function dimensionIcon(key: string) {
+  if (key === 'fit') return <ShieldCheck className="h-4 w-4" />
+  if (key === 'clarity') return <BookOpen className="h-4 w-4" />
+  if (key === 'practice') return <Code className="h-4 w-4" />
+  return <CircleGauge className="h-4 w-4" />
+}
+
+function qualityLabelTone(label: string) {
+  if (label === '较适合') return 'bg-[#e8f7ef] text-[#15803d]'
+  if (label === '暂不优先') return 'bg-[#fff1f2] text-[#be123c]'
+  return 'bg-[#fff7e8] text-[#b45309]'
+}
+
+function dimensionLevelTone(level: string) {
+  if (level === 'high') return 'bg-[#e8f7ef] text-[#15803d]'
+  if (level === 'low') return 'bg-[#fff1f2] text-[#be123c]'
+  return 'bg-[#eff6ff] text-[#2563eb]'
 }
 
 export default function GeneratePage() {
