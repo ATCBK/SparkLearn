@@ -1,292 +1,415 @@
 .app-icon {
-  position: relative;
+  display: inline-flex;
   width: 32rpx;
   height: 32rpx;
   flex: 0 0 32rpx;
+  align-items: center;
+  justify-content: center;
   color: currentColor;
 }
 
-.app-icon::before,
-.app-icon::after,
-.app-icon__mark,
-.app-icon__mark::before,
-.app-icon__mark::after {
-  position: absolute;
-  content: '';
-  box-sizing: border-box;
-  border-color: currentColor;
+.app-icon__canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-.app-icon--plus::before,
-.app-icon--plus::after {
-  top: 14rpx;
-  left: 5rpx;
-  width: 22rpx;
-  height: 4rpx;
+.app-icon__stroke,
+.app-icon__outline,
+.app-icon__fill-dot,
+.app-icon__arc,
+.app-icon__shield,
+.app-icon__spark {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.app-icon__stroke,
+.app-icon__fill-dot {
   background: currentColor;
   border-radius: 999rpx;
 }
 
-.app-icon--plus::after {
+.app-icon__outline,
+.app-icon__arc,
+.app-icon__shield {
+  border: 2rpx solid currentColor;
+}
+
+.app-icon__stroke--plus-h {
+  top: 15rpx;
+  left: 5rpx;
+  width: 22rpx;
+  height: 2rpx;
+}
+
+.app-icon__stroke--plus-v {
   top: 5rpx;
-  left: 14rpx;
-  width: 4rpx;
+  left: 15rpx;
+  width: 2rpx;
   height: 22rpx;
 }
 
-.app-icon--send::before {
-  top: 4rpx;
+.app-icon__send-body {
+  top: 5rpx;
   left: 6rpx;
-  width: 20rpx;
-  height: 20rpx;
-  border-top: 4rpx solid currentColor;
-  border-right: 4rpx solid currentColor;
-  transform: rotate(45deg) skew(-6deg, -6deg);
-}
-
-.app-icon--send::after {
-  top: 14rpx;
-  left: 6rpx;
-  width: 14rpx;
-  height: 4rpx;
-  background: currentColor;
-  border-radius: 999rpx;
+  width: 16rpx;
+  height: 2rpx;
   transform: rotate(-28deg);
+  transform-origin: left center;
 }
 
-.app-icon--mic::before {
-  top: 2rpx;
-  left: 10rpx;
-  width: 12rpx;
-  height: 18rpx;
-  border: 3rpx solid currentColor;
+.app-icon__send-tail {
+  top: 13rpx;
+  left: 12rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-top: 2rpx solid currentColor;
+  border-right: 2rpx solid currentColor;
+  transform: rotate(18deg);
+}
+
+.app-icon__mic-body {
+  top: 4rpx;
+  left: 9rpx;
+  width: 14rpx;
+  height: 16rpx;
   border-radius: 10rpx;
 }
 
-.app-icon--mic::after {
-  right: 5rpx;
-  bottom: 2rpx;
-  left: 5rpx;
-  height: 11rpx;
-  border-right: 3rpx solid currentColor;
-  border-bottom: 3rpx solid currentColor;
-  border-left: 3rpx solid currentColor;
-  border-radius: 0 0 14rpx 14rpx;
+.app-icon__mic-stem {
+  top: 18rpx;
+  left: 15rpx;
+  width: 2rpx;
+  height: 7rpx;
 }
 
-.app-icon--image::before {
-  inset: 3rpx;
-  border: 3rpx solid currentColor;
+.app-icon__mic-base {
+  top: 26rpx;
+  left: 10rpx;
+  width: 12rpx;
+  height: 2rpx;
+}
+
+.app-icon__mic-arc {
+  top: 14rpx;
+  left: 6rpx;
+  width: 20rpx;
+  height: 12rpx;
+  border-top: 0;
+  border-radius: 0 0 20rpx 20rpx;
+}
+
+.app-icon__image-frame {
+  top: 4rpx;
+  left: 4rpx;
+  width: 24rpx;
+  height: 24rpx;
   border-radius: 6rpx;
 }
 
-.app-icon--image::after {
-  right: 5rpx;
-  bottom: 5rpx;
-  width: 14rpx;
-  height: 10rpx;
-  border-left: 3rpx solid currentColor;
-  border-bottom: 3rpx solid currentColor;
-  transform: skew(-18deg);
+.app-icon__image-sun {
+  top: 9rpx;
+  left: 18rpx;
+  width: 4rpx;
+  height: 4rpx;
 }
 
-.app-icon--shield::before {
-  top: 2rpx;
+.app-icon__image-mountain-left {
+  top: 18rpx;
+  left: 7rpx;
+  width: 9rpx;
+  height: 2rpx;
+  transform: rotate(-35deg);
+  transform-origin: left center;
+}
+
+.app-icon__image-mountain-right {
+  top: 17rpx;
+  left: 13rpx;
+  width: 10rpx;
+  height: 2rpx;
+  transform: rotate(35deg);
+  transform-origin: left center;
+}
+
+.app-icon__shield {
+  top: 4rpx;
   left: 7rpx;
   width: 18rpx;
   height: 22rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 12rpx 12rpx 16rpx 16rpx;
+  border-radius: 6rpx 6rpx 12rpx 12rpx;
+  transform: rotate(45deg);
 }
 
-.app-icon--shield::after {
-  top: 10rpx;
+.app-icon__globe-ring {
+  top: 3rpx;
+  left: 3rpx;
+  width: 26rpx;
+  height: 26rpx;
+  border-radius: 50%;
+}
+
+.app-icon__globe-equator {
+  top: 15rpx;
+  left: 5rpx;
+  width: 22rpx;
+  height: 2rpx;
+}
+
+.app-icon__globe-meridian {
+  top: 4rpx;
+  width: 10rpx;
+  height: 24rpx;
+  border-radius: 50%;
+}
+
+.app-icon__globe-meridian--left {
+  left: 8rpx;
+  border-right: 0;
+}
+
+.app-icon__globe-meridian--right {
+  left: 14rpx;
+  border-left: 0;
+}
+
+.app-icon__cpu-core {
+  top: 8rpx;
+  left: 8rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 4rpx;
+}
+
+.app-icon__cpu-pin {
+  width: 2rpx;
+  height: 5rpx;
+}
+
+.app-icon__cpu-pin--top-left {
+  top: 2rpx;
+  left: 11rpx;
+}
+
+.app-icon__cpu-pin--top-right {
+  top: 2rpx;
+  left: 19rpx;
+}
+
+.app-icon__cpu-pin--bottom-left {
+  top: 25rpx;
+  left: 11rpx;
+}
+
+.app-icon__cpu-pin--bottom-right {
+  top: 25rpx;
+  left: 19rpx;
+}
+
+.app-icon__cpu-pin--left-top,
+.app-icon__cpu-pin--left-bottom,
+.app-icon__cpu-pin--right-top,
+.app-icon__cpu-pin--right-bottom {
+  width: 5rpx;
+  height: 2rpx;
+}
+
+.app-icon__cpu-pin--left-top {
+  top: 11rpx;
+  left: 2rpx;
+}
+
+.app-icon__cpu-pin--left-bottom {
+  top: 19rpx;
+  left: 2rpx;
+}
+
+.app-icon__cpu-pin--right-top {
+  top: 11rpx;
+  left: 25rpx;
+}
+
+.app-icon__cpu-pin--right-bottom {
+  top: 19rpx;
+  left: 25rpx;
+}
+
+.app-icon__spark-main {
+  top: 8rpx;
+  left: 8rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border: 2rpx solid currentColor;
+  transform: rotate(45deg);
+}
+
+.app-icon__spark-small-h {
+  top: 6rpx;
+  left: 3rpx;
+  width: 8rpx;
+  height: 2rpx;
+}
+
+.app-icon__spark-small-v {
+  top: 3rpx;
+  left: 6rpx;
+  width: 2rpx;
+  height: 8rpx;
+}
+
+.app-icon__users-head {
+  top: 5rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+}
+
+.app-icon__users-head--left {
+  left: 6rpx;
+}
+
+.app-icon__users-head--right {
+  left: 17rpx;
+}
+
+.app-icon__users-body {
+  top: 15rpx;
+  width: 12rpx;
+  height: 8rpx;
+  border-top: 0;
+  border-radius: 0 0 12rpx 12rpx;
+}
+
+.app-icon__users-body--left {
+  left: 4rpx;
+}
+
+.app-icon__users-body--right {
+  left: 15rpx;
+}
+
+.app-icon__bot-antenna {
+  top: 2rpx;
+  left: 15rpx;
+  width: 2rpx;
+  height: 6rpx;
+}
+
+.app-icon__bot-antenna-dot {
+  top: 0;
   left: 13rpx;
   width: 6rpx;
-  height: 8rpx;
-  background: currentColor;
-  border-radius: 999rpx;
+  height: 6rpx;
 }
 
-.app-icon--globe::before {
-  inset: 2rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 50%;
-}
-
-.app-icon--globe::after {
-  top: 4rpx;
-  right: 9rpx;
-  bottom: 4rpx;
-  left: 9rpx;
-  border-right: 2rpx solid currentColor;
-  border-left: 2rpx solid currentColor;
-  border-radius: 50%;
-  box-shadow: 0 7rpx 0 -5rpx currentColor, 0 -7rpx 0 -5rpx currentColor;
-}
-
-.app-icon--cpu::before {
-  inset: 4rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 6rpx;
-}
-
-.app-icon--cpu::after {
-  top: 0;
-  left: 14rpx;
-  width: 4rpx;
-  height: 32rpx;
-  background: currentColor;
-  border-radius: 999rpx;
-  box-shadow: -9rpx 8rpx 0 -1rpx currentColor, 9rpx -8rpx 0 -1rpx currentColor;
-}
-
-.app-icon--sparkles::before {
-  top: 2rpx;
-  left: 14rpx;
-  width: 4rpx;
-  height: 28rpx;
-  background: currentColor;
-  border-radius: 999rpx;
-}
-
-.app-icon--sparkles::after {
-  top: 14rpx;
-  left: 2rpx;
-  width: 28rpx;
-  height: 4rpx;
-  background: currentColor;
-  border-radius: 999rpx;
-}
-
-.app-icon--sparkles .app-icon__mark {
-  top: 6rpx;
-  left: 6rpx;
-  width: 20rpx;
-  height: 20rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 50%;
-  opacity: 0.3;
-}
-
-.app-icon--users::before {
-  top: 4rpx;
-  left: 4rpx;
-  width: 10rpx;
-  height: 10rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 50%;
-}
-
-.app-icon--users::after {
-  top: 2rpx;
-  right: 4rpx;
-  width: 12rpx;
-  height: 12rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 50%;
-}
-
-.app-icon--users .app-icon__mark::before {
-  bottom: 3rpx;
-  left: 3rpx;
-  width: 12rpx;
-  height: 9rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 10rpx 10rpx 6rpx 6rpx;
-}
-
-.app-icon--users .app-icon__mark::after {
-  right: 2rpx;
-  bottom: 3rpx;
-  width: 14rpx;
-  height: 10rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 12rpx 12rpx 6rpx 6rpx;
-}
-
-.app-icon--bot::before {
+.app-icon__bot-head {
   top: 7rpx;
   left: 5rpx;
   width: 22rpx;
   height: 18rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 10rpx;
+  border-radius: 7rpx;
 }
 
-.app-icon--bot::after {
-  top: 1rpx;
-  left: 14rpx;
-  width: 4rpx;
-  height: 8rpx;
-  background: currentColor;
-  border-radius: 999rpx;
-}
-
-.app-icon--bot .app-icon__mark {
-  top: 14rpx;
-  left: 11rpx;
+.app-icon__bot-eye {
+  top: 13rpx;
   width: 4rpx;
   height: 4rpx;
-  background: currentColor;
-  border-radius: 50%;
-  box-shadow: 8rpx 0 0 currentColor;
 }
 
-.app-icon--book::before,
-.app-icon--quiz::before {
+.app-icon__bot-eye--left {
+  left: 10rpx;
+}
+
+.app-icon__bot-eye--right {
+  left: 18rpx;
+}
+
+.app-icon__bot-mouth {
+  top: 20rpx;
+  left: 11rpx;
+  width: 10rpx;
+  height: 2rpx;
+}
+
+.app-icon__book-cover {
   top: 4rpx;
   left: 7rpx;
   width: 18rpx;
+  height: 24rpx;
+  border-radius: 4rpx;
+}
+
+.app-icon__book-spine {
+  top: 4rpx;
+  left: 11rpx;
+  width: 2rpx;
+  height: 24rpx;
+}
+
+.app-icon__book-page {
+  top: 8rpx;
+  left: 15rpx;
+  width: 7rpx;
+  height: 2rpx;
+  opacity: 0.7;
+}
+
+.app-icon__quiz-box {
+  top: 4rpx;
+  left: 5rpx;
+  width: 22rpx;
   height: 22rpx;
-  border: 3rpx solid currentColor;
   border-radius: 6rpx;
 }
 
-.app-icon--book::after,
-.app-icon--quiz::after {
-  top: 12rpx;
-  left: 11rpx;
-  width: 10rpx;
-  height: 3rpx;
-  background: currentColor;
-  box-shadow: 0 8rpx 0 currentColor;
-  border-radius: 999rpx;
+.app-icon__quiz-check-left {
+  top: 15rpx;
+  left: 10rpx;
+  width: 5rpx;
+  height: 2rpx;
+  transform: rotate(45deg);
 }
 
-.app-icon--user::before {
+.app-icon__quiz-check-right {
+  top: 14rpx;
+  left: 13rpx;
+  width: 9rpx;
+  height: 2rpx;
+  transform: rotate(-45deg);
+}
+
+.app-icon__user-head {
   top: 4rpx;
   left: 10rpx;
   width: 12rpx;
   height: 12rpx;
-  border: 3rpx solid currentColor;
   border-radius: 50%;
 }
 
-.app-icon--user::after {
-  right: 5rpx;
-  bottom: 4rpx;
-  left: 5rpx;
-  height: 12rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 12rpx 12rpx 8rpx 8rpx;
+.app-icon__user-body {
+  top: 18rpx;
+  left: 6rpx;
+  width: 20rpx;
+  height: 10rpx;
+  border-top: 0;
+  border-radius: 0 0 20rpx 20rpx;
 }
 
-.app-icon--folder::before {
-  top: 8rpx;
-  left: 4rpx;
-  width: 24rpx;
-  height: 17rpx;
-  border: 3rpx solid currentColor;
-  border-radius: 6rpx;
+.app-icon__folder-body {
+  top: 10rpx;
+  left: 3rpx;
+  width: 26rpx;
+  height: 16rpx;
+  border-radius: 4rpx;
 }
 
-.app-icon--folder::after {
-  top: 4rpx;
-  left: 8rpx;
+.app-icon__folder-tab {
+  top: 6rpx;
+  left: 6rpx;
   width: 10rpx;
   height: 6rpx;
-  border: 3rpx solid currentColor;
   border-bottom: 0;
   border-radius: 4rpx 4rpx 0 0;
+  background: #ffffff;
 }
