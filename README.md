@@ -66,7 +66,17 @@ SparkLearn 通过 AI 多智能体协同，为学习者构建一套可持续优�
 
 SparkLearn 现在已经形成了清晰的产品矩阵，不再只是单一学习页面，而是覆盖「学生学习、教师管理、社区协作、桌面端本地能力、小程序轻量接入」的完整学习平台。
 
-<p align="center">🧠 画像 · 🧭 路径 · 📚 资源 · 📝 练习 · 💬 Tutor · 🧪 研讨 · 🔌 MCP · 🖥️ 桌面端 · 📱 小程序</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/学生端-学习闭环-2563EB" />
+  <img src="https://img.shields.io/badge/教师端-教学干预-0EA5E9" />
+  <img src="https://img.shields.io/badge/社区端-共学协作-F97316" />
+  <img src="https://img.shields.io/badge/桌面端-本地能力-8B5CF6" />
+  <img src="https://img.shields.io/badge/小程序-轻量接入-10B981" />
+  <img src="https://img.shields.io/badge/MCP-能力装配-EAB308" />
+  <img src="https://img.shields.io/badge/RAG-检索增强-14B8A6" />
+  <img src="https://img.shields.io/badge/记忆系统-多轮上下文-6366F1" />
+  <img src="https://img.shields.io/badge/可信回答-防幻觉控制-EF4444" />
+</p>
 
 - 学生端：负责画像、路径、资源、练习、报告、Tutor 对话与学习发现，承接核心学习闭环。
 - 教师端：负责班级看板、学生画像、教学干预与通知分发，承接教学管理和人工介入。
