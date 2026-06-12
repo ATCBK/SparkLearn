@@ -9,6 +9,11 @@
 </p>
 
 <p align="center">
+  <strong>未经授权禁止复制、转载、二次分发或商用；本仓库内容仅限参赛与内部研发使用，后续权限开放将以正式通知为准。</strong><br />
+  <strong>联系邮箱：3211840032@qq.com</strong>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Frontend-Next.js_16-00C2FF?logo=next.js&logoColor=white" />
   <img src="https://img.shields.io/badge/Backend-FastAPI-2DD4BF?logo=fastapi&logoColor=0f172a" />
   <img src="https://img.shields.io/badge/AI-讯飞星火-38BDF8" />
