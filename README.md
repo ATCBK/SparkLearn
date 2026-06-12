@@ -516,5 +516,5 @@ npm run dev      # 一键启动桌面应用
 ---
 
 <p align="center">
-  <sub>学而思 SparkLearn 团队 第15届软件杯参赛作品</sub>
+  <sub>学而思 SparkLearn 码到成功团队 第15届软件杯参赛作品</sub>
 </p>
