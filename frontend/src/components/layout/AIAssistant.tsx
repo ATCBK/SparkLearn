@@ -56,6 +56,10 @@ type SpeechRecognitionWindow = Window & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor
 }
 
+type OpenAIAssistantDetail = {
+  prompt?: string
+}
+
 export function AIAssistant() {
   const pathname = usePathname()
   const router = useRouter()
@@ -68,7 +72,13 @@ export function AIAssistant() {
 
   // 监听外部唤醒事件
   useEffect(() => {
-    const handleOpen = () => setOpen(true)
+    const handleOpen = (event: Event) => {
+      setOpen(true)
+      const detail = (event as CustomEvent<OpenAIAssistantDetail>).detail
+      if (detail?.prompt) {
+        void ask(detail.prompt)
+      }
+    }
     window.addEventListener('open-ai-assistant', handleOpen)
     return () => window.removeEventListener('open-ai-assistant', handleOpen)
   }, [])
@@ -130,7 +140,7 @@ export function AIAssistant() {
         clearTimeout(transitionTimerRef.current)
       }
     }
-  }, [])
+  }, [pathname, streaming])
 
   useEffect(() => {
     const el = textareaRef.current

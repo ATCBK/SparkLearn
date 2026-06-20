@@ -162,6 +162,18 @@ function buildComponents(editable: boolean): Components {
     p({ children }) {
       return <p className="text-small leading-7 text-[#374151] my-2">{children}</p>
     },
+    a({ children, href }) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="break-all [overflow-wrap:anywhere] text-[#2563eb] underline underline-offset-2"
+        >
+          {children}
+        </a>
+      )
+    },
     ul({ children }) {
       return <ul className="list-disc pl-5 my-2 text-small leading-7 text-[#374151]">{children}</ul>
     },
@@ -202,9 +214,10 @@ export interface MarkdownCodePreviewProps {
 
 export function MarkdownCodePreview({ content, editable = true, className }: MarkdownCodePreviewProps) {
   const components = buildComponents(editable)
+  const wrapperClassName = ['min-w-0 break-all [overflow-wrap:anywhere]', className].filter(Boolean).join(' ')
 
   return (
-    <div className={className}>
+    <div className={wrapperClassName}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {content}
       </ReactMarkdown>

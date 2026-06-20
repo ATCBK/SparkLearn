@@ -1,10 +1,10 @@
-import { Image, Input, ScrollView, Text, View } from '@tarojs/components'
+import { Image, Input, ScrollView, Text, Video, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AppHeader from '../../components/AppHeader'
 import AppIcon from '../../components/AppIcon'
 import AppTabBar from '../../components/AppTabBar'
-import { createConversation, getRoles, requestTutorStream, uploadTutorFile } from '../../services/tutorApi'
+import { createConversation, createVideoJob, getRoles, requestTutorStream, requestVideoJobEvents, uploadTutorFile } from '../../services/tutorApi'
 import type { Citation, ConfidenceLevel, McpCall, TutorMessage, TutorRole, TutorStreamEvent, WorkshopPhase } from '../../types/tutor'
 import { buildAskAiPrompt } from '../../utils/format'
 import { consumeAskAiContext, getTutorDraft, setTutorDraft } from '../../utils/storage'
@@ -76,6 +76,67 @@ function appendMessageUpdate(messageId: string, updater: (message: TutorMessage)
   return (messages: TutorMessage[]) => messages.map((message) => (message.id === messageId ? updater(message) : message))
 }
 
+function normalizeMcpCall(payload: Record<string, unknown> | undefined): McpCall {
+  const resultContext = String(payload?.result_context || '')
+  const resultPreview = String(payload?.result_preview || '')
+  const resultText = String(payload?.result || payload?.content || payload?.text || payload?.error || '')
+  const summary = resultPreview || resultContext.split(/\r?\n/).find((line) => line.trim()) || resultText
+  return {
+    tool: String(payload?.tool || payload?.tool_name || ''),
+    name: String(payload?.name || payload?.service_name || ''),
+    status: String(payload?.status || ''),
+    summary: String(payload?.summary || summary || ''),
+    result: String(resultText || resultContext || resultPreview || ''),
+  }
+}
+
+function compactText(text: string, max = 140) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim()
+  if (!clean) return ''
+  return clean.length > max ? `${clean.slice(0, max)}…` : clean
+}
+
+function normalizeVideoResource(payload: Record<string, unknown> | undefined) {
+  return {
+    id: String(payload?.id || payload?.resource_id || ''),
+    title: String(payload?.title || 'AI 视频'),
+    status: String(payload?.status || ''),
+    duration: Number(payload?.duration || 0) || 0,
+    durationMs: Number(payload?.duration_ms || 0) || 0,
+    createdAt: String(payload?.created_at || ''),
+    videoUrl: String(payload?.video_url || ''),
+    audioUrl: String(payload?.audio_url || ''),
+    subtitleUrl: String(payload?.subtitle_url || ''),
+    timelineUrl: String(payload?.timeline_url || ''),
+    sceneUrl: String(payload?.scene_url || ''),
+    shareUrl: String(payload?.share_url || ''),
+    resolution: String(payload?.resolution || ''),
+    fps: Number(payload?.fps || 0) || 0,
+    provider: String(payload?.provider || ''),
+    contentSource: String(payload?.content_source || ''),
+    ttsProvider: String(payload?.tts_provider || ''),
+    voiceProvider: String(payload?.voice_provider || ''),
+    voice: String(payload?.voice || ''),
+    hasMp4: Boolean(payload?.has_mp4),
+    slides: Number(payload?.slides || 0) || 0,
+    audioStatus: String(payload?.audio_status || ''),
+    audioMessage: String(payload?.audio_message || ''),
+    frameStatus: String(payload?.frame_status || ''),
+    frameMessage: String(payload?.frame_message || ''),
+    muxStatus: String(payload?.mux_status || ''),
+    muxMessage: String(payload?.mux_message || ''),
+    progress: Number(payload?.progress || 0) || 0,
+    message: String(payload?.message || ''),
+  }
+}
+
+function videoStatusLabel(status?: string) {
+  if (!status) return '生成中'
+  if (status === 'completed') return '已生成'
+  if (status === 'failed') return '生成失败'
+  return '生成中'
+}
+
 export default function TutorPage() {
   const initialDraft = useMemo(() => getTutorDraft(), [])
   const [roles, setRoles] = useState<TutorRole[]>([])
@@ -88,6 +149,7 @@ export default function TutorPage() {
   const [mcpEnabled, setMcpEnabled] = useState(initialDraft?.mcpEnabled || false)
   const [webSearchEnabled, setWebSearchEnabled] = useState(Boolean(initialDraft?.webSearchEnabled))
   const [imageModeEnabled, setImageModeEnabled] = useState(Boolean(initialDraft?.imageModeEnabled))
+  const [videoModeEnabled, setVideoModeEnabled] = useState(Boolean(initialDraft?.videoModeEnabled))
   const [trustModeEnabled, setTrustModeEnabled] = useState(initialDraft?.trustModeEnabled !== false)
   const [streaming, setStreaming] = useState(false)
   const [images, setImages] = useState<string[]>([])
@@ -95,6 +157,13 @@ export default function TutorPage() {
   const [recording, setRecording] = useState(false)
   const [expandedMessageId, setExpandedMessageId] = useState<string>('welcome')
   const pendingAskAi = useRef(false)
+  const multimodalModeLabel = videoModeEnabled ? '视频模式' : imageModeEnabled ? '图片模式' : '多模态模式'
+  const multimodalModeIcon = videoModeEnabled ? 'video' : imageModeEnabled ? 'image' : 'sparkles'
+  const multimodalModeHint = videoModeEnabled
+    ? '视频模式已开启，发送后会自动进入生成任务并在消息流里显示预览卡片。'
+    : imageModeEnabled
+      ? '图片模式已开启，上传图片后会作为本次提问的上下文。'
+      : '当前是通用多模态模式，按需切换图片或视频。'
 
   const currentRole = useMemo(() => roles.find((role) => role.id === currentRoleId), [roles, currentRoleId])
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
@@ -110,6 +179,7 @@ export default function TutorPage() {
     setMcpEnabled(initialDraft.mcpEnabled)
     setWebSearchEnabled(Boolean(initialDraft.webSearchEnabled))
     setImageModeEnabled(Boolean(initialDraft.imageModeEnabled))
+    setVideoModeEnabled(Boolean(initialDraft.videoModeEnabled))
     setTrustModeEnabled(initialDraft.trustModeEnabled !== false)
     setFileIds(initialDraft.fileIds)
   }, [initialDraft])
@@ -145,10 +215,11 @@ export default function TutorPage() {
       mcpEnabled,
       webSearchEnabled,
       imageModeEnabled,
+      videoModeEnabled,
       trustModeEnabled,
       fileIds,
     })
-  }, [conversationId, currentRoleId, fileIds, imageModeEnabled, mcpEnabled, messages, modelName, question, trustModeEnabled, webSearchEnabled, workshopEnabled])
+  }, [conversationId, currentRoleId, fileIds, imageModeEnabled, mcpEnabled, messages, modelName, question, trustModeEnabled, videoModeEnabled, webSearchEnabled, workshopEnabled])
 
   const patchAssistant = (messageId: string, event: TutorStreamEvent) => {
     if (event.type === 'text') {
@@ -177,14 +248,15 @@ export default function TutorPage() {
     }
 
     if (event.type === 'mcp_call') {
-      setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, mcpCalls: [...(message.mcpCalls || []), event.payload as McpCall] })))
+      setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, mcpCalls: [...(message.mcpCalls || []), normalizeMcpCall(event.payload as Record<string, unknown> | undefined)] })))
       return
     }
 
     if (event.type === 'trust_meta') {
       const payload = event.payload as { mcp_calls?: McpCall[] } | undefined
-      if (Array.isArray(payload?.mcp_calls)) {
-        setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, mcpCalls: payload.mcp_calls })))
+      const calls = payload?.mcp_calls
+      if (Array.isArray(calls)) {
+        setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, mcpCalls: calls.map((item) => normalizeMcpCall(item as unknown as Record<string, unknown>)) })))
       }
       return
     }
@@ -210,7 +282,7 @@ export default function TutorPage() {
     return undefined
   }
 
-  const handleSend = async () => {
+  const handleSendLegacy = async () => {
     const text = question.trim()
     if (!text || streaming) return
 
@@ -291,6 +363,90 @@ export default function TutorPage() {
     })
   }
 
+  const setMultimodalMode = (mode: 'image' | 'video' | null) => {
+    setImageModeEnabled(mode === 'image')
+    setVideoModeEnabled(mode === 'video')
+    setImages([])
+    setFileIds([])
+  }
+
+  const toggleVideoMode = () => {
+    if (videoModeEnabled) {
+      setMultimodalMode(null)
+      return
+    }
+    setMultimodalMode('video')
+  }
+
+  const handleMultimodalModeSelect = () => {
+    const itemList = ['关闭多模态', '图片模式', '视频模式']
+    const currentIndex = videoModeEnabled ? 2 : imageModeEnabled ? 1 : 0
+    Taro.showActionSheet({
+      itemList,
+      success: (res) => {
+        const nextIndex = res.tapIndex
+        if (nextIndex === currentIndex) return
+        if (nextIndex === 1) {
+          setMultimodalMode('image')
+          return
+        }
+        if (nextIndex === 2) {
+          setMultimodalMode('video')
+          return
+        }
+        setMultimodalMode(null)
+      },
+    })
+  }
+
+  const patchVideoAssistant = (messageId: string, event: { type: string; payload?: any }) => {
+    if (event.type === 'progress') {
+      const payload = event.payload || {}
+      const progress = Number(payload.progress || 0) || 0
+      const statusText = String(payload.message || '视频生成中...')
+      setMessages(appendMessageUpdate(messageId, (message) => ({
+        ...message,
+        content: statusText,
+        videoResource: {
+          ...(message.videoResource || { id: messageId, title: statusText }),
+          id: String(payload.resource_id || message.videoResource?.id || messageId),
+          title: message.videoResource?.title || statusText,
+          status: 'processing',
+          progress,
+          message: statusText,
+        },
+      })))
+      return
+    }
+
+    if (event.type === 'artifact') {
+      const payload = event.payload || {}
+      setMessages(appendMessageUpdate(messageId, (message) => ({
+        ...message,
+        videoResource: {
+          ...(message.videoResource || { id: messageId, title: message.content || 'AI 视频' }),
+          id: String(payload.resource_id || message.videoResource?.id || messageId),
+          timelineUrl: String(payload.url || message.videoResource?.timelineUrl || ''),
+        },
+      })))
+      return
+    }
+
+    if (event.type === 'done') {
+      const payload = event.payload || {}
+      const resource = normalizeVideoResource(payload.resource as Record<string, unknown> | undefined)
+      setMessages(appendMessageUpdate(messageId, (message) => ({
+        ...message,
+        content: message.content || resource.title || '视频生成完成',
+        streaming: false,
+        videoResource: {
+          ...resource,
+          status: resource.status || 'completed',
+        },
+      })))
+    }
+  }
+
   const handleNewConversation = async () => {
     if (streaming) return
     setMessages(defaultMessages)
@@ -298,6 +454,7 @@ export default function TutorPage() {
     setImages([])
     setFileIds([])
     setImageModeEnabled(false)
+    setVideoModeEnabled(false)
     setExpandedMessageId('welcome')
     try {
       const conversation = await createConversation('新的学习对话', currentRoleId)
@@ -354,6 +511,127 @@ export default function TutorPage() {
       Taro.showToast({ title: '文件上传失败', icon: 'none' })
     } finally {
       if (loadingShown) Taro.hideLoading()
+    }
+  }
+
+  const handleSendWithText = async (rawText: string) => {
+    const text = rawText.trim()
+    if (!text || streaming) return
+
+    const userMessage: TutorMessage = { id: nextId('user'), role: 'user', content: text }
+    const assistantId = nextId('assistant')
+    const assistantMessage: TutorMessage = {
+      id: assistantId,
+      role: 'assistant',
+      content: videoModeEnabled ? '正在生成视频...' : '',
+      streaming: true,
+      confidence: 'high',
+      citations: [],
+      workshop: [],
+      mcpCalls: [],
+      ...(videoModeEnabled
+        ? {
+            videoResource: {
+              id: assistantId,
+              title: text,
+              status: 'queued',
+              progress: 0,
+              message: '正在创建视频任务',
+            },
+          }
+        : {}),
+    }
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage])
+    setExpandedMessageId(assistantId)
+    setQuestion('')
+    setStreaming(true)
+
+    try {
+      const activeConversationId = await ensureConversation()
+      if (videoModeEnabled) {
+        Taro.showLoading({ title: '正在生成视频' })
+        const videoJob = await createVideoJob({
+          prompt: text,
+          title: text.slice(0, 40),
+          duration_sec: 90,
+          style_id: 'apple-minimal',
+          target_level: 'beginner',
+          video_provider: 'html_ppt',
+          output: {},
+        })
+        await requestVideoJobEvents(videoJob.events_url, (event) => patchVideoAssistant(assistantId, event))
+        setMessages(appendMessageUpdate(assistantId, (message) => ({
+          ...message,
+          streaming: false,
+          content: message.content || '视频生成完成',
+        })))
+        setImages([])
+        setFileIds([])
+        Taro.showToast({ title: '视频已生成', icon: 'success' })
+      } else {
+        await requestTutorStream({
+          message: text,
+          conversationId: activeConversationId,
+          roleId: currentRoleId,
+          fileIds,
+          mode: imageModeEnabled ? 'image_gen' : 'knowledge_qa',
+          openMode: imageModeEnabled,
+          workshopEnabled,
+          mcpEnabled,
+          webSearch: webSearchEnabled,
+          model: modelName,
+          pageContext: {
+            page: '/miniapp/tutor',
+            modes: {
+              model: modelName,
+              web_search: webSearchEnabled,
+              image_mode: imageModeEnabled,
+              trust_mode: trustModeEnabled,
+            },
+            attachments: {
+              image_count: images.length,
+              note: images.length ? '图片已附加到本次提问。' : undefined,
+            },
+          },
+          onEvent: (event) => patchAssistant(assistantId, event),
+        })
+        setMessages(appendMessageUpdate(assistantId, (message) => ({ ...message, streaming: false })))
+        setImages([])
+        setFileIds([])
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'AI 连接失败'
+      setMessages(appendMessageUpdate(assistantId, (message) => ({ ...message, streaming: false, error })))
+      Taro.showToast({ title: videoModeEnabled ? '视频生成失败' : '发送失败', icon: 'none' })
+    } finally {
+      if (videoModeEnabled) {
+        Taro.hideLoading()
+      }
+      setStreaming(false)
+    }
+  }
+
+  const handleSend = async () => {
+    await handleSendWithText(question)
+  }
+
+  const handleQuickQuestionAsk = async (text: string) => {
+    await handleSendWithText(text)
+  }
+
+  const copyVideoLink = async (message: TutorMessage) => {
+    const resource = message.videoResource
+    const link = resource?.shareUrl || resource?.sceneUrl || resource?.timelineUrl || resource?.videoUrl || ''
+    if (!link) {
+      Taro.showToast({ title: '暂无可复制链接', icon: 'none' })
+      return
+    }
+    try {
+      await Taro.setClipboardData({ data: link })
+      Taro.showToast({ title: '链接已复制', icon: 'success' })
+    } catch {
+      Taro.showToast({ title: '复制失败', icon: 'none' })
     }
   }
 
@@ -433,6 +711,47 @@ export default function TutorPage() {
                   {message.error ? <Text className='assistant-card__error'>{message.error}</Text> : null}
                 </View>
 
+                {message.videoResource ? (
+                  <View className='video-result-card'>
+                    <View className='video-result-card__head'>
+                      <View>
+                        <Text className='video-result-card__title'>{message.videoResource.title || 'AI 视频'}</Text>
+                        <Text className='video-result-card__subtitle'>
+                          {message.videoResource.provider || '视频生成'} · {videoStatusLabel(message.videoResource.status)}
+                        </Text>
+                      </View>
+                      <Text className='video-result-card__status'>{Math.round(message.videoResource.progress || 0)}%</Text>
+                    </View>
+
+                    <View className='video-result-card__preview'>
+                      {message.videoResource.videoUrl && message.videoResource.hasMp4 !== false ? (
+                        <Video
+                          className='video-result-card__video'
+                          src={message.videoResource.videoUrl}
+                          controls
+                          showPlayBtn
+                          showFullscreenBtn
+                        />
+                      ) : (
+                        <View className='video-result-card__preview-empty'>
+                          <Text>{message.videoResource.sceneUrl ? '预览页已生成，但当前小程序环境不支持直接嵌入。' : '视频正在准备中，生成完成后会自动显示预览。'}</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text className='video-result-card__footer'>
+                      {message.videoResource.message || '视频任务已创建，稍后会自动回传结果。'}
+                    </Text>
+                    {(message.videoResource.shareUrl || message.videoResource.sceneUrl || message.videoResource.timelineUrl) ? (
+                      <View className='video-result-card__actions'>
+                        <View className='video-result-card__action' hoverClass='tap-active' onClick={() => copyVideoLink(message)}>
+                          <Text>复制预览链接</Text>
+                        </View>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+
                 <View className='assistant-meta'>
                   <View className='assistant-meta__pill'>
                     <Text className='assistant-meta__label'>引用</Text>
@@ -475,7 +794,7 @@ export default function TutorPage() {
                             {message.mcpCalls?.slice(-3).map((item, index) => (
                               <View key={`${message.id}-mcp-${index}`} className='detail-card detail-card--compact'>
                                 <Text className='detail-card__title'>{item.tool || item.name || 'MCP 调用'}</Text>
-                                <Text className='detail-card__content'>{item.summary || item.status || item.result || '工具调用已完成'}</Text>
+                                <Text className='detail-card__content detail-card__content--mono'>{item.summary || item.status || item.result || '工具调用已完成'}</Text>
                               </View>
                             ))}
                           </View>
@@ -513,6 +832,18 @@ export default function TutorPage() {
           </View>
         ) : null}
 
+        {(imageModeEnabled || videoModeEnabled) ? (
+          <View className={`multimodal-preview-banner ${videoModeEnabled ? 'multimodal-preview-banner--video' : 'multimodal-preview-banner--image'}`}>
+            <View className='multimodal-preview-banner__icon'>
+              <AppIcon name={multimodalModeIcon} className='multimodal-preview-banner__icon-inner' />
+            </View>
+            <View className='multimodal-preview-banner__body'>
+              <Text className='multimodal-preview-banner__title'>{multimodalModeLabel}</Text>
+              <Text className='multimodal-preview-banner__text'>{multimodalModeHint}</Text>
+            </View>
+          </View>
+        ) : null}
+
         <View className='composer-main'>
           <Input
             className='question-input'
@@ -544,6 +875,10 @@ export default function TutorPage() {
             <View className={`option-chip ${webSearchEnabled ? 'is-on' : ''}`} hoverClass='tap-active' onClick={() => setWebSearchEnabled((value) => !value)}>
               <AppIcon name='globe' className='option-chip__icon' />
               <Text>联网搜索</Text>
+            </View>
+            <View className={`option-chip option-chip--video ${videoModeEnabled ? 'is-on' : ''}`} hoverClass='tap-active' onClick={toggleVideoMode}>
+              <AppIcon name='video' className='option-chip__icon' />
+              <Text>视频生成</Text>
             </View>
             <View className={`option-chip ${mcpEnabled ? 'is-on' : ''}`} hoverClass='tap-active' onClick={() => setMcpEnabled((value) => !value)}>
               <AppIcon name='cpu' className='option-chip__icon' />

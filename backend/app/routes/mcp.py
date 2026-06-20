@@ -444,17 +444,23 @@ async def create_service(payload: McpServicePayload):
     return ok(_to_resp(row))
 
 
-@router.put("/services/{service_id}")
-async def update_service(service_id: str, payload: McpServicePayload):
+def _validate_mcp_payload(payload: McpServicePayload) -> str | None:
+    if payload.transport == "http" and not payload.endpoint.strip():
+        return "endpoint is required for http transport"
+    if payload.transport == "stdio" and not payload.command.strip():
+        return "command is required for stdio transport"
+    return None
+
+
+async def _update_service_impl(service_id: str, payload: McpServicePayload):
     row = _get_service_or_none(service_id)
     if not row:
         return fail("service not found")
     if row["source"] != "user":
         return fail("system service cannot be edited")
-    if payload.transport == "http" and not payload.endpoint.strip():
-        return fail("endpoint is required for http transport")
-    if payload.transport == "stdio" and not payload.command.strip():
-        return fail("command is required for stdio transport")
+    payload_error = _validate_mcp_payload(payload)
+    if payload_error:
+        return fail(payload_error)
 
     execute(
         """
@@ -483,6 +489,17 @@ async def update_service(service_id: str, payload: McpServicePayload):
     )
     updated = _get_service_or_none(service_id)
     return ok(_to_resp(updated))
+
+
+@router.put("/services/{service_id}")
+async def update_service(service_id: str, payload: McpServicePayload):
+    return await _update_service_impl(service_id, payload)
+
+
+@router.post("/services/{service_id}")
+async def update_service_compat(service_id: str, payload: McpServicePayload):
+    # Some clients only issue POST for form-style updates; keep this path compatible.
+    return await _update_service_impl(service_id, payload)
 
 
 @router.delete("/services/{service_id}")

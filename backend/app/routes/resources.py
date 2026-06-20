@@ -39,6 +39,21 @@ class CodeEvaluateReq(BaseModel):
     hint: str = ""
 
 
+class ResourceQualityDimension(BaseModel):
+    key: str
+    label: str
+    score: int
+    level: str
+    detail: str
+
+
+class ResourceQualityResp(BaseModel):
+    label: str
+    summary: str
+    advice: str
+    dimensions: list[ResourceQualityDimension]
+
+
 def _now_date() -> str:
     return datetime.utcnow().strftime("%Y-%m-%d")
 
@@ -117,14 +132,7 @@ async def generate_resource(req: GenerateReq):
             # 播客电台：直接调用星火大模型生成播客脚本
             chunks: list[str] = []
             progress = 10
-
-            knowledge_context = await load_knowledge_context_async(req.knowledge_file_ids or [], query=req.prompt)
-            user_prompt = req.prompt
-            if knowledge_context:
-                user_prompt = (
-                    f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考：\n{knowledge_context}"
-                )
-            blog_prompt = _build_resource_prompt("blog", user_prompt)
+            blog_prompt = _build_resource_prompt("blog", req.prompt)
 
             yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
             async for evt_type, payload in spark_lite.stream_chat_events(blog_prompt, mode="general", history=[]):
@@ -157,17 +165,11 @@ async def generate_resource(req: GenerateReq):
             provider_errors: list[str] = []
             explicit_source_url = ""
             progress = 10
+            resource_prompt = _build_resource_prompt(req.type, req.prompt)
 
-            knowledge_context = await load_knowledge_context_async(req.knowledge_file_ids or [], query=req.prompt)
-            user_prompt = req.prompt
-            if knowledge_context:
-                user_prompt = (
-                    f"{req.prompt}\n\n以下是用户选择的个人知识库资料，请优先参考并保持事实一致：\n{knowledge_context}"
-                )
-            coze_prompt = _build_resource_prompt(req.type, user_prompt)
             async for evt_type, payload in coze_adapter.stream_resource_text(
                 resource_type=req.type,
-                prompt=coze_prompt,
+                prompt=resource_prompt,
                 user_id=settings.single_user_id,
             ):
                 if evt_type == "text":
@@ -193,7 +195,7 @@ async def generate_resource(req: GenerateReq):
             if not content:
                 yield ("progress", {"stage": "fallback", "resource_id": res_id, "progress": 45})
                 spark_chunks: list[str] = []
-                async for evt_type, payload in spark_lite.stream_chat_events(coze_prompt, mode="general", history=[]):
+                async for evt_type, payload in spark_lite.stream_chat_events(resource_prompt, mode="general", history=[]):
                     if evt_type == "text":
                         chunk = str(payload.get("content", ""))
                         if chunk:
@@ -262,6 +264,17 @@ async def evaluate_code_resource(resource_id: str, req: CodeEvaluateReq):
         "correct": result["correct"],
         "reason": result["reason"],
     })
+    return ok(result)
+
+
+@router.post("/{resource_id}/quality-evaluate")
+async def evaluate_resource_quality(resource_id: str):
+    item = _find_resource(resource_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="resource not found")
+
+    profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+    result = await _evaluate_resource_quality(item, profile if isinstance(profile, dict) else {})
     return ok(result)
 
 
@@ -418,14 +431,10 @@ def _default_resources() -> list[dict[str, Any]]:
 def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
     base = user_prompt.strip()
     profile_context = _profile_context_for_generation()
-    if profile_context:
+    if profile_context and resource_type != "document":
         base = f"{base}\n\n用户画像上下文:\n{profile_context}"
     if resource_type == "document":
-        return (
-            "请生成结构化学习文档（Markdown）。包含学习目标、关键概念、示例、常见错误、练习建议。"
-            "若有网页链接，第一行输出 SOURCE_URL: https://...；若无输出 SOURCE_URL: NONE\n\n需求："
-            + base
-        )
+        return base
     if resource_type == "mindmap":
         return base
     if resource_type == "quiz":
@@ -480,6 +489,210 @@ def _profile_context_for_generation() -> str:
 
 def json_like(value: Any) -> str:
     return ", ".join(str(item) for item in value if str(item).strip())
+
+
+async def _evaluate_resource_quality(item: dict[str, Any], profile: dict[str, Any]) -> dict[str, Any]:
+    dimensions = _build_quality_dimensions(item, profile)
+    label = _resolve_quality_label(dimensions)
+    summary, advice = await _build_quality_ai_copy(item, profile, label, dimensions)
+    return ResourceQualityResp(
+        label=label,
+        summary=summary,
+        advice=advice,
+        dimensions=[ResourceQualityDimension(**dimension) for dimension in dimensions],
+    ).model_dump()
+
+
+def _build_quality_dimensions(item: dict[str, Any], profile: dict[str, Any]) -> list[dict[str, Any]]:
+    content = str(item.get("content") or "").strip()
+    title = str(item.get("title") or "").strip()
+    resource_type = str(item.get("type") or "document").strip()
+    weak_points = profile.get("weak_points", []) if isinstance(profile.get("weak_points", []), list) else []
+    preferences = profile.get("learning_preference", []) if isinstance(profile.get("learning_preference", []), list) else []
+    goals = profile.get("goal", []) if isinstance(profile.get("goal", []), list) else []
+    stage = str(profile.get("current_stage") or "").strip()
+
+    search_text = f"{title}\n{content}\n{resource_type}".lower()
+    fit_hits = 0
+    for group in (weak_points[:4], goals[:3], [stage] if stage else []):
+        for token in group:
+            token_text = str(token).strip().lower()
+            if token_text and token_text in search_text:
+                fit_hits += 1
+    type_fit_bonus = 1 if any(pref in resource_type or pref in content for pref in ["代码", "练习", "视频", "图", "示例"] if pref) else 0
+    fit_score = min(100, 35 + fit_hits * 20 + type_fit_bonus * 8)
+    if not content:
+        fit_score = min(fit_score, 42)
+
+    normalized = re.sub(r"\s+", " ", content)
+    has_sections = len(re.findall(r"^#+\s|\n#+\s|：|\d+\.", content, flags=re.MULTILINE)) >= 2
+    has_examples = any(marker in content.lower() for marker in ["示例", "例如", "example", "```", "步骤"])
+    clarity_score = 24
+    if normalized:
+        clarity_score += min(38, max(0, len(normalized) // 45))
+    if has_sections:
+        clarity_score += 18
+    if has_examples:
+        clarity_score += 16
+    clarity_score = min(100, clarity_score)
+
+    practice_markers = ["练习", "自测", "题", "代码", "思考", "quiz", "task", "```"]
+    practice_hits = sum(1 for marker in practice_markers if marker in content.lower())
+    practice_score = 26 + practice_hits * 12
+    if resource_type in {"quiz", "code"}:
+        practice_score += 24
+    elif resource_type in {"ppt", "document"}:
+        practice_score += 10
+    practice_score = min(100, practice_score)
+
+    priority_score = int(round(fit_score * 0.45 + clarity_score * 0.2 + practice_score * 0.35))
+    if not weak_points and not goals and not stage:
+        priority_score = max(48, min(priority_score, 72))
+
+    return [
+        _dimension_payload("fit", "学情匹配", fit_score, _fit_detail(fit_score, weak_points, stage)),
+        _dimension_payload("clarity", "内容清晰", clarity_score, _clarity_detail(clarity_score, has_sections, has_examples)),
+        _dimension_payload("practice", "练习支撑", practice_score, _practice_detail(practice_score, resource_type)),
+        _dimension_payload("priority", "当前优先级", priority_score, _priority_detail(priority_score)),
+    ]
+
+
+def _dimension_payload(key: str, label: str, score: int, detail: str) -> dict[str, Any]:
+    level = "high" if score >= 75 else "medium" if score >= 50 else "low"
+    return {
+        "key": key,
+        "label": label,
+        "score": max(0, min(100, int(score))),
+        "level": level,
+        "detail": detail,
+    }
+
+
+def _resolve_quality_label(dimensions: list[dict[str, Any]]) -> str:
+    scores = {item["key"]: int(item["score"]) for item in dimensions}
+    fit_score = scores.get("fit", 0)
+    priority_score = scores.get("priority", 0)
+    average = round(sum(scores.values()) / max(len(scores), 1))
+    if fit_score >= 75 and priority_score >= 72 and average >= 68:
+        return "较适合"
+    if fit_score <= 45 or priority_score <= 45:
+        return "暂不优先"
+    return "可补充"
+
+
+async def _build_quality_ai_copy(
+    item: dict[str, Any],
+    profile: dict[str, Any],
+    label: str,
+    dimensions: list[dict[str, Any]],
+) -> tuple[str, str]:
+    title = str(item.get("title") or "当前资源").strip()
+    resource_type = str(item.get("type") or "document").strip()
+    content = str(item.get("content") or "").strip()
+    profile_summary = _quality_profile_summary(profile)
+    dimensions_text = "\n".join(
+        f"- {dimension['label']}: {dimension['score']} / 100，{dimension['detail']}" for dimension in dimensions
+    )
+    prompt = (
+        "你是学习规划老师。请根据已有规则评估结果，给出简短中文总结。\n"
+        "不要推翻标签，不要重打分，不要使用 Markdown 列表，不要超过两句话。\n"
+        "返回 JSON，格式必须是："
+        "{\"summary\":\"一句总评\",\"advice\":\"一到两句建议\"}\n\n"
+        f"资源标题：{title}\n"
+        f"资源类型：{resource_type}\n"
+        f"资源内容摘要：{content[:1200]}\n"
+        f"当前学情：{profile_summary}\n"
+        f"规则标签：{label}\n"
+        f"规则维度：\n{dimensions_text}\n"
+    )
+
+    chunks: list[str] = []
+    try:
+        async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode="general", history=[]):
+            if evt_type == "text":
+                chunk = str(payload.get("content", ""))
+                if chunk:
+                    chunks.append(chunk)
+        text = "".join(chunks).strip()
+        data = json.loads(_extract_first_json(text))
+        summary = str(data.get("summary") or "").strip()
+        advice = str(data.get("advice") or "").strip()
+        if summary or advice:
+            return (
+                summary or _default_quality_summary(label, title),
+                advice or _default_quality_advice(label),
+            )
+    except Exception:
+        pass
+    return _default_quality_summary(label, title), _default_quality_advice(label)
+
+
+def _extract_first_json(text: str) -> str:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start >= 0 and end > start:
+        return text[start:end + 1]
+    return "{}"
+
+
+def _quality_profile_summary(profile: dict[str, Any]) -> str:
+    goal = "、".join(str(item) for item in profile.get("goal", [])[:2]) or "未标记目标"
+    weak = "、".join(str(item) for item in profile.get("weak_points", [])[:3]) or "未标记薄弱点"
+    preference = "、".join(str(item) for item in profile.get("learning_preference", [])[:2]) or "常规讲解"
+    stage = str(profile.get("current_stage") or "").strip() or "未标记阶段"
+    return f"阶段：{stage}；薄弱点：{weak}；偏好：{preference}；目标：{goal}"
+
+
+def _fit_detail(score: int, weak_points: list[Any], stage: str) -> str:
+    if score >= 75:
+        return f"内容和当前阶段{stage or '当前阶段'}、薄弱点较对口"
+    if score >= 50:
+        return "和当前学习任务有一定关联，但不是最直接命中"
+    if weak_points:
+        return "和当前薄弱点关联偏弱，更适合作为补充材料"
+    return "缺少完整学情时只能做基础匹配判断"
+
+
+def _clarity_detail(score: int, has_sections: bool, has_examples: bool) -> str:
+    if score >= 75:
+        return "结构完整，阅读路径清晰"
+    if score >= 50:
+        if has_sections or has_examples:
+            return "有基本结构，但讲解层次还可以更明确"
+        return "正文存在，但示例和分段还不够充分"
+    return "内容较短或结构不足，理解成本偏高"
+
+
+def _practice_detail(score: int, resource_type: str) -> str:
+    if score >= 75:
+        return "带有较强的练习或动手支撑"
+    if score >= 50:
+        return f"{resource_type} 形式能辅助学习，但练习闭环一般"
+    return "练习支撑较弱，更偏阅读型输入"
+
+
+def _priority_detail(score: int) -> str:
+    if score >= 75:
+        return "适合现在优先投入时间学习"
+    if score >= 50:
+        return "可以安排学习，但优先级不是最高"
+    return "现阶段不建议优先投入过多时间"
+
+
+def _default_quality_summary(label: str, title: str) -> str:
+    if label == "较适合":
+        return f"{title} 和你当前学情匹配度较高，适合作为现在的主学习资源。"
+    if label == "暂不优先":
+        return f"{title} 有参考价值，但和你当前最需要补的内容并不完全对口。"
+    return f"{title} 可以作为补充材料使用，但不是当前最优先的一份资源。"
+
+
+def _default_quality_advice(label: str) -> str:
+    if label == "较适合":
+        return "建议先完整看完这份资源，再接一组短练习做巩固。"
+    if label == "暂不优先":
+        return "建议先补当前薄弱点最直接相关的资源，再回来看这份内容。"
+    return "建议把它放在主资源之后，用来补例子或做延伸阅读。"
 
 
 def _fallback_resource_content(resource_type: str, prompt: str, errors: list[str] | None = None) -> str:
@@ -560,13 +773,11 @@ def _find_resource(resource_id: str) -> dict[str, Any] | None:
 async def _fetch_url_text(url: str) -> str:
     _validate_public_http_url(url, "preview link")
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, max_redirects=3) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            content_type = resp.headers.get("content-type", "").lower()
-            if "html" not in content_type and "text/plain" not in content_type:
-                raise HTTPException(status_code=400, detail=f"unsupported content type: {content_type}")
-            return resp.text
+        resp = await _request_public_url_with_ssl_fallback(url, timeout=30.0)
+        content_type = resp.headers.get("content-type", "").lower()
+        if "html" not in content_type and "text/plain" not in content_type:
+            raise HTTPException(status_code=400, detail=f"unsupported content type: {content_type}")
+        return resp.text
     except HTTPException:
         raise
     except Exception as ex:
@@ -576,13 +787,35 @@ async def _fetch_url_text(url: str) -> str:
 async def _fetch_url_binary(url: str) -> tuple[bytes, str]:
     _validate_public_http_url(url, "source link")
     try:
-        async with httpx.AsyncClient(timeout=45.0, follow_redirects=True, max_redirects=3) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
-            ctype = resp.headers.get("content-type", "application/octet-stream").split(";")[0].strip().lower()
-            return resp.content, ctype
+        resp = await _request_public_url_with_ssl_fallback(url, timeout=45.0)
+        ctype = resp.headers.get("content-type", "application/octet-stream").split(";")[0].strip().lower()
+        return resp.content, ctype
     except Exception as ex:
         raise HTTPException(status_code=502, detail=f"source fetch failed: {ex}") from ex
+
+
+async def _request_public_url_with_ssl_fallback(url: str, timeout: float) -> httpx.Response:
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, max_redirects=3) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            return resp
+    except httpx.ConnectError as ex:
+        if not _should_retry_insecure_ssl(url, ex):
+            raise
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, max_redirects=3, verify=False) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        return resp
+
+
+def _should_retry_insecure_ssl(url: str, ex: Exception) -> bool:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").strip().lower()
+    if host not in {"ts.fyshark.com"}:
+        return False
+    message = str(ex).lower()
+    return "certificate verify failed" in message or "cert" in message
 
 
 def _validate_public_http_url(url: str, label: str) -> None:
@@ -670,7 +903,7 @@ def _build_ppt_preview_html(source_url: str) -> str:
 def _is_iframe_embeddable_url(url: str) -> bool:
     """检测可以直接用 iframe 嵌入预览的 URL（如 mermaid.live、markmap 等）"""
     lowered = (url or "").lower()
-    embeddable_domains = ["mermaid.live", "markmap.keepto.top", "markmap.js.org"]
+    embeddable_domains = ["mermaid.live", "markmap.keepto.top", "markmap.js.org", "preview.contentcube.cn"]
     return any(domain in lowered for domain in embeddable_domains)
 
 
@@ -863,6 +1096,10 @@ def _normalize_generated_content(content: str, source_url: str) -> str:
             continue
         if source_url and line == source_url:
             continue
+        if source_url and source_url in line and " " not in line and "\t" not in line:
+            scheme_hits = line.count("https://") + line.count("http://")
+            if scheme_hits > 1:
+                continue
         if source_url and re.search(r"\[[^\]]+\]\((https?://[^\s)]+)\)", line):
             m = re.search(r"\[[^\]]+\]\((https?://[^\s)]+)\)", line)
             if m and _sanitize_url(m.group(1)) == source_url:

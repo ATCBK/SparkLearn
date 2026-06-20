@@ -21,6 +21,16 @@ from .common import sse_wrap
 router = APIRouter(prefix="/api/video", tags=["video"])
 
 
+def _default_public_voice_config() -> dict[str, Any]:
+    return {
+        "provider": "cosyvoice",
+        "voice": settings.cosyvoice_default_voice,
+        "speed": settings.cosyvoice_speech_rate,
+        "pitch": settings.cosyvoice_pitch_rate,
+        "volume": settings.cosyvoice_volume,
+    }
+
+
 @router.get("/styles")
 async def list_video_styles():
     """返回可用的视频风格模版列表"""
@@ -143,15 +153,15 @@ def _video_artifact_path(resource_id: str) -> Path:
 
 @router.post("/polish")
 async def polish_video_prompt(req: VideoPolishReq):
+    voice = req.voice.strip() or settings.cosyvoice_default_voice
     result = make_polished_script(
         prompt=req.prompt,
         duration_sec=req.duration_sec,
         target_level=req.target_level,
         style=req.style_id or req.style or "apple-minimal",
-        voice=req.voice,
+        voice=voice,
     )
-    if req.voice:
-        result["voice"] = req.voice
+    result["voice"] = voice
     append_jsonl(settings.single_user_id, "video_events.jsonl", {"type": "video_polished", "polish_id": result["polish_id"], "style_id": req.style_id})
     return ok(result)
 
@@ -160,6 +170,7 @@ async def polish_video_prompt(req: VideoPolishReq):
 async def create_video_job(req: VideoJobReq):
     resource_id = f"video_{uuid.uuid4().hex[:8]}"
     job_id = f"job_{uuid.uuid4().hex[:8]}"
+    voice = req.voice if isinstance(req.voice, dict) and req.voice else _default_public_voice_config()
     job = {
         "job_id": job_id,
         "resource_id": resource_id,
@@ -167,6 +178,7 @@ async def create_video_job(req: VideoJobReq):
         "progress": 0,
         "created_at": now_iso(),
         **req.model_dump(),
+        "voice": voice,
     }
     jobs = _jobs()
     jobs.append(job)

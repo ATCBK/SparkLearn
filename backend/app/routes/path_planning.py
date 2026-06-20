@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from typing import Any
 
 from fastapi import APIRouter
@@ -58,6 +59,7 @@ async def generate_path_planning(req: PathPlanningReq):
         profile=profile,
         mastery_stats=mastery_rows
     )
+    resources = _normalize_path_resources(resources)
     
     # 保存路径规划到文件
     path_id = f"path-{now_iso().replace(':', '').replace('-', '').replace('Z', '')}"
@@ -132,6 +134,7 @@ async def generate_node_suggestions(req: NodeSuggestionsReq):
         target=req.target.strip(),
         profile=profile,
     )
+    resources = _normalize_path_resources(resources)
 
     append_jsonl(
         settings.single_user_id,
@@ -346,13 +349,13 @@ def _get_default_resources() -> list[dict[str, Any]]:
             'id': 1,
             'title': '函数返回值项目讲义',
             'tag': '优先学习',
-            'link': '/resources?type=lecture&id=1'
+            'link': '/generate?view=library&id=1'
         },
         {
             'id': 2,
             'title': '函数作用域精讲讲义',
             'tag': '待复习',
-            'link': '/resources?type=lecture&id=2'
+            'link': '/generate?view=library&id=2'
         },
         {
             'id': 3,
@@ -415,6 +418,43 @@ def _status_label(status: str) -> str:
     return mapping.get((status or '').strip().lower(), '学习中')
 
 
+def _extract_resource_id_from_link(link: str | None) -> str:
+    raw = (link or '').strip()
+    if not raw:
+        return ''
+    match = re.search(r'[?&]id=([^&]+)', raw)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r'^/resources/([^/?#]+)', raw)
+    if match:
+        return match.group(1).strip()
+    return ''
+
+
+def _normalize_resource_link(link: str | None = None, resource_id: str | None = None) -> str:
+    resource_id = (resource_id or '').strip()
+    raw = (link or '').strip()
+    if not resource_id:
+        resource_id = _extract_resource_id_from_link(raw)
+    if resource_id:
+        return f'/generate?view=library&id={resource_id}'
+    if raw.startswith('/generate?'):
+        return raw
+    return '/generate?view=library'
+
+
+def _normalize_path_resources(resources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for item in resources:
+        current = dict(item)
+        current['link'] = _normalize_resource_link(
+            current.get('link'),
+            str(current.get('resource_id', '')),
+        )
+        normalized.append(current)
+    return normalized
+
+
 def _pick_resources_for_node(node_goal: str, count: int = 3) -> list[dict[str, Any]]:
     """
     从用户已有资源库中选取与节点目标相关的资源。
@@ -471,7 +511,7 @@ def _pick_resources_for_node(node_goal: str, count: int = 3) -> list[dict[str, A
             'id': idx + 1,
             'title': str(res.get('title', '学习资源'))[:30],
             'tag': tag,
-            'link': f'/resources/{res_id}' if res_id else '/resources',
+            'link': _normalize_resource_link(resource_id=res_id),
             'resource_id': res_id,
         })
     return result

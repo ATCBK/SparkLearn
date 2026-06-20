@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   Cpu,
+  Clapperboard,
   FileText,
   Globe,
   Loader2,
@@ -34,6 +35,7 @@ import {
   Volume2,
   X,
   ArrowLeft,
+  Image as ImageIcon,
   PanelLeftClose,
   PanelLeftOpen,
   Users,
@@ -59,6 +61,7 @@ const EMPTY_ROLE_DRAFT: RoleDraft = {
   styleGuide: '',
   rules: '',
 }
+const PENDING_ROLE_ID_KEY = 'sparklearn_pending_tutor_role_id'
 
 type RoleModalMode = 'create' | 'edit'
 
@@ -262,7 +265,7 @@ function ProfileMessageCard({
   status: ProfileLoadStatus
 }) {
   const summary = buildProfileSummary(profile)
-  const isRunning = status === 'loading' || status === 'idle'
+  const isRunning = ['loading', 'idle', 'running', 'pending', 'discovering'].includes(status)
   const isError = status === 'error'
   const statusText = isRunning ? '执行中' : isError ? '失败' : '完成'
   const detailText = isRunning
@@ -277,6 +280,11 @@ function ProfileMessageCard({
         <Sparkles className="h-4 w-4 text-white" />
       </div>
       <div className="min-w-0 flex-1">
+        {isRunning && (
+          <div className="mb-3 -ml-1">
+            <LoadingDotsBubble />
+          </div>
+        )}
         <div className="overflow-hidden rounded-xl border border-[#e0e7f5] bg-[#fafcff] shadow-[0_2px_8px_rgba(37,99,235,0.04)]">
           <div className="flex items-center gap-2 border-b border-[#eef2f8] bg-[#f4f8ff] px-3.5 py-2">
             <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#e6eeff] text-[#4f6bf6]">
@@ -436,6 +444,16 @@ function skillToneClass(tone: LearningSkill['tone']) {
   return tones[tone]
 }
 
+function LoadingDotsBubble({ className = '' }: { className?: string }) {
+  return (
+    <div className={cn('inline-flex items-center gap-1.5', className)}>
+      <span className="h-2 w-2 animate-bounce rounded-full bg-[#cbd5e1]" style={{ animationDelay: '0ms' }} />
+      <span className="h-2 w-2 animate-bounce rounded-full bg-[#cbd5e1]" style={{ animationDelay: '140ms' }} />
+      <span className="h-2 w-2 animate-bounce rounded-full bg-[#cbd5e1]" style={{ animationDelay: '280ms' }} />
+    </div>
+  )
+}
+
 export default function TutorPage() {
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
@@ -457,11 +475,13 @@ export default function TutorPage() {
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [workshopEnabled, setWorkshopEnabled] = useState(false)
   const [openMode, setOpenMode] = useState(true)
-  const [imageMode, setImageMode] = useState(false)
+  const [multimodalMode, setMultimodalMode] = useState<'image' | 'video' | null>(null)
+  const [multimodalMenuOpen, setMultimodalMenuOpen] = useState(false)
   const [knowledgeReverse, setKnowledgeReverse] = useState(false)
   const [webSearch, setWebSearch] = useState(false)
   const [mcpEnabled, setMcpEnabled] = useState(false)
   const [selectedModel, setSelectedModel] = useState('lite')
+  const [videoVoice, setVideoVoice] = useState('')
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [workshopRoleIds, setWorkshopRoleIds] = useState<number[]>([])
   const [hubMessages, setHubMessages] = useState<WorkshopHubEvent[]>([])
@@ -506,18 +526,21 @@ export default function TutorPage() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const voiceBaseRef = useRef<string>('')
 
-  const playTts = useCallback(async (msgId: string, text: string) => {
+  const playTts = useCallback(async (msgId: string, text: string, audioUrl?: string) => {
     if (ttsAudioRef.current) { ttsAudioRef.current.pause(); ttsAudioRef.current = null }
     if (ttsBlobUrlRef.current) { URL.revokeObjectURL(ttsBlobUrlRef.current); ttsBlobUrlRef.current = null }
     if (playingMsgId === msgId) { setPlayingMsgId(null); return }
     setTtsLoading(msgId)
     try {
-      const blob = await api.synthesizeSpeech(text.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000))
-      const url = URL.createObjectURL(blob)
-      ttsBlobUrlRef.current = url
+      const url = audioUrl || URL.createObjectURL(await api.synthesizeSpeech(text.replace(/[#*`>\-|[\]()]/g, '').slice(0, 2000)))
+      if (!audioUrl) {
+        ttsBlobUrlRef.current = url
+      }
       const audio = new Audio(url)
+      audio.preload = 'auto'
       ttsAudioRef.current = audio
       audio.addEventListener('ended', () => setPlayingMsgId(null))
+      audio.addEventListener('error', () => setPlayingMsgId(null))
       await audio.play()
       setPlayingMsgId(msgId)
     } catch { /* TTS failed */ }
@@ -622,6 +645,20 @@ export default function TutorPage() {
       window.removeEventListener('focus', loadNotes)
       window.removeEventListener('pageshow', loadNotes)
       document.removeEventListener('visibilitychange', loadNotesWhenVisible)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    api.getTtsStatus()
+      .then((status) => {
+        if (!cancelled) setVideoVoice(String(status.default_voice || ''))
+      })
+      .catch(() => {
+        if (!cancelled) setVideoVoice('')
+      })
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -763,7 +800,6 @@ export default function TutorPage() {
       setCurrentRoleId(selectedRoleId)
       hydrateRoleDraft(roleData.find((r) => r.id === selectedRoleId) || null)
       setHydratedMessages([])
-      setLoading(false)
 
       if (selectedConversation) {
         try {
@@ -773,6 +809,29 @@ export default function TutorPage() {
           setActionError(e instanceof Error ? e.message : '加载历史消息失败')
         }
       }
+
+      const pendingRoleId = Number(globalThis.localStorage?.getItem(PENDING_ROLE_ID_KEY) || 0)
+      if (pendingRoleId > 0) {
+        globalThis.localStorage?.removeItem(PENDING_ROLE_ID_KEY)
+        const pendingRole = roleData.find((role) => role.id === pendingRoleId) || null
+        if (pendingRole) {
+          if (selectedConversation) {
+            const updatedConversation = await api.updateTutorConversation(selectedConversation.id, { roleId: pendingRoleId })
+            const refreshedConversations = convData.map((item) => (item.id === updatedConversation.id ? updatedConversation : item))
+            setConversations(refreshedConversations)
+            setCurrentConversationId(updatedConversation.id)
+          } else {
+            const createdConversation = await api.createTutorConversation({ title: '新对话', roleId: pendingRoleId })
+            setConversations([createdConversation])
+            setCurrentConversationId(createdConversation.id)
+            setHydratedMessages([])
+          }
+          setCurrentRoleId(pendingRoleId)
+          hydrateRoleDraft(pendingRole)
+        }
+      }
+
+      setLoading(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败')
       setLoading(false)
@@ -1001,28 +1060,18 @@ export default function TutorPage() {
     const textValue = (sendText ?? input).trim()
     if ((!textValue && pendingFiles.length === 0) || streaming) return
 
-    // 如果没有当前会话，自动创建一个
-    let convId = currentConversationId
-    if (!convId) {
-      try {
-        const created = await api.createTutorConversation({ title: textValue.slice(0, 20) || '新对话', roleId: currentRoleId || undefined })
-        setConversations((prev) => [created, ...prev])
-        setCurrentConversationId(created.id)
-        convId = created.id
-      } catch {
-        setActionError('创建会话失败')
-        return
-      }
-    }
-
+    const isImageMode = multimodalMode === 'image'
+    const isVideoMode = multimodalMode === 'video'
+    const convId = currentConversationId ?? undefined
     const userInput = textValue || '（空文本）'
     const msgUid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const draftConversationId = convId ?? -Date.now()
     const userMsg: Message = {
       id: `u-${msgUid}`,
       role: 'user',
       content: userInput,
       timestamp: new Date().toISOString(),
-      conversationId: convId,
+      conversationId: draftConversationId,
       fileNames: pendingFiles.map((f) => f.filename),
     }
 
@@ -1033,39 +1082,92 @@ export default function TutorPage() {
     setMessages((prev) => [
       ...prev,
       userMsg,
-      { id: assistantId, role: 'assistant', content: '', timestamp: new Date().toISOString(), conversationId: convId },
+      {
+        id: assistantId,
+        role: 'assistant',
+        content: isVideoMode ? '正在生成视频，请稍候…' : '',
+        timestamp: new Date().toISOString(),
+        conversationId: draftConversationId,
+        streaming: true,
+      },
     ])
     setMcpCallsByMsg((prev) => ({
       ...prev,
-      [assistantId]: [
-        {
-          serviceId: 'student-profile',
-          serviceName: '学生画像',
-          toolName: '读取用户画像',
-          status: 'running',
-          ok: false,
-        },
-        ...(mcpEnabled
-          ? [{
-            serviceId: 'pending',
-            serviceName: 'MCP',
-            toolName: '等待匹配可用工具',
-            status: 'pending',
-            ok: false,
-          }]
-          : []),
-      ],
+      [assistantId]: isVideoMode
+        ? []
+        : [
+            {
+              serviceId: 'student-profile',
+              serviceName: '学生画像',
+              toolName: '读取用户画像',
+              status: 'running',
+              ok: false,
+            },
+            ...(mcpEnabled
+              ? [{
+                  serviceId: 'pending',
+                  serviceName: 'MCP',
+                  toolName: '等待匹配可用工具',
+                  status: 'pending',
+                  ok: false,
+                }]
+              : []),
+          ],
     }))
     setSearchResultsByMsg((prev) => ({ ...prev, [assistantId]: [] }))
 
     setInput('')
     setStreaming(true)
     setHubMessages([])
-    setWorkshopPhase(workshopEnabled ? { phase: 'profile_analysis', status: 'running' } : null)
+    setWorkshopPhase(isVideoMode ? null : (workshopEnabled ? { phase: 'profile_analysis', status: 'running' } : null))
     setWorkshopRunId((v) => v + 1)
 
     try {
       setActionError(null)
+      if (isVideoMode) {
+        const updateAssistantContent = (content: string) => {
+          setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content } : m)))
+        }
+
+        const resource = await api.generateVideo(userInput, {
+          durationSec: 90,
+          styleId: 'apple-minimal',
+          voice: videoVoice,
+          onEvent: (evt) => {
+            if (evt.type === 'progress') {
+              const stage = String(evt.payload.stage || '').replace(/_/g, ' ').trim()
+              const progress = Number(evt.payload.progress ?? 0)
+              const progressText = Number.isFinite(progress) && progress > 0 ? ` ${Math.round(progress)}%` : ''
+              updateAssistantContent(`视频生成中${stage ? ` · ${stage}` : ''}${progressText}`)
+              return
+            }
+            if (evt.type === 'artifact') {
+              const kind = String(evt.payload.kind || '')
+              if (kind === 'timeline') {
+                updateAssistantContent('视频已生成，正在整理播放卡片…')
+              }
+              return
+            }
+            if (evt.type === 'error') {
+              updateAssistantContent(String(evt.payload.message || '视频生成失败'))
+            }
+          },
+        })
+        const readyText = resource.hasMp4
+          ? '视频已生成，可以直接在下方播放。'
+          : resource.sceneUrl
+            ? '视频已生成，可以直接在下方预览。'
+            : '视频已生成。'
+        setMessages((prev) => prev.map((m) => (
+          m.id === assistantId
+            ? { ...m, content: readyText, videoResource: resource, streaming: false }
+            : m
+        )))
+        setGeneratedResources((prev) => [resource, ...prev.filter((item) => item.id !== resource.id)])
+        setPendingFiles([])
+        return
+      }
+
       const activeProfile = await loadStudentProfile()
       setMcpCallsByMsg((prev) => ({
         ...prev,
@@ -1098,12 +1200,6 @@ export default function TutorPage() {
         .slice(0, 5)
         .map((note) => ({ note, score: 0, keywords: ['默认注入'] }))
       const matchedNotesForSend = matchedNotes.length > 0 ? matchedNotes : defaultNotes
-      const noteContextText = matchedNotesForSend.length
-        ? `\n\n自动检索到的用户学习笔记上下文（用于个性化回答，不要逐字复述）：\n${matchedNotesForSend.map((item, index) => {
-            const note = item.note
-            return `${index + 1}. ${note.title}｜来源：${noteSourceTypeLabel[note.source.type]}「${note.source.title}」｜命中：${item.keywords.join('、') || '语义相关'}｜摘录：${note.content.slice(0, 180)}`
-          }).join('\n')}`
-        : ''
       let resourcesForSend = generatedResources
       try {
         resourcesForSend = await api.getResources()
@@ -1122,28 +1218,18 @@ export default function TutorPage() {
         .slice(0, 5)
         .map((resource) => ({ resource, score: 0, keywords: ['默认注入'] }))
       const resourcesContextForSend = matchedResourcesForSend.length > 0 ? matchedResourcesForSend : defaultResources
-      const resourceContextText = resourcesContextForSend.length
-        ? `\n\n用户已生成资源库上下文（资源推荐或学习建议时优先引用；只引用下列真实存在的资源，不要编造资源）：\n${resourcesContextForSend.map((item, index) => {
-            const resource = item.resource
-            const excerpt = (resource.content || buildResourceSearchText(resource)).slice(0, 220)
-            return `${index + 1}. ${resource.title}｜类型：${resourceTypeLabel[resource.type]}｜命中：${item.keywords.join('、') || '近期已生成资源'}｜摘要：${excerpt}`
-          }).join('\n')}`
-        : ''
-      const auxiliaryContextText = `${noteContextText}${resourceContextText}`
-      const outboundInput = selectedSkill
-        ? `当前选择的学习技能：${selectedSkill.title}。${selectedSkill.prompt}${auxiliaryContextText}\n\n用户问题：${userInput}`
-        : `${userInput}${auxiliaryContextText}`
-      const trustModeForRequest = !imageMode && !openMode
+      const outboundInput = userInput
+      const trustModeForRequest = !isImageMode && !openMode
       const savedMessage = await api.sendMessage(
         outboundInput,
         {
           conversationId: convId,
           roleId: currentRoleId || undefined,
-          mode: imageMode ? 'image_gen' : knowledgeReverse ? 'knowledge_reverse' : 'knowledge_qa',
+          mode: isImageMode ? 'image_gen' : knowledgeReverse ? 'knowledge_reverse' : 'knowledge_qa',
           fileIds: pendingFiles.map((f) => f.id),
           workshopEnabled,
           workshopRoleIds,
-          openMode: imageMode ? true : openMode,
+          openMode: isImageMode ? true : openMode,
           webSearch,
           mcpEnabled,
           model: selectedModel,
@@ -1245,6 +1331,14 @@ export default function TutorPage() {
           },
         },
       )
+      if (savedMessage.conversationId && savedMessage.conversationId !== currentConversationId) {
+        setCurrentConversationId(savedMessage.conversationId)
+      }
+      setMessages((prev) => prev.map((m) => (
+        m.conversationId === draftConversationId
+          ? { ...m, conversationId: savedMessage.conversationId }
+          : m
+      )))
       if (savedMessage.id && savedMessage.id !== assistantId) {
         setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, id: savedMessage.id, conversationId: savedMessage.conversationId } : m)))
         setMcpCallsByMsg((prev) => {
@@ -1261,10 +1355,14 @@ export default function TutorPage() {
         })
       }
       setPendingFiles([])
-      await refreshConversations(convId)
+      await refreshConversations(savedMessage.conversationId ?? convId ?? null)
     } catch (e) {
-      setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: '抱歉，模型服务暂时不可用，请稍后重试。' } : m)))
-      setActionError(e instanceof Error ? e.message : '发送失败，请检查后端服务')
+      setMessages((prev) => prev.map((m) => (
+        m.id === assistantId
+          ? { ...m, content: isVideoMode ? '视频生成失败，请稍后重试。' : '抱歉，模型服务暂时不可用，请稍后重试。', streaming: false }
+          : m
+      )))
+      setActionError(e instanceof Error ? e.message : (isVideoMode ? '视频生成失败，请检查后端服务' : '发送失败，请检查后端服务'))
     } finally {
       setStreaming(false)
     }
@@ -1509,7 +1607,9 @@ export default function TutorPage() {
                 {messages.map((msg) => {
                   const isProfileMessage = msg.trustMeta?.kind === 'student_profile'
                   if (isProfileMessage) {
-                    const status = String(msg.trustMeta?.status || profileStatus) as ProfileLoadStatus
+                    const status = msg.streaming
+                      ? 'loading'
+                      : String(msg.trustMeta?.status || profileStatus)
                     return <ProfileMessageCard key={msg.id} profile={studentProfile} status={status} />
                   }
                   const summary = msg.role === 'assistant' ? parseWorkshopSummary(msg.content) : null
@@ -1536,98 +1636,201 @@ export default function TutorPage() {
                         <div className="flex gap-3 mb-6">
                           <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center mt-1"><Sparkles className="w-4 h-4 text-white" /></div>
                           <div className="flex-1 min-w-0">
-                            {streaming && !msg.content.trim() && !msgMcpCalls.length ? (
-                              <div className="flex gap-1.5 pt-3">
-                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '0ms' }} />
-                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '150ms' }} />
-                                <span className="h-2 w-2 animate-bounce rounded-full bg-[#94a3b8]" style={{ animationDelay: '300ms' }} />
-                              </div>
-                            ) : summary ? (
-                              <div className="space-y-4">
-                                {summary.coreConclusion && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">核心结论</p><p className="text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{summary.coreConclusion}</p></div>}
-                                {summary.steps.length > 0 && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">行动清单</p><div className="space-y-1">{summary.steps.map((s, i) => <p key={i} className="text-[15px] leading-[1.8] text-[#1e293b]">{i+1}. {s}</p>)}</div></div>}
-                                {summary.followUps.length > 0 && <div><p className="text-xs font-medium text-[#94a3b8] mb-2">追问</p><div className="flex flex-wrap gap-2">{summary.followUps.map((q, i) => <button key={i} className="text-[13px] px-3 py-1.5 rounded-full border border-[#e2e8f0] text-[#475569] hover:border-[#2563eb] hover:text-[#2563eb] transition-colors" onClick={() => void handleSend(q)} disabled={streaming}>{q}</button>)}</div></div>}
-                              </div>
-                            ) : (
-                              <div className="prose prose-base max-w-none text-[#1e293b] prose-p:leading-[1.8] prose-p:my-3 prose-p:text-[15px] prose-headings:text-[#1e293b] prose-headings:font-semibold prose-code:text-[#e11d48] prose-code:bg-[#f5f5f5] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-pre:bg-[#1e1e1e] prose-pre:text-[#d4d4d4] prose-pre:rounded-xl prose-pre:text-[13px] prose-li:text-[15px] prose-li:leading-[1.8]">
-                                {imageDataMatch ? (
-                                  <img
-                                    src={imageDataMatch[0]}
-                                    alt="generated image"
-                                    className="max-w-full h-auto rounded-lg border border-[#e2e8f0]"
-                                  />
-                                ) : (
-                                  <ReactMarkdown
-                                  remarkPlugins={[remarkGfm]}
-                                  urlTransform={(url) => {
-                                    const u = String(url || '').trim()
-                                    if (u.startsWith('data:image/')) return u
-                                    return u
-                                  }}
-                                  components={{
-                                    img: ({ src, alt }) => {
-                                      const safeSrc = typeof src === 'string' ? src.trim() : ''
-                                      if (!safeSrc) return null
-                                      return <img src={safeSrc} alt={alt || 'generated image'} className="max-w-full h-auto rounded-lg border border-[#e2e8f0]" />
-                                    },
-                                    a: ({ href, children }) => {
-                                      const safeHref = typeof href === 'string' ? href.trim() : ''
-                                      if (!safeHref) return <>{children}</>
-                                      const childText = typeof children === 'string' ? children : Array.isArray(children) ? children.join('') : String(children ?? '')
-                                      if (childText.startsWith('来源')) {
-                                        const pillClass = 'inline-flex items-center rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[11px] text-[#64748b] no-underline align-middle mx-0.5'
-                                        if (safeHref === '#') {
-                                          return <span className={pillClass}>{children}</span>
+                            <div className="pt-1.5">
+                              {msg.streaming && !msg.content.trim() && (
+                                <div className="mb-2">
+                                  <LoadingDotsBubble />
+                                </div>
+                              )}
+                              {summary ? (
+                                <div className="space-y-4">
+                                  {summary.coreConclusion && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">核心结论</p><p className="text-[15px] leading-[1.8] text-[#1e293b] whitespace-pre-wrap">{summary.coreConclusion}</p></div>}
+                                  {summary.steps.length > 0 && <div><p className="text-xs font-medium text-[#94a3b8] mb-1.5">行动清单</p><div className="space-y-1">{summary.steps.map((s, i) => <p key={i} className="text-[15px] leading-[1.8] text-[#1e293b]">{i+1}. {s}</p>)}</div></div>}
+                                  {summary.followUps.length > 0 && <div><p className="text-xs font-medium text-[#94a3b8] mb-2">追问</p><div className="flex flex-wrap gap-2">{summary.followUps.map((q, i) => <button key={i} className="text-[13px] px-3 py-1.5 rounded-full border border-[#e2e8f0] text-[#475569] hover:border-[#2563eb] hover:text-[#2563eb] transition-colors" onClick={() => void handleSend(q)} disabled={streaming}>{q}</button>)}</div></div>}
+                                </div>
+                              ) : (
+                                <div className="prose prose-base max-w-none text-[#1e293b] prose-p:leading-[1.8] prose-p:my-3 prose-p:text-[15px] prose-headings:text-[#1e293b] prose-headings:font-semibold prose-code:text-[#e11d48] prose-code:bg-[#f5f5f5] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-pre:bg-[#1e1e1e] prose-pre:text-[#d4d4d4] prose-pre:rounded-xl prose-pre:text-[13px] prose-li:text-[15px] prose-li:leading-[1.8]">
+                                  {imageDataMatch ? (
+                                    <img
+                                      src={imageDataMatch[0]}
+                                      alt="generated image"
+                                      className="max-w-full h-auto rounded-lg border border-[#e2e8f0]"
+                                    />
+                                  ) : (
+                                    <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    urlTransform={(url) => {
+                                      const u = String(url || '').trim()
+                                      if (u.startsWith('data:image/')) return u
+                                      return u
+                                    }}
+                                    components={{
+                                      img: ({ src, alt }) => {
+                                        const safeSrc = typeof src === 'string' ? src.trim() : ''
+                                        if (!safeSrc) return null
+                                        return <img src={safeSrc} alt={alt || 'generated image'} className="max-w-full h-auto rounded-lg border border-[#e2e8f0]" />
+                                      },
+                                      a: ({ href, children }) => {
+                                        const safeHref = typeof href === 'string' ? href.trim() : ''
+                                        if (!safeHref) return <>{children}</>
+                                        const childText = typeof children === 'string' ? children : Array.isArray(children) ? children.join('') : String(children ?? '')
+                                        if (childText.startsWith('来源')) {
+                                          const pillClass = 'inline-flex items-center rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[11px] text-[#64748b] no-underline align-middle mx-0.5'
+                                          if (safeHref === '#') {
+                                            return <span className={pillClass}>{children}</span>
+                                          }
+                                          return (
+                                            <a
+                                              href={safeHref}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className={`${pillClass} hover:bg-[#e2e8f0] hover:text-[#334155] transition-colors`}
+                                            >
+                                              {children}
+                                            </a>
+                                          )
                                         }
                                         return (
                                           <a
                                             href={safeHref}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className={`${pillClass} hover:bg-[#e2e8f0] hover:text-[#334155] transition-colors`}
+                                            className="text-[#2563eb] underline decoration-[#93c5fd] underline-offset-2 hover:text-[#1d4ed8] transition-colors"
                                           >
                                             {children}
                                           </a>
                                         )
+                                      },
+                                    }}
+                                  >
+                                    {(() => {
+                                      let text = msg.content
+                                      const citations = showTrustInfo ? (msg.citations || []) : []
+                                      if (citations.length) {
+                                        text = text.replace(/\[来源(\d+)\]/g, (_m: string, n: string) => {
+                                          const idx = parseInt(n, 10) - 1
+                                          const cite = citations[idx]
+                                          if (!cite) return _m
+                                          const url = cite.id?.startsWith('web:') ? cite.id.replace(/^web:/, '') : '#'
+                                          return `[${cite.label || `来源${n}`}](${url})`
+                                        })
                                       }
-                                      return (
-                                        <a
-                                          href={safeHref}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-[#2563eb] underline decoration-[#93c5fd] underline-offset-2 hover:text-[#1d4ed8] transition-colors"
-                                        >
-                                          {children}
-                                        </a>
-                                      )
-                                    },
-                                  }}
-                                >
-                                  {(() => {
-                                    let text = msg.content
-                                    const citations = showTrustInfo ? (msg.citations || []) : []
-                                    if (citations.length) {
-                                      text = text.replace(/\[来源(\d+)\]/g, (_m: string, n: string) => {
-                                        const idx = parseInt(n, 10) - 1
-                                        const cite = citations[idx]
-                                        if (!cite) return _m
-                                        const url = cite.id?.startsWith('web:') ? cite.id.replace(/^web:/, '') : '#'
-                                        return `[${cite.label || `来源${n}`}](${url})`
-                                      })
-                                    }
-                                    return text
-                                  })()}
-                                  </ReactMarkdown>
-                                )}
+                                      return text
+                                    })()}
+                                    </ReactMarkdown>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {msg.videoResource && (
+                              <div className="mt-3 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-[#0b1120] shadow-[0_12px_30px_rgba(15,23,42,0.18)]">
+                                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-white">视频结果</p>
+                                    <p className="truncate text-xs text-slate-300">{msg.videoResource.title}</p>
+                                  </div>
+                                  <span className={cn(
+                                    'shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium',
+                                    msg.videoResource.status === 'completed'
+                                      ? 'bg-emerald-500/15 text-emerald-300'
+                                      : msg.videoResource.status === 'failed'
+                                        ? 'bg-rose-500/15 text-rose-300'
+                                        : 'bg-amber-500/15 text-amber-300',
+                                  )}>
+                                    {msg.videoResource.status === 'completed' ? '已生成' : msg.videoResource.status === 'failed' ? '失败' : '生成中'}
+                                  </span>
+                                </div>
+                                <div className="bg-black">
+                                  {msg.videoResource.hasMp4 && msg.videoResource.videoUrl ? (
+                                    <video
+                                      src={msg.videoResource.videoUrl}
+                                      controls
+                                      className="block h-auto w-full max-h-[420px] bg-black"
+                                    />
+                                  ) : msg.videoResource.sceneUrl ? (
+                                    <iframe
+                                      src={msg.videoResource.sceneUrl}
+                                      className="h-[420px] w-full bg-white"
+                                      title={`${msg.videoResource.title} 视频预览`}
+                                      allowFullScreen
+                                    />
+                                  ) : (
+                                    <div className="px-4 py-5 text-sm text-slate-300">
+                                      当前环境没有可直接播放的 MP4，下面保留下载入口。
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-2 border-t border-white/10 bg-slate-950 px-4 py-3">
+                                  {msg.videoResource.videoUrl && (
+                                    <a
+                                      href={msg.videoResource.videoUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
+                                    >
+                                      打开视频
+                                    </a>
+                                  )}
+                                  {msg.videoResource.audioUrl && (
+                                    <a
+                                      href={msg.videoResource.audioUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
+                                    >
+                                      下载音频
+                                    </a>
+                                  )}
+                                  {msg.videoResource.subtitleUrl && (
+                                    <a
+                                      href={msg.videoResource.subtitleUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
+                                    >
+                                      字幕
+                                    </a>
+                                  )}
+                                  {msg.videoResource.timelineUrl && (
+                                    <a
+                                      href={msg.videoResource.timelineUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
+                                    >
+                                      时间线
+                                    </a>
+                                  )}
+                                  {msg.videoResource.sceneUrl && !msg.videoResource.hasMp4 && (
+                                    <a
+                                      href={msg.videoResource.sceneUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
+                                    >
+                                      预览页
+                                    </a>
+                                  )}
+                                  {msg.videoResource.shareUrl && (
+                                    <a
+                                      href={msg.videoResource.shareUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition-colors"
+                                    >
+                                      分享页
+                                    </a>
+                                  )}
+                                </div>
                               </div>
                             )}
                             {/* TTS 播报按钮 */}
                             {!!msg.content.trim() && (
                               <button
-                                onClick={() => void playTts(msg.id, msg.content)}
+                                onClick={() => void playTts(msg.id, msg.content, msg.videoResource?.audioUrl)}
                                 disabled={ttsLoading === msg.id}
                                 className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-[#94a3b8] hover:text-[#2563eb] hover:bg-[#eff6ff] transition-colors disabled:opacity-50"
-                                title="语音播报"
+                                title={msg.videoResource?.audioUrl ? '播放视频音频' : '语音播报'}
                               >
                                 {ttsLoading === msg.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : playingMsgId === msg.id ? <Pause className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                                 <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
@@ -1842,7 +2045,7 @@ export default function TutorPage() {
                         el.style.height = `${Math.min(el.scrollHeight, 120)}px`
                       }
                     }}
-                    value={input} onChange={(e) => { setInput(e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder="和 AI 对话，提任何学习问题..." rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
+                    value={input} onChange={(e) => { setInput(e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder={multimodalMode === 'video' ? '输入你要生成的视频主题、知识点或讲解要求...' : multimodalMode === 'image' ? '输入你要生成的图片描述、风格或内容要求...' : '和 AI 对话，提任何学习问题...'} rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
                   <button onClick={() => fileInputRef.current?.click()} className="w-8 h-8 rounded-full bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#1e293b] flex items-center justify-center transition-colors flex-shrink-0 relative" title="上传文档">
                     <Plus className="w-4 h-4" />
                     {pendingFiles.length > 0 && (
@@ -1925,14 +2128,14 @@ export default function TutorPage() {
                     type="button"
                     onClick={() => {
                       setKnowledgeReverse((v) => {
-                        const next = !v
-                        if (next) {
-                          setWebSearch(true)
-                          setImageMode(false)
-                        }
-                        return next
-                      })
-                    }}
+                          const next = !v
+                          if (next) {
+                            setWebSearch(true)
+                            setMultimodalMode(null)
+                          }
+                          return next
+                        })
+                      }}
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
                       knowledgeReverse ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
@@ -1940,17 +2143,75 @@ export default function TutorPage() {
                   >
                     <Sparkles className="w-3.5 h-3.5" />知识逆构
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageMode((v) => !v)}
-                    className={cn(
-                      'inline-flex items-center px-3 py-1.5 rounded-lg border text-xs transition-colors',
-                      imageMode ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setMultimodalMenuOpen((v) => !v)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                        multimodalMode ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                      )}
+                    >
+                      {multimodalMode === 'image' ? (
+                        <ImageIcon className="w-3.5 h-3.5" />
+                      ) : multimodalMode === 'video' ? (
+                        <Clapperboard className="w-3.5 h-3.5" />
+                      ) : (
+                        <Clapperboard className="w-3.5 h-3.5" />
+                      )}
+                      {multimodalMode === 'image' ? '图片模式' : multimodalMode === 'video' ? '视频模式' : '多模态'}
+                      <ChevronDown className={cn('w-3 h-3 transition-transform', multimodalMenuOpen && 'rotate-180')} />
+                    </button>
+                    {multimodalMenuOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setMultimodalMenuOpen(false)} />
+                        <div className="absolute bottom-full left-0 mb-1 z-20 min-w-[168px] overflow-hidden rounded-lg border border-[#e2e8f0] bg-white shadow-lg">
+                          {([
+                            { key: 'image', label: '图片模式', desc: '生成图片内容并在对话中直接展示' },
+                            { key: 'video', label: '视频模式', desc: '生成视频并在对话中内联播放' },
+                          ] as const).map((item) => (
+                            <button
+                              key={item.key}
+                              type="button"
+                              onClick={() => {
+                                setMultimodalMode(item.key)
+                                setKnowledgeReverse(false)
+                                setMultimodalMenuOpen(false)
+                              }}
+                              className={cn(
+                                'flex w-full items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-[#f8fafc]',
+                                multimodalMode === item.key && 'bg-[#eff6ff]',
+                              )}
+                            >
+                              <span className={cn(
+                                'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md',
+                                item.key === 'image' ? 'bg-[#ecfeff] text-[#0f766e]' : 'bg-[#eff6ff] text-[#2563eb]',
+                              )}>
+                                {item.key === 'image' ? <ImageIcon className="h-3 w-3" /> : <Clapperboard className="h-3 w-3" />}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-xs font-medium text-[#1e293b]">{item.label}</span>
+                                <span className="block text-[11px] leading-4 text-[#64748b]">{item.desc}</span>
+                              </span>
+                            </button>
+                          ))}
+                          {multimodalMode && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMultimodalMode(null)
+                                setMultimodalMenuOpen(false)
+                              }}
+                              className="flex w-full items-center justify-center border-t border-[#eef2f7] px-3 py-2 text-xs text-[#64748b] hover:bg-[#f8fafc]"
+                            >
+                              关闭多模态
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
-                  >
-                    图片模式
-                  </button>
-                  {!imageMode && (
+                  </div>
+                  {multimodalMode !== 'video' && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1972,6 +2233,11 @@ export default function TutorPage() {
                     </button>
                   )}
                 </div>
+                {multimodalMode === 'video' && (
+                  <p className="mt-2 text-xs text-[#a16207]">
+                    视频模式已开启，发送后会在当前对话中直接生成并内联展示视频结果。
+                  </p>
+                )}
               </div>
             </div>
           </div>

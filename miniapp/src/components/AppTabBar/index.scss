@@ -7,34 +7,26 @@
   display: flex;
   align-items: center;
   justify-content: space-around;
-  height: 112rpx;
+  height: 96rpx;
   padding-bottom: env(safe-area-inset-bottom);
   background: rgba(255, 255, 255, 0.96);
   border-top: 1rpx solid #e5edf7;
-  box-shadow: 0 -12rpx 28rpx rgba(15, 23, 42, 0.06);
 }
 
 .app-tabbar__item {
   display: flex;
   flex: 1;
-  min-height: 88rpx;
-  flex-direction: column;
+  min-height: 72rpx;
   align-items: center;
   justify-content: center;
-  gap: 6rpx;
   color: #64748b;
-  font-size: 22rpx;
+  font-size: 24rpx;
   line-height: 1.2;
   transition: color 180ms ease, opacity 180ms ease;
 }
 
 .app-tabbar__item.is-active {
   color: #2563eb;
-}
-
-.app-tabbar__icon {
-  width: 36rpx;
-  height: 36rpx;
 }
 
 .app-tabbar__label {

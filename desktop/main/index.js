@@ -15,6 +15,7 @@ const PROFILE_SYNC_DIRNAME = 'studybuddy';
 const PROFILE_SYNC_FILENAME = 'live-profile.json';
 const PROFILE_MEMORY_START = '<!-- STUDYBUDDY_PROFILE_START -->';
 const PROFILE_MEMORY_END = '<!-- STUDYBUDDY_PROFILE_END -->';
+const APP_ICON_PATH = path.join(__dirname, '..', 'assets', 'icon.png');
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
@@ -273,6 +274,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 720,
     title: 'SparkLearn',
+    icon: APP_ICON_PATH,
     backgroundColor: '#f7f4ee',
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload', 'index.js'),
@@ -298,6 +300,7 @@ function createConfigWindow() {
     minWidth: 820,
     minHeight: 700,
     title: 'StudyBuddy 配置',
+    icon: APP_ICON_PATH,
     backgroundColor: '#f8fafc',
     parent: mainWindow || undefined,
     webPreferences: {

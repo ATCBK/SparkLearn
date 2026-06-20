@@ -52,7 +52,7 @@ def make_polished_script(
             "polished_prompt": str(ai_script.get("polished_prompt") or clean_prompt),
             "script_outline": ai_script.get("script_outline") or [],
             "estimated_duration_sec": duration_sec,
-            "voice": voice or settings.xf_tts_default_voice,
+            "voice": voice or settings.cosyvoice_default_voice,
             "content_source": "ai",
             "ai_provider": str(ai_script.get("ai_provider") or settings.video_ai_provider),
             "ai_model": str(ai_script.get("ai_model") or settings.video_ai_model),
@@ -216,22 +216,15 @@ def _write_slide_html_files(root: Path, title: str, slides: list[dict[str, Any]]
 
 
 def _normalize_voice_config(raw: Any) -> dict[str, Any]:
-    if isinstance(raw, str):
-        value = raw.strip()
-        return {"voice": value} if value else {}
+    result: dict[str, Any] = {
+        "provider": "cosyvoice",
+        "voice": settings.cosyvoice_default_voice,
+        "speed": settings.cosyvoice_speech_rate,
+        "pitch": settings.cosyvoice_pitch_rate,
+        "volume": settings.cosyvoice_volume,
+    }
     if not isinstance(raw, dict):
-        return {}
-    result: dict[str, Any] = {}
-    voice = str(raw.get("voice") or raw.get("vcn") or raw.get("name") or "").strip()
-    provider = str(raw.get("provider") or raw.get("tts_provider") or "").strip().lower()
-    if voice:
-        result["voice"] = voice
-    if provider:
-        result["provider"] = provider
-    if not provider and voice == settings.cosyvoice_default_voice:
-        result["provider"] = "cosyvoice"
-    elif not provider and voice == settings.xf_tts_default_voice:
-        result["provider"] = "xfyun"
+        return result
     for key in ("speed", "pitch", "volume"):
         if raw.get(key) is not None:
             result[key] = raw.get(key)
@@ -250,9 +243,7 @@ def _write_segment_audio_files(root: Path, segments: list[dict[str, Any]], voice
 
     # 根据 tts_provider 配置决定尝试顺序
     provider = settings.tts_provider.lower()
-    if selected_provider in {"cosyvoice", "xfyun", "windows_sapi"}:
-        chain = [selected_provider]
-    elif provider == "cosyvoice":
+    if provider == "cosyvoice":
         chain = ["cosyvoice"]
     elif provider == "xfyun":
         chain = ["xfyun"]

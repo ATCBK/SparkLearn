@@ -9,6 +9,11 @@
 </p>
 
 <p align="center">
+  <strong>未经授权禁止复制、转载、二次分发或商用；本仓库内容仅限参赛与内部研发使用，后续权限开放将以正式通知为准。</strong><br />
+  <strong>联系邮箱：3211840032@qq.com</strong>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Frontend-Next.js_16-00C2FF?logo=next.js&logoColor=white" />
   <img src="https://img.shields.io/badge/Backend-FastAPI-2DD4BF?logo=fastapi&logoColor=0f172a" />
   <img src="https://img.shields.io/badge/AI-讯飞星火-38BDF8" />
@@ -29,6 +34,12 @@
   <img src="https://img.shields.io/badge/多模态对话-文本%2B图片生成-EC4899" />
   <img src="https://img.shields.io/badge/Desktop-Electron桌面端-8B5CF6?logo=electron&logoColor=white" />
   <img src="https://img.shields.io/badge/Admin-平台管理端-3B82F6" />
+  <img src="https://img.shields.io/badge/产品矩阵-已构建完成-111827" />
+  <img src="https://img.shields.io/badge/学生端-学习闭环-2563EB" />
+  <img src="https://img.shields.io/badge/教师端-教学干预-0EA5E9" />
+  <img src="https://img.shields.io/badge/社区端-共学协作-F97316" />
+  <img src="https://img.shields.io/badge/桌面端-本地能力-8B5CF6" />
+  <img src="https://img.shields.io/badge/小程序-轻量接入-10B981" />
 </p>
 
 ---
@@ -61,6 +72,23 @@ SparkLearn 通过 AI 多智能体协同，为学习者构建一套可持续优�
 - 主平台命名与导航收敛：侧边栏和导航中的“信息流”统一调整为“学习发现”，并在桌面端补充 `StudyBuddy 配置` 入口提示。
 - Shell 结构修补：学生端 `(shell)` 布局对学习笔记面板使用 `Suspense` 包装，避免异步面板影响页面整体渲染。
 - 登录页样式：修复手机号输入框与验证码按钮错位，恢复登录页表单对齐。
+
+### 产品矩阵已构建完成
+
+SparkLearn 现在已经形成了清晰的产品矩阵，不再只是单一学习页面，而是覆盖「学生学习、教师管理、社区协作、桌面端本地能力、小程序轻量接入」的完整学习平台。
+
+- 学生端：负责画像、路径、资源、练习、报告、Tutor 对话与学习发现，承接核心学习闭环。
+- 教师端：负责班级看板、学生画像、教学干预与通知分发，承接教学管理和人工介入。
+- 社区端：负责论坛、答疑、资料共享与共学协作，承接内容传播和学习互助。
+- 桌面端：负责本地托管、MCP 接入、环境配置和本机能力扩展，承接私有化与本地执行场景。
+- 小程序端：负责移动侧轻量学习入口，承接随时提问、快速切换和碎片化学习。
+
+这套矩阵的优势在于：
+
+- 一个平台覆盖学习全链路，从诊断到学习、从练习到反馈、从内容生成到资源沉淀都能接上。
+- 前后端和桌面端已经可以协同工作，本地能力与在线能力不是割裂的。
+- 教学、社区、移动端和本机工具不再是孤立模块，而是可以互相导流的产品面。
+- 后续无论是接入新的 AI 能力、扩展新的内容形态，还是增强本地工具链，都可以在现有矩阵上继续生长。
 
 ### 当前保留能力
 
@@ -499,5 +527,5 @@ npm run dev      # 一键启动桌面应用
 ---
 
 <p align="center">
-  <sub>学而思 SparkLearn 团队 第15届软件杯参赛作品</sub>
+  <sub>学而思 SparkLearn 码到成功团队 第15届软件杯参赛作品</sub>
 </p>

@@ -63,6 +63,8 @@ export default function TutorMcpStorePage() {
   const router = useRouter()
   const [services, setServices] = useState<McpService[]>([])
   const [form, setForm] = useState<McpServicePayload>(EMPTY_FORM)
+  const [argsJsonText, setArgsJsonText] = useState(() => JSON.stringify(EMPTY_FORM.args_json, null, 2))
+  const [envJsonText, setEnvJsonText] = useState(() => JSON.stringify(EMPTY_FORM.env_json, null, 2))
   const [editingId, setEditingId] = useState<string | null>(null)
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('auth')
@@ -111,10 +113,14 @@ export default function TutorMcpStorePage() {
       tool_timeout_ms: service.tool_timeout_ms,
       long_task_timeout_ms: service.long_task_timeout_ms,
     })
+    setArgsJsonText(JSON.stringify(service.args_json ?? [], null, 2))
+    setEnvJsonText(JSON.stringify(service.env_json ?? {}, null, 2))
   }
 
   function resetForm() {
     setForm(EMPTY_FORM)
+    setArgsJsonText(JSON.stringify(EMPTY_FORM.args_json, null, 2))
+    setEnvJsonText(JSON.stringify(EMPTY_FORM.env_json, null, 2))
     setEditingId(null)
     setFeedback('')
     setError('')
@@ -129,23 +135,19 @@ export default function TutorMcpStorePage() {
 
   function normalizeJsonInputs(payload: McpServicePayload): McpServicePayload {
     const next = { ...payload }
-    if (typeof next.args_json === 'string') {
-      try {
-        next.args_json = JSON.parse(next.args_json)
-      } catch {
-        throw new Error('args_json 必须是合法 JSON 数组')
-      }
+    try {
+      next.args_json = JSON.parse(argsJsonText)
+    } catch {
+      throw new Error('args_json 必须是合法 JSON 数组')
     }
     if (!Array.isArray(next.args_json)) {
       throw new Error('args_json 必须是 JSON 数组')
     }
 
-    if (typeof next.env_json === 'string') {
-      try {
-        next.env_json = JSON.parse(next.env_json)
-      } catch {
-        throw new Error('env_json 必须是合法 JSON 对象')
-      }
+    try {
+      next.env_json = JSON.parse(envJsonText)
+    } catch {
+      throw new Error('env_json 必须是合法 JSON 对象')
     }
     if (!next.env_json || Array.isArray(next.env_json) || typeof next.env_json !== 'object') {
       throw new Error('env_json 必须是 JSON 对象')
@@ -442,16 +444,16 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                             </PlainField>
                             <PlainField label="Args JSON">
                               <textarea
-                                value={JSON.stringify(form.args_json ?? [], null, 2)}
-                                onChange={(e) => setForm((p) => ({ ...p, args_json: e.target.value as unknown as string[] }))}
+                                value={argsJsonText}
+                                onChange={(e) => setArgsJsonText(e.target.value)}
                                 placeholder={'["-y", "@modelcontextprotocol/server-filesystem", "D:/Project_building/SparkLearn"]'}
                                 className="min-h-[130px] w-full rounded-lg border border-[#ced7ea] bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#f59e0b]"
                               />
                             </PlainField>
                             <PlainField label="Env JSON">
                               <textarea
-                                value={JSON.stringify(form.env_json ?? {}, null, 2)}
-                                onChange={(e) => setForm((p) => ({ ...p, env_json: e.target.value as unknown as Record<string, string> }))}
+                                value={envJsonText}
+                                onChange={(e) => setEnvJsonText(e.target.value)}
                                 placeholder={'{\n  "NODE_ENV": "production"\n}'}
                                 className="min-h-[130px] w-full rounded-lg border border-[#ced7ea] bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#f59e0b]"
                               />

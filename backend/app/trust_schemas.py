@@ -12,6 +12,7 @@ class TrustAnswerRequest(BaseModel):
     role_prompt: str = ""
     page_prompt: str = ""
     memory_prompt: str = ""
+    mcp_prompt: str = ""
     conversation_id: int | None = None
     file_ids: list[int] = []
     knowledge_file_ids: list[int] = []

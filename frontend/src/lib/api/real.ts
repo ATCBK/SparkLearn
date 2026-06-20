@@ -2,11 +2,11 @@
 import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
+  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
-  CodeEvaluatePayload, CodeEvaluateResult,
+  CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
 } from './types'
 import { getToken } from '../auth'
 
@@ -26,6 +26,7 @@ function _authHeaders(): Record<string, string> {
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   try {
+    const method = (init?.method || 'GET').toUpperCase()
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
       headers: { ..._authHeaders(), ...(init?.headers || {}) },
@@ -37,7 +38,8 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
         : typeof json.detail === 'string'
           ? json.detail
           : ''
-      throw new Error(json.error || detail || `请求失败：${res.status}`)
+      const baseMessage = json.error || detail || `请求失败：${res.status}`
+      throw new Error(`${baseMessage} [${method} ${path} -> ${res.status}]`)
     }
     return json.data
   } catch (error) {
@@ -81,6 +83,11 @@ async function readSSE(
 }
 
 function toResource(raw: any): Resource {
+  const rawVideoUrl = raw.videoUrl || raw.video_url || ''
+  const rawAudioUrl = raw.audioUrl || raw.audio_url || ''
+  const rawSubtitleUrl = raw.subtitleUrl || raw.subtitle_url || ''
+  const rawTimelineUrl = raw.timelineUrl || raw.timeline_url || ''
+  const rawSceneUrl = raw.sceneUrl || raw.scene_url || ''
   return {
     id: raw.id,
     title: raw.title,
@@ -89,7 +96,18 @@ function toResource(raw: any): Resource {
     createdAt: raw.createdAt || raw.created_at,
     content: raw.content,
     sourceUrl: raw.sourceUrl || raw.source_url,
-    videoUrl: raw.videoUrl || raw.video_url,
+    videoUrl: rawVideoUrl ? `${API_BASE}${rawVideoUrl}` : undefined,
+    audioUrl: rawAudioUrl ? `${API_BASE}${rawAudioUrl}` : undefined,
+    subtitleUrl: rawSubtitleUrl ? `${API_BASE}${rawSubtitleUrl}` : undefined,
+    timelineUrl: rawTimelineUrl ? `${API_BASE}${rawTimelineUrl}` : undefined,
+    sceneUrl: rawSceneUrl ? `${API_BASE}${rawSceneUrl}` : undefined,
+    shareUrl: raw.shareUrl || raw.share_url,
+    duration: raw.duration,
+    provider: raw.provider,
+    ttsProvider: raw.ttsProvider || raw.tts_provider,
+    hasMp4: raw.hasMp4 ?? raw.has_mp4,
+    muxStatus: raw.muxStatus || raw.mux_status,
+    muxMessage: raw.muxMessage || raw.mux_message,
     docmeeId: raw.docmeeId || raw.docmee_id,
     progress: raw.progress,
   }
@@ -360,6 +378,27 @@ export async function evaluateCodeResource(resourceId: string, payload: CodeEval
   }
 }
 
+export async function evaluateResourceQuality(resourceId: string): Promise<ResourceQualityResult> {
+  const data = await fetchJson<any>(`/api/resources/${resourceId}/quality-evaluate`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+  return {
+    label: String(data.label || '可补充'),
+    summary: String(data.summary || ''),
+    advice: String(data.advice || ''),
+    dimensions: Array.isArray(data.dimensions)
+      ? data.dimensions.map((item: any) => ({
+          key: item.key,
+          label: String(item.label || ''),
+          score: Number(item.score || 0),
+          level: item.level === 'high' || item.level === 'low' ? item.level : 'medium',
+          detail: String(item.detail || ''),
+        }))
+      : [],
+  }
+}
+
 export async function sendMessage(
   content: string,
   options?: {
@@ -588,6 +627,22 @@ export async function createTutorRole(payload: {
       style_guide: payload.styleGuide || '',
       rules: payload.rules || '',
     }),
+  })
+  return {
+    id: Number(r.id),
+    name: String(r.name || ''),
+    persona: String(r.persona || ''),
+    background: String(r.background || ''),
+    styleGuide: String(r.style_guide || ''),
+    rules: String(r.rules || ''),
+    enabled: Boolean(r.enabled),
+  }
+}
+
+export async function createTutorRoleFromQuestion(payload: TutorRoleGenerationPayload): Promise<TutorRole> {
+  const r = await fetchJson<any>('/api/tutor/roles/generate-from-question', {
+    method: 'POST',
+    body: JSON.stringify({ question: payload.question }),
   })
   return {
     id: Number(r.id),
@@ -1470,10 +1525,21 @@ export async function createMcpService(payload: McpServicePayload): Promise<McpS
 }
 
 export async function updateMcpService(serviceId: string, payload: McpServicePayload): Promise<McpService> {
-  return fetchJson(`/api/mcp/services/${serviceId}`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  })
+  try {
+    return await fetchJson(`/api/mcp/services/${serviceId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (!message.includes('Method Not Allowed') && !message.includes('405')) {
+      throw error
+    }
+    return fetchJson(`/api/mcp/services/${serviceId}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+  }
 }
 
 export async function deleteMcpService(serviceId: string): Promise<void> {

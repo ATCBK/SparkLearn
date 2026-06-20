@@ -45,6 +45,21 @@ export interface CodeEvaluateResult {
   reason: string
 }
 
+export interface ResourceQualityDimension {
+  key: 'fit' | 'clarity' | 'practice' | 'priority'
+  label: string
+  score: number
+  level: 'high' | 'medium' | 'low'
+  detail: string
+}
+
+export interface ResourceQualityResult {
+  label: '较适合' | '可补充' | '暂不优先' | string
+  summary: string
+  advice: string
+  dimensions: ResourceQualityDimension[]
+}
+
 export interface ForumAttachment {
   id: number
   post_id: number
@@ -256,7 +271,9 @@ export interface Message {
   content: string
   timestamp: string
   conversationId?: number
+  streaming?: boolean
   fileNames?: string[]
+  videoResource?: Resource
   confidence?: ConfidenceInfo
   citations?: CitationItem[]
   trustMeta?: Record<string, unknown>
@@ -307,6 +324,10 @@ export interface TutorRole {
   styleGuide: string
   rules: string
   enabled: boolean
+}
+
+export interface TutorRoleGenerationPayload {
+  question: string
 }
 
 export interface TutorConversation {

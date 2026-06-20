@@ -19,6 +19,7 @@
       "output": "dist"
     },
     "files": [
+      "assets/**/*",
       "main/**/*",
       "preload/**/*",
       "renderer/**/*",
@@ -26,7 +27,8 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "oneClick": false,

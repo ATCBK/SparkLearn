@@ -34,6 +34,93 @@ async def test_tutor_stream_and_history(client):
     assert len(h.json()["data"]) >= 2
 
 
+def _extract_conversation_id_from_stream(text: str) -> int:
+    marker = '"conversation_id": '
+    return int(text.split(marker, 1)[1].split(",", 1)[0])
+
+
+@pytest.mark.asyncio
+async def test_tutor_chat_without_conversation_id_creates_new_conversation_each_time(client):
+    first = await client.post("/api/tutor/chat", json={"message": "第一问", "mode": "knowledge_qa"})
+    second = await client.post("/api/tutor/chat", json={"message": "第二问", "mode": "knowledge_qa"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert '"type": "done"' in first.text
+    assert '"type": "done"' in second.text
+
+    first_conv_id = _extract_conversation_id_from_stream(first.text)
+    second_conv_id = _extract_conversation_id_from_stream(second.text)
+    assert first_conv_id != second_conv_id
+
+
+@pytest.mark.asyncio
+async def test_tutor_chat_stores_raw_user_message_verbatim(client):
+    created = await client.post("/api/tutor/conversations", json={"title": "原文校验"})
+    assert created.status_code == 200
+    conv_id = int(created.json()["data"]["id"])
+    raw_message = "帮我查一下信阳明天的天气"
+
+    resp = await client.post(
+        "/api/tutor/chat",
+        json={
+            "message": raw_message,
+            "conversation_id": conv_id,
+            "mode": "knowledge_qa",
+        },
+    )
+
+    assert resp.status_code == 200
+
+    history = await client.get(f"/api/tutor/history?conversation_id={conv_id}&limit=20")
+    assert history.status_code == 200
+    user_messages = [m for m in history.json()["data"] if m["role"] == "user"]
+    assert user_messages[-1]["content"] == raw_message
+    assert "用户已生成资源库上下文" not in user_messages[-1]["content"]
+
+
+@pytest.mark.asyncio
+async def test_tutor_chat_does_not_reuse_previous_file_ids_when_request_omits_them(client):
+    created = await client.post("/api/tutor/conversations", json={"title": "文件隔离"})
+    assert created.status_code == 200
+    conv_id = int(created.json()["data"]["id"])
+
+    upload = await client.post(
+        "/api/tutor/files",
+        files=[("files", ("sample.txt", b"hello workspace", "text/plain"))],
+    )
+    assert upload.status_code == 200
+    file_id = int(upload.json()["data"][0]["id"])
+
+    first = await client.post(
+        "/api/tutor/chat",
+        json={
+            "message": "第一问",
+            "conversation_id": conv_id,
+            "file_ids": [file_id],
+            "mode": "knowledge_qa",
+        },
+    )
+    second = await client.post(
+        "/api/tutor/chat",
+        json={
+            "message": "第二问",
+            "conversation_id": conv_id,
+            "mode": "knowledge_qa",
+        },
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    history = await client.get(f"/api/tutor/history?conversation_id={conv_id}&limit=20")
+    assert history.status_code == 200
+    data = history.json()["data"]
+    user_messages = [m for m in data if m["role"] == "user"]
+    assert "sample.txt" in user_messages[0]["file_names"]
+    assert user_messages[1]["file_names"] == []
+
+
 @pytest.mark.asyncio
 async def test_quiz_submit(client):
     q = await client.get("/api/quiz")

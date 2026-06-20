@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer } from 'react'
 import {
   Activity,
   BarChart3,
@@ -26,24 +26,65 @@ const NAV = [
   { label: '系统设置', href: '/admin/settings', icon: SlidersHorizontal },
 ]
 
+type AdminAuthState = {
+  mounted: boolean
+  hasToken: boolean
+  authResolved: boolean
+}
+
+type AdminAuthAction =
+  | { type: 'mounted' }
+  | { type: 'sync-auth'; hasToken: boolean }
+  | { type: 'logout' }
+
+function adminAuthReducer(state: AdminAuthState, action: AdminAuthAction): AdminAuthState {
+  switch (action.type) {
+    case 'mounted':
+      return state.mounted ? state : { ...state, mounted: true }
+    case 'sync-auth':
+      return { ...state, hasToken: action.hasToken, authResolved: true }
+    case 'logout':
+      return { mounted: state.mounted, hasToken: false, authResolved: true }
+    default:
+      return state
+  }
+}
+
 export default function AdminShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [logoutTick, setLogoutTick] = useState(0)
-  const hasToken = typeof window !== 'undefined' && !!window.localStorage.getItem('admin_token')
+  const [authState, dispatch] = useReducer(adminAuthReducer, {
+    mounted: false,
+    hasToken: false,
+    authResolved: false,
+  })
 
   useEffect(() => {
-    if (!hasToken && pathname !== '/admin/login') {
+    dispatch({ type: 'mounted' })
+  }, [])
+
+  useEffect(() => {
+    if (!authState.mounted) return
+
+    const token = !!window.localStorage.getItem('admin_token')
+    dispatch({ type: 'sync-auth', hasToken: token })
+  }, [authState.mounted, pathname])
+
+  useEffect(() => {
+    if (!authState.mounted || !authState.authResolved) return
+
+    if (!authState.hasToken && pathname !== '/admin/login') {
       router.replace('/admin/login')
     }
-  }, [hasToken, pathname, router, logoutTick])
+  }, [authState.authResolved, authState.hasToken, authState.mounted, pathname, router])
 
+  if (!authState.mounted) return null
   if (pathname === '/admin/login') return <>{children}</>
-  if (!hasToken) return null
+  if (!authState.hasToken) return null
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token')
-    setLogoutTick((value) => value + 1)
+    dispatch({ type: 'logout' })
     router.push('/admin/login')
   }
 
@@ -132,7 +173,7 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
             <Link href="/admin/settings" title="运维配置" className="grid h-8 w-8 place-items-center rounded-lg text-[#52627b] hover:bg-[#f3f4f6]">
               <MonitorCog className="h-4 w-4" />
             </Link>
-            <div className="ml-1 grid h-8 w-8 place-items-center rounded-full bg-[#eaf2ff] text-xs font-bold text-[#2563eb]">管</div>
+            <div className="ml-1 grid h-8 w-8 place-items-center rounded-full bg-[#eaf2ff] text-xs font-bold text-[#2563eb]">A</div>
             <span className="hidden text-sm font-semibold text-ink min-[520px]:inline">管理员</span>
           </div>
         </header>

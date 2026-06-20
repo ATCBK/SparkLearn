@@ -27,6 +27,7 @@ export type TutorDraft = {
   mcpEnabled: boolean
   webSearchEnabled?: boolean
   imageModeEnabled?: boolean
+  videoModeEnabled?: boolean
   trustModeEnabled?: boolean
   fileIds: number[]
 }
@@ -99,6 +100,7 @@ export function getTutorDraft(): TutorDraft | undefined {
       mcpEnabled: Boolean(value.mcpEnabled),
       webSearchEnabled: Boolean(value.webSearchEnabled),
       imageModeEnabled: Boolean(value.imageModeEnabled),
+      videoModeEnabled: Boolean(value.videoModeEnabled),
       trustModeEnabled: value.trustModeEnabled !== false,
       fileIds: Array.isArray(value.fileIds) ? value.fileIds : []
     }

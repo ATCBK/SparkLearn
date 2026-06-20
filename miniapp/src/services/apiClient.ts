@@ -59,13 +59,13 @@ export async function request<T>(options: RequestOptions): Promise<T> {
     header.Authorization = `Bearer ${token}`
   }
 
-  let response: Taro.request.SuccessCallbackResult<ApiResponse<T> | T> | undefined
+  let response: Taro.request.SuccessCallbackResult<any> | undefined
   let lastErrMsg = ''
   const baseUrls = getRequestBaseUrls(options.url)
 
   for (const baseUrl of baseUrls) {
     try {
-      response = await Taro.request<ApiResponse<T> | T>({
+      response = await Taro.request<any>({
         url: buildUrl(options.url, baseUrl),
         method: options.method || 'GET',
         data: options.data as any,

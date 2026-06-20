@@ -25,11 +25,13 @@ export const api = {
   downloadResourceSource: impl.downloadResourceSource,
   generateResource: impl.generateResource,
   evaluateCodeResource: impl.evaluateCodeResource,
+  evaluateResourceQuality: impl.evaluateResourceQuality,
 
   sendMessage: impl.sendMessage,
   getChatHistory: impl.getChatHistory,
   getTutorRoles: impl.getTutorRoles,
   createTutorRole: impl.createTutorRole,
+  createTutorRoleFromQuestion: impl.createTutorRoleFromQuestion,
   updateTutorRole: impl.updateTutorRole,
   deleteTutorRole: impl.deleteTutorRole,
   optimizeRolePrompt: impl.optimizeRolePrompt,
@@ -135,11 +137,11 @@ export const api = {
 export type {
   Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, VideoStyle, VideoScriptSegment, VideoPolishResult, ContributionDay,
-  TutorRole, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileHistoryItem, ProfileHistoryResp, ProfileAnalysisResp, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
+  TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileHistoryItem, ProfileHistoryResp, ProfileAnalysisResp, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast,
   McpService, McpServicePayload,
-  CodeEvaluatePayload, CodeEvaluateResult,
+  CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult, ResourceQualityDimension,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
 } from './types'

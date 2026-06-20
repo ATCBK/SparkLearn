@@ -2,15 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, TutorRole } from '@/lib/api'
+import { api, StudentProfile, TutorRole } from '@/lib/api'
 import {
   ArrowLeft,
   Check,
   Database,
   FileText,
-  MoreVertical,
   Paperclip,
-  Pencil,
   Plus,
   Puzzle,
   Save,
@@ -39,7 +37,18 @@ type RoleDraft = {
   rules: string
 }
 
+type TutorQuestionAnalysis = {
+  subjectLabel: string
+  intentLabel: string
+  archetype: string
+  stage: string
+  goals: string
+  weakPoints: string
+  preference: string
+}
+
 const EMPTY_DRAFT: RoleDraft = { name: '', persona: '', background: '', styleGuide: '', rules: '' }
+const PENDING_ROLE_ID_KEY = 'sparklearn_pending_tutor_role_id'
 
 export default function RolesPage() {
   const router = useRouter()
@@ -47,27 +56,35 @@ export default function RolesPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [draft, setDraft] = useState<RoleDraft>(EMPTY_DRAFT)
   const [saving, setSaving] = useState(false)
-  const [loading, setLoading] = useState(true)
   const [isNew, setIsNew] = useState(false)
   const [activeTab, setActiveTab] = useState<'persona' | 'background' | 'style' | 'rules'>('persona')
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  const [quickCreateQuestion, setQuickCreateQuestion] = useState('')
+  const [quickCreateLoading, setQuickCreateLoading] = useState(false)
+  const [quickCreateError, setQuickCreateError] = useState('')
 
   const selectedRole = roles.find((r) => r.id === selectedId) || null
 
   useEffect(() => {
-    loadRoles()
+    void (async () => {
+      try {
+        const data = await api.getTutorRoles()
+        setRoles(data)
+        if (data.length > 0) {
+          const first = data[0]
+          setSelectedId(first.id)
+          setDraft({
+            name: first.name,
+            persona: first.persona,
+            background: first.background,
+            styleGuide: first.styleGuide,
+            rules: first.rules,
+          })
+          setIsNew(false)
+        }
+      } catch { /* ignore */ }
+    })()
   }, [])
-
-  async function loadRoles() {
-    setLoading(true)
-    try {
-      const data = await api.getTutorRoles()
-      setRoles(data)
-      if (data.length > 0 && !selectedId) {
-        selectRole(data[0])
-      }
-    } catch { /* ignore */ }
-    setLoading(false)
-  }
 
   function selectRole(role: TutorRole) {
     setSelectedId(role.id)
@@ -114,6 +131,105 @@ export default function RolesPage() {
       }
     } catch { /* ignore */ }
     setSaving(false)
+  }
+
+  async function handleQuickGenerate() {
+    const question = quickCreateQuestion.trim()
+    if (!question) return
+    setQuickCreateLoading(true)
+    setQuickCreateError('')
+    try {
+      let created
+      try {
+        created = await api.createTutorRoleFromQuestion({ question })
+      } catch {
+        const profile = await api.getProfile().catch(() => null)
+        const fallback = buildLocalTutorRole(question, profile)
+        created = await api.createTutorRole(fallback)
+      }
+      setRoles((prev) => [created, ...prev])
+      setSelectedId(created.id)
+      setDraft({
+        name: created.name,
+        persona: created.persona,
+        background: created.background,
+        styleGuide: created.styleGuide,
+        rules: created.rules,
+      })
+      setIsNew(false)
+      setQuickCreateOpen(false)
+      setQuickCreateQuestion('')
+      localStorage.setItem(PENDING_ROLE_ID_KEY, String(created.id))
+      router.push('/tutor')
+    } catch (error) {
+      setQuickCreateError(error instanceof Error ? error.message : '生成失败，请重试')
+    }
+    setQuickCreateLoading(false)
+  }
+
+  function buildLocalTutorRole(question: string, profile: StudentProfile | null) {
+    const analysis = analyzeTutorQuestion(question, profile)
+    const pool = buildLocalRoleDimensionPool(analysis)
+    return {
+      name: pool.name,
+      persona: `角色身份：${pool.roleIdentity}\n服务场景：${pool.serviceScenarios}`,
+      background: `专属工作流：${pool.workflow}`,
+      styleGuide: `输出格式：${pool.outputFormat}`,
+      rules: `禁止事项：${pool.prohibitions}\n\n示例对话（2-3 轮短示例）：\n${pool.sampleDialogue}`,
+    }
+  }
+
+  function buildLocalRoleDimensionPool(analysis: TutorQuestionAnalysis) {
+    return {
+      name: deriveLocalTutorName(analysis),
+      roleIdentity: `你是${analysis.subjectLabel}领域的${analysis.archetype}导师，核心任务是围绕${analysis.intentLabel}展开，结合学习目标“${analysis.goals}”与薄弱点“${analysis.weakPoints}”提供具体、可执行的带学支持。`,
+      serviceScenarios: `适配${analysis.stage}阶段的学习者，重点覆盖与${analysis.subjectLabel}相关的概念理解、题目讲解、错题复盘、学习规划或陪练训练等场景，并根据学习偏好“${analysis.preference}”调整节奏。`,
+      workflow: '1. 先判断用户问题属于哪类场景；2. 再结合学习画像选择讲解深度；3. 先给结论和方向，再拆步骤；4. 如果有题目，优先拆题再示范；5. 最后补一个最小练习或自检点。',
+      outputFormat: '固定按“先结论、再步骤、再示例、最后检查点”的顺序输出；每一步保持短句、明确、可执行；必要时用项目符号分段，避免长段堆叠。',
+      prohibitions: '不要直接复述用户原句；不要把用户输入当作角色设定文本；不要一上来只给最终答案；不要空泛鼓励或泛化建议；不要忽略学习画像中的目标、薄弱点和偏好。',
+      sampleDialogue: '用户：我想补函数。\n导师：先判断你卡在定义、图像还是性质，再从最容易补的点开始。\n用户：我总是看不懂题目。\n导师：那我们先拆题干，标出已知条件和求解目标，再做一步最小练习。',
+    }
+  }
+
+  function analyzeTutorQuestion(question: string, profile: StudentProfile | null): TutorQuestionAnalysis {
+    const text = question.trim()
+    const keywords = ['高中数学', '数学', '函数', '英语', '物理', '化学', '生物', '语文', '历史', '地理', '编程', '代码', '算法', '作文', '竞赛', '面试', '考研', '考公']
+    const found = keywords.filter((kw) => text.includes(kw))
+    let subjectLabel = '通用学习'
+    if (found.length > 0) {
+      subjectLabel = found[0]
+      if (found[0] === '高中数学' && found.includes('函数')) subjectLabel = '高中数学函数'
+      else if (found.length >= 2) subjectLabel = `${found[0]}${found[1]}`
+    }
+
+    let intentLabel = '学习辅导'
+    if (text.includes('补') && subjectLabel !== '通用学习') intentLabel = '提分强化'
+    else if (['补基础', '提分', '冲刺', '备考', '刷题', '复习', '提纲', '串讲'].some((kw) => text.includes(kw))) intentLabel = '提分强化'
+    else if (['作业', '不会', '讲解', '思路', '解题', '题目'].some((kw) => text.includes(kw))) intentLabel = '讲解答疑'
+    else if (['错题', '纠错', '改错', '反思', '漏洞'].some((kw) => text.includes(kw))) intentLabel = '纠错复盘'
+    else if (['规划', '计划', '路线', '安排'].some((kw) => text.includes(kw))) intentLabel = '学习规划'
+    else if (['练习', '陪练', '训练', '训练营'].some((kw) => text.includes(kw))) intentLabel = '陪练训练'
+    else if (['方法', '技巧', '模板', '框架'].some((kw) => text.includes(kw))) intentLabel = '方法拆解'
+
+    let archetype = '讲解型'
+    if (['提分强化', '纠错复盘', '讲解答疑'].includes(intentLabel)) archetype = '提分型'
+    else if (intentLabel === '学习规划') archetype = '规划型'
+    else if (intentLabel === '陪练训练') archetype = '陪练型'
+    else if (intentLabel === '方法拆解') archetype = '拆解型'
+
+    const goals = profile?.goals?.slice(0, 2).filter(Boolean).join('、') || '当前学习目标'
+    const weakPoints = profile?.weakPoints?.slice(0, 3).filter(Boolean).join('、') || '当前薄弱点'
+    const preference = profile?.learningPreference?.slice(0, 3).filter(Boolean).join('、') || '循序渐进'
+    const stage = profile?.currentStage || '当前阶段'
+    return { subjectLabel, intentLabel, archetype, stage, goals, weakPoints, preference }
+  }
+
+  function deriveLocalTutorName(analysis: TutorQuestionAnalysis) {
+    if (analysis.subjectLabel === '通用学习') {
+      return analysis.intentLabel === '学习辅导' ? '个性化导师' : `${analysis.intentLabel}导师`
+    }
+    if (analysis.intentLabel === '学习辅导') return `${analysis.subjectLabel}导师`
+    return `${analysis.subjectLabel}${analysis.intentLabel}导师`.slice(0, 16)
   }
 
   async function handleDelete(roleId: number) {
@@ -265,6 +381,12 @@ export default function RolesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button className="px-3 py-2 rounded-xl border border-[#e2e8f0] text-sm text-[#64748b] hover:bg-[#f8fafc] transition-colors">预览角色</button>
+                  <button
+                    onClick={() => setQuickCreateOpen(true)}
+                    className="px-3 py-2 rounded-xl border border-[#dbe4f0] bg-white text-sm text-[#2563eb] hover:bg-[#eff6ff] transition-colors flex items-center gap-1.5"
+                  >
+                    <Sparkles className="w-4 h-4" /> 一句话创建
+                  </button>
                   <button onClick={handleSave} disabled={saving || !draft.name.trim()} className="px-4 py-2 rounded-xl bg-[#2563eb] text-white text-sm font-semibold hover:bg-[#1d4ed8] disabled:opacity-40 transition-colors flex items-center gap-1.5">
                     <Save className="w-4 h-4" /> 保存
                   </button>
@@ -497,6 +619,58 @@ export default function RolesPage() {
           </aside>
         )}
       </main>
+
+      {quickCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-[640px] rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
+            <div className="flex items-center justify-between border-b border-[#eef1f5] px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[#1e293b]">一句话创建个性化导师</h3>
+                <p className="mt-1 text-sm text-[#64748b]">输入你的问题，我会结合学习画像直接生成并启用这个导师。</p>
+              </div>
+              <button
+                onClick={() => setQuickCreateOpen(false)}
+                className="rounded-full p-2 text-[#94a3b8] hover:bg-[#f8fafc] hover:text-[#1e293b] transition-colors"
+                aria-label="关闭弹窗"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5">
+              <label className="mb-2 block text-sm font-medium text-[#334155]">一句话描述你的需求</label>
+              <textarea
+                value={quickCreateQuestion}
+                onChange={(e) => setQuickCreateQuestion(e.target.value)}
+                className="min-h-[160px] w-full resize-none rounded-2xl border border-[#dbe4f0] px-4 py-3 text-sm leading-6 text-[#0f172a] outline-none transition-colors placeholder:text-[#94a3b8] focus:border-[#2563eb]"
+                placeholder="例如：我需要一个能结合我薄弱点、适合高中数学函数题、讲解清楚但不直接给答案的导师"
+              />
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-[#94a3b8]">系统会结合你当前的学习画像自动生成导师设定。</p>
+                  {quickCreateError && <p className="text-xs text-red-500">{quickCreateError}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQuickCreateOpen(false)}
+                    className="rounded-xl border border-[#e2e8f0] px-4 py-2 text-sm font-medium text-[#475569] hover:bg-[#f8fafc] transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={() => void handleQuickGenerate()}
+                    disabled={quickCreateLoading || !quickCreateQuestion.trim()}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2563eb] to-[#60a5fa] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-opacity disabled:opacity-50"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {quickCreateLoading ? '正在生成...' : '生成并启用'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

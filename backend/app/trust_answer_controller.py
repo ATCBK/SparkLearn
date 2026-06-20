@@ -85,8 +85,10 @@ class TrustAnswerController:
             f"[角色设定]\n{req.role_prompt}\n\n"
             f"[页面上下文]\n{req.page_prompt}\n\n"
             f"[学习记忆]\n{req.memory_prompt}\n\n"
+            f"[MCP 工具结果]\n{req.mcp_prompt}\n\n"
             f"[证据片段]\n{evidence_block}\n\n"
             f"[用户问题]\n{req.query}\n\n"
+            "如果 MCP 工具结果存在，请直接使用它们给出结论，不要再回答“无法直接查询”之类的泛化回复。\n"
             "请直接输出最终回答正文。"
         )
 

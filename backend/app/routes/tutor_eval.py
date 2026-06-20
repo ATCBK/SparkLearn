@@ -45,6 +45,49 @@ class TutorReq(BaseModel):
     model: str = ""
 
 
+def _page_context_modes(page_context: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(page_context, dict):
+        return {}
+    modes = page_context.get('modes')
+    return modes if isinstance(modes, dict) else {}
+
+
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return False
+
+
+def _effective_mode(req: TutorReq) -> str:
+    raw_mode = (req.mode or '').strip()
+    if raw_mode and raw_mode != 'knowledge_qa':
+        return raw_mode
+    modes = _page_context_modes(req.page_context)
+    if _coerce_bool(modes.get('image_mode')):
+        return 'image_gen'
+    return raw_mode or 'knowledge_qa'
+
+
+def _effective_web_search(req: TutorReq) -> bool:
+    if req.web_search:
+        return True
+    modes = _page_context_modes(req.page_context)
+    return _coerce_bool(modes.get('web_search'))
+
+
+def _effective_model(req: TutorReq) -> str:
+    raw_model = (req.model or '').strip()
+    if raw_model:
+        return raw_model
+    modes = _page_context_modes(req.page_context)
+    model = modes.get('model')
+    return str(model).strip() if model is not None else ""
+
+
 def _build_mcp_tools_prompt() -> str:
     """查询已启用的 MCP 服务，构建工具描述文本用于注入 system prompt。"""
     rows = fetch_all(
@@ -171,9 +214,21 @@ def _infer_mcp_tool_args(question: str, tool_name: str, tool_desc: str) -> dict[
 
 
 def _extract_weather_city(question: str) -> str:
-    text = re.sub(r"https?://\S+", "", question)
+    text = str(question or "")
+    for marker in [
+        "用户已生成资源库上下文",
+        "资源库上下文",
+        "资源推荐或学习建议时优先引用",
+        "只引用下列真实存在",
+        "<mcp_available_tools>",
+    ]:
+        idx = text.find(marker)
+        if idx >= 0:
+            text = text[:idx]
+    text = re.sub(r"https?://\S+", "", text)
     text = re.sub(r"[，。！？,.!?；;：:\n\r\t]", " ", text)
     for token in [
+        "get_weather", "weather_query",
         "帮我", "请", "查询", "查找", "查一下", "查", "看一下", "看看", "告诉我", "一下",
         "今天", "明天", "后天", "现在", "当前", "实时", "的", "天气", "气温", "温度", "预报",
         "weather", "forecast", " in ", " for ",
@@ -208,24 +263,7 @@ def _is_image_mode(mode: str) -> bool:
 
 
 def _resolve_effective_file_ids(conversation_id: int, requested_file_ids: list[int]) -> list[int]:
-    explicit = [int(x) for x in (requested_file_ids or []) if int(x) > 0]
-    if explicit:
-        return explicit
-    row = fetch_one(
-        """
-        SELECT file_ids
-        FROM tutor_messages
-        WHERE user_id = ? AND conversation_id = ? AND sender_role = 'user' AND file_ids IS NOT NULL AND file_ids <> '[]'
-        ORDER BY id DESC
-        LIMIT 1
-        """,
-        (settings.single_user_id, conversation_id),
-    )
-    if row:
-        ids = _parse_json_list(row['file_ids'])
-        if ids:
-            return ids
-    return []
+    return [int(x) for x in (requested_file_ids or []) if int(x) > 0]
 
 
 class EvalRefreshReq(BaseModel):
@@ -688,7 +726,11 @@ async def tutor_chat(req: TutorReq):
         # 联网搜索：在调用 LLM 之前执行 Tavily 搜索并将结果注入 system prompt
         # 知识逆构模式自行处理多角度搜索，此处跳过避免重复
         search_results: list[dict[str, Any]] = []
-        if req.web_search and req.message.strip() and req.mode != 'knowledge_reverse':
+        effective_mode = _effective_mode(req)
+        effective_web_search = _effective_web_search(req)
+        effective_model = _effective_model(req)
+
+        if effective_web_search and req.message.strip() and effective_mode != 'knowledge_reverse':
             search_results = search_web(req.message.strip())
         if search_results:
             yield ('search_results', {'items': search_results})
@@ -869,7 +911,7 @@ async def tutor_chat(req: TutorReq):
                 yield ('search_results', {'items': deduped})
                 reverse_prompt = _build_reverse_engineering_prompt(req.message, deduped, role_prompt)
                 assistant_parts = []
-                async for evt_type, payload in spark_lite.stream_chat_events(reverse_prompt, mode='knowledge_qa', history=[], model=req.model):
+                async for evt_type, payload in spark_lite.stream_chat_events(reverse_prompt, mode='knowledge_qa', history=[], model=effective_model):
                     if evt_type == 'text':
                         chunk = str(payload.get('content', ''))
                         if chunk:
@@ -881,7 +923,7 @@ async def tutor_chat(req: TutorReq):
                 if not answer:
                     answer = '知识逆构分析未能生成结果，请尝试更具体地描述你的学习目标。'
                     yield ('text', {'content': answer})
-            elif _is_image_mode(req.mode):
+            elif _is_image_mode(effective_mode):
                 image_b64 = await generate_image_base64(
                     prompt=req.message,
                     width=512,
@@ -930,18 +972,19 @@ async def tutor_chat(req: TutorReq):
                         yield ('text', {'content': answer})
             else:
                 trust_plan = await trust_answer_controller.plan(
-                    TrustAnswerRequest(
-                        scene='tutor',
-                        query=req.message,
-                        mode=req.mode,
-                        role_prompt=role_prompt,
-                        page_prompt=page_prompt,
-                        memory_prompt=memory_prompt,
-                        conversation_id=conversation_id,
-                        file_ids=effective_file_ids,
-                        knowledge_file_ids=req.knowledge_file_ids or [],
-                        user_file_sources=file_sources,
-                        web_search_results=search_results,
+                TrustAnswerRequest(
+                    scene='tutor',
+                    query=req.message,
+                    mode=effective_mode,
+                    role_prompt=role_prompt,
+                    page_prompt=page_prompt,
+                    memory_prompt=memory_prompt,
+                    mcp_prompt=mcp_context,
+                    conversation_id=conversation_id,
+                    file_ids=effective_file_ids,
+                    knowledge_file_ids=req.knowledge_file_ids or [],
+                    user_file_sources=file_sources,
+                    web_search_results=search_results,
                         use_profile=True,
                     )
                 )
@@ -971,7 +1014,7 @@ async def tutor_chat(req: TutorReq):
                             },
                         )
                 answer_parts: list[str] = []
-                async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=req.mode, history=[], model=req.model):
+                async for evt_type, payload in spark_lite.stream_chat_events(str(trust_plan['prompt']), mode=effective_mode, history=[], model=effective_model):
                     if evt_type == 'text':
                         chunk = str(payload.get('content', ''))
                         if chunk:
@@ -1002,11 +1045,11 @@ async def tutor_chat(req: TutorReq):
                         'citations': citations_payload,
                         'trust_meta': trust_meta_payload,
                         'open_mode': bool(req.open_mode),
-                        'web_search': bool(req.web_search),
+                        'web_search': bool(effective_web_search),
                         'mcp_enabled': bool(req.mcp_enabled),
                         'mcp_calls': mcp_calls_payload,
                         'search_results': search_results,
-                        'mode': req.mode,
+                        'mode': effective_mode,
                     },
                     ensure_ascii=False,
                 ),
