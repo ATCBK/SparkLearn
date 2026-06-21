@@ -16,20 +16,20 @@ const defaultMessages: TutorMessage[] = []
 
 const quickQuestions = [
   {
-    title: '帮我梳理这章最重要的 3 个知识点',
-    question: '帮我梳理这章最重要的 3 个知识点，并用适合复习的方式讲清楚。',
+    title: '用例子讲清 Python return',
+    question: '请用生活例子和代码例子讲清楚 Python 里的 return，并说明它和 print 的区别。',
   },
   {
-    title: '根据我现在的情况推荐今天先学什么',
-    question: '根据我现在的学习情况，推荐我今天应该先学什么，并说明原因。',
+    title: '闭包和 nonlocal 怎么理解',
+    question: '请用适合初学者的方式讲解 Python 闭包和 nonlocal，并给我一个能手写的例子。',
   },
   {
-    title: '把这个知识点讲到我能马上做题',
-    question: '把这个知识点讲到我能马上做题，先讲思路，再给例题。',
+    title: '生成函数返回值练习题',
+    question: '请围绕 Python 函数返回值生成 5 道由易到难的练习题，并附上答案和解析。',
   },
   {
-    title: '给我 3 个最容易混淆的考点提醒',
-    question: '给我 3 个最容易混淆的考点提醒，并告诉我怎么避免做错。',
+    title: '规划 7 天 Python 入门路径',
+    question: '请帮我规划 7 天 Python 入门学习路径，每天包含学习目标、练习任务和复习重点。',
   },
 ]
 
@@ -689,7 +689,6 @@ export default function TutorPage() {
     try {
       const activeConversationId = await ensureConversation()
       if (videoModeEnabled) {
-        Taro.showLoading({ title: '正在生成视频' })
         const videoJob = await createVideoJob({
           prompt: text,
           title: text.slice(0, 40),
@@ -762,9 +761,6 @@ export default function TutorPage() {
       }))
       Taro.showToast({ title: videoModeEnabled ? '视频生成失败' : '发送失败', icon: 'none' })
     } finally {
-      if (videoModeEnabled) {
-        Taro.hideLoading()
-      }
       setStreaming(false)
     }
   }
