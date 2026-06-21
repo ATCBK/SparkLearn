@@ -118,6 +118,7 @@ const resourceTypeLabel: Record<Resource['type'], string> = {
   video: '视频',
   blog: '博客',
   discovery: '学习发现',
+  web_material: '网页资料',
 }
 
 function isResourceRecommendationQuery(text: string) {

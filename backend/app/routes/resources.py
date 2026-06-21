@@ -6,6 +6,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from html import escape
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
@@ -16,7 +17,7 @@ from pydantic import BaseModel
 
 from ..coze import coze_adapter
 from ..config import settings
-from ..db import fetch_one
+from ..db import execute, fetch_all, fetch_one
 from ..llm import spark_lite
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
@@ -74,6 +75,7 @@ async def get_resources():
             "source_url": None,
             "progress": 100,
         })
+    resources.extend(_web_material_resources())
     return ok(resources)
 
 
@@ -390,6 +392,19 @@ async def download_resource_source(resource_id: str):
 
 @router.delete("/{resource_id}")
 async def delete_resource(resource_id: str):
+    if resource_id.startswith("webmat-"):
+        file_id = _web_material_id(resource_id)
+        if file_id:
+            row = fetch_one("SELECT id, stored_path FROM tutor_files WHERE id = ? AND user_id = ? AND source_type = 'web_capture'", (file_id, settings.single_user_id))
+            if row:
+                path = Path(str(row["stored_path"] or ""))
+                if path.exists() and path.is_file():
+                    path.unlink()
+                execute("DELETE FROM tutor_file_chunks WHERE file_id = ?", (file_id,))
+                execute("DELETE FROM tutor_files WHERE id = ? AND user_id = ?", (file_id, settings.single_user_id))
+                return ok({"resource_id": resource_id, "deleted": True})
+        return ok({"resource_id": resource_id, "deleted": False})
+
     resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
     before = len(resources)
     next_resources = [r for r in resources if str(r.get("id", "")) != resource_id]
@@ -763,11 +778,72 @@ def _parse_code_evaluation_json(raw: str) -> dict[str, Any] | None:
 
 
 def _find_resource(resource_id: str) -> dict[str, Any] | None:
+    if resource_id.startswith("webmat-"):
+        return _find_web_material_resource(resource_id)
     resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
     for item in resources:
         if str(item.get("id", "")) == resource_id:
             return item
     return None
+
+
+def _web_material_id(resource_id: str) -> int | None:
+    match = re.fullmatch(r"webmat-(\d+)", resource_id or "")
+    return int(match.group(1)) if match else None
+
+
+def _web_material_resources() -> list[dict[str, Any]]:
+    rows = fetch_all(
+        """
+        SELECT *
+        FROM tutor_files
+        WHERE user_id = ? AND source_type = 'web_capture'
+        ORDER BY created_at DESC, id DESC
+        """,
+        (settings.single_user_id,),
+    )
+    return [_web_material_row_to_resource(row, include_content=False) for row in rows]
+
+
+def _find_web_material_resource(resource_id: str) -> dict[str, Any] | None:
+    file_id = _web_material_id(resource_id)
+    if not file_id:
+        return None
+    row = fetch_one(
+        "SELECT * FROM tutor_files WHERE id = ? AND user_id = ? AND source_type = 'web_capture'",
+        (file_id, settings.single_user_id),
+    )
+    return _web_material_row_to_resource(row, include_content=True) if row else None
+
+
+def _web_material_row_to_resource(row, include_content: bool = False) -> dict[str, Any]:
+    analysis = _safe_json_dict(row["analysis_json"] if "analysis_json" in row.keys() else "{}")
+    content = ""
+    path = Path(str(row["stored_path"] or ""))
+    if include_content and path.exists() and path.is_file():
+        content = path.read_text(encoding="utf-8", errors="ignore")
+    return {
+        "id": f"webmat-{int(row['id'])}",
+        "title": str(row["filename"] or "网页资料"),
+        "type": "web_material",
+        "status": str(row["status"] or "completed") if "status" in row.keys() else "completed",
+        "created_at": str(row["created_at"] or ""),
+        "updated_at": str(row["updated_at"] or row["created_at"] or "") if "updated_at" in row.keys() else str(row["created_at"] or ""),
+        "content": content,
+        "source_url": str(row["source_url"] or "") if "source_url" in row.keys() else "",
+        "progress": 100,
+        "analysis": analysis,
+        "source_type": "web_capture",
+        "file_id": int(row["id"]),
+    }
+
+
+def _safe_json_dict(raw: Any) -> dict[str, Any]:
+    try:
+        value = json.loads(raw or "{}")
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        return {}
 
 
 async def _fetch_url_text(url: str) -> str:

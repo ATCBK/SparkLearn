@@ -19,6 +19,7 @@ export const api = {
   analyzeProfileHistory: impl.analyzeProfileHistory,
 
   getResources: impl.getResources,
+  getResource: impl.getResource,
   deleteResource: impl.deleteResource,
   getResourcePreview: impl.getResourcePreview,
   downloadResource: impl.downloadResource,
@@ -42,6 +43,7 @@ export const api = {
   deleteTutorMessage: impl.deleteTutorMessage,
   uploadTutorFiles: impl.uploadTutorFiles,
   getTutorFiles: impl.getTutorFiles,
+  getTutorFile: impl.getTutorFile,
   deleteTutorFile: impl.deleteTutorFile,
 
   getQuizQuestions: impl.getQuizQuestions,

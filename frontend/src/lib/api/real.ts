@@ -88,14 +88,25 @@ function toResource(raw: any): Resource {
   const rawSubtitleUrl = raw.subtitleUrl || raw.subtitle_url || ''
   const rawTimelineUrl = raw.timelineUrl || raw.timeline_url || ''
   const rawSceneUrl = raw.sceneUrl || raw.scene_url || ''
+  const rawAnalysis = raw.analysis && typeof raw.analysis === 'object' ? raw.analysis : {}
   return {
     id: raw.id,
     title: raw.title,
     type: raw.type,
     status: raw.status,
     createdAt: raw.createdAt || raw.created_at,
+    updatedAt: raw.updatedAt || raw.updated_at,
     content: raw.content,
     sourceUrl: raw.sourceUrl || raw.source_url,
+    sourceType: raw.sourceType || raw.source_type,
+    fileId: raw.fileId || raw.file_id,
+    analysis: raw.analysis && typeof raw.analysis === 'object' ? {
+      summary: String(rawAnalysis.summary || ''),
+      key_points: Array.isArray(rawAnalysis.key_points) ? rawAnalysis.key_points.map((x: unknown) => String(x)) : [],
+      audience: String(rawAnalysis.audience || ''),
+      learning_method: String(rawAnalysis.learning_method || ''),
+      lecture_script: String(rawAnalysis.lecture_script || ''),
+    } : undefined,
     videoUrl: rawVideoUrl ? `${API_BASE}${rawVideoUrl}` : undefined,
     audioUrl: rawAudioUrl ? `${API_BASE}${rawAudioUrl}` : undefined,
     subtitleUrl: rawSubtitleUrl ? `${API_BASE}${rawSubtitleUrl}` : undefined,
@@ -253,6 +264,11 @@ export async function analyzeProfileHistory(): Promise<ProfileAnalysisResp> {
 export async function getResources(): Promise<Resource[]> {
   const resources = await fetchJson<any[]>('/api/resources')
   return sortResourcesByLatest(resources.map(toResource))
+}
+
+export async function getResource(resourceId: string): Promise<Resource> {
+  const resource = await fetchJson<any>(`/api/resources/${resourceId}`)
+  return toResource(resource)
 }
 
 export async function deleteResource(resourceId: string): Promise<void> {
@@ -749,22 +765,39 @@ export async function uploadTutorFiles(files: File[]): Promise<TutorFile[]> {
   const res = await fetch(`${API_BASE}/api/tutor/files`, { method: 'POST', body: form })
   const json = await res.json() as ApiResp<any[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
-  return (json.data || []).map(f => ({
-    id: Number(f.id),
-    filename: String(f.filename || ''),
-    mimeType: String(f.mime_type || ''),
-    sizeBytes: Number(f.size_bytes || 0),
-  }))
+  return (json.data || []).map(toTutorFile)
 }
 
 export async function getTutorFiles(): Promise<TutorFile[]> {
   const data = await fetchJson<any[]>('/api/tutor/files')
-  return (data || []).map(f => ({
+  return (data || []).map(toTutorFile)
+}
+
+export async function getTutorFile(fileId: number): Promise<TutorFile> {
+  const data = await fetchJson<any>(`/api/tutor/files/${fileId}`)
+  return toTutorFile(data)
+}
+
+function toTutorFile(f: any): TutorFile {
+  return {
     id: Number(f.id),
     filename: String(f.filename || ''),
     mimeType: String(f.mime_type || ''),
     sizeBytes: Number(f.size_bytes || 0),
-  }))
+    sourceType: String(f.source_type || 'upload'),
+    sourceUrl: String(f.source_url || ''),
+    status: String(f.status || 'ready'),
+    analysis: f.analysis && typeof f.analysis === 'object' ? {
+      summary: String(f.analysis.summary || ''),
+      key_points: Array.isArray(f.analysis.key_points) ? f.analysis.key_points.map((x: unknown) => String(x)) : [],
+      audience: String(f.analysis.audience || ''),
+      learning_method: String(f.analysis.learning_method || ''),
+      lecture_script: String(f.analysis.lecture_script || ''),
+    } : {},
+    content: f.content !== undefined ? String(f.content || '') : undefined,
+    createdAt: String(f.created_at || ''),
+    updatedAt: String(f.updated_at || ''),
+  }
 }
 
 export async function deleteTutorFile(fileId: number): Promise<void> {

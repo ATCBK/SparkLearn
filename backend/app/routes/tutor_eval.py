@@ -45,6 +45,13 @@ class TutorReq(BaseModel):
     model: str = ""
 
 
+class WebCaptureReq(BaseModel):
+    title: str = ""
+    url: str = ""
+    text: str
+    excerpt: str = ""
+
+
 def _page_context_modes(page_context: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(page_context, dict):
         return {}
@@ -619,14 +626,66 @@ async def upload_tutor_file(files: list[UploadFile] = File(...)):
     return ok(saved)
 
 
+@router.post('/tutor/files/web-capture')
+async def import_web_capture(req: WebCaptureReq):
+    text = _clean_web_material_text(req.text or req.excerpt)
+    if not text:
+        return fail('网页正文为空，无法保存到我的资料')
+
+    title = _clean_web_material_title(req.title, req.url)
+    uploads_dir = settings.data_dir / 'users' / settings.single_user_id / 'uploads'
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    ts = now_iso()
+    raw = text.encode('utf-8')
+    analysis = await _analyze_web_material(title, req.url, text)
+
+    file_id = _execute_returning_id(
+        """
+        INSERT INTO tutor_files(
+          user_id, filename, stored_path, mime_type, size_bytes,
+          source_type, source_url, status, analysis_json, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            settings.single_user_id,
+            title,
+            '',
+            'text/plain; charset=utf-8',
+            len(raw),
+            'web_capture',
+            req.url.strip(),
+            'ready',
+            json.dumps(analysis, ensure_ascii=False),
+            ts,
+            ts,
+        ),
+    )
+
+    stored_path = uploads_dir / f'{file_id}_{uuid.uuid4().hex[:8]}_web.txt'
+    stored_path.write_text(text, encoding='utf-8')
+    execute('UPDATE tutor_files SET stored_path = ? WHERE id = ?', (str(stored_path), file_id))
+    await _index_tutor_file(file_id=file_id, stored_path=stored_path, filename=title + '.txt', mime_type='text/plain')
+    row = fetch_one('SELECT * FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, settings.single_user_id))
+    append_jsonl(settings.single_user_id, 'web_material_imports.jsonl', {'file_id': file_id, 'title': title, 'url': req.url.strip(), 'created_at': ts})
+    return ok(_tutor_file_row_to_dict(row, include_content=True))
+
+
 @router.get('/tutor/files')
 async def list_tutor_files():
     """列出用户上传过的所有文件"""
     rows = fetch_all(
-        'SELECT id, filename, mime_type, size_bytes, created_at FROM tutor_files WHERE user_id = ? ORDER BY created_at DESC',
+        "SELECT * FROM tutor_files WHERE user_id = ? AND COALESCE(source_type, 'upload') != 'web_capture' ORDER BY created_at DESC",
         (settings.single_user_id,),
     )
-    return ok([dict(r) for r in rows])
+    return ok([_tutor_file_row_to_dict(r) for r in rows])
+
+
+@router.get('/tutor/files/{file_id}')
+async def get_tutor_file(file_id: int):
+    row = fetch_one('SELECT * FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, settings.single_user_id))
+    if not row:
+        raise HTTPException(status_code=404, detail='文件不存在')
+    return ok(_tutor_file_row_to_dict(row, include_content=True))
 
 
 @router.delete('/tutor/files/{file_id}')
@@ -760,6 +819,8 @@ async def tutor_chat(req: TutorReq):
                         'ok': bool(item.get('ok', False)),
                         'status': str(item.get('status', 'running')),
                         'error': str(item.get('error', '')),
+                        'result_preview': str(item.get('result_preview', '')),
+                        'result_context': str(item.get('result_context', '')),
                     },
                 )
             mcp_context = "\n\n".join(mcp_context_blocks)
@@ -1861,6 +1922,123 @@ def _extract_text_for_tutor(path: Path, mime_type: str, filename: str) -> str:
     if suffix in {'.txt', '.md'} or mime_type.startswith('text/'):
         return path.read_text(encoding='utf-8', errors='ignore').strip()
     raise RuntimeError(f'unsupported format: {suffix or mime_type}')
+
+
+def _clean_web_material_text(text: str) -> str:
+    cleaned = (text or '').replace('\r\n', '\n').replace('\r', '\n')
+    cleaned = re.sub(r'[ \t]+', ' ', cleaned)
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned).strip()
+    if len(cleaned) < 20:
+        return ''
+    return cleaned[:60000]
+
+
+def _clean_web_material_title(title: str, url: str) -> str:
+    candidate = re.sub(r'\s+', ' ', (title or '').strip())
+    if not candidate:
+        candidate = re.sub(r'^https?://', '', (url or '').strip()).strip('/') or '网页资料'
+    candidate = re.sub(r'[\\/:*?"<>|]+', '_', candidate)
+    return candidate[:80] or '网页资料'
+
+
+def _safe_analysis_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()][:8]
+    if isinstance(value, str):
+        return [item.strip() for item in re.split(r'[；;\n]+', value) if item.strip()][:8]
+    return []
+
+
+def _normalize_web_material_analysis(data: dict[str, Any], title: str, text: str) -> dict[str, Any]:
+    summary = str(data.get('summary') or '').strip() or f'{title} 已保存为网页资料，可用于后续讲解和复习。'
+    key_points = _safe_analysis_list(data.get('key_points')) or _fallback_key_points(text)
+    audience = str(data.get('audience') or '').strip() or '适合正在围绕该主题学习、需要快速理解文章要点的学习者。'
+    learning_method = str(data.get('learning_method') or '').strip() or '建议先阅读 AI 讲解稿建立主线，再按关键知识点回看原文细节，最后用自己的话复述一遍。'
+    lecture_script = str(data.get('lecture_script') or '').strip() or _fallback_lecture_script(title, summary, key_points)
+    return {
+        'summary': summary[:600],
+        'key_points': key_points,
+        'audience': audience[:260],
+        'learning_method': learning_method[:360],
+        'lecture_script': lecture_script[:8000],
+    }
+
+
+def _fallback_key_points(text: str) -> list[str]:
+    sentences = [s.strip() for s in re.split(r'(?<=[。！？.!?])\s*', text) if len(s.strip()) > 8]
+    return sentences[:4] or ['已提取网页正文，可在资料详情中继续阅读。']
+
+
+def _fallback_lecture_script(title: str, summary: str, key_points: list[str]) -> str:
+    points = '\n'.join(f'{idx + 1}. {point}' for idx, point in enumerate(key_points[:5]))
+    return (
+        f'我们先把《{title}》当成一节小课来理解。\n\n'
+        f'这份资料的主线是：{summary}\n\n'
+        f'你可以重点抓住这几个内容：\n{points}\n\n'
+        '学习时不要一上来就背细节。先弄清楚作者想解决什么问题，再看每个关键点分别承担什么作用。'
+        '如果遇到抽象概念，可以尝试自己举一个生活例子或代码例子，把它变成能复述的话。'
+        '最后回到原文检查：哪些句子是在下定义，哪些句子是在举例，哪些句子是在提醒常见误区。'
+    )
+
+
+async def _analyze_web_material(title: str, url: str, text: str) -> dict[str, Any]:
+    sample = text[:9000]
+    prompt = (
+        '你是 SparkLearn 的资料讲解老师。用户从网页采集了一份学习资料，你的重点不是简单摘要，而是把它讲成一份学生能直接阅读的中文讲解内容。\n'
+        '只输出 JSON，不要输出 Markdown，不要输出额外说明。JSON 字段必须是：'
+        '{"summary":"摘要","key_points":["关键点1"],"audience":"适合人群","learning_method":"推荐学习方式","lecture_script":"讲解稿"}。\n\n'
+        '字段要求：\n'
+        '1. summary 用 1-2 句话说明资料主题，不要过长。\n'
+        '2. key_points 提取 3-6 个真正适合学习的知识点。\n'
+        '3. learning_method 要围绕“先读讲解稿，再回看原文，再复述/练习”。\n'
+        '4. lecture_script 是最重要字段，要写成完整讲解稿，包含：开场导入、核心概念解释、关键点分层讲解、必要例子、学习提醒。'
+        '语言要像老师讲课，避免只列提纲；长度建议 600-1200 字。\n\n'
+        f'网页标题：{title}\n'
+        f'网页地址：{url or "未提供"}\n'
+        f'网页正文：\n{sample}'
+    )
+    raw_parts: list[str] = []
+    try:
+        async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode='general', history=[]):
+            if evt_type == 'text':
+                chunk = str(payload.get('content', ''))
+                if chunk:
+                    raw_parts.append(chunk)
+        raw = ''.join(raw_parts).strip()
+        parsed = _parse_json_dict(_extract_first_json_object(raw))
+        return _normalize_web_material_analysis(parsed, title, text)
+    except Exception:
+        return _normalize_web_material_analysis({}, title, text)
+
+
+def _extract_first_json_object(text: str) -> str:
+    fenced = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text or '', flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        return fenced.group(1)
+    start = (text or '').find('{')
+    end = (text or '').rfind('}')
+    if start >= 0 and end > start:
+        return text[start:end + 1]
+    return '{}'
+
+
+def _tutor_file_row_to_dict(row, include_content: bool = False) -> dict[str, Any]:
+    data = {
+        'id': int(row['id']),
+        'filename': str(row['filename'] or ''),
+        'mime_type': str(row['mime_type'] or 'application/octet-stream'),
+        'size_bytes': int(row['size_bytes'] or 0),
+        'source_type': str(row['source_type'] or 'upload') if 'source_type' in row.keys() else 'upload',
+        'source_url': str(row['source_url'] or '') if 'source_url' in row.keys() else '',
+        'status': str(row['status'] or 'ready') if 'status' in row.keys() else 'ready',
+        'analysis': _parse_json_dict(row['analysis_json'] if 'analysis_json' in row.keys() else '{}'),
+        'created_at': str(row['created_at'] or ''),
+        'updated_at': str(row['updated_at'] or row['created_at'] or '') if 'updated_at' in row.keys() else str(row['created_at'] or ''),
+    }
+    if include_content:
+        path = Path(str(row['stored_path'] or ''))
+        data['content'] = path.read_text(encoding='utf-8', errors='ignore') if path.exists() and path.is_file() else ''
+    return data
 
 
 def _chunk_text_for_tutor(text: str, size: int = 700, overlap: int = 120) -> list[str]:

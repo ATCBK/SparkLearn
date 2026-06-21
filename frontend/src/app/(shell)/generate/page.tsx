@@ -88,7 +88,7 @@ function getDefaultVoiceTone(providerId: string): { speed: number; pitch: number
 }
 
 function typeLabel(type: string) {
-  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台', discovery: '学习发现' }
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台', discovery: '学习发现', web_material: '网页资料' }
   return map[type] || type
 }
 
@@ -102,6 +102,7 @@ const RESOURCE_TABS = [
   { value: 'mindmap', label: '思维导图' },
   { value: 'blog', label: '播客' },
   { value: 'discovery', label: '学习发现' },
+  { value: 'web_material', label: '网页资料' },
   { value: 'reading', label: '论坛分享' },
 ]
 
@@ -116,6 +117,7 @@ function resourceTypeText(type: string) {
     video: '视频',
     blog: '播客',
     discovery: '学习发现',
+    web_material: '网页资料',
   }
   return map[type] || typeLabel(type)
 }
@@ -130,6 +132,7 @@ function resourceIcon(type: string) {
     mindmap: { icon: <Brain className="h-5 w-5" />, tone: 'bg-[#fff7e6] text-[#f59e0b]' },
     blog: { icon: <Radio className="h-5 w-5" />, tone: 'bg-[#e6fbff] text-[#0891b2]' },
     discovery: { icon: <Globe className="h-5 w-5" />, tone: 'bg-[#f0fdf4] text-[#059669]' },
+    web_material: { icon: <Globe className="h-5 w-5" />, tone: 'bg-[#ecfeff] text-[#0891b2]' },
     reading: { icon: <BookOpen className="h-5 w-5" />, tone: 'bg-[#eefcf3] text-[#059669]' },
   }
   return map[type] || map.document
@@ -142,6 +145,12 @@ function resourceDate(value: string) {
   return date.toISOString().slice(0, 10)
 }
 
+function resourceOriginText(resource: Resource) {
+  if (resource.type === 'web_material') return '网页采集'
+  if (resource.type === 'reading') return '论坛导入'
+  return 'AI 生成'
+}
+
 function sortResourcesByLatest(resources: Resource[]) {
   return [...resources].sort((a, b) => {
     const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -151,6 +160,9 @@ function sortResourcesByLatest(resources: Resource[]) {
 }
 
 function resourceExcerpt(resource: Resource) {
+  if (resource.type === 'web_material') {
+    return resource.analysis?.summary || resource.content?.slice(0, 52) || '浏览器插件采集并解析的网页资料。'
+  }
   const plain = (resource.content || '')
     .replace(/[#*_`>\-[\]()]/g, ' ')
     .replace(/\s+/g, ' ')
@@ -205,6 +217,7 @@ function GeneratePageContent() {
   const [filter, setFilter] = useState('全部')
   const [libraryError, setLibraryError] = useState('')
   const [deletingResourceId, setDeletingResourceId] = useState('')
+  const [detailLoadingId, setDetailLoadingId] = useState('')
   const [qualityLoadingId, setQualityLoadingId] = useState('')
   const [qualityResults, setQualityResults] = useState<Record<string, ResourceQualityResult>>({})
   const [qualityDialogResourceId, setQualityDialogResourceId] = useState('')
@@ -399,10 +412,31 @@ function GeneratePageContent() {
     : resources.find(item => item.id === qualityDialogResourceId) || null
   const activeQualityResult = qualityDialogResourceId ? qualityResults[qualityDialogResourceId] || null : null
 
+  useEffect(() => {
+    if (view !== 'library' || !selected?.id || selected.type !== 'web_material' || selected.content) return
+    let mounted = true
+    setDetailLoadingId(selected.id)
+    void api.getResource(selected.id)
+      .then((detail) => {
+        if (!mounted) return
+        setResources(prev => prev.map(item => item.id === detail.id ? { ...item, ...detail } : item))
+      })
+      .catch((ex) => {
+        if (!mounted) return
+        setLibraryError(ex instanceof Error ? ex.message : '资源详情读取失败')
+      })
+      .finally(() => {
+        if (mounted) setDetailLoadingId('')
+      })
+    return () => {
+      mounted = false
+    }
+  }, [selected?.id, selected?.type, selected?.content, view])
+
   if (view === 'library') {
     const selectedIcon = selected ? resourceIcon(selected.type) : resourceIcon('document')
     const completedCount = resources.filter(r => r.status === 'completed').length
-    const previewUrl = selected?.sourceUrl
+    const previewUrl = selected?.sourceUrl && selected.type !== 'web_material'
       ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`
       : ''
 
@@ -502,7 +536,7 @@ function GeneratePageContent() {
                             <b className="line-clamp-1 min-w-0 text-small text-ink">{res.title}</b>
                             <span className="shrink-0 rounded-md bg-[#edf4ff] px-2 py-0.5 text-[11px] font-bold text-blue">{resourceTypeText(res.type)}</span>
                           </span>
-                          <span className="mt-1 block text-micro text-muted">AI 生成 · {resourceDate(res.createdAt)}</span>
+                          <span className="mt-1 block text-micro text-muted">{resourceOriginText(res)} · {resourceDate(res.createdAt)}</span>
                           <span className="mt-1 block line-clamp-1 text-micro text-muted">{resourceExcerpt(res)}</span>
                         </span>
                       )}
@@ -530,7 +564,10 @@ function GeneratePageContent() {
                         <h2 className="line-clamp-1 text-[20px] font-bold text-ink">{selected.title}</h2>
                         <span className="rounded-md bg-[#edf4ff] px-2 py-1 text-micro font-bold text-blue">{resourceTypeText(selected.type)}</span>
                       </div>
-                      <p className="mt-1 text-small text-muted">AI 生成 · {resourceDate(selected.createdAt)} · {selected.progress ?? 42}% 进度</p>
+                      <p className="mt-1 text-small text-muted">
+                        {resourceOriginText(selected)} · {resourceDate(selected.createdAt)}
+                        {selected.type === 'web_material' ? '' : ` · ${selected.progress ?? 42}% 进度`}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [&>*:last-child]:shrink-0 [&>*:nth-child(3)]:hidden [&>*:nth-child(5)]:hidden">
@@ -576,6 +613,8 @@ function GeneratePageContent() {
                           }))
                         })()}
                       />
+                    ) : selected.type === 'web_material' ? (
+                      <WebMaterialPreview resource={selected} loading={detailLoadingId === selected.id} />
                     ) : previewUrl ? (
                       <iframe title={selected.title} src={previewUrl} className="h-full min-h-[560px] w-full border-0" />
                     ) : selected.type === 'video' ? (
@@ -1151,6 +1190,68 @@ function GeneratePageContent() {
         result={activeQualityResult}
         onClose={() => setQualityDialogResourceId('')}
       />
+    </div>
+  )
+}
+
+function WebMaterialPreview({ resource, loading }: { resource: Resource; loading: boolean }) {
+  const analysis = resource.analysis || {}
+  const keyPoints = analysis.key_points || []
+
+  return (
+    <div className="mx-auto grid max-w-[920px] gap-5">
+      <div>
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-[#ecfeff] px-2.5 py-1 text-micro font-bold text-[#0891b2]">网页资料</span>
+          {resource.sourceUrl ? (
+            <a href={resource.sourceUrl} target="_blank" rel="noreferrer" className="min-w-0 truncate text-small font-semibold text-blue hover:underline">
+              {resource.sourceUrl}
+            </a>
+          ) : null}
+        </div>
+        {loading ? <p className="text-small text-muted">正在加载网页资料详情...</p> : null}
+      </div>
+
+      <section className="rounded-[18px] border border-[#bfdbfe] bg-[linear-gradient(180deg,#eff6ff_0%,#ffffff_100%)] p-6 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-blue" />
+          <b className="text-small text-blue">AI 讲解稿</b>
+        </div>
+        <h3 className="mt-3 text-[22px] font-bold leading-tight text-ink">先读这份讲解，再回看原文</h3>
+        <p className="mt-4 whitespace-pre-wrap text-[15px] leading-8 text-ink">{analysis.lecture_script || '讲解稿正在生成或暂无内容。'}</p>
+      </section>
+
+      <div className="grid grid-cols-[1.15fr_0.85fr] gap-4 max-[900px]:grid-cols-1">
+        <section className="rounded-[16px] bg-[#f8fafc] p-5">
+          <b className="text-small text-muted">讲解摘要</b>
+          <p className="mt-2 text-[15px] leading-7 text-ink">{analysis.summary || '这份网页资料暂未生成摘要。'}</p>
+        </section>
+        <section className="rounded-[16px] bg-[#f8fafc] p-5">
+          <b className="text-small text-muted">推荐学习方式</b>
+          <p className="mt-2 text-small leading-7 text-ink">{analysis.learning_method || '建议先读讲解稿，再回看原文。'}</p>
+        </section>
+      </div>
+
+      <section className="rounded-[16px] bg-[#f8fafc] p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <b className="text-small text-muted">辅助理解</b>
+          <span className="text-micro text-muted">{analysis.audience || '适合需要快速理解该网页内容的学习者'}</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {keyPoints.length ? keyPoints.map((point, index) => (
+            <span key={`${point}-${index}`} className="rounded-full bg-white px-3 py-1.5 text-small font-bold text-blue ring-1 ring-[#bfdbfe]">
+              {point}
+            </span>
+          )) : <span className="text-small text-muted">暂无关键知识点。</span>}
+        </div>
+      </section>
+
+      <section className="rounded-[16px] bg-white p-5 ring-1 ring-line">
+        <b className="text-small text-muted">网页原文</b>
+        <div className="mt-3 max-h-[360px] overflow-y-auto rounded-[12px] bg-[#f8fafc] p-4 text-small leading-7 text-ink">
+          <p className="whitespace-pre-wrap">{resource.content || '原文加载中，稍后会显示在这里。'}</p>
+        </div>
+      </section>
     </div>
   )
 }

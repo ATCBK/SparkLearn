@@ -117,6 +117,11 @@ def init_db() -> None:
               stored_path TEXT NOT NULL,
               mime_type TEXT DEFAULT 'application/octet-stream',
               size_bytes INTEGER NOT NULL,
+              source_type TEXT DEFAULT 'upload',
+              source_url TEXT DEFAULT '',
+              status TEXT DEFAULT 'ready',
+              analysis_json TEXT DEFAULT '{}',
+              updated_at TEXT DEFAULT '',
               created_at TEXT NOT NULL
             );
 
@@ -419,6 +424,7 @@ def init_db() -> None:
         _ensure_student_columns(conn)
         _ensure_knowledge_columns(conn)
         _ensure_tutor_message_columns(conn)
+        _ensure_tutor_file_columns(conn)
 
         timestamp = now_iso()
         conn.execute(
@@ -486,6 +492,20 @@ def _ensure_tutor_message_columns(conn: sqlite3.Connection) -> None:
     columns = {row['name'] for row in conn.execute('PRAGMA table_info(tutor_messages)').fetchall()}
     if 'meta_json' not in columns:
         conn.execute("ALTER TABLE tutor_messages ADD COLUMN meta_json TEXT DEFAULT '{}'")
+
+
+def _ensure_tutor_file_columns(conn: sqlite3.Connection) -> None:
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(tutor_files)').fetchall()}
+    if 'source_type' not in columns:
+        conn.execute("ALTER TABLE tutor_files ADD COLUMN source_type TEXT DEFAULT 'upload'")
+    if 'source_url' not in columns:
+        conn.execute("ALTER TABLE tutor_files ADD COLUMN source_url TEXT DEFAULT ''")
+    if 'status' not in columns:
+        conn.execute("ALTER TABLE tutor_files ADD COLUMN status TEXT DEFAULT 'ready'")
+    if 'analysis_json' not in columns:
+        conn.execute("ALTER TABLE tutor_files ADD COLUMN analysis_json TEXT DEFAULT '{}'")
+    if 'updated_at' not in columns:
+        conn.execute("ALTER TABLE tutor_files ADD COLUMN updated_at TEXT DEFAULT ''")
 
 
 def _seed_mastery(conn: sqlite3.Connection) -> None:

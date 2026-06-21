@@ -1,24 +1,35 @@
-import { Image, Input, ScrollView, Text, Video, View } from '@tarojs/components'
+import { Input, ScrollView, Text, Video, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import AppHeader from '../../components/AppHeader'
 import AppIcon from '../../components/AppIcon'
 import AppTabBar from '../../components/AppTabBar'
+import MarkdownMessage from '../../components/MarkdownMessage'
+import { joinApiUrl } from '../../services/apiClient'
 import { createConversation, createVideoJob, getRoles, requestTutorStream, requestVideoJobEvents, uploadTutorFile } from '../../services/tutorApi'
-import type { Citation, ConfidenceLevel, McpCall, TutorMessage, TutorRole, TutorStreamEvent, WorkshopPhase } from '../../types/tutor'
+import type { Citation, ConfidenceLevel, McpCall, ToolProcessStep, TutorMessage, TutorRole, TutorStreamEvent, WorkshopPhase } from '../../types/tutor'
 import { buildAskAiPrompt } from '../../utils/format'
 import { consumeAskAiContext, getTutorDraft, setTutorDraft } from '../../utils/storage'
 import './index.scss'
 
-const defaultMessages: TutorMessage[] = [
+const defaultMessages: TutorMessage[] = []
+
+const quickQuestions = [
   {
-    id: 'welcome',
-    role: 'assistant',
-    content: '你好，我是你的 AI 助学导师。直接提问即可，我会按照主平台 Tutor 的方式给你整理回答、引用和研讨会过程。',
-    confidence: 'high',
-    citations: [],
-    workshop: [],
-    mcpCalls: [],
+    title: '帮我梳理这章最重要的 3 个知识点',
+    question: '帮我梳理这章最重要的 3 个知识点，并用适合复习的方式讲清楚。',
+  },
+  {
+    title: '根据我现在的情况推荐今天先学什么',
+    question: '根据我现在的学习情况，推荐我今天应该先学什么，并说明原因。',
+  },
+  {
+    title: '把这个知识点讲到我能马上做题',
+    question: '把这个知识点讲到我能马上做题，先讲思路，再给例题。',
+  },
+  {
+    title: '给我 3 个最容易混淆的考点提醒',
+    question: '给我 3 个最容易混淆的考点提醒，并告诉我怎么避免做错。',
   },
 ]
 
@@ -26,24 +37,6 @@ const modelOptions = ['Lite', 'Pro', 'Deep']
 
 function nextId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.round(Math.random() * 10000)}`
-}
-
-function confidenceText(level?: ConfidenceLevel) {
-  if (level === 'medium') return '中可信'
-  if (level === 'low') return '低可信'
-  return '高可信'
-}
-
-function confidenceClass(level?: ConfidenceLevel) {
-  if (level === 'medium') return 'trust-badge--medium'
-  if (level === 'low') return 'trust-badge--low'
-  return 'trust-badge--high'
-}
-
-function confidenceDot(level?: ConfidenceLevel) {
-  if (level === 'medium') return 'status-dot--orange'
-  if (level === 'low') return 'status-dot--red'
-  return 'status-dot--green'
 }
 
 function normalizeConfidence(event: TutorStreamEvent): ConfidenceLevel {
@@ -54,32 +47,50 @@ function normalizeConfidence(event: TutorStreamEvent): ConfidenceLevel {
   return 'high'
 }
 
-function assistantStateText(message: TutorMessage) {
-  if (message.streaming) return '正在生成'
-  if (message.error) return '请重试'
-  return '已完成'
-}
-
-function workshopStateText(enabled: boolean) {
-  return enabled ? '研讨会模式已开启' : '单导师回答'
-}
-
-function phaseLabel(item: WorkshopPhase) {
-  return item.phase || item.role || '研讨阶段'
-}
-
-function phaseContent(item: WorkshopPhase) {
-  return item.summary || item.content || item.role || item.phase || '研讨会过程更新'
-}
-
 function appendMessageUpdate(messageId: string, updater: (message: TutorMessage) => TutorMessage) {
   return (messages: TutorMessage[]) => messages.map((message) => (message.id === messageId ? updater(message) : message))
+}
+
+function appendToolStep(messageId: string, step: ToolProcessStep) {
+  return appendMessageUpdate(messageId, (message) => {
+    const current = message.toolSteps || []
+    const next = current.some((item) => item.id === step.id)
+      ? current.map((item) => (item.id === step.id ? { ...item, ...step } : item))
+      : [...current, step]
+    return { ...message, toolSteps: next }
+  })
+}
+
+function mcpStatusLabel(status: string) {
+  if (status === 'discovering') return '正在发现工具'
+  if (status === 'running') return '正在调用工具'
+  if (status === 'done') return '工具已返回'
+  if (status === 'error') return '工具调用失败'
+  return '工具处理中'
+}
+
+function workshopPhaseLabel(payload: WorkshopPhase | undefined) {
+  const phase = String(payload?.phase || '')
+  const status = String((payload as Record<string, unknown> | undefined)?.status || '')
+  const phaseLabel = phase === 'profile_analysis' ? '画像分析' : phase === 'discussion' ? '多智能体研讨' : phase === 'synthesis' ? '综合结论' : '智能体协作'
+  return `${phaseLabel}${status === 'done' ? '完成' : '进行中'}`
+}
+
+function isToolProcessCollapsed(message: TutorMessage) {
+  const steps = message.toolSteps || []
+  return steps.length > 0 && !message.streaming && !steps.some((step) => step.status === 'running')
+}
+
+function toolProcessSummary(message: TutorMessage) {
+  const steps = message.toolSteps || []
+  if (steps.some((step) => step.status === 'error')) return '执行过程已收起，包含失败步骤'
+  return `执行过程已完成，共 ${steps.length} 步`
 }
 
 function normalizeMcpCall(payload: Record<string, unknown> | undefined): McpCall {
   const resultContext = String(payload?.result_context || '')
   const resultPreview = String(payload?.result_preview || '')
-  const resultText = String(payload?.result || payload?.content || payload?.text || payload?.error || '')
+  const resultText = extractMcpText(payload?.result || payload?.content || payload?.text || payload?.result_text || payload?.error)
   const summary = resultPreview || resultContext.split(/\r?\n/).find((line) => line.trim()) || resultText
   return {
     tool: String(payload?.tool || payload?.tool_name || ''),
@@ -90,10 +101,35 @@ function normalizeMcpCall(payload: Record<string, unknown> | undefined): McpCall
   }
 }
 
+function extractMcpText(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item && typeof item === 'object') {
+          const record = item as Record<string, unknown>
+          return String(record.text || record.content || '')
+        }
+        return String(item || '')
+      })
+      .filter(Boolean)
+      .join('\n')
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    return extractMcpText(record.content || record.result || record.text || record.message || '')
+  }
+  return String(value || '')
+}
+
 function compactText(text: string, max = 140) {
   const clean = String(text || '').replace(/\s+/g, ' ').trim()
   if (!clean) return ''
   return clean.length > max ? `${clean.slice(0, max)}…` : clean
+}
+
+function normalizeApiUrl(value: unknown) {
+  const raw = String(value || '')
+  return raw ? joinApiUrl(raw) : ''
 }
 
 function normalizeVideoResource(payload: Record<string, unknown> | undefined) {
@@ -104,12 +140,12 @@ function normalizeVideoResource(payload: Record<string, unknown> | undefined) {
     duration: Number(payload?.duration || 0) || 0,
     durationMs: Number(payload?.duration_ms || 0) || 0,
     createdAt: String(payload?.created_at || ''),
-    videoUrl: String(payload?.video_url || ''),
-    audioUrl: String(payload?.audio_url || ''),
-    subtitleUrl: String(payload?.subtitle_url || ''),
-    timelineUrl: String(payload?.timeline_url || ''),
-    sceneUrl: String(payload?.scene_url || ''),
-    shareUrl: String(payload?.share_url || ''),
+    videoUrl: normalizeApiUrl(payload?.video_url),
+    audioUrl: normalizeApiUrl(payload?.audio_url),
+    subtitleUrl: normalizeApiUrl(payload?.subtitle_url),
+    timelineUrl: normalizeApiUrl(payload?.timeline_url),
+    sceneUrl: normalizeApiUrl(payload?.scene_url),
+    shareUrl: normalizeApiUrl(payload?.share_url),
     resolution: String(payload?.resolution || ''),
     fps: Number(payload?.fps || 0) || 0,
     provider: String(payload?.provider || ''),
@@ -155,18 +191,14 @@ export default function TutorPage() {
   const [images, setImages] = useState<string[]>([])
   const [fileIds, setFileIds] = useState<number[]>([])
   const [recording, setRecording] = useState(false)
-  const [expandedMessageId, setExpandedMessageId] = useState<string>('welcome')
+  const [, setExpandedMessageId] = useState('welcome')
   const pendingAskAi = useRef(false)
-  const multimodalModeLabel = videoModeEnabled ? '视频模式' : imageModeEnabled ? '图片模式' : '多模态模式'
-  const multimodalModeIcon = videoModeEnabled ? 'video' : imageModeEnabled ? 'image' : 'sparkles'
-  const multimodalModeHint = videoModeEnabled
-    ? '视频模式已开启，发送后会自动进入生成任务并在消息流里显示预览卡片。'
-    : imageModeEnabled
-      ? '图片模式已开启，上传图片后会作为本次提问的上下文。'
-      : '当前是通用多模态模式，按需切换图片或视频。'
 
   const currentRole = useMemo(() => roles.find((role) => role.id === currentRoleId), [roles, currentRoleId])
   const lastAssistant = [...messages].reverse().find((message) => message.role === 'assistant')
+  const multimodalModeIcon = videoModeEnabled ? 'video' : 'image'
+  const multimodalModeLabel = videoModeEnabled ? '视频生成模式' : '图片生成模式'
+  const multimodalModeHint = videoModeEnabled ? '发送后会生成可直接播放的教学视频。' : '发送后会生成图片内容。'
 
   useEffect(() => {
     if (!initialDraft) return
@@ -230,8 +262,26 @@ export default function TutorPage() {
       return
     }
 
+    if (event.type === 'search_results') {
+      const payload = event.payload as { items?: unknown[] } | undefined
+      const count = Array.isArray(payload?.items) ? payload.items.length : 0
+      setMessages(appendToolStep(messageId, {
+        id: 'web-search',
+        label: '联网搜索完成',
+        detail: count ? `找到 ${count} 条网页结果` : '已尝试联网搜索',
+        status: 'done',
+      }))
+      return
+    }
+
     if (event.type === 'confidence') {
       setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, confidence: normalizeConfidence(event) })))
+      setMessages(appendToolStep(messageId, {
+        id: 'confidence',
+        label: '可信度分析完成',
+        detail: `当前回答可信度：${normalizeConfidence(event) === 'high' ? '高' : normalizeConfidence(event) === 'medium' ? '中' : '低'}`,
+        status: 'done',
+      }))
       return
     }
 
@@ -239,16 +289,44 @@ export default function TutorPage() {
       const payload = event.payload as { items?: Citation[] } | Citation[] | undefined
       const items = Array.isArray(payload) ? payload : payload?.items || []
       setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, citations: items })))
+      if (items.length) {
+        setMessages(appendToolStep(messageId, {
+          id: event.type === 'sources' ? 'file-sources' : 'citations',
+          label: event.type === 'sources' ? '已读取资料来源' : '已整理引用来源',
+          detail: `找到 ${items.length} 条可参考来源`,
+          status: 'done',
+        }))
+      }
       return
     }
 
     if (event.type === 'workshop_phase' || event.type === 'hub') {
       setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, workshop: [...(message.workshop || []), event.payload as WorkshopPhase] })))
+      const payload = event.payload as WorkshopPhase | undefined
+      if (event.type === 'workshop_phase') {
+        const status = String((payload as Record<string, unknown> | undefined)?.status || '')
+        setMessages(appendToolStep(messageId, {
+          id: `workshop-${payload?.phase || 'phase'}-${(payload as Record<string, unknown> | undefined)?.round || 0}`,
+          label: workshopPhaseLabel(payload),
+          detail: status === 'done' ? '该阶段结果已进入回答上下文' : '智能体正在协作分析',
+          status: status === 'done' ? 'done' : 'running',
+        }))
+      }
       return
     }
 
     if (event.type === 'mcp_call') {
-      setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, mcpCalls: [...(message.mcpCalls || []), normalizeMcpCall(event.payload as Record<string, unknown> | undefined)] })))
+      const payload = event.payload as Record<string, unknown> | undefined
+      const call = normalizeMcpCall(payload)
+      const toolName = String(payload?.tool_name || call.tool || 'MCP 工具')
+      const status = String(payload?.status || call.status || 'running')
+      setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, mcpCalls: [...(message.mcpCalls || []), call] })))
+      setMessages(appendToolStep(messageId, {
+        id: `mcp-${String(payload?.service_id || call.name || 'service')}-${toolName}`,
+        label: mcpStatusLabel(status),
+        detail: `${String(payload?.service_name || call.name || 'MCP 服务')} · ${toolName}`,
+        status: status === 'error' ? 'error' : status === 'done' ? 'done' : 'running',
+      }))
       return
     }
 
@@ -258,6 +336,12 @@ export default function TutorPage() {
       if (Array.isArray(calls)) {
         setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, mcpCalls: calls.map((item) => normalizeMcpCall(item as unknown as Record<string, unknown>)) })))
       }
+      setMessages(appendToolStep(messageId, {
+        id: 'trust-meta',
+        label: '可信回答校验完成',
+        detail: Array.isArray(calls) && calls.length ? `纳入 ${calls.length} 个工具结果` : '已完成回答依据检查',
+        status: 'done',
+      }))
       return
     }
 
@@ -265,6 +349,12 @@ export default function TutorPage() {
       const payload = event.payload as { message?: string; detail?: string } | undefined
       const error = payload?.message || payload?.detail || 'AI 输出中断'
       setMessages(appendMessageUpdate(messageId, (message) => ({ ...message, error, streaming: false })))
+      setMessages(appendToolStep(messageId, {
+        id: 'error',
+        label: '回答生成中断',
+        detail: error,
+        status: 'error',
+      }))
     }
   }
 
@@ -297,6 +387,20 @@ export default function TutorPage() {
       citations: [],
       workshop: [],
       mcpCalls: [],
+      toolSteps: [
+        {
+          id: 'submitted',
+          label: '已接收问题',
+          detail: '正在组织回答上下文',
+          status: 'done',
+        },
+        {
+          id: 'thinking',
+          label: '正在生成回答',
+          detail: modelName ? `当前模型：${modelName}` : 'AI 助学导师正在思考',
+          status: 'running',
+        },
+      ],
     }
 
     setMessages((prev) => [...prev, userMessage, assistantMessage])
@@ -328,6 +432,12 @@ export default function TutorPage() {
         onEvent: (event) => patchAssistant(assistantId, event),
       })
       setMessages(appendMessageUpdate(assistantId, (message) => ({ ...message, streaming: false })))
+      setMessages(appendToolStep(assistantId, {
+        id: 'thinking',
+        label: '回答生成完成',
+        detail: '已整理为可阅读回复',
+        status: 'done',
+      }))
       setImages([])
       setFileIds([])
     } catch (err) {
@@ -341,11 +451,11 @@ export default function TutorPage() {
 
   const handleRoleSelect = () => {
     if (!roles.length) {
-      Taro.showToast({ title: '暂无可选导师角色', icon: 'none' })
+      Taro.showToast({ title: '暂无可选角色', icon: 'none' })
       return
     }
     Taro.showActionSheet({
-      itemList: roles.slice(0, 6).map((role) => role.name || `导师 ${role.id}`),
+      itemList: roles.slice(0, 6).map((role) => role.name || `角色 ${role.id}`),
       success: (res) => {
         const role = roles[res.tapIndex]
         if (role) setCurrentRoleId(role.id)
@@ -404,6 +514,12 @@ export default function TutorPage() {
       const payload = event.payload || {}
       const progress = Number(payload.progress || 0) || 0
       const statusText = String(payload.message || '视频生成中...')
+      setMessages(appendToolStep(messageId, {
+        id: 'video-task',
+        label: '视频生成中',
+        detail: `${statusText}${progress ? ` · ${Math.round(progress)}%` : ''}`,
+        status: 'running',
+      }))
       setMessages(appendMessageUpdate(messageId, (message) => ({
         ...message,
         content: statusText,
@@ -421,6 +537,12 @@ export default function TutorPage() {
 
     if (event.type === 'artifact') {
       const payload = event.payload || {}
+      setMessages(appendToolStep(messageId, {
+        id: `video-artifact-${String(payload.kind || 'asset')}`,
+        label: '视频产物已生成',
+        detail: String(payload.kind || '预览资源已返回'),
+        status: 'done',
+      }))
       setMessages(appendMessageUpdate(messageId, (message) => ({
         ...message,
         videoResource: {
@@ -435,6 +557,12 @@ export default function TutorPage() {
     if (event.type === 'done') {
       const payload = event.payload || {}
       const resource = normalizeVideoResource(payload.resource as Record<string, unknown> | undefined)
+      setMessages(appendToolStep(messageId, {
+        id: 'video-task',
+        label: '视频生成完成',
+        detail: resource.videoUrl ? '已生成可播放视频' : '已生成视频预览资源',
+        status: 'done',
+      }))
       setMessages(appendMessageUpdate(messageId, (message) => ({
         ...message,
         content: message.content || resource.title || '视频生成完成',
@@ -487,13 +615,10 @@ export default function TutorPage() {
     }
   }
 
-  const handleImage = async () => {
-    try {
-      const res = await Taro.chooseImage({ count: 3, sizeType: ['compressed'], sourceType: ['album', 'camera'] })
-      setImages((prev) => [...prev, ...res.tempFilePaths].slice(0, 3))
-      setImageModeEnabled(true)
-    } catch {
-      // User cancellation is fine.
+  const handleImage = () => {
+    setImageModeEnabled((value) => !value)
+    if (videoModeEnabled) {
+      setVideoModeEnabled(false)
     }
   }
 
@@ -529,6 +654,20 @@ export default function TutorPage() {
       citations: [],
       workshop: [],
       mcpCalls: [],
+      toolSteps: [
+        {
+          id: 'submitted',
+          label: '已接收问题',
+          detail: videoModeEnabled ? '正在准备视频生成任务' : '正在组织回答上下文',
+          status: 'done',
+        },
+        {
+          id: videoModeEnabled ? 'video-task' : 'thinking',
+          label: videoModeEnabled ? '正在创建视频任务' : '正在生成回答',
+          detail: videoModeEnabled ? '脚本、画面和语音会依次生成' : `当前模型：${modelName}`,
+          status: 'running',
+        },
+      ],
       ...(videoModeEnabled
         ? {
             videoResource: {
@@ -566,6 +705,12 @@ export default function TutorPage() {
           streaming: false,
           content: message.content || '视频生成完成',
         })))
+        setMessages(appendToolStep(assistantId, {
+          id: 'video-task',
+          label: '视频生成完成',
+          detail: '视频结果已返回到当前对话',
+          status: 'done',
+        }))
         setImages([])
         setFileIds([])
         Taro.showToast({ title: '视频已生成', icon: 'success' })
@@ -597,12 +742,24 @@ export default function TutorPage() {
           onEvent: (event) => patchAssistant(assistantId, event),
         })
         setMessages(appendMessageUpdate(assistantId, (message) => ({ ...message, streaming: false })))
+        setMessages(appendToolStep(assistantId, {
+          id: 'thinking',
+          label: '回答生成完成',
+          detail: '已整理为可阅读回复',
+          status: 'done',
+        }))
         setImages([])
         setFileIds([])
       }
     } catch (err) {
       const error = err instanceof Error ? err.message : 'AI 连接失败'
       setMessages(appendMessageUpdate(assistantId, (message) => ({ ...message, streaming: false, error })))
+      setMessages(appendToolStep(assistantId, {
+        id: videoModeEnabled ? 'video-task' : 'thinking',
+        label: videoModeEnabled ? '视频生成失败' : '回答生成失败',
+        detail: error,
+        status: 'error',
+      }))
       Taro.showToast({ title: videoModeEnabled ? '视频生成失败' : '发送失败', icon: 'none' })
     } finally {
       if (videoModeEnabled) {
@@ -647,191 +804,126 @@ export default function TutorPage() {
         </View>
       </AppHeader>
 
-      <ScrollView scrollX enhanced showScrollbar={false} className='mode-strip-scroll'>
-        <View className='mode-strip'>
-          <View className={`mode-pill ${workshopEnabled ? 'is-active' : ''}`} hoverClass='tap-active' onClick={() => setWorkshopEnabled((value) => !value)}>
-            <AppIcon name='users' className='mode-pill__icon' />
-            <Text>{workshopEnabled ? '研讨会开启' : '研讨会关闭'}</Text>
-          </View>
-          <View className='mode-pill mode-pill--static' hoverClass='tap-active' onClick={handleModelSelect}>
-            <AppIcon name='sparkles' className='mode-pill__icon' />
-            <Text>{modelName}</Text>
-          </View>
-          <View className={`mode-pill ${webSearchEnabled ? 'is-active' : ''}`} hoverClass='tap-active' onClick={() => setWebSearchEnabled((value) => !value)}>
-            <AppIcon name='globe' className='mode-pill__icon' />
-            <Text>联网搜索</Text>
-          </View>
-          <View className={`mode-pill ${mcpEnabled ? 'is-active' : ''}`} hoverClass='tap-active' onClick={() => setMcpEnabled((value) => !value)}>
-            <AppIcon name='cpu' className='mode-pill__icon' />
-            <Text>MCP模式</Text>
-          </View>
-          <View className={`mode-pill ${trustModeEnabled ? 'is-active' : ''}`} hoverClass='tap-active' onClick={() => setTrustModeEnabled((value) => !value)}>
-            <AppIcon name='shield' className='mode-pill__icon' />
-            <Text>可信模式</Text>
-          </View>
-          <View className={`mode-pill ${imageModeEnabled || images.length ? 'is-active' : ''}`} hoverClass='tap-active' onClick={handleImage}>
-            <AppIcon name='image' className='mode-pill__icon' />
-            <Text>图片模式</Text>
-          </View>
-        </View>
-      </ScrollView>
-
-      <View className='mode-hint'>
-        <AppIcon name='bot' className='mode-hint__icon' />
-        <Text className='mode-hint__text'>{workshopStateText(workshopEnabled)}</Text>
-      </View>
-
       <ScrollView scrollY enhanced showScrollbar={false} className='tutor-scroll' scrollIntoView={lastAssistant?.id}>
-        <View className='message-stack'>
-          {messages.map((message) => (
-            message.role === 'user' ? (
-              <View key={message.id} id={message.id} className='message-row message-row--user'>
-                <View className='message-bubble message-bubble--user'>
-                  <Text>{message.content}</Text>
+        {messages.length === 0 ? (
+          <View className='quick-start'>
+            <View className='quick-start__icon'>
+              <AppIcon name='sparkles' className='quick-start__icon-inner' />
+            </View>
+            <Text className='quick-start__title'>有什么我能帮你的吗？</Text>
+            <Text className='quick-start__subtitle'>直接提问，或点一个快捷问题马上开始。</Text>
+            <View className='quick-question-grid'>
+              {quickQuestions.map((item) => (
+                <View key={item.title} className='quick-question' hoverClass='tap-active' onClick={() => handleQuickQuestionAsk(item.question)}>
+                  <Text className='quick-question__title'>{item.title}</Text>
                 </View>
-              </View>
-            ) : (
-              <View key={message.id} id={message.id} className='assistant-message'>
-                <View className='assistant-message__head'>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <View className='message-stack'>
+            {messages.map((message) => (
+              message.role === 'user' ? (
+                <View key={message.id} id={message.id} className='message-row message-row--user'>
+                  <View className='message-bubble message-bubble--user'>
+                    <Text>{message.content}</Text>
+                  </View>
+                </View>
+              ) : (
+                <View key={message.id} id={message.id} className='assistant-message'>
                   <View className='assistant-avatar'>
                     <AppIcon name='bot' className='assistant-avatar__icon' />
                   </View>
-                  <View className='assistant-headline'>
-                    <Text className='assistant-title'>智能导师</Text>
-                    <Text className='assistant-subtitle'>{assistantStateText(message)}</Text>
-                  </View>
-                  <View className={`trust-badge ${confidenceClass(message.confidence)}`}>
-                    <View className={`status-dot ${confidenceDot(message.confidence)}`} />
-                    <Text>{confidenceText(message.confidence)}</Text>
-                  </View>
-                </View>
+                  <View className='assistant-message__body'>
+                    <View className='message-bubble message-bubble--assistant'>
+                      <MarkdownMessage content={message.content || (message.streaming ? '正在思考...' : '暂无内容')} />
+                      {message.error ? <Text className='assistant-message__error'>{message.error}</Text> : null}
+                    </View>
+                    {message.toolSteps?.length ? (
+                      <View className={`tool-process ${isToolProcessCollapsed(message) ? 'tool-process--collapsed' : ''}`}>
+                        <View className='tool-process__head'>
+                          <Text className='tool-process__title'>{isToolProcessCollapsed(message) ? '智能体执行完成' : '智能体实时过程'}</Text>
+                          <Text className='tool-process__count'>{isToolProcessCollapsed(message) ? '已收起' : `${message.toolSteps.length} 步`}</Text>
+                        </View>
+                        {isToolProcessCollapsed(message) ? <Text className='tool-process__summary'>{toolProcessSummary(message)}</Text> : null}
+                        {message.toolSteps.map((step) => (
+                          <View key={step.id} className={`tool-process__item tool-process__item--${step.status}`}>
+                            <View className='tool-process__dot' />
+                            <View className='tool-process__content'>
+                              <Text className='tool-process__label'>{step.label}</Text>
+                              {step.detail ? <Text className='tool-process__detail'>{step.detail}</Text> : null}
+                            </View>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    {message.mcpCalls?.length ? (
+                      <View className='mcp-result-list'>
+                        {message.mcpCalls.filter((call) => call.tool !== 'tools/list').map((call, index) => {
+                          const result = call.result || call.summary || call.status || ''
+                          return (
+                            <View key={`${call.tool || call.name || 'mcp'}-${index}`} className='mcp-result-card'>
+                              <View className='mcp-result-card__head'>
+                                <Text className='mcp-result-card__title'>{call.name || call.tool || 'MCP 工具'}</Text>
+                                <Text className={`mcp-result-card__status ${call.status === 'error' ? 'is-error' : ''}`}>
+                                  {call.status === 'done' ? '已返回' : call.status === 'error' ? '失败' : '调用中'}
+                                </Text>
+                              </View>
+                              {result ? <Text className='mcp-result-card__body'>{compactText(result, 220)}</Text> : null}
+                            </View>
+                          )
+                        })}
+                      </View>
+                    ) : null}
+                    {message.videoResource ? (
+                      <View className='video-result-card'>
+                        <View className='video-result-card__head'>
+                          <View>
+                            <Text className='video-result-card__title'>{message.videoResource.title || 'AI 视频'}</Text>
+                            <Text className='video-result-card__subtitle'>
+                              {message.videoResource.provider || '视频生成'} · {videoStatusLabel(message.videoResource.status)}
+                            </Text>
+                          </View>
+                          <Text className='video-result-card__status'>{Math.round(message.videoResource.progress || 0)}%</Text>
+                        </View>
 
-                <View className='assistant-card'>
-                  <Text className='assistant-card__content'>{message.content || (message.streaming ? '正在整理回答...' : '暂无内容')}</Text>
-                  {message.error ? <Text className='assistant-card__error'>{message.error}</Text> : null}
-                </View>
+                        <View className='video-result-card__preview'>
+                          {message.videoResource.videoUrl && message.videoResource.hasMp4 !== false ? (
+                            <Video
+                              className='video-result-card__video'
+                              src={message.videoResource.videoUrl}
+                              controls
+                              showPlayBtn
+                              showFullscreenBtn
+                            />
+                          ) : (
+                            <View className='video-result-card__preview-empty'>
+                              <Text>{message.videoResource.sceneUrl ? '预览页已生成，但当前小程序环境不支持直接嵌入。' : '视频正在准备中，生成完成后会自动显示预览。'}</Text>
+                            </View>
+                          )}
+                        </View>
 
-                {message.videoResource ? (
-                  <View className='video-result-card'>
-                    <View className='video-result-card__head'>
-                      <View>
-                        <Text className='video-result-card__title'>{message.videoResource.title || 'AI 视频'}</Text>
-                        <Text className='video-result-card__subtitle'>
-                          {message.videoResource.provider || '视频生成'} · {videoStatusLabel(message.videoResource.status)}
+                        <Text className='video-result-card__footer'>
+                          {message.videoResource.message || '视频任务已创建，稍后会自动回传结果。'}
                         </Text>
-                      </View>
-                      <Text className='video-result-card__status'>{Math.round(message.videoResource.progress || 0)}%</Text>
-                    </View>
-
-                    <View className='video-result-card__preview'>
-                      {message.videoResource.videoUrl && message.videoResource.hasMp4 !== false ? (
-                        <Video
-                          className='video-result-card__video'
-                          src={message.videoResource.videoUrl}
-                          controls
-                          showPlayBtn
-                          showFullscreenBtn
-                        />
-                      ) : (
-                        <View className='video-result-card__preview-empty'>
-                          <Text>{message.videoResource.sceneUrl ? '预览页已生成，但当前小程序环境不支持直接嵌入。' : '视频正在准备中，生成完成后会自动显示预览。'}</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <Text className='video-result-card__footer'>
-                      {message.videoResource.message || '视频任务已创建，稍后会自动回传结果。'}
-                    </Text>
-                    {(message.videoResource.shareUrl || message.videoResource.sceneUrl || message.videoResource.timelineUrl) ? (
-                      <View className='video-result-card__actions'>
-                        <View className='video-result-card__action' hoverClass='tap-active' onClick={() => copyVideoLink(message)}>
-                          <Text>复制预览链接</Text>
-                        </View>
+                        {(message.videoResource.shareUrl || message.videoResource.sceneUrl || message.videoResource.timelineUrl) ? (
+                          <View className='video-result-card__actions'>
+                            <View className='video-result-card__action' hoverClass='tap-active' onClick={() => copyVideoLink(message)}>
+                              <Text>复制预览链接</Text>
+                            </View>
+                          </View>
+                        ) : null}
                       </View>
                     ) : null}
-                  </View>
-                ) : null}
-
-                <View className='assistant-meta'>
-                  <View className='assistant-meta__pill'>
-                    <Text className='assistant-meta__label'>引用</Text>
-                    <Text className='assistant-meta__value'>{message.citations?.length || 0}</Text>
-                  </View>
-                  <View className='assistant-meta__pill assistant-meta__pill--violet'>
-                    <Text className='assistant-meta__label'>MCP</Text>
-                    <Text className='assistant-meta__value'>{message.mcpCalls?.length || 0}</Text>
-                  </View>
-                  <View className='assistant-meta__pill assistant-meta__pill--slate'>
-                    <Text className='assistant-meta__label'>研讨会</Text>
-                    <Text className='assistant-meta__value'>{message.workshop?.length || 0}</Text>
                   </View>
                 </View>
-
-                {((message.citations?.length || 0) > 0 || (message.mcpCalls?.length || 0) > 0 || (message.workshop?.length || 0) > 0) ? (
-                  <View className='details-panel'>
-                    <View className='details-panel__head' onClick={() => setExpandedMessageId((value) => (value === message.id ? '' : message.id))}>
-                      <Text className='details-panel__title'>回答依据与过程</Text>
-                      <Text className='details-panel__state'>{expandedMessageId === message.id ? '收起' : '展开'}</Text>
-                    </View>
-
-                    {expandedMessageId === message.id ? (
-                      <View className='details-panel__body'>
-                        {(message.citations?.length || 0) > 0 ? (
-                          <View className='detail-group'>
-                            <Text className='detail-group__title'>引用来源</Text>
-                            {message.citations?.slice(0, 4).map((item, index) => (
-                              <View key={`${message.id}-citation-${index}`} className='detail-card'>
-                                <Text className='detail-card__title'>{item.title || item.source || `引用 ${index + 1}`}</Text>
-                                <Text className='detail-card__content'>{item.content || item.url || '暂无更多说明'}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        ) : null}
-
-                        {(message.mcpCalls?.length || 0) > 0 ? (
-                          <View className='detail-group'>
-                            <Text className='detail-group__title'>工具调用</Text>
-                            {message.mcpCalls?.slice(-3).map((item, index) => (
-                              <View key={`${message.id}-mcp-${index}`} className='detail-card detail-card--compact'>
-                                <Text className='detail-card__title'>{item.tool || item.name || 'MCP 调用'}</Text>
-                                <Text className='detail-card__content detail-card__content--mono'>{item.summary || item.status || item.result || '工具调用已完成'}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        ) : null}
-
-                        {(message.workshop?.length || 0) > 0 ? (
-                          <View className='detail-group'>
-                            <Text className='detail-group__title'>研讨会轨迹</Text>
-                            {message.workshop?.slice(-4).map((item, index) => (
-                              <View key={`${message.id}-phase-${index}`} className='phase-item'>
-                                <View className='phase-item__marker' />
-                                <View className='phase-item__body'>
-                                  <Text className='phase-item__title'>{phaseLabel(item)}</Text>
-                                  <Text className='phase-item__content'>{phaseContent(item)}</Text>
-                                </View>
-                              </View>
-                            ))}
-                          </View>
-                        ) : null}
-                      </View>
-                    ) : null}
-                  </View>
-                ) : null}
-              </View>
-            )
-          ))}
-        </View>
+              )
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <View className='composer'>
-        {images.length || fileIds.length ? (
-          <View className='attachment-strip'>
-            {images.map((src) => <Image key={src} className='attachment-image' src={src} mode='aspectFill' />)}
-            {fileIds.map((id) => <Text key={id} className='attachment-file'>文件 #{id}</Text>)}
-          </View>
-        ) : null}
-
         {(imageModeEnabled || videoModeEnabled) ? (
           <View className={`multimodal-preview-banner ${videoModeEnabled ? 'multimodal-preview-banner--video' : 'multimodal-preview-banner--image'}`}>
             <View className='multimodal-preview-banner__icon'>
@@ -843,28 +935,6 @@ export default function TutorPage() {
             </View>
           </View>
         ) : null}
-
-        <View className='composer-main'>
-          <Input
-            className='question-input'
-            value={question}
-            placeholder='和 Tutor 对话，提任何学习问题...'
-            placeholderClass='question-input__placeholder'
-            disabled={streaming}
-            onInput={(event) => setQuestion(event.detail.value)}
-            confirmType='send'
-            onConfirm={handleSend}
-          />
-          <View className='composer-action composer-action--add' hoverClass='tap-active' onClick={handleFile}>
-            <AppIcon name='folder' className='composer-action__icon' />
-          </View>
-          <View className={`composer-action composer-action--voice ${recording ? 'is-on' : ''}`} hoverClass='tap-active' onClick={handleVoice}>
-            <AppIcon name='mic' className='composer-action__icon' />
-          </View>
-          <View className={`composer-action composer-action--send ${streaming || !question.trim() ? 'is-disabled' : ''}`} hoverClass='tap-active' onClick={handleSend}>
-            <AppIcon name='send' className='composer-action__icon composer-action__icon--light' />
-          </View>
-        </View>
 
         <ScrollView scrollX enhanced showScrollbar={false} className='composer-options'>
           <View className='option-strip'>
@@ -898,6 +968,28 @@ export default function TutorPage() {
             </View>
           </View>
         </ScrollView>
+
+        <View className='composer-main'>
+          <Input
+            className='question-input'
+            value={question}
+            placeholder='发送消息或按住说话...'
+            placeholderClass='question-input__placeholder'
+            disabled={streaming}
+            onInput={(event) => setQuestion(event.detail.value)}
+            confirmType='send'
+            onConfirm={handleSend}
+          />
+          <View className='composer-action composer-action--add' hoverClass='tap-active' onClick={handleFile}>
+            <AppIcon name='folder' className='composer-action__icon' />
+          </View>
+          <View className={`composer-action composer-action--voice ${recording ? 'is-on' : ''}`} hoverClass='tap-active' onClick={handleVoice}>
+            <AppIcon name='mic' className='composer-action__icon' />
+          </View>
+          <View className={`composer-action composer-action--send ${streaming || !question.trim() ? 'is-disabled' : ''}`} hoverClass='tap-active' onClick={handleSend}>
+            <AppIcon name='send' className='composer-action__icon composer-action__icon--light' />
+          </View>
+        </View>
       </View>
 
       <AppTabBar current='tutor' />

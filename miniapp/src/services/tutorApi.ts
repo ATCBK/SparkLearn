@@ -70,6 +70,10 @@ export type VideoJobResponse = {
 
 function normalizeVideoResource(payload: Record<string, unknown> | undefined): VideoResource {
   const data = payload || {}
+  const normalizeUrl = (value: unknown) => {
+    const raw = String(value || '')
+    return raw ? joinApiUrl(raw) : ''
+  }
   return {
     id: String(data.id || data.resource_id || ''),
     title: String(data.title || 'AI 视频'),
@@ -77,12 +81,12 @@ function normalizeVideoResource(payload: Record<string, unknown> | undefined): V
     duration: Number(data.duration || 0) || 0,
     durationMs: Number(data.duration_ms || 0) || 0,
     createdAt: String(data.created_at || ''),
-    videoUrl: String(data.video_url || ''),
-    audioUrl: String(data.audio_url || ''),
-    subtitleUrl: String(data.subtitle_url || ''),
-    timelineUrl: String(data.timeline_url || ''),
-    sceneUrl: String(data.scene_url || ''),
-    shareUrl: String(data.share_url || ''),
+    videoUrl: normalizeUrl(data.video_url),
+    audioUrl: normalizeUrl(data.audio_url),
+    subtitleUrl: normalizeUrl(data.subtitle_url),
+    timelineUrl: normalizeUrl(data.timeline_url),
+    sceneUrl: normalizeUrl(data.scene_url),
+    shareUrl: normalizeUrl(data.share_url),
     resolution: String(data.resolution || ''),
     fps: Number(data.fps || 0) || 0,
     provider: String(data.provider || ''),

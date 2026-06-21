@@ -116,6 +116,11 @@ def init_db() -> None:
               stored_path TEXT NOT NULL,
               mime_type TEXT DEFAULT 'application/octet-stream',
               size_bytes INTEGER NOT NULL,
+              source_type TEXT DEFAULT 'upload',
+              source_url TEXT DEFAULT '',
+              status TEXT DEFAULT 'ready',
+              analysis_json TEXT DEFAULT '{}',
+              updated_at TEXT DEFAULT '',
               created_at TEXT NOT NULL
             );
 

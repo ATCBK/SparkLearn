@@ -11,11 +11,21 @@ export interface Task {
 export interface Resource {
   id: string
   title: string
-  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video' | 'blog' | 'discovery'
+  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video' | 'blog' | 'discovery' | 'web_material'
   status: 'generating' | 'completed' | 'failed'
   createdAt: string
+  updatedAt?: string
   content?: string
   sourceUrl?: string
+  sourceType?: string
+  fileId?: number
+  analysis?: {
+    summary?: string
+    key_points?: string[]
+    audience?: string
+    learning_method?: string
+    lecture_script?: string
+  }
   pptSchema?: PptDeck
   videoUrl?: string
   audioUrl?: string
@@ -344,6 +354,19 @@ export interface TutorFile {
   filename: string
   mimeType: string
   sizeBytes: number
+  sourceType?: 'upload' | 'web_capture' | string
+  sourceUrl?: string
+  status?: 'ready' | 'processing' | 'failed' | string
+  analysis?: {
+    summary?: string
+    key_points?: string[]
+    audience?: string
+    learning_method?: string
+    lecture_script?: string
+  }
+  content?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface TaskCreatePayload {

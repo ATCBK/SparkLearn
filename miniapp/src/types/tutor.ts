@@ -34,6 +34,13 @@ export type McpCall = {
   result?: string
 }
 
+export type ToolProcessStep = {
+  id: string
+  label: string
+  detail?: string
+  status: 'running' | 'done' | 'error'
+}
+
 export type VideoResource = {
   id: string
   title?: string
@@ -75,6 +82,7 @@ export type TutorMessage = {
   citations?: Citation[]
   workshop?: WorkshopPhase[]
   mcpCalls?: McpCall[]
+  toolSteps?: ToolProcessStep[]
   videoResource?: VideoResource
   error?: string
 }

@@ -19,7 +19,9 @@ import { api, TutorFile } from '@/lib/api'
 export default function TutorFilesPage() {
   const router = useRouter()
   const [files, setFiles] = useState<TutorFile[]>([])
+  const [selected, setSelected] = useState<TutorFile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(() => { void load() }, [])
 
@@ -28,14 +30,34 @@ export default function TutorFilesPage() {
     try {
       const data = await api.getTutorFiles()
       setFiles(data)
+      if (!selected && data[0]) {
+        void openDetail(data[0])
+      }
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }
 
+  async function openDetail(file: TutorFile) {
+    setSelected(file)
+    setDetailLoading(true)
+    try {
+      const detail = await api.getTutorFile(file.id)
+      setSelected(detail)
+    } catch {
+      setSelected(file)
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
   async function remove(id: number) {
     await api.deleteTutorFile(id)
+    if (selected?.id === id) setSelected(null)
     await load()
   }
+
+  const analysis = selected?.analysis || {}
+  const keyPoints = analysis.key_points || []
 
   return (
     <div className="h-screen flex bg-[#f5f7fa]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
@@ -84,11 +106,11 @@ export default function TutorFilesPage() {
       </nav>
 
       {/* ═══ 主内容区 ═══ */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[800px] px-8 py-6">
+      <main className="min-w-0 flex-1 overflow-hidden">
+        <div className="mx-auto flex h-full max-w-[800px] flex-col px-8 py-6">
           <div className="mb-6">
             <h1 className="text-xl font-bold text-[#1e293b]">我的文件</h1>
-            <p className="mt-1 text-sm text-[#64748b]">在对话中上传过的所有文件都会保存在这里。</p>
+            <p className="mt-1 text-sm text-[#64748b]">对话中上传的文件会保存在这里，网页抓取资料请到资源中心查看。</p>
           </div>
 
           {loading ? (
@@ -100,38 +122,94 @@ export default function TutorFilesPage() {
               <p className="mt-1 text-xs text-[#94a3b8]">在对话中上传文件后会自动出现在这里</p>
             </div>
           ) : (
-            <div className="rounded-xl border border-[#e2e8f0] bg-white overflow-hidden">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead className="bg-[#f8fafc] text-xs text-[#64748b]">
-                  <tr>
-                    <th className="p-4">文件名</th>
-                    <th className="p-4">类型</th>
-                    <th className="p-4">大小</th>
-                    <th className="p-4">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {files.map((file) => (
-                    <tr key={file.id} className="border-t border-[#f1f5f9] hover:bg-[#f8fafc]">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eff6ff] text-[#2563eb]">
-                            <FileText className="h-4 w-4" />
-                          </div>
-                          <span className="font-medium text-[#1e293b]">{file.filename}</span>
+            <div className="grid min-h-0 flex-1 grid-cols-[320px_1fr] gap-5 overflow-hidden max-[900px]:grid-cols-1">
+              <div className="min-h-0 overflow-y-auto rounded-xl border border-[#e2e8f0] bg-white">
+                {files.map((file) => {
+                  const active = selected?.id === file.id
+                  return (
+                    <button
+                      key={file.id}
+                      onClick={() => void openDetail(file)}
+                      className={`flex w-full items-start gap-3 border-b border-[#f1f5f9] p-4 text-left transition-colors last:border-b-0 ${active ? 'bg-[#eff6ff]' : 'hover:bg-[#f8fafc]'}`}
+                    >
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#eff6ff] text-[#2563eb]">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="line-clamp-2 text-sm font-semibold text-[#1e293b]">{file.filename}</div>
+                        <div className="mt-1 text-xs text-[#64748b]">{file.mimeType || '上传文件'} · {(file.sizeBytes / 1024).toFixed(1)} KB</div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <section className="min-h-0 overflow-y-auto rounded-xl border border-[#e2e8f0] bg-white p-5">
+                {!selected ? (
+                  <div className="py-24 text-center text-sm text-[#94a3b8]">选择一份资料查看解析结果</div>
+                ) : (
+                  <div>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-[#2563eb]" />
+                          <span className="text-xs font-bold text-[#64748b]">上传资料</span>
                         </div>
-                      </td>
-                      <td className="p-4 text-[#64748b]">{file.mimeType}</td>
-                      <td className="p-4 text-[#64748b]">{(file.sizeBytes / 1024).toFixed(1)} KB</td>
-                      <td className="p-4">
-                        <button onClick={() => void remove(file.id)} className="grid h-8 w-8 place-items-center rounded-lg text-[#94a3b8] hover:bg-[#fef2f2] hover:text-[#dc2626] transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <h2 className="mt-2 text-lg font-bold text-[#1e293b]">{selected.filename}</h2>
+                        {selected.sourceUrl ? (
+                          <a href={selected.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 block truncate text-xs text-[#2563eb] hover:underline">
+                            {selected.sourceUrl}
+                          </a>
+                        ) : null}
+                      </div>
+                      <button onClick={() => void remove(selected.id)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[#94a3b8] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {detailLoading ? <div className="mt-8 text-sm text-[#94a3b8]">正在加载解析结果...</div> : null}
+
+                    {analysis.summary ? (
+                      <div className="mt-5 grid gap-4">
+                        <div className="rounded-xl bg-[#f8fafc] p-4">
+                          <div className="text-xs font-bold text-[#64748b]">摘要</div>
+                          <p className="mt-2 text-sm leading-6 text-[#334155]">{analysis.summary}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="rounded-xl bg-[#f8fafc] p-4">
+                            <div className="text-xs font-bold text-[#64748b]">适合人群</div>
+                            <p className="mt-2 text-sm leading-6 text-[#334155]">{analysis.audience}</p>
+                          </div>
+                          <div className="rounded-xl bg-[#f8fafc] p-4">
+                            <div className="text-xs font-bold text-[#64748b]">推荐学习方式</div>
+                            <p className="mt-2 text-sm leading-6 text-[#334155]">{analysis.learning_method}</p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-[#f8fafc] p-4">
+                          <div className="text-xs font-bold text-[#64748b]">关键知识点</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {keyPoints.map((point, index) => (
+                              <span key={`${point}-${index}`} className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#2563eb] ring-1 ring-[#bfdbfe]">{point}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-[#f8fafc] p-4">
+                          <div className="text-xs font-bold text-[#64748b]">AI 讲解稿</div>
+                          <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#334155]">{analysis.lecture_script}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-6 rounded-xl bg-[#f8fafc] p-4">
+                        <div className="text-xs font-bold text-[#64748b]">资料正文</div>
+                        <p className="mt-2 max-h-[420px] overflow-auto whitespace-pre-wrap text-sm leading-7 text-[#334155]">{selected.content || '这份资料暂无解析结果。'}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
             </div>
           )}
         </div>

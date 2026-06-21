@@ -124,6 +124,11 @@ def init_db() -> None:
                 stored_path VARCHAR(500) NOT NULL,
                 mime_type VARCHAR(100) DEFAULT 'application/octet-stream',
                 size_bytes INTEGER NOT NULL,
+                source_type VARCHAR(50) DEFAULT 'upload',
+                source_url TEXT DEFAULT '',
+                status VARCHAR(20) DEFAULT 'ready',
+                analysis_json JSONB DEFAULT '{}',
+                updated_at TIMESTAMP DEFAULT NOW(),
                 created_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
 

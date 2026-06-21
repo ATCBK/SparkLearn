@@ -2,6 +2,7 @@
 import concurrent.futures
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -358,6 +359,44 @@ def _json_loads_dict(raw: str | None) -> dict[str, str]:
     return {}
 
 
+def _strip_ansi(text: str) -> str:
+    return re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", text or "")
+
+
+def _extract_mcp_result_text(result: Any) -> str:
+    """把标准 MCP tools/call 返回值整理成前端可直接展示的文本。"""
+    if isinstance(result, dict):
+        content = result.get("content")
+        if isinstance(content, list):
+            parts: list[str] = []
+            for item in content:
+                if isinstance(item, dict):
+                    text = item.get("text") or item.get("content")
+                    if text is not None:
+                        parts.append(str(text))
+                elif item is not None:
+                    parts.append(str(item))
+            text = "\n".join(part.strip() for part in parts if part and part.strip())
+            if text:
+                return _strip_ansi(text).strip()
+        for key in ("result", "text", "message", "output"):
+            if key in result and result.get(key) is not None:
+                return _strip_ansi(str(result.get(key))).strip()
+    if isinstance(result, str):
+        return _strip_ansi(result).strip()
+    return _strip_ansi(json.dumps(result, ensure_ascii=False, default=str)).strip()
+
+
+def _normalize_mcp_call_result(result: dict[str, Any]) -> dict[str, Any]:
+    result_text = _extract_mcp_result_text(result)
+    preview = re.sub(r"\s+", " ", result_text).strip()[:500]
+    return {
+        **result,
+        "result_text": result_text,
+        "result_preview": preview,
+    }
+
+
 def _to_resp(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "id": row["id"],
@@ -629,6 +668,6 @@ async def call_tool(service_id: str, payload: McpToolCallPayload):
             "tools/call",
             {"name": payload.tool_name, "arguments": payload.args},
         )
-        return ok(result)
+        return ok(_normalize_mcp_call_result(result))
     except Exception as exc:
         return fail(str(exc))

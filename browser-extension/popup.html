@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SparkLearn 网页资料采集</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header>
+        <div class="logo">S</div>
+        <div>
+          <h1>SparkLearn 采集</h1>
+          <p>保存当前网页到我的资料</p>
+        </div>
+      </header>
+
+      <label class="field">
+        <span>后端地址</span>
+        <input id="apiBase" placeholder="http://127.0.0.1:8000" />
+      </label>
+
+      <button id="captureBtn">抓取并保存</button>
+      <p id="status" class="status">打开一篇网页后点击保存。</p>
+
+      <section id="result" class="result" hidden>
+        <b id="resultTitle"></b>
+        <span id="resultMeta"></span>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
