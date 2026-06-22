@@ -146,5 +146,5 @@ export type {
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult, ResourceQualityDimension,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
   AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
-  A2UIEnvelope, A2UISurfaceState, A2UIComponentNode,
+  A2UIEnvelope, A2UISurfaceState, A2UIComponentNode, AGUIEvent,
 } from './types'

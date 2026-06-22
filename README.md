@@ -26,6 +26,8 @@
   <img src="https://img.shields.io/badge/教师干预-风险识别与追踪-EF4444" />
   <img src="https://img.shields.io/badge/学习社区-论坛%2F答疑%2F共学-F97316" />
   <img src="https://img.shields.io/badge/Tutor工作区-角色%2F文件%2F研讨-F43F5E" />
+  <img src="https://img.shields.io/badge/A2UI-自动个性化界面-2563EB" />
+  <img src="https://img.shields.io/badge/AG--UI-调用过程可视化-0EA5E9" />
   <img src="https://img.shields.io/badge/MCP-插件商店与接口-EAB308" />
   <img src="https://img.shields.io/badge/RAG-知识检索增强-14B8A6" />
   <img src="https://img.shields.io/badge/向量化-Embedding检索-06B6D4" />
@@ -59,6 +61,16 @@ SparkLearn 通过 AI 多智能体协同，为学习者构建一套可持续优�
 ## 当前版本更新
 
 当前主分支以 `feature/webpage-text-ingest-plugin` 为准完成同步。本轮重点是把“外部网页资料采集”和“小程序轻量学习体验”做成可直接使用的产品闭环。
+
+### 本轮 Tutor A2UI / AG-UI 更新
+
+- Tutor 对话接入 A2UI 自动界面能力：A2UI 不再作为手动模式按钮出现，而是由后端根据学习计划、任务安排、任务卡、本周/今日学习等意图自动触发。
+- 个性化行动面板升级：当用户提出学习安排类需求时，助手可以直接输出个性化学习行动面板，展示画像依据、推荐下一步、资料/练习/视频等多模态任务入口。
+- AG-UI 调用过程可视化：`/api/tutor/chat` 在 SSE 流中新增 `agui` 事件，用于展示运行过程、步骤状态、工具调用参数和结果。
+- 画像优先链路固定：每次 Tutor 知识问答调用过程的第一步固定为“加载学习画像”，并通过 `load_student_profile` 展示阶段、薄弱点、学习偏好和可用时间。
+- 过程面板可折叠：A2UI 结果面板下方显示 AG-UI 调用过程，默认展开画像加载步骤，其余步骤可按需展开查看。
+- 加载态补齐：A2UI 面板或 AG-UI 事件尚未返回时，前端会显示动画骨架占位，避免对话区域空白等待。
+- 兼容历史消息：助手消息会保存并恢复 `a2ui_events` 与 `agui_events`，刷新会话后仍能看到个性化面板和调用过程。
 
 ### 本次主分支更新
 
@@ -113,7 +125,10 @@ SparkLearn 现在已经形成了清晰的产品矩阵，不再只是单一学习
 
 ### 已验证
 
-- 前端 TypeScript 检查通过：`npx tsc --noEmit`。
+- 本轮 Tutor A2UI / AG-UI 后端定向测试通过：`python -m pytest backend/tests/test_tutor_a2ui_task_cards.py -q`，结果为 `9 passed`。
+- 本轮前端定向 ESLint 通过：`npx eslint src/components/a2ui/A2UITaskCards.tsx src/components/agui/AgentTimeline.tsx src/app/tutor/page.tsx src/lib/api/real.ts src/lib/api/types.ts`，结果为 `0 errors`，仍保留项目既有 warning。
+- 本轮浏览器实测通过：未点击任何 A2UI 开关时，学习计划类对话会自动出现 A2UI 个性化面板，并在下方展示 AG-UI 调用过程。
+- 当前全量 TypeScript 检查仍受既有类型问题影响：`sparklearnDesktop` 全局声明冲突、`AgentChat.tsx` 字段类型、`Sidebar.tsx` 缺少 `openStudyBuddyConfig` 类型声明。
 - MCP 商店页面 lint 通过：`npx eslint src/app/tutor/mcp-store/page.tsx src/app/tutor/mcp-store/docs/page.tsx`。
 - 桌面端主进程语法检查通过：`node --check desktop/main/index.js`。
 - StudyBuddy 配置页脚本语法检查通过。
@@ -154,6 +169,8 @@ SparkLearn 现在已经形成了清晰的产品矩阵，不再只是单一学习
 - 角色能力：讲解型、启发型、督学型等教学风格切换。
 - 交互方式：文本对话、语音输入、语音播报、知识库检索增强。
 - 对话体验：长消息流支持自动跟随、脱离跟随识别和一键回到最新消息。
+- 自动界面：学习计划、任务安排、任务卡等场景会自动触发 A2UI 个性化行动面板，不需要用户切换模式。
+- 过程可视化：AG-UI 时间线展示画像加载、意图分析、面板同步等调用步骤，并支持折叠查看参数与结果。
 - 价值：将“问答工具”升级为“可持续陪伴的学习伙伴”。
 
 ### 5) 过程评估与反馈闭环

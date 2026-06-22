@@ -291,6 +291,7 @@ export interface Message {
   searchResults?: SearchResultItem[]
   a2uiSurfaces?: A2UISurfaceState[]
   a2uiUiOnly?: boolean
+  aguiEvents?: AGUIEvent[]
 }
 
 export type A2UIEnvelope =
@@ -330,6 +331,23 @@ export interface A2UISurfaceState {
   title?: string
   dataModel: Record<string, unknown>
   components: A2UIComponentNode[]
+}
+
+export interface AGUIEvent {
+  type: string
+  runId?: string
+  threadId?: string
+  stepId?: string
+  toolCallId?: string
+  toolName?: string
+  title?: string
+  label?: string
+  status?: string
+  summary?: string
+  timestamp?: string
+  args?: Record<string, unknown>
+  data?: Record<string, unknown>
+  delta?: Record<string, unknown>
 }
 
 export interface ConfidenceInfo {

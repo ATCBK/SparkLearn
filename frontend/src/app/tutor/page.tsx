@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, A2UIEnvelope, A2UISurfaceState, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
+import { api, A2UIEnvelope, A2UISurfaceState, AGUIEvent, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { A2UITaskCards, type A2UITaskAction, type A2UITaskCard } from '@/components/a2ui/A2UITaskCards'
+import { AgentTimeline } from '@/components/agui/AgentTimeline'
 import {
   Bot,
   CheckCircle2,
@@ -162,9 +163,29 @@ function applyA2UIEnvelopeToSurfaces(surfaces: A2UISurfaceState[] = [], envelope
   return surfaces
 }
 
+function appendAGUIEvent(events: AGUIEvent[] = [], event: AGUIEvent): AGUIEvent[] {
+  return [...events, event]
+}
+
 function isResourceRecommendationQuery(text: string) {
   const normalized = text.toLowerCase()
   return RESOURCE_RECOMMENDATION_TERMS.some((term) => normalized.includes(term))
+}
+
+function shouldExpectA2UIPanel(text: string) {
+  const normalized = text.trim().toLowerCase()
+  if (!normalized) return false
+  return [
+    '任务卡',
+    '学习任务',
+    '学习计划',
+    '安排',
+    '计划',
+    '本周',
+    '今日',
+    'todo',
+    'task',
+  ].some((term) => normalized.includes(term))
 }
 
 function buildResourceSearchText(resource: Resource) {
@@ -522,7 +543,6 @@ export default function TutorPage() {
   const [knowledgeReverse, setKnowledgeReverse] = useState(false)
   const [webSearch, setWebSearch] = useState(false)
   const [mcpEnabled, setMcpEnabled] = useState(false)
-  const [a2uiMode, setA2uiMode] = useState(false)
   const [selectedModel, setSelectedModel] = useState('lite')
   const [videoVoice, setVideoVoice] = useState('')
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
@@ -1122,6 +1142,7 @@ export default function TutorPage() {
     const isVideoMode = multimodalMode === 'video'
     const convId = currentConversationId ?? undefined
     const userInput = textValue || '（空文本）'
+    const expectA2UIPanel = !isVideoMode && !isImageMode && shouldExpectA2UIPanel(userInput)
     const msgUid = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const draftConversationId = convId ?? -Date.now()
     const userMsg: Message = {
@@ -1147,6 +1168,7 @@ export default function TutorPage() {
         timestamp: new Date().toISOString(),
         conversationId: draftConversationId,
         streaming: true,
+        a2uiUiOnly: expectA2UIPanel,
       },
     ])
     setMcpCallsByMsg((prev) => ({
@@ -1335,9 +1357,6 @@ export default function TutorPage() {
               created_at: item.resource.createdAt,
               href: `/generate?view=library&id=${item.resource.id}`,
             })),
-            modes: {
-              a2ui_panel: a2uiMode,
-            },
           },
         },
         {
@@ -1381,9 +1400,19 @@ export default function TutorPage() {
               m.id === assistantId
                 ? {
                     ...m,
-                    streaming: a2uiMode ? false : m.streaming,
-                    a2uiUiOnly: a2uiMode || m.a2uiUiOnly,
+                    streaming: expectA2UIPanel ? false : m.streaming,
+                    a2uiUiOnly: expectA2UIPanel || m.a2uiUiOnly,
                     a2uiSurfaces: applyA2UIEnvelopeToSurfaces(m.a2uiSurfaces, envelope),
+                  }
+                : m
+            )))
+          },
+          onAGUI: (event) => {
+            setMessages((prev) => prev.map((m) => (
+              m.id === assistantId
+                ? {
+                    ...m,
+                    aguiEvents: appendAGUIEvent(m.aguiEvents, event),
                   }
                 : m
             )))
@@ -1420,6 +1449,8 @@ export default function TutorPage() {
           streaming: false,
           content: savedMessage.a2uiUiOnly ? '' : (m.content || savedMessage.content),
           a2uiUiOnly: savedMessage.a2uiUiOnly || m.a2uiUiOnly,
+          a2uiSurfaces: savedMessage.a2uiSurfaces?.length ? savedMessage.a2uiSurfaces : m.a2uiSurfaces,
+          aguiEvents: savedMessage.aguiEvents?.length ? savedMessage.aguiEvents : m.aguiEvents,
         } : m)))
         setMcpCallsByMsg((prev) => {
           if (!prev[assistantId]) return prev
@@ -1441,6 +1472,8 @@ export default function TutorPage() {
               streaming: false,
               content: savedMessage.a2uiUiOnly ? '' : (m.content || savedMessage.content),
               a2uiUiOnly: savedMessage.a2uiUiOnly || m.a2uiUiOnly,
+              a2uiSurfaces: savedMessage.a2uiSurfaces?.length ? savedMessage.a2uiSurfaces : m.a2uiSurfaces,
+              aguiEvents: savedMessage.aguiEvents?.length ? savedMessage.aguiEvents : m.aguiEvents,
             }
           : m
       )))
@@ -1712,7 +1745,7 @@ export default function TutorPage() {
                       ? msg.content.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/)
                       : null
                   const msgMcpCalls = msg.role === 'assistant' ? (mcpCallsByMsg[msg.id] || []) : []
-                  const profileCalls = msgMcpCalls.filter((call) => call.serviceId === 'student-profile')
+                  const profileCalls = (msg.a2uiUiOnly || msg.aguiEvents?.length) ? [] : msgMcpCalls.filter((call) => call.serviceId === 'student-profile')
                   const visibleMcpCalls = msgMcpCalls.filter((call) => call.serviceId !== 'student-profile')
                   return (
                     <div key={msg.id}>
@@ -1815,7 +1848,15 @@ export default function TutorPage() {
                                 </div>
                               )}
                             </div>
-                            <A2UITaskCards surfaces={msg.a2uiSurfaces} onAction={handleA2UITaskAction} />
+                            <A2UITaskCards
+                              surfaces={msg.a2uiSurfaces}
+                              onAction={handleA2UITaskAction}
+                              loading={Boolean(msg.streaming && msg.a2uiUiOnly && !msg.a2uiSurfaces?.length)}
+                            />
+                            <AgentTimeline
+                              events={msg.aguiEvents}
+                              loading={Boolean(msg.streaming && msg.a2uiUiOnly && !msg.aguiEvents?.length)}
+                            />
                             {msg.videoResource && (
                               <div className="mt-3 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-[#0b1120] shadow-[0_12px_30px_rgba(15,23,42,0.18)]">
                                 <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
@@ -2217,17 +2258,6 @@ export default function TutorPage() {
                     )}
                   >
                     <Cpu className="w-3.5 h-3.5" />MCP 模式
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setA2uiMode((v) => !v)}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
-                      a2uiMode ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
-                    )}
-                    title="开启后本轮优先直接生成个性化 A2UI 面板"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />A2UI 展示
                   </button>
                   <button
                     type="button"

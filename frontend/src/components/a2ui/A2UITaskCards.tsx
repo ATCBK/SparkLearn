@@ -101,6 +101,56 @@ function MediaIcon({ type }: { type: string }) {
   return <FileText className="h-4 w-4" />
 }
 
+function A2UIPanelSkeleton() {
+  return (
+    <section className="mt-4 overflow-hidden rounded-2xl border border-[#dbeafe] bg-white shadow-[0_12px_32px_rgba(37,99,235,0.08)]">
+      <div className="bg-gradient-to-r from-[#eff6ff] via-white to-[#f8fbff] px-4 py-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#dbeafe] text-[#2563eb]">
+            <Sparkles className="h-5 w-5 animate-pulse" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="h-4 w-48 animate-pulse rounded-full bg-[#dbeafe]" />
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="h-6 w-28 animate-pulse rounded-full bg-white ring-1 ring-[#dbeafe]" />
+              <div className="h-6 w-24 animate-pulse rounded-full bg-white ring-1 ring-[#e2e8f0]" />
+              <div className="h-6 w-20 animate-pulse rounded-full bg-white ring-1 ring-[#e2e8f0]" />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-[#bfdbfe] bg-white p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="h-3 w-20 animate-pulse rounded-full bg-[#bfdbfe]" />
+              <div className="mt-3 h-5 w-64 max-w-full animate-pulse rounded-full bg-[#dbeafe]" />
+              <div className="mt-3 h-3 w-full animate-pulse rounded-full bg-[#e2e8f0]" />
+              <div className="mt-2 h-3 w-2/3 animate-pulse rounded-full bg-[#e2e8f0]" />
+            </div>
+            <div className="h-14 shrink-0 animate-pulse rounded-xl border border-[#fed7aa] bg-[#fff7ed] md:w-[220px]" />
+          </div>
+          <div className="mt-4 flex gap-2">
+            <div className="h-9 w-24 animate-pulse rounded-xl bg-[#bfdbfe]" />
+            <div className="h-9 w-28 animate-pulse rounded-xl bg-[#eff6ff] ring-1 ring-[#bfdbfe]" />
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-0 border-t border-[#e2e8f0] md:grid-cols-3">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="border-b border-[#eef2f7] px-4 py-3 md:border-b-0 md:border-r last:border-r-0">
+            <div className="flex items-center justify-between">
+              <div className="h-3 w-12 animate-pulse rounded-full bg-[#e2e8f0]" />
+              <div className="h-5 w-14 animate-pulse rounded-full bg-[#f1f5f9]" />
+            </div>
+            <div className="mt-3 h-4 w-28 animate-pulse rounded-full bg-[#cbd5e1]" />
+            <div className="mt-3 h-9 animate-pulse rounded-lg border border-[#e2e8f0] bg-[#f8fafc]" />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function PersonalizedLearningPanel({
   surface,
   tasks,
@@ -222,16 +272,18 @@ function PersonalizedLearningPanel({
 export function A2UITaskCards({
   surfaces,
   onAction,
+  loading = false,
 }: {
   surfaces?: A2UISurfaceState[]
   onAction: (task: A2UITaskCard, action: A2UITaskAction) => void
+  loading?: boolean
 }) {
   const taskSurfaces = (surfaces || []).filter((surface) => (
     surface.catalogId === 'sparklearn.task_cards.v1'
     && surface.components.some((component) => component.component === 'SparkTaskCards' || component.component === 'PersonalizedLearningPanel')
   ))
 
-  if (taskSurfaces.length === 0) return null
+  if (taskSurfaces.length === 0) return loading ? <A2UIPanelSkeleton /> : null
 
   return (
     <div className="mt-4 space-y-3">

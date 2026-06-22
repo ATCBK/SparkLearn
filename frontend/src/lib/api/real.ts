@@ -7,7 +7,7 @@ import type {
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
-  A2UIEnvelope, A2UISurfaceState,
+  A2UIEnvelope, A2UISurfaceState, AGUIEvent,
 } from './types'
 import { getToken } from '../auth'
 
@@ -490,6 +490,7 @@ export async function sendMessage(
     onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string; status: string; ok: boolean; error: string; args?: Record<string, unknown> }) => void
     onSearchResults?: (results: SearchResultItem[]) => void
     onA2UI?: (envelope: A2UIEnvelope) => void
+    onAGUI?: (event: AGUIEvent) => void
     onDone?: () => void
   },
 ): Promise<Message> {
@@ -498,6 +499,7 @@ export async function sendMessage(
   let latestCitations: CitationItem[] | undefined
   let latestTrustMeta: Record<string, unknown> | undefined
   const latestA2UIEvents: A2UIEnvelope[] = []
+  const latestAGUIEvents: AGUIEvent[] = []
   let a2uiUiOnly = false
   let doneMessage: Record<string, unknown> | undefined
   const events = await readSSE('/api/tutor/chat', {
@@ -613,12 +615,21 @@ export async function sendMessage(
       handlers?.onA2UI?.(envelope)
       return
     }
+    if (evt.type === 'agui') {
+      const event = evt.payload as unknown as AGUIEvent
+      latestAGUIEvents.push(event)
+      handlers?.onAGUI?.(event)
+      return
+    }
     if (evt.type === 'done') {
       doneMessage = evt.payload.message && typeof evt.payload.message === 'object'
         ? evt.payload.message as Record<string, unknown>
         : undefined
       if (Array.isArray(evt.payload.a2ui_events)) {
         latestA2UIEvents.splice(0, latestA2UIEvents.length, ...(evt.payload.a2ui_events as A2UIEnvelope[]))
+      }
+      if (Array.isArray(evt.payload.agui_events)) {
+        latestAGUIEvents.splice(0, latestAGUIEvents.length, ...(evt.payload.agui_events as AGUIEvent[]))
       }
       a2uiUiOnly = Boolean(evt.payload.a2ui_ui_only || doneMessage?.a2ui_ui_only)
       handlers?.onDone?.()
@@ -637,6 +648,7 @@ export async function sendMessage(
     trustMeta: latestTrustMeta,
     a2uiSurfaces: buildA2UISurfaces(latestA2UIEvents),
     a2uiUiOnly,
+    aguiEvents: latestAGUIEvents,
   }
 }
 
@@ -677,6 +689,7 @@ export async function getChatHistory(conversationId?: number): Promise<Message[]
       : [],
     a2uiSurfaces: buildA2UISurfaces(m.a2ui_events),
     a2uiUiOnly: Boolean(m.a2ui_ui_only),
+    aguiEvents: Array.isArray(m.agui_events) ? m.agui_events as AGUIEvent[] : [],
   }))
 }
 

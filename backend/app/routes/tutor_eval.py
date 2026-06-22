@@ -108,8 +108,135 @@ def _should_emit_a2ui_task_cards(message: str, mode: str) -> bool:
 def _should_use_a2ui_ui_only(req: TutorReq, mode: str) -> bool:
     if mode and mode != 'knowledge_qa':
         return False
+    if _should_emit_a2ui_task_cards(req.message, mode):
+        return True
     modes = _page_context_modes(req.page_context)
     return _coerce_bool(modes.get('a2ui_panel'))
+
+
+def _build_agui_process_events(
+    conversation_id: int,
+    *,
+    profile: dict[str, Any] | None = None,
+    include_a2ui_sync: bool = False,
+) -> list[dict[str, Any]]:
+    run_id = f"sparklearn-tutor-run-{conversation_id}"
+    weak_point = _first_text(_profile_value(profile, 'weak_points', []), '当前主题实践')
+    preference = _first_text(_profile_value(profile, 'learning_preference', []), '直观讲解')
+    current_stage = str(_profile_value(profile, 'current_stage', '') or _profile_value(profile, 'knowledge_level', '') or '学习推进中')
+    daily_time = int(_profile_value(profile, 'daily_time', 25) or 25)
+    events: list[dict[str, Any]] = [
+        {
+            'type': 'RunStarted',
+            'runId': run_id,
+            'threadId': f'tutor-conversation-{conversation_id}',
+            'timestamp': now_iso(),
+            'title': '生成个性化学习响应',
+        },
+        {
+            'type': 'StepStarted',
+            'runId': run_id,
+            'stepId': 'profile',
+            'title': '加载学习画像',
+            'summary': '读取阶段、薄弱点、学习偏好和每日可用时间',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'ToolCallStart',
+            'runId': run_id,
+            'stepId': 'profile',
+            'toolCallId': f'{run_id}-profile',
+            'toolName': 'load_student_profile',
+            'label': '加载学习画像',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'ToolCallArgs',
+            'runId': run_id,
+            'stepId': 'profile',
+            'toolCallId': f'{run_id}-profile',
+            'args': {'userId': settings.single_user_id, 'fields': ['stage', 'weak_points', 'preference', 'daily_time']},
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'ToolCallResult',
+            'runId': run_id,
+            'stepId': 'profile',
+            'toolCallId': f'{run_id}-profile',
+            'status': 'done',
+            'summary': '已读取阶段、薄弱点、偏好和每日可用时间',
+            'data': {
+                'stage': current_stage,
+                'weakPoint': weak_point,
+                'preference': preference,
+                'dailyTime': daily_time,
+            },
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'StepFinished',
+            'runId': run_id,
+            'stepId': 'profile',
+            'status': 'done',
+            'summary': f'画像加载完成：{current_stage} · {weak_point}',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'StepStarted',
+            'runId': run_id,
+            'stepId': 'intent',
+            'title': '分析本轮学习意图',
+            'summary': '识别问题目标、输出形态和需要调用的学习能力',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'StateDelta',
+            'runId': run_id,
+            'stepId': 'intent',
+            'delta': {'intent': 'personalized_learning_response', 'profileFirst': True},
+            'summary': '已确认本轮优先使用画像进行个性化适配',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'StepFinished',
+            'runId': run_id,
+            'stepId': 'intent',
+            'status': 'done',
+            'summary': '学习意图分析完成',
+            'timestamp': now_iso(),
+        },
+    ]
+    if include_a2ui_sync:
+        events.extend(
+            [
+                {
+                    'type': 'StepStarted',
+                    'runId': run_id,
+                    'stepId': 'a2ui_sync',
+                    'title': '同步 A2UI 个性化面板',
+                    'summary': '将个性化任务、媒体入口和下一步动作渲染成可交互 UI',
+                    'timestamp': now_iso(),
+                },
+                {
+                    'type': 'StepFinished',
+                    'runId': run_id,
+                    'stepId': 'a2ui_sync',
+                    'status': 'done',
+                    'summary': 'A2UI 面板已生成',
+                    'timestamp': now_iso(),
+                },
+            ],
+        )
+    events.append(
+        {
+            'type': 'RunFinished',
+            'runId': run_id,
+            'status': 'done',
+            'summary': '个性化调用过程完成',
+            'timestamp': now_iso(),
+        },
+    )
+    return events
 
 
 def _extract_task_card_topic(message: str) -> str:
@@ -961,13 +1088,22 @@ async def tutor_chat(req: TutorReq):
         a2ui_events = []
         a2ui_ui_only = _should_use_a2ui_ui_only(req, effective_mode)
         profile_for_a2ui = req.page_context.get('student_profile') if isinstance(req.page_context, dict) and isinstance(req.page_context.get('student_profile'), dict) else None
-        if a2ui_ui_only or _should_emit_a2ui_task_cards(req.message, effective_mode):
+        profile_for_process = profile_for_a2ui or _load_profile_snapshot()
+        should_emit_a2ui = a2ui_ui_only or _should_emit_a2ui_task_cards(req.message, effective_mode)
+        agui_events = _build_agui_process_events(
+            conversation_id,
+            profile=profile_for_process,
+            include_a2ui_sync=should_emit_a2ui,
+        ) if effective_mode == 'knowledge_qa' else []
+        for event in agui_events:
+            yield ('agui', event)
+        if should_emit_a2ui:
             a2ui_events = _build_a2ui_task_card_events(
                 req.message,
                 '',
                 conversation_id,
                 ui_only=a2ui_ui_only,
-                profile=profile_for_a2ui,
+                profile=profile_for_process,
             )
             for envelope in a2ui_events:
                 yield ('a2ui', envelope)
@@ -988,6 +1124,7 @@ async def tutor_chat(req: TutorReq):
                             'mode': effective_mode,
                             'a2ui_events': a2ui_events,
                             'a2ui_ui_only': True,
+                            'agui_events': agui_events,
                             'open_mode': bool(req.open_mode),
                             'web_search': bool(effective_web_search),
                         },
@@ -1009,6 +1146,7 @@ async def tutor_chat(req: TutorReq):
                     },
                     'a2ui_events': a2ui_events,
                     'a2ui_ui_only': True,
+                    'agui_events': agui_events,
                 },
             )
             return
@@ -1336,6 +1474,7 @@ async def tutor_chat(req: TutorReq):
                         'search_results': search_results,
                         'mode': effective_mode,
                         'a2ui_events': a2ui_events,
+                        'agui_events': agui_events,
                     },
                     ensure_ascii=False,
                 ),
@@ -1391,6 +1530,7 @@ async def tutor_chat(req: TutorReq):
                 'citations': citations_payload,
                 'trust_meta': trust_meta_payload,
                 'a2ui_events': a2ui_events,
+                'agui_events': agui_events,
             },
         )
 
@@ -1439,6 +1579,7 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
                 'search_results': meta.get('search_results') if isinstance(meta.get('search_results'), list) else [],
                 'a2ui_events': meta.get('a2ui_events') if isinstance(meta.get('a2ui_events'), list) else [],
                 'a2ui_ui_only': bool(meta.get('a2ui_ui_only', False)),
+                'agui_events': meta.get('agui_events') if isinstance(meta.get('agui_events'), list) else [],
                 'open_mode': bool(meta.get('open_mode', False)),
             }
         )
