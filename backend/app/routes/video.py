@@ -170,7 +170,7 @@ async def polish_video_prompt(req: VideoPolishReq):
 async def create_video_job(req: VideoJobReq):
     resource_id = f"video_{uuid.uuid4().hex[:8]}"
     job_id = f"job_{uuid.uuid4().hex[:8]}"
-    voice = req.voice if isinstance(req.voice, dict) and req.voice else _default_public_voice_config()
+    voice = _default_public_voice_config()
     job = {
         "job_id": job_id,
         "resource_id": resource_id,

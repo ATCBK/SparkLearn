@@ -49,16 +49,6 @@ function isDemoWeatherService(service: McpService) {
   return text.includes('weather') || text.includes('天气')
 }
 
-type SparklearnDesktopBridge = {
-  openStudyBuddyConfig?: () => void
-}
-
-declare global {
-  interface Window {
-    sparklearnDesktop?: SparklearnDesktopBridge
-  }
-}
-
 export default function TutorMcpStorePage() {
   const router = useRouter()
   const [services, setServices] = useState<McpService[]>([])

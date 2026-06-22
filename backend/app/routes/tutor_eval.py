@@ -717,6 +717,10 @@ class OptimizePromptReq(BaseModel):
     role_name: str = ''
 
 
+class GenerateRoleReq(BaseModel):
+    question: str
+
+
 @router.post('/tutor/roles/optimize-prompt')
 async def optimize_prompt(req: OptimizePromptReq):
     """AI 一键优化提示词"""
@@ -750,6 +754,138 @@ async def optimize_prompt(req: OptimizePromptReq):
             result_text += str(payload.get('content', ''))
 
     return ok({'optimized': result_text.strip()})
+
+
+async def _collect_llm_text(prompt: str, mode: str = 'general', model: str = '') -> str:
+    result_text = ''
+    async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode=mode, history=[], model=model):
+        if evt_type == 'text':
+            result_text += str(payload.get('content', ''))
+    return result_text.strip()
+
+
+def _json_from_text(text: str) -> dict[str, Any]:
+    raw = (text or '').strip()
+    if not raw:
+        return {}
+    fenced = re.search(r'```(?:json)?\s*(.*?)```', raw, flags=re.S)
+    if fenced:
+        raw = fenced.group(1).strip()
+    try:
+        value = json.loads(raw)
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        match = re.search(r'\{.*\}', raw, flags=re.S)
+        if not match:
+            return {}
+        try:
+            value = json.loads(match.group(0))
+            return value if isinstance(value, dict) else {}
+        except Exception:
+            return {}
+
+
+def _join_profile_list(value: Any, default: str = '') -> str:
+    if isinstance(value, list):
+        text = '、'.join(str(item).strip() for item in value if str(item).strip())
+        return text or default
+    text = str(value or '').strip()
+    return text or default
+
+
+def _analyze_role_request(question: str, profile: dict[str, Any] | None) -> dict[str, str]:
+    profile = profile or {}
+    subject = '通用学习'
+    if '函数' in question:
+        subject = '函数'
+    elif 'Python' in question or 'python' in question.lower():
+        subject = 'Python'
+    intent = '个性化辅导'
+    archetype = '陪伴型'
+    if any(term in question for term in ['提分', '快速补', '补']):
+        intent = '提分强化'
+        archetype = '提分型'
+    elif any(term in question for term in ['入门', '基础', '零基础']):
+        intent = '基础入门'
+        archetype = '讲解型'
+    return {
+        'subject_label': subject,
+        'intent_label': intent,
+        'archetype': archetype,
+        'stage': str(profile.get('current_stage') or profile.get('knowledge_level') or '当前阶段'),
+        'goals': _join_profile_list(profile.get('goal'), '当前学习目标'),
+        'weak_points': _join_profile_list(profile.get('weak_points'), '待定位薄弱点'),
+        'preference': _join_profile_list(profile.get('learning_preference'), '循序渐进讲解'),
+    }
+
+
+async def _generate_role_from_question(question: str) -> dict[str, str]:
+    clean_question = ' '.join((question or '').split())[:200] or '创建一个学习导师'
+    profile = _load_profile_snapshot()
+    analysis_prompt = (
+        "请根据用户需求和学习画像输出结构化画像 JSON，不要输出解释。\n"
+        f"用户需求：{clean_question}\n"
+        f"学习画像：{json.dumps(profile, ensure_ascii=False)}\n"
+        "字段：subject_label,intent_label,archetype,stage_hint,goals_hint,weak_points_hint,preference_hint"
+    )
+    ai_analysis = _json_from_text(await _collect_llm_text(analysis_prompt))
+    fallback = _analyze_role_request(clean_question, profile)
+    analysis = {
+        'subject_label': str(ai_analysis.get('subject_label') or fallback['subject_label']),
+        'intent_label': str(ai_analysis.get('intent_label') or fallback['intent_label']),
+        'archetype': str(ai_analysis.get('archetype') or fallback['archetype']),
+        'stage': str(ai_analysis.get('stage_hint') or fallback['stage']),
+        'goals': str(ai_analysis.get('goals_hint') or fallback['goals']),
+        'weak_points': str(ai_analysis.get('weak_points_hint') or fallback['weak_points']),
+        'preference': str(ai_analysis.get('preference_hint') or fallback['preference']),
+    }
+    generation_prompt = (
+        "请基于以下结构化分析生成 AI 学习导师角色 JSON，不要复述原始用户问题。\n"
+        f"结构化分析：{json.dumps(analysis, ensure_ascii=False)}\n"
+        "字段：name,role_identity,service_scenarios,workflow,output_format,prohibitions,sample_dialogue"
+    )
+    generated = _json_from_text(await _collect_llm_text(generation_prompt))
+    name = str(generated.get('name') or f"{analysis['subject_label']}{analysis['archetype']}导师")
+    role_identity = str(generated.get('role_identity') or f"你是{analysis['subject_label']}领域的{analysis['archetype']}导师，负责{analysis['intent_label']}。")
+    service_scenarios = str(generated.get('service_scenarios') or f"适配{analysis['stage']}，围绕{analysis['goals']}展开。")
+    workflow = str(generated.get('workflow') or f"1. 先定位薄弱点：{analysis['weak_points']}；2. 再按偏好：{analysis['preference']} 讲解；3. 最后给出练习。")
+    output_format = str(generated.get('output_format') or '先结论，后步骤，再给一个可执行练习。')
+    prohibitions = str(generated.get('prohibitions') or '不要直接跳过推理过程，不要给出与学习阶段无关的任务。')
+    sample_dialogue = str(generated.get('sample_dialogue') or f"用户：我不会{analysis['subject_label']}。\n导师：先看一个最小例子，再总结规律。")
+    return {
+        'name': name[:40] or '个性化学习导师',
+        'persona': f"角色身份：{role_identity}\n服务场景：{service_scenarios}",
+        'background': f"专属工作流：{workflow}",
+        'style_guide': f"输出格式：{output_format}",
+        'rules': f"禁止事项：{prohibitions}\n\n示例对话（2-3 轮短示例）：\n{sample_dialogue}",
+    }
+
+
+@router.post('/tutor/roles/generate-from-question')
+async def generate_role_from_question(req: GenerateRoleReq):
+    role = await _generate_role_from_question(req.question)
+    ts = now_iso()
+    role_id = _execute_returning_id(
+        """
+        INSERT INTO tutor_roles(user_id, name, persona, background, style_guide, rules, enabled, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+        """,
+        (
+            settings.single_user_id,
+            role.get('name') or '个性化学习导师',
+            role.get('persona') or '',
+            role.get('background') or '',
+            role.get('style_guide') or '',
+            role.get('rules') or '',
+            ts,
+            ts,
+        ),
+    )
+    row = fetch_one(
+        'SELECT id, name, persona, background, style_guide, rules, enabled, created_at, updated_at FROM tutor_roles WHERE id = ?',
+        (role_id,),
+    )
+    return ok(_role_row_to_dict(row))
 
 
 @router.get('/tutor/conversations')
@@ -1001,7 +1137,7 @@ async def delete_tutor_file(file_id: int):
 
 @router.post('/tutor/chat')
 async def tutor_chat(req: TutorReq):
-    conversation_id = req.conversation_id or _ensure_default_conversation()
+    conversation_id = req.conversation_id or _create_tutor_conversation(role_id=req.role_id)
     role_id = req.role_id or _role_id_for_conversation(conversation_id) or _default_role_id()
     role = fetch_one(
         'SELECT id, name, persona, background, style_guide, rules FROM tutor_roles WHERE id = ? AND user_id = ?',
@@ -1790,6 +1926,17 @@ def _ensure_default_conversation() -> int:
         VALUES (?, ?, '新对话', ?, ?)
         """,
         (settings.single_user_id, _default_role_id(), ts, ts),
+    )
+
+
+def _create_tutor_conversation(title: str = '新对话', role_id: int | None = None) -> int:
+    ts = now_iso()
+    return _execute_returning_id(
+        """
+        INSERT INTO tutor_conversations(user_id, role_id, title, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (settings.single_user_id, role_id or _default_role_id(), title, ts, ts),
     )
 
 

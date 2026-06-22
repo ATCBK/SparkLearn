@@ -7,11 +7,12 @@ type DesktopAuthSession = {
   updatedAt?: string
 }
 
-type SparklearnDesktopBridge = {
+export type SparklearnDesktopBridge = {
   getAuthSession?: () => Promise<DesktopAuthSession | null>
   saveAuthSession?: (payload: { token: string; user: AuthUser }) => Promise<DesktopAuthSession>
   clearAuthSession?: () => Promise<{ cleared: boolean }>
   syncStudyBuddyProfile?: (payload?: { source?: string; user?: AuthUser }) => Promise<unknown>
+  openStudyBuddyConfig?: () => Promise<void> | void
 }
 
 declare global {

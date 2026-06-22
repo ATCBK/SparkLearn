@@ -404,9 +404,20 @@ function latestStepText(steps?: AgentTaskStep[]) {
   return steps[steps.length - 1].description
 }
 
+function toDisplayText(value: unknown) {
+  if (typeof value === 'string') return value
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return ''
+  }
+}
+
 function formatResult(task: AgentTask): string {
   if (!task.result) return '任务完成，但没有返回可展示的结果。'
-  if ('answer' in task.result && task.result.answer) return task.result.answer
+  if ('answer' in task.result && task.result.answer) return toDisplayText(task.result.answer) || '任务已完成。'
   if (task.task_type === 'search' && 'items' in task.result) return `找到 ${task.result.items?.length || 0} 条可用学习资料。`
   if (task.task_type === 'summarize' && 'topic' in task.result) return '摘要已生成，请查看要点和建议。'
   if (task.task_type === 'compare' && 'items' in task.result) return '对比分析已完成，请查看不同视角。'

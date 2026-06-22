@@ -43,6 +43,7 @@ import {
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { getToken } from '@/lib/auth'
 import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, SKILL_STORAGE_KEY, type LearningSkill } from '@/lib/skills'
 import { matchPersonalizedNotes, noteSourceTypeLabel, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
 import ReactMarkdown from 'react-markdown'
@@ -64,6 +65,7 @@ const EMPTY_ROLE_DRAFT: RoleDraft = {
   rules: '',
 }
 const PENDING_ROLE_ID_KEY = 'sparklearn_pending_tutor_role_id'
+const A2UI_AUTH_GUARDED_HREFS = ['/knowledge', '/practice', '/video', '/generate', '/path', '/report']
 
 type RoleModalMode = 'create' | 'edit'
 
@@ -1121,6 +1123,11 @@ export default function TutorPage() {
 
   function handleA2UITaskAction(task: A2UITaskCard, action: A2UITaskAction) {
     if (action.name === 'open_media' && task.media?.href) {
+      const needsAuth = A2UI_AUTH_GUARDED_HREFS.some((href) => task.media?.href?.startsWith(href))
+      if (needsAuth && !getToken()) {
+        setActionError('请先登录后再进入学习资源页，当前学习方案已保留在对话中。')
+        return
+      }
       router.push(task.media.href)
       return
     }

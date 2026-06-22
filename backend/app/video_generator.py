@@ -671,9 +671,33 @@ def _write_tone_wav(path: Path, duration_ms: int) -> None:
 
 
 def _find_ffmpeg() -> str | None:
+    for env_key in ("FFMPEG_BINARY", "FFMPEG_PATH", "VIDEO_FFMPEG_PATH"):
+        candidate = os.environ.get(env_key, "").strip().strip('"')
+        if candidate and Path(candidate).exists():
+            return candidate
+
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg:
         return ffmpeg
+
+    where_exe = shutil.which("where.exe") or shutil.which("where")
+    if where_exe:
+        try:
+            completed = subprocess.run(
+                [where_exe, "ffmpeg"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            if completed.returncode == 0:
+                for line in completed.stdout.splitlines():
+                    candidate = line.strip().strip('"')
+                    if candidate and Path(candidate).exists():
+                        return candidate
+        except Exception:
+            pass
+
     try:
         import imageio_ffmpeg
 

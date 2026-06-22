@@ -14,16 +14,6 @@ interface NavItem {
   newTab?: boolean
 }
 
-type SparklearnDesktopBridge = {
-  openStudyBuddyConfig?: () => void
-}
-
-declare global {
-  interface Window {
-    sparklearnDesktop?: SparklearnDesktopBridge
-  }
-}
-
 const NAV_ITEMS: NavItem[] = [
   { label: '学习工作台', href: '/', icon: <Home className="h-5 w-5" />, group: '学习中心' },
   { label: '学习画像', href: '/profile', icon: <User className="h-5 w-5" />, group: '学习中心' },
