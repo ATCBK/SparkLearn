@@ -95,6 +95,176 @@ def _effective_model(req: TutorReq) -> str:
     return str(model).strip() if model is not None else ""
 
 
+def _should_emit_a2ui_task_cards(message: str, mode: str) -> bool:
+    if mode and mode != 'knowledge_qa':
+        return False
+    normalized = (message or '').strip().lower()
+    if not normalized:
+        return False
+    intent_terms = ['任务卡', '学习任务', '学习计划', '安排', '计划', '本周', '今日', 'todo', 'task']
+    return any(term in normalized for term in intent_terms)
+
+
+def _should_use_a2ui_ui_only(req: TutorReq, mode: str) -> bool:
+    if mode and mode != 'knowledge_qa':
+        return False
+    modes = _page_context_modes(req.page_context)
+    return _coerce_bool(modes.get('a2ui_panel'))
+
+
+def _extract_task_card_topic(message: str) -> str:
+    topic = re.sub(r'(帮我|请|安排|生成|做成|制作|一个|一份|本周|今日|学习计划|学习任务卡|任务卡|多张|多胞胎)', '', message or '')
+    topic = re.sub(r'[,，。.!！?？、\s]+', ' ', topic).strip()
+    return topic[:24] or '当前主题'
+
+
+def _profile_value(profile: dict[str, Any] | None, key: str, default: Any) -> Any:
+    if not isinstance(profile, dict):
+        return default
+    return profile.get(key, default)
+
+
+def _first_text(values: Any, default: str) -> str:
+    if isinstance(values, list):
+        for item in values:
+            text = str(item or '').strip()
+            if text:
+                return text
+    text = str(values or '').strip()
+    return text or default
+
+
+def _build_a2ui_task_card_events(
+    message: str,
+    answer: str,
+    conversation_id: int,
+    *,
+    ui_only: bool = False,
+    profile: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    topic = _extract_task_card_topic(message)
+    surface_id = f"sparklearn-task-cards-{conversation_id}"
+    learner_name = str(_profile_value(profile, 'name', '学习者') or '学习者')
+    weak_point = _first_text(_profile_value(profile, 'weak_points', []), '当前主题实践')
+    preference = _first_text(_profile_value(profile, 'learning_preference', []), '直观讲解')
+    current_stage = str(_profile_value(profile, 'current_stage', '') or _profile_value(profile, 'knowledge_level', '') or '学习推进中')
+    daily_time = int(_profile_value(profile, 'daily_time', 25) or 25)
+    tasks = [
+        {
+            'id': f'{surface_id}-concept',
+            'title': '夯实核心概念',
+            'description': f'围绕“{topic}”梳理关键概念、术语和常见误区，整理一页速记笔记。',
+            'durationMinutes': 25,
+            'difficulty': '入门',
+            'media': {
+                'type': 'document',
+                'title': f'{topic} 速记笔记',
+                'description': '用文字笔记沉淀概念、例子和易错点。',
+                'label': '笔记',
+                'href': '/knowledge',
+            },
+            'resources': ['对话回答摘要', '课程笔记', '知识库检索片段'],
+            'actions': [
+                {'name': 'complete_task', 'label': '标记完成'},
+                {'name': 'open_media', 'label': '打开资料'},
+                {'name': 'add_to_path', 'label': '加入学习路径'},
+            ],
+        },
+        {
+            'id': f'{surface_id}-practice',
+            'title': '完成针对练习',
+            'description': f'基于“{topic}”做 5 道小题或 1 个小实验，优先暴露不会的点。',
+            'durationMinutes': 35,
+            'difficulty': '进阶',
+            'media': {
+                'type': 'quiz',
+                'title': f'{topic} 针对练习',
+                'description': '用小测验检查是否真的理解，并沉淀错题。',
+                'label': '练习',
+                'href': '/practice',
+            },
+            'resources': ['练习中心', '错题本', 'AI 追问'],
+            'actions': [
+                {'name': 'complete_task', 'label': '标记完成'},
+                {'name': 'open_media', 'label': '开始练习'},
+                {'name': 'add_to_path', 'label': '加入学习路径'},
+            ],
+        },
+        {
+            'id': f'{surface_id}-review',
+            'title': '复盘并形成下一步',
+            'description': '用三句话总结今天的收获、卡点和下一次学习动作，让学习画像能持续更新。',
+            'durationMinutes': 15,
+            'difficulty': '巩固',
+            'media': {
+                'type': 'video',
+                'title': f'{topic} 复盘讲解',
+                'description': '用短视频或口播复盘，把卡点讲给未来的自己。',
+                'label': '视频',
+                'href': '/video',
+            },
+            'resources': ['学习报告', '个人画像', '本轮对话'],
+            'actions': [
+                {'name': 'complete_task', 'label': '标记完成'},
+                {'name': 'open_media', 'label': '打开视频'},
+                {'name': 'add_to_path', 'label': '加入学习路径'},
+            ],
+        },
+    ]
+    return [
+        {
+            'createSurface': {
+                'protocol': 'a2ui',
+                'version': '0.9.1',
+                'surfaceId': surface_id,
+                'catalogId': 'sparklearn.task_cards.v1',
+                'title': f'{topic} 个性化学习行动面板' if ui_only else f'{topic} 学习任务卡',
+            },
+        },
+        {
+            'updateDataModel': {
+                'surfaceId': surface_id,
+                'path': '/',
+                'value': {
+                    'uiOnly': bool(ui_only),
+                    'learner': {
+                        'name': learner_name,
+                        'stage': current_stage,
+                        'weakPoint': weak_point,
+                        'preference': preference,
+                        'dailyTime': daily_time,
+                    },
+                    'nextAction': {
+                        'title': '先完成最适合你的下一步',
+                        'description': f'根据你的薄弱点“{weak_point}”和偏好“{preference}”，建议先用 {min(daily_time, 25)} 分钟完成一个可验证动作。',
+                        'media': {
+                            'type': 'video' if '视频' in preference else 'document',
+                            'title': f'{topic} 个性化讲解',
+                            'description': '先用你偏好的方式理解，再进入练习。',
+                            'label': '推荐',
+                            'href': '/video' if '视频' in preference else '/knowledge',
+                        },
+                    },
+                    'summary': (answer or '').strip()[:180],
+                    'tasks': tasks,
+                },
+            },
+        },
+        {
+            'updateComponents': {
+                'surfaceId': surface_id,
+                'components': [
+                    {
+                        'id': 'task-cards',
+                        'component': 'PersonalizedLearningPanel' if ui_only else 'SparkTaskCards',
+                        'dataPath': '/',
+                    },
+                ],
+            },
+        },
+    ]
+
+
 def _build_mcp_tools_prompt() -> str:
     """查询已启用的 MCP 服务，构建工具描述文本用于注入 system prompt。"""
     rows = fetch_all(
@@ -788,6 +958,60 @@ async def tutor_chat(req: TutorReq):
         effective_mode = _effective_mode(req)
         effective_web_search = _effective_web_search(req)
         effective_model = _effective_model(req)
+        a2ui_events = []
+        a2ui_ui_only = _should_use_a2ui_ui_only(req, effective_mode)
+        profile_for_a2ui = req.page_context.get('student_profile') if isinstance(req.page_context, dict) and isinstance(req.page_context.get('student_profile'), dict) else None
+        if a2ui_ui_only or _should_emit_a2ui_task_cards(req.message, effective_mode):
+            a2ui_events = _build_a2ui_task_card_events(
+                req.message,
+                '',
+                conversation_id,
+                ui_only=a2ui_ui_only,
+                profile=profile_for_a2ui,
+            )
+            for envelope in a2ui_events:
+                yield ('a2ui', envelope)
+
+        if a2ui_ui_only:
+            answer = ''
+            assistant_id = _execute_returning_id(
+                """
+                INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, meta_json, created_at)
+                VALUES (?, ?, 'assistant', ?, '[]', ?, ?)
+                """,
+                (
+                    conversation_id,
+                    settings.single_user_id,
+                    answer,
+                    json.dumps(
+                        {
+                            'mode': effective_mode,
+                            'a2ui_events': a2ui_events,
+                            'a2ui_ui_only': True,
+                            'open_mode': bool(req.open_mode),
+                            'web_search': bool(effective_web_search),
+                        },
+                        ensure_ascii=False,
+                    ),
+                    now_iso(),
+                ),
+            )
+            yield (
+                'done',
+                {
+                    'message': {
+                        'id': assistant_id,
+                        'conversation_id': conversation_id,
+                        'role': 'assistant',
+                        'content': answer,
+                        'timestamp': now_iso(),
+                        'a2ui_ui_only': True,
+                    },
+                    'a2ui_events': a2ui_events,
+                    'a2ui_ui_only': True,
+                },
+            )
+            return
 
         if effective_web_search and req.message.strip() and effective_mode != 'knowledge_reverse':
             search_results = search_web(req.message.strip())
@@ -1111,6 +1335,7 @@ async def tutor_chat(req: TutorReq):
                         'mcp_calls': mcp_calls_payload,
                         'search_results': search_results,
                         'mode': effective_mode,
+                        'a2ui_events': a2ui_events,
                     },
                     ensure_ascii=False,
                 ),
@@ -1165,6 +1390,7 @@ async def tutor_chat(req: TutorReq):
                 'confidence': confidence_payload,
                 'citations': citations_payload,
                 'trust_meta': trust_meta_payload,
+                'a2ui_events': a2ui_events,
             },
         )
 
@@ -1211,6 +1437,8 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
                 'mcp_enabled': bool(meta.get('mcp_enabled', False)),
                 'mcp_calls': mcp_calls if isinstance(mcp_calls, list) else [],
                 'search_results': meta.get('search_results') if isinstance(meta.get('search_results'), list) else [],
+                'a2ui_events': meta.get('a2ui_events') if isinstance(meta.get('a2ui_events'), list) else [],
+                'a2ui_ui_only': bool(meta.get('a2ui_ui_only', False)),
                 'open_mode': bool(meta.get('open_mode', False)),
             }
         )
@@ -1343,6 +1571,8 @@ def _message_row_to_dict(row) -> dict[str, Any]:
         'mcp_enabled': bool(meta.get('mcp_enabled', False)),
         'mcp_calls': mcp_calls if isinstance(mcp_calls, list) else [],
         'search_results': meta.get('search_results') if isinstance(meta.get('search_results'), list) else [],
+        'a2ui_events': meta.get('a2ui_events') if isinstance(meta.get('a2ui_events'), list) else [],
+        'a2ui_ui_only': bool(meta.get('a2ui_ui_only', False)),
         'open_mode': bool(meta.get('open_mode', False)),
         'created_at': row['created_at'],
     }

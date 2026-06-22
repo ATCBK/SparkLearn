@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
+import { api, A2UIEnvelope, A2UISurfaceState, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
+import { A2UITaskCards, type A2UITaskAction, type A2UITaskCard } from '@/components/a2ui/A2UITaskCards'
 import {
   Bot,
   CheckCircle2,
@@ -119,6 +120,46 @@ const resourceTypeLabel: Record<Resource['type'], string> = {
   blog: '博客',
   discovery: '学习发现',
   web_material: '网页资料',
+}
+
+function applyA2UIEnvelopeToSurfaces(surfaces: A2UISurfaceState[] = [], envelope: A2UIEnvelope): A2UISurfaceState[] {
+  if ('createSurface' in envelope) {
+    const surface = envelope.createSurface
+    if (!surface.surfaceId || !surface.catalogId) return surfaces
+    const existing = surfaces.find((item) => item.surfaceId === surface.surfaceId)
+    if (existing) {
+      return surfaces.map((item) => item.surfaceId === surface.surfaceId ? {
+        ...item,
+        catalogId: surface.catalogId,
+        title: surface.title,
+      } : item)
+    }
+    return [
+      ...surfaces,
+      {
+        surfaceId: surface.surfaceId,
+        catalogId: surface.catalogId,
+        title: surface.title,
+        dataModel: {},
+        components: [],
+      },
+    ]
+  }
+  if ('updateDataModel' in envelope) {
+    const update = envelope.updateDataModel
+    return surfaces.map((item) => item.surfaceId === update.surfaceId ? {
+      ...item,
+      dataModel: update.value,
+    } : item)
+  }
+  if ('updateComponents' in envelope) {
+    const update = envelope.updateComponents
+    return surfaces.map((item) => item.surfaceId === update.surfaceId ? {
+      ...item,
+      components: update.components,
+    } : item)
+  }
+  return surfaces
 }
 
 function isResourceRecommendationQuery(text: string) {
@@ -481,6 +522,7 @@ export default function TutorPage() {
   const [knowledgeReverse, setKnowledgeReverse] = useState(false)
   const [webSearch, setWebSearch] = useState(false)
   const [mcpEnabled, setMcpEnabled] = useState(false)
+  const [a2uiMode, setA2uiMode] = useState(false)
   const [selectedModel, setSelectedModel] = useState('lite')
   const [videoVoice, setVideoVoice] = useState('')
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
@@ -1057,6 +1099,21 @@ export default function TutorPage() {
     }
   }
 
+  function handleA2UITaskAction(task: A2UITaskCard, action: A2UITaskAction) {
+    if (action.name === 'open_media' && task.media?.href) {
+      router.push(task.media.href)
+      return
+    }
+    const actionText = action.name === 'complete_task'
+      ? `我已完成任务「${task.title}」，请帮我复盘下一步。`
+      : action.name === 'add_to_path'
+        ? `请把任务「${task.title}」加入我的学习路径，并说明应该排在哪一步。`
+        : action.name === 'open_media'
+          ? `请打开并讲解任务「${task.title}」的多模态资源。`
+        : `请继续处理任务「${task.title}」的动作「${action.label}」。`
+    void handleSend(actionText)
+  }
+
   async function handleSend(sendText?: string) {
     const textValue = (sendText ?? input).trim()
     if ((!textValue && pendingFiles.length === 0) || streaming) return
@@ -1278,6 +1335,9 @@ export default function TutorPage() {
               created_at: item.resource.createdAt,
               href: `/generate?view=library&id=${item.resource.id}`,
             })),
+            modes: {
+              a2ui_panel: a2uiMode,
+            },
           },
         },
         {
@@ -1316,6 +1376,18 @@ export default function TutorPage() {
           onSearchResults: (results) => {
             setSearchResultsByMsg((prev) => ({ ...prev, [assistantId]: results }))
           },
+          onA2UI: (envelope) => {
+            setMessages((prev) => prev.map((m) => (
+              m.id === assistantId
+                ? {
+                    ...m,
+                    streaming: a2uiMode ? false : m.streaming,
+                    a2uiUiOnly: a2uiMode || m.a2uiUiOnly,
+                    a2uiSurfaces: applyA2UIEnvelopeToSurfaces(m.a2uiSurfaces, envelope),
+                  }
+                : m
+            )))
+          },
           onHub: (evt) => {
             setHubMessages((prev) => {
               const isDelta = (evt as unknown as { delta?: boolean }).delta === true
@@ -1341,7 +1413,14 @@ export default function TutorPage() {
           : m
       )))
       if (savedMessage.id && savedMessage.id !== assistantId) {
-        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, id: savedMessage.id, conversationId: savedMessage.conversationId } : m)))
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? {
+          ...m,
+          id: savedMessage.id,
+          conversationId: savedMessage.conversationId,
+          streaming: false,
+          content: savedMessage.a2uiUiOnly ? '' : (m.content || savedMessage.content),
+          a2uiUiOnly: savedMessage.a2uiUiOnly || m.a2uiUiOnly,
+        } : m)))
         setMcpCallsByMsg((prev) => {
           if (!prev[assistantId]) return prev
           const next = { ...prev, [savedMessage.id]: prev[assistantId] }
@@ -1355,6 +1434,16 @@ export default function TutorPage() {
           return next
         })
       }
+      setMessages((prev) => prev.map((m) => (
+        m.id === (savedMessage.id || assistantId)
+          ? {
+              ...m,
+              streaming: false,
+              content: savedMessage.a2uiUiOnly ? '' : (m.content || savedMessage.content),
+              a2uiUiOnly: savedMessage.a2uiUiOnly || m.a2uiUiOnly,
+            }
+          : m
+      )))
       setPendingFiles([])
       await refreshConversations(savedMessage.conversationId ?? convId ?? null)
     } catch (e) {
@@ -1608,9 +1697,12 @@ export default function TutorPage() {
                 {messages.map((msg) => {
                   const isProfileMessage = msg.trustMeta?.kind === 'student_profile'
                   if (isProfileMessage) {
-                    const status = msg.streaming
+                    const rawStatus = msg.streaming
                       ? 'loading'
                       : String(msg.trustMeta?.status || profileStatus)
+                    const status: ProfileLoadStatus = ['idle', 'loading', 'ready', 'error'].includes(rawStatus)
+                      ? rawStatus as ProfileLoadStatus
+                      : 'ready'
                     return <ProfileMessageCard key={msg.id} profile={studentProfile} status={status} />
                   }
                   const summary = msg.role === 'assistant' ? parseWorkshopSummary(msg.content) : null
@@ -1723,6 +1815,7 @@ export default function TutorPage() {
                                 </div>
                               )}
                             </div>
+                            <A2UITaskCards surfaces={msg.a2uiSurfaces} onAction={handleA2UITaskAction} />
                             {msg.videoResource && (
                               <div className="mt-3 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-[#0b1120] shadow-[0_12px_30px_rgba(15,23,42,0.18)]">
                                 <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
@@ -2124,6 +2217,17 @@ export default function TutorPage() {
                     )}
                   >
                     <Cpu className="w-3.5 h-3.5" />MCP 模式
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setA2uiMode((v) => !v)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+                      a2uiMode ? 'border-[#2563eb] bg-[#eff6ff] text-[#1d4ed8]' : 'border-[#e2e8f0] text-[#64748b] hover:bg-[#f8fafc]',
+                    )}
+                    title="开启后本轮优先直接生成个性化 A2UI 面板"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />A2UI 展示
                   </button>
                   <button
                     type="button"

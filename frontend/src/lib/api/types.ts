@@ -289,6 +289,47 @@ export interface Message {
   trustMeta?: Record<string, unknown>
   mcpCalls?: Array<Record<string, unknown>>
   searchResults?: SearchResultItem[]
+  a2uiSurfaces?: A2UISurfaceState[]
+  a2uiUiOnly?: boolean
+}
+
+export type A2UIEnvelope =
+  | { createSurface: A2UICreateSurface }
+  | { updateDataModel: A2UIUpdateDataModel }
+  | { updateComponents: A2UIUpdateComponents }
+
+export interface A2UICreateSurface {
+  protocol: 'a2ui' | string
+  version: string
+  surfaceId: string
+  catalogId: string
+  title?: string
+}
+
+export interface A2UIUpdateDataModel {
+  surfaceId: string
+  path: string
+  value: Record<string, unknown>
+}
+
+export interface A2UIUpdateComponents {
+  surfaceId: string
+  components: A2UIComponentNode[]
+}
+
+export interface A2UIComponentNode {
+  id: string
+  component: string
+  dataPath?: string
+  props?: Record<string, unknown>
+}
+
+export interface A2UISurfaceState {
+  surfaceId: string
+  catalogId: string
+  title?: string
+  dataModel: Record<string, unknown>
+  components: A2UIComponentNode[]
 }
 
 export interface ConfidenceInfo {

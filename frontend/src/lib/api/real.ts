@@ -7,6 +7,7 @@ import type {
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
+  A2UIEnvelope, A2UISurfaceState,
 } from './types'
 import { getToken } from '../auth'
 
@@ -14,6 +15,54 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 type ApiResp<T> = { success: boolean; data: T; error?: string }
 type SseEvent = { type: string; payload: Record<string, unknown> }
+
+function applyA2UIEnvelope(surfaces: A2UISurfaceState[], envelope: A2UIEnvelope): A2UISurfaceState[] {
+  if ('createSurface' in envelope) {
+    const surface = envelope.createSurface
+    if (!surface.surfaceId || !surface.catalogId) return surfaces
+    const existing = surfaces.find((item) => item.surfaceId === surface.surfaceId)
+    if (existing) {
+      return surfaces.map((item) => item.surfaceId === surface.surfaceId ? {
+        ...item,
+        catalogId: surface.catalogId,
+        title: surface.title,
+      } : item)
+    }
+    return [
+      ...surfaces,
+      {
+        surfaceId: surface.surfaceId,
+        catalogId: surface.catalogId,
+        title: surface.title,
+        dataModel: {},
+        components: [],
+      },
+    ]
+  }
+  if ('updateDataModel' in envelope) {
+    const update = envelope.updateDataModel
+    return surfaces.map((item) => item.surfaceId === update.surfaceId ? {
+      ...item,
+      dataModel: update.value,
+    } : item)
+  }
+  if ('updateComponents' in envelope) {
+    const update = envelope.updateComponents
+    return surfaces.map((item) => item.surfaceId === update.surfaceId ? {
+      ...item,
+      components: update.components,
+    } : item)
+  }
+  return surfaces
+}
+
+function buildA2UISurfaces(events: unknown): A2UISurfaceState[] {
+  if (!Array.isArray(events)) return []
+  return events.reduce<A2UISurfaceState[]>((surfaces, event) => {
+    if (!event || typeof event !== 'object') return surfaces
+    return applyA2UIEnvelope(surfaces, event as A2UIEnvelope)
+  }, [])
+}
 
 function _authHeaders(): Record<string, string> {
   const token = getToken()
@@ -440,6 +489,7 @@ export async function sendMessage(
     onTrustMeta?: (trustMeta: Record<string, unknown>) => void
     onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string; status: string; ok: boolean; error: string; args?: Record<string, unknown> }) => void
     onSearchResults?: (results: SearchResultItem[]) => void
+    onA2UI?: (envelope: A2UIEnvelope) => void
     onDone?: () => void
   },
 ): Promise<Message> {
@@ -447,6 +497,8 @@ export async function sendMessage(
   let latestConfidence: ConfidenceInfo | undefined
   let latestCitations: CitationItem[] | undefined
   let latestTrustMeta: Record<string, unknown> | undefined
+  const latestA2UIEvents: A2UIEnvelope[] = []
+  let a2uiUiOnly = false
   let doneMessage: Record<string, unknown> | undefined
   const events = await readSSE('/api/tutor/chat', {
     message: content,
@@ -555,10 +607,20 @@ export async function sendMessage(
       handlers?.onSearchResults?.(items)
       return
     }
+    if (evt.type === 'a2ui') {
+      const envelope = evt.payload as A2UIEnvelope
+      latestA2UIEvents.push(envelope)
+      handlers?.onA2UI?.(envelope)
+      return
+    }
     if (evt.type === 'done') {
       doneMessage = evt.payload.message && typeof evt.payload.message === 'object'
         ? evt.payload.message as Record<string, unknown>
         : undefined
+      if (Array.isArray(evt.payload.a2ui_events)) {
+        latestA2UIEvents.splice(0, latestA2UIEvents.length, ...(evt.payload.a2ui_events as A2UIEnvelope[]))
+      }
+      a2uiUiOnly = Boolean(evt.payload.a2ui_ui_only || doneMessage?.a2ui_ui_only)
       handlers?.onDone?.()
     }
   })
@@ -567,12 +629,14 @@ export async function sendMessage(
   return {
     id: doneMessage?.id !== undefined ? String(doneMessage.id) : `m-${Date.now()}`,
     role: 'assistant',
-    content: text || '我已收到你的问题，我们继续一起拆解。',
+    content: text || (a2uiUiOnly ? '' : '我已收到你的问题，我们继续一起拆解。'),
     timestamp: String(doneMessage?.timestamp || new Date().toISOString()),
     conversationId: doneMessage?.conversation_id !== undefined ? Number(doneMessage.conversation_id) : options?.conversationId,
     confidence: latestConfidence,
     citations: latestCitations,
     trustMeta: latestTrustMeta,
+    a2uiSurfaces: buildA2UISurfaces(latestA2UIEvents),
+    a2uiUiOnly,
   }
 }
 
@@ -611,6 +675,8 @@ export async function getChatHistory(conversationId?: number): Promise<Message[]
           score: Number(x.score || 0),
         }))
       : [],
+    a2uiSurfaces: buildA2UISurfaces(m.a2ui_events),
+    a2uiUiOnly: Boolean(m.a2ui_ui_only),
   }))
 }
 
