@@ -4,6 +4,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGraphStore } from '../store/graphStore'
 import type { GraphData, KnowledgeEdge, KnowledgeNode } from '../types/graph'
 
+type GraphClickParams = {
+  dataType?: string
+  data?: {
+    id?: string
+  }
+}
+
 const STATUS_COLORS: Record<string, string> = {
   mastered: '#16A34A',
   learning: '#2563EB',
@@ -86,7 +93,7 @@ export function GraphCanvas() {
       chartRef.current = instance
       setIsEchartsReady(true)
 
-      instance.on('click', (params: any) => {
+      instance.on('click', (params: GraphClickParams) => {
         if (params.dataType === 'node' && params.data?.id) {
           selectNode(params.data.id)
         }

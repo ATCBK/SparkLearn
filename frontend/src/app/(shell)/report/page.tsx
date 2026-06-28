@@ -618,13 +618,11 @@ function WeekTimePie({ report }: { report: ReportData }) {
   const total = data.reduce((sum, d) => sum + d.minutes, 0)
   const colors = ['#2563eb', '#16a34a', '#f59e0b', '#8b5cf6']
 
-  // Calculate pie slices
-  let cumulativePercent = 0
   const slices = data.map((item, i) => {
     const percent = item.minutes / total
+    const cumulativePercent = data.slice(0, i).reduce((sum, d) => sum + d.minutes / total, 0)
     const startAngle = cumulativePercent * 360
     const endAngle = (cumulativePercent + percent) * 360
-    cumulativePercent += percent
 
     const startRad = ((startAngle - 90) * Math.PI) / 180
     const endRad = ((endAngle - 90) * Math.PI) / 180
@@ -726,7 +724,7 @@ function WeekDailyBar({ report }: { report: ReportData }) {
 }
 
 /** Skill radar chart (simplified polygon) */
-function WeekSkillRadar({ report }: { report: ReportData }) {
+function WeekSkillRadar() {
   const skills = [
     { name: '语法基础', value: 84 },
     { name: '函数理解', value: 62 },

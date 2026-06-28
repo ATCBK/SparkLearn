@@ -3,7 +3,7 @@
 // ============ 甘特图左侧路径节点列表组件（支持节点完成） ============
 
 import { useMemo, useCallback } from 'react';
-import type { EditablePhase, EditablePathNode } from '@/lib/api/types';
+import type { EditablePhase } from '@/lib/api/types';
 import type { GanttTask } from '../hooks/gantt';
 import { PHASE_COLORS_BY_ID, STATUS_TEXT, STATUS_COLORS } from '../utils/ganttUtils';
 import { formatDateCN } from '../utils/dateUtils';
@@ -35,23 +35,20 @@ export function GanttPathNodeList({
     return 0;
   };
 
-  // 获取节点对应的甘特图任务
-  const getTaskForNode = (nodeId: string): GanttTask | undefined => {
-    return tasks.find((t) => t.nodeId === nodeId);
-  };
+  const taskByNodeId = useMemo(() => new Map(tasks.map((task) => [task.nodeId, task])), [tasks]);
 
   // 计算每个阶段的进度
   const phaseProgress = useMemo(() => {
     return phases.map((phase) => {
       const phaseTasks = phase.nodes
-        .map((n) => getTaskForNode(n.id))
+        .map((n) => taskByNodeId.get(n.id))
         .filter(Boolean) as GanttTask[];
 
       if (phaseTasks.length === 0) return 0;
       const completedCount = phaseTasks.filter((t) => t.status === 'completed').length;
       return Math.round((completedCount / phaseTasks.length) * 100);
     });
-  }, [phases, tasks]);
+  }, [phases, taskByNodeId]);
 
   // 处理完成状态切换
   const handleCompleteToggle = useCallback(

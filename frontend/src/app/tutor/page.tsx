@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { api, A2UIEnvelope, A2UISurfaceState, AGUIEvent, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
-import { Button } from '@/components/ui/Button'
 import { ErrorState } from '@/components/ui/ErrorState'
-import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { A2UITaskCards, type A2UITaskAction, type A2UITaskCard } from '@/components/a2ui/A2UITaskCards'
 import { AgentTimeline } from '@/components/agui/AgentTimeline'
 import {
@@ -27,25 +26,21 @@ import {
   Plus,
   Puzzle,
   RefreshCw,
-  Save,
   Search,
   Send,
   Sparkles,
   Trash2,
   UserCog,
-  UserRoundSearch,
   Volume2,
   X,
   ArrowLeft,
   Image as ImageIcon,
-  PanelLeftClose,
-  PanelLeftOpen,
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { getToken } from '@/lib/auth'
 import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, SKILL_STORAGE_KEY, type LearningSkill } from '@/lib/skills'
-import { matchPersonalizedNotes, noteSourceTypeLabel, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
+import { matchPersonalizedNotes, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -84,6 +79,8 @@ type McpCallView = {
   ok: boolean
   error?: string
   args?: Record<string, unknown>
+  resultPreview?: string
+  resultContext?: string
 }
 
 type MatchedGeneratedResource = {
@@ -167,6 +164,98 @@ function applyA2UIEnvelopeToSurfaces(surfaces: A2UISurfaceState[] = [], envelope
 
 function appendAGUIEvent(events: AGUIEvent[] = [], event: AGUIEvent): AGUIEvent[] {
   return [...events, event]
+}
+
+function normalizeMcpCallViews(calls: Array<Record<string, unknown>>): McpCallView[] {
+  return calls.map((x) => ({
+    serviceId: String(x.service_id || x.serviceId || ''),
+    serviceName: String(x.service_name || x.serviceName || x.service_id || x.serviceId || ''),
+    toolName: String(x.tool_name || x.toolName || ''),
+    status: String(x.status || 'done'),
+    ok: x.ok !== undefined ? Boolean(x.ok) : true,
+    error: String(x.error || ''),
+    args: x.args && typeof x.args === 'object' && !Array.isArray(x.args) ? x.args as Record<string, unknown> : undefined,
+    resultPreview: String(x.result_preview || x.resultPreview || ''),
+    resultContext: String(x.result_context || x.resultContext || ''),
+  })).filter((x) => x.toolName)
+}
+
+function mcpCallToAGUIEvents(call: McpCallView, assistantId: string): AGUIEvent[] {
+  const toolName = call.toolName || 'unknown_tool'
+  const safeToolId = `${call.serviceId || 'mcp'}-${toolName}`.replace(/[^a-zA-Z0-9_-]/g, '_')
+  const stepId = toolName === 'tools/list' ? `mcp_discovery_${call.serviceId || 'default'}` : `mcp_tool_${safeToolId}`
+  const toolCallId = `${assistantId}-${stepId}`
+  const runId = `sparklearn-tutor-${assistantId}`
+  const isDiscovery = toolName === 'tools/list'
+  const title = isDiscovery ? `发现 MCP 工具：${call.serviceName || 'MCP 服务'}` : `调用 MCP 工具：${toolName}`
+  const events: AGUIEvent[] = []
+
+  if (call.status === 'discovering' || call.status === 'running') {
+    events.push({
+      type: 'StepStarted',
+      runId,
+      stepId,
+      title,
+      summary: isDiscovery ? '正在读取服务工具列表' : '正在执行真实 MCP 工具调用',
+      timestamp: new Date().toISOString(),
+    })
+    events.push({
+      type: 'ToolCallStart',
+      runId,
+      stepId,
+      toolCallId,
+      toolName,
+      label: title,
+      timestamp: new Date().toISOString(),
+    })
+    if (call.args && Object.keys(call.args).length > 0) {
+      events.push({
+        type: 'ToolCallArgs',
+        runId,
+        stepId,
+        toolCallId,
+        args: call.args,
+        timestamp: new Date().toISOString(),
+      })
+    }
+    return events
+  }
+
+  events.push({
+    type: 'StepStarted',
+    runId,
+    stepId,
+    title,
+    summary: isDiscovery ? '读取 MCP 服务工具列表' : '执行真实 MCP 工具调用',
+    timestamp: new Date().toISOString(),
+  })
+  events.push({
+    type: 'ToolCallResult',
+    runId,
+    stepId,
+    toolCallId,
+    toolName,
+    status: call.status === 'error' || !call.ok ? 'error' : 'done',
+    summary: call.error || call.resultPreview || (isDiscovery ? '工具列表读取完成' : '工具调用完成'),
+    data: {
+      service: call.serviceName,
+      tool: toolName,
+      status: call.status,
+      ok: call.ok,
+      error: call.error || '',
+      result_preview: call.resultPreview || '',
+    },
+    timestamp: new Date().toISOString(),
+  })
+  events.push({
+    type: 'StepFinished',
+    runId,
+    stepId,
+    status: call.status === 'error' || !call.ok ? 'error' : 'done',
+    summary: call.error || (isDiscovery ? 'MCP 工具发现完成' : 'MCP 工具调用完成'),
+    timestamp: new Date().toISOString(),
+  })
+  return events
 }
 
 function isResourceRecommendationQuery(text: string) {
@@ -334,9 +423,9 @@ function ProfileMessageCard({
   const isError = status === 'error'
   const statusText = isRunning ? '执行中' : isError ? '失败' : '完成'
   const detailText = isRunning
-    ? '读取学生画像、学习阶段、薄弱点和学习偏好'
+    ? '正在准备个性化学习上下文'
     : isError
-      ? '画像读取失败，将按本次问题继续回答'
+      ? '暂未同步画像，将按本次问题继续回答'
       : `${summary.name} · ${summary.stage} · ${summary.dailyTime}`
 
   return (
@@ -385,13 +474,11 @@ function ProfileMessageCard({
                 </div>
               </div>
               <div className="flex min-w-0 flex-1 items-center gap-2">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#e4eaf5] bg-white">
-                  <Puzzle className="h-3 w-3 text-[#6b7cba]" />
-                </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-semibold text-[#1e293b]">load_student_profile</span>
-                    <span className="shrink-0 text-[10px] text-[#94a3b8]">· Profile Memory</span>
+                    <span className="truncate text-xs font-semibold text-[#1e293b]">
+                      {isRunning ? '正在同步学习画像' : isError ? '画像同步未完成' : '学习画像已同步'}
+                    </span>
                   </div>
                   <div className={cn('mt-0.5 truncate text-[10px]', isError ? 'text-rose-500' : 'text-[#64748b]')}>
                     {detailText}
@@ -419,79 +506,6 @@ function ProfileMessageCard({
             )}
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
-
-function ProfileToolCallPanel({ calls }: { calls: McpCallView[] }) {
-  if (calls.length === 0) return null
-  return (
-    <div className="mt-2 overflow-hidden rounded-xl border border-[#e0e7f5] bg-[#fafcff] text-left shadow-[0_2px_8px_rgba(37,99,235,0.04)]">
-      <div className="flex items-center gap-2 border-b border-[#eef2f8] bg-[#f4f8ff] px-3.5 py-2">
-        <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[#e6eeff] text-[#4f6bf6]">
-          <UserRoundSearch className="h-3 w-3" />
-        </div>
-        <span className="text-xs font-semibold text-[#1e293b]">学生画像加载</span>
-        {calls.some((call) => call.status === 'running' || call.status === 'pending') && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#eef4ff] px-2 py-0.5 text-[10px] font-medium text-[#4f6bf6]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4f6bf6]" />
-            执行中
-          </span>
-        )}
-      </div>
-      <div className="divide-y divide-[#eef2f8] px-1">
-        {calls.map((c, i) => {
-          const isRunning = c.status === 'pending' || c.status === 'running' || c.status === 'discovering'
-          const isError = c.status === 'error' || (!c.ok && c.status === 'done')
-          const statusText = c.status === 'pending' ? '等待中' : c.status === 'discovering' ? '发现工具' : isRunning ? '调用中' : isError ? '失败' : '完成'
-          const argsText = c.args && Object.keys(c.args).length > 0 ? JSON.stringify(c.args) : ''
-          return (
-            <div key={`${c.serviceName}-${c.toolName}-${i}`} className={`flex items-center gap-3 px-2.5 py-2.5 transition-colors ${isRunning ? 'bg-[#f8fbff]' : ''}`}>
-              <div className="flex h-5 w-5 items-center justify-center rounded-full">
-                <div className={`flex h-5 w-5 items-center justify-center rounded-full ${
-                  isRunning ? 'bg-[#e6eeff] text-[#4f6bf6]' : isError ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'
-                }`}>
-                  {isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : isError ? <X className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                </div>
-              </div>
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#e4eaf5] bg-white">
-                  <UserRoundSearch className="h-3 w-3 text-[#6b7cba]" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-semibold text-[#1e293b]">{c.toolName}</span>
-                    <span className="shrink-0 text-[10px] text-[#94a3b8]">· {c.serviceName}</span>
-                  </div>
-                  {(argsText || c.error) && (
-                    <div className={cn('mt-0.5 truncate text-[10px]', c.error ? 'text-rose-500' : 'text-[#64748b]')}>
-                      {c.error || `参数 ${argsText}`}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="shrink-0">
-                {isRunning ? (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
-                    <span className="h-1 w-1 animate-pulse rounded-full bg-amber-500" />
-                    {statusText}
-                  </span>
-                ) : isError ? (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-medium text-rose-600">
-                    <X className="h-2.5 w-2.5" />
-                    {statusText}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
-                    <CheckCircle2 className="h-2.5 w-2.5" />
-                    {statusText}
-                  </span>
-                )}
-              </div>
-            </div>
-          )
-        })}
       </div>
     </div>
   )
@@ -537,8 +551,7 @@ export default function TutorPage() {
   const [renamingConversationId, setRenamingConversationId] = useState<number | null>(null)
   const [renameTitle, setRenameTitle] = useState('')
 
-  const [panelCollapsed, setPanelCollapsed] = useState(false)
-  const [workshopEnabled, setWorkshopEnabled] = useState(false)
+  const [workshopEnabled] = useState(false)
   const [openMode, setOpenMode] = useState(true)
   const [multimodalMode, setMultimodalMode] = useState<'image' | 'video' | null>(null)
   const [multimodalMenuOpen, setMultimodalMenuOpen] = useState(false)
@@ -550,11 +563,11 @@ export default function TutorPage() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [workshopRoleIds, setWorkshopRoleIds] = useState<number[]>([])
   const [hubMessages, setHubMessages] = useState<WorkshopHubEvent[]>([])
-  const [workshopPhase, setWorkshopPhase] = useState<{ phase: string; round?: number; status: string } | null>(null)
+  const [, setWorkshopPhase] = useState<{ phase: string; round?: number; status: string } | null>(null)
   const [workshopRunId, setWorkshopRunId] = useState(0)
   const [roleModalOpen, setRoleModalOpen] = useState(false)
-  const [roleModalMode, setRoleModalMode] = useState<RoleModalMode>('create')
-  const [roleEditingId, setRoleEditingId] = useState<number | null>(null)
+  const [roleModalMode] = useState<RoleModalMode>('create')
+  const [roleEditingId] = useState<number | null>(null)
   const [roleDraft, setRoleDraft] = useState<RoleDraft>(EMPTY_ROLE_DRAFT)
   const [savingRole, setSavingRole] = useState(false)
   const [trustPanelOpenByMsg, setTrustPanelOpenByMsg] = useState<Record<string, boolean>>({})
@@ -771,15 +784,7 @@ export default function TutorPage() {
       if (msg.role !== 'assistant') continue
       const calls = Array.isArray(msg.mcpCalls) ? msg.mcpCalls : []
       if (calls.length > 0) {
-        nextMcp[msg.id] = calls.map((x) => ({
-          serviceId: String(x.service_id || x.serviceId || ''),
-          serviceName: String(x.service_name || x.serviceName || x.service_id || x.serviceId || ''),
-          toolName: String(x.tool_name || x.toolName || ''),
-          status: String(x.status || 'done'),
-          ok: x.ok !== undefined ? Boolean(x.ok) : true,
-          error: String(x.error || ''),
-          args: x.args && typeof x.args === 'object' && !Array.isArray(x.args) ? x.args as Record<string, unknown> : undefined,
-        })).filter((x) => x.toolName)
+        nextMcp[msg.id] = normalizeMcpCallViews(calls)
       }
       if (Array.isArray(msg.searchResults) && msg.searchResults.length > 0) {
         nextSearch[msg.id] = msg.searchResults
@@ -793,7 +798,15 @@ export default function TutorPage() {
     autoFollowRef.current = true
     setAutoFollowMessages(true)
     setShowJumpToLatest(false)
-    setMessages(items)
+    setMessages(items.map((msg) => {
+      if (msg.role !== 'assistant' || !Array.isArray(msg.mcpCalls) || msg.mcpCalls.length === 0) return msg
+      const mcpEvents = normalizeMcpCallViews(msg.mcpCalls).flatMap((call) => mcpCallToAGUIEvents(call, msg.id))
+      if (mcpEvents.length === 0) return msg
+      return {
+        ...msg,
+        aguiEvents: [...(msg.aguiEvents || []), ...mcpEvents],
+      }
+    }))
     hydrateMessageSidecars(items)
   }
 
@@ -905,6 +918,8 @@ export default function TutorPage() {
 
   useEffect(() => {
     void loadWorkspace()
+    // 只在首次进入导师页时初始化工作区；依赖当前对话状态会导致切换会话时重复拉取并覆盖本地草稿。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -990,34 +1005,6 @@ export default function TutorPage() {
     }
   }
 
-  function openCreateRoleModal() {
-    setRoleModalMode('create')
-    setRoleEditingId(null)
-    setRoleDraft(EMPTY_ROLE_DRAFT)
-    setRoleModalOpen(true)
-  }
-
-  function openEditRoleModal(role: TutorRole) {
-    setRoleModalMode('edit')
-    setRoleEditingId(role.id)
-    hydrateRoleDraft(role)
-    setRoleModalOpen(true)
-  }
-
-  async function handleDeleteRole(roleId: number) {
-    try {
-      setActionError(null)
-      await api.deleteTutorRole(roleId)
-      const refreshedRoles = await api.getTutorRoles()
-      setRoles(refreshedRoles)
-      const nextRole = refreshedRoles[0] || null
-      setCurrentRoleId(nextRole?.id ?? null)
-      await refreshConversations(currentConversationId)
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : '删除角色失败，请检查后端服务')
-    }
-  }
-
   async function handleSaveRoleFromModal() {
     const name = roleDraft.name.trim()
     if (!name) return
@@ -1095,30 +1082,6 @@ export default function TutorPage() {
 
   function removePendingFile(fileId: number) {
     setPendingFiles((prev) => prev.filter((f) => f.id !== fileId))
-  }
-
-  function toggleWorkshopRole(roleId: number) {
-    setWorkshopRoleIds((prev) => {
-      if (prev.includes(roleId)) {
-        const next = prev.filter((id) => id !== roleId)
-        if (next.length > 0) return next
-        return [roleId]
-      }
-      return [...prev, roleId]
-    })
-  }
-
-  async function handleDeleteMessage(messageId: string) {
-    try {
-      setActionError(null)
-      await api.deleteTutorMessage(messageId)
-      if (!currentConversationId) return
-      const history = await api.getChatHistory(currentConversationId)
-      setHydratedMessages(history)
-      await refreshConversations(currentConversationId)
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : '删除消息失败，请检查后端服务')
-    }
   }
 
   function handleA2UITaskAction(task: A2UITaskCard, action: A2UITaskAction) {
@@ -1208,6 +1171,26 @@ export default function TutorPage() {
     setHubMessages([])
     setWorkshopPhase(isVideoMode ? null : (workshopEnabled ? { phase: 'profile_analysis', status: 'running' } : null))
     setWorkshopRunId((v) => v + 1)
+
+    let streamTextBuffer = ''
+    let streamFlushFrame: number | null = null
+    const flushStreamText = () => {
+      if (streamFlushFrame !== null) {
+        cancelAnimationFrame(streamFlushFrame)
+        streamFlushFrame = null
+      }
+      if (!streamTextBuffer) return
+      const nextChunk = streamTextBuffer
+      streamTextBuffer = ''
+      setMessages((prev) => prev.map((m) => (
+        m.id === assistantId ? { ...m, content: `${m.content}${nextChunk}` } : m
+      )))
+    }
+    const queueStreamText = (chunk: string) => {
+      streamTextBuffer += chunk
+      if (streamFlushFrame !== null) return
+      streamFlushFrame = requestAnimationFrame(flushStreamText)
+    }
 
     try {
       setActionError(null)
@@ -1368,7 +1351,7 @@ export default function TutorPage() {
         },
         {
           onText: (chunk) => {
-            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: `${m.content}${chunk}` } : m)))
+            queueStreamText(chunk)
           },
           onConfidence: (confidence: ConfidenceInfo) => {
             if (!trustModeForRequest) return
@@ -1393,11 +1376,32 @@ export default function TutorPage() {
                 ok: call.ok,
                 error: call.error,
                 args: call.args,
+                resultPreview: call.resultPreview,
+                resultContext: call.resultContext,
               }
               const idx = withoutPending.findIndex((x) => x.serviceId === nextCall.serviceId && x.toolName === nextCall.toolName)
               const next = idx >= 0 ? withoutPending.map((x, i) => (i === idx ? { ...x, ...nextCall } : x)) : [...withoutPending, nextCall]
               return { ...prev, [assistantId]: next }
             })
+            const nextCallForTimeline: McpCallView = {
+              serviceId: call.serviceId,
+              serviceName: call.serviceName || call.serviceId,
+              toolName: call.toolName,
+              status: call.status || 'running',
+              ok: call.ok,
+              error: call.error,
+              args: call.args,
+              resultPreview: call.resultPreview,
+              resultContext: call.resultContext,
+            }
+            const mcpEvents = mcpCallToAGUIEvents(nextCallForTimeline, assistantId)
+            if (mcpEvents.length > 0) {
+              setMessages((prev) => prev.map((m) => (
+                m.id === assistantId
+                  ? { ...m, aguiEvents: mcpEvents.reduce((events, event) => appendAGUIEvent(events, event), m.aguiEvents || []) }
+                  : m
+              )))
+            }
           },
           onSearchResults: (results) => {
             setSearchResultsByMsg((prev) => ({ ...prev, [assistantId]: results }))
@@ -1440,6 +1444,7 @@ export default function TutorPage() {
           },
         },
       )
+      flushStreamText()
       if (savedMessage.conversationId && savedMessage.conversationId !== currentConversationId) {
         setCurrentConversationId(savedMessage.conversationId)
       }
@@ -1457,7 +1462,7 @@ export default function TutorPage() {
           content: savedMessage.a2uiUiOnly ? '' : (m.content || savedMessage.content),
           a2uiUiOnly: savedMessage.a2uiUiOnly || m.a2uiUiOnly,
           a2uiSurfaces: savedMessage.a2uiSurfaces?.length ? savedMessage.a2uiSurfaces : m.a2uiSurfaces,
-          aguiEvents: savedMessage.aguiEvents?.length ? savedMessage.aguiEvents : m.aguiEvents,
+          aguiEvents: m.aguiEvents?.length ? m.aguiEvents : savedMessage.aguiEvents,
         } : m)))
         setMcpCallsByMsg((prev) => {
           if (!prev[assistantId]) return prev
@@ -1480,7 +1485,7 @@ export default function TutorPage() {
               content: savedMessage.a2uiUiOnly ? '' : (m.content || savedMessage.content),
               a2uiUiOnly: savedMessage.a2uiUiOnly || m.a2uiUiOnly,
               a2uiSurfaces: savedMessage.a2uiSurfaces?.length ? savedMessage.a2uiSurfaces : m.a2uiSurfaces,
-              aguiEvents: savedMessage.aguiEvents?.length ? savedMessage.aguiEvents : m.aguiEvents,
+              aguiEvents: m.aguiEvents?.length ? m.aguiEvents : savedMessage.aguiEvents,
             }
           : m
       )))
@@ -1494,12 +1499,11 @@ export default function TutorPage() {
       )))
       setActionError(e instanceof Error ? e.message : (isVideoMode ? '视频生成失败，请检查后端服务' : '发送失败，请检查后端服务'))
     } finally {
+      if (streamFlushFrame !== null) {
+        cancelAnimationFrame(streamFlushFrame)
+      }
       setStreaming(false)
     }
-  }
-
-  function applySuggestion(text: string) {
-    setInput(text)
   }
 
   function toggleTrustPanel(messageId: string) {
@@ -1752,7 +1756,6 @@ export default function TutorPage() {
                       ? msg.content.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/)
                       : null
                   const msgMcpCalls = msg.role === 'assistant' ? (mcpCallsByMsg[msg.id] || []) : []
-                  const profileCalls = (msg.a2uiUiOnly || msg.aguiEvents?.length) ? [] : msgMcpCalls.filter((call) => call.serviceId === 'student-profile')
                   const visibleMcpCalls = msgMcpCalls.filter((call) => call.serviceId !== 'student-profile')
                   return (
                     <div key={msg.id}>
@@ -1784,9 +1787,12 @@ export default function TutorPage() {
                               ) : (
                                 <div className="prose prose-base max-w-none text-[#1e293b] prose-p:leading-[1.8] prose-p:my-3 prose-p:text-[15px] prose-headings:text-[#1e293b] prose-headings:font-semibold prose-code:text-[#e11d48] prose-code:bg-[#f5f5f5] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-pre:bg-[#1e1e1e] prose-pre:text-[#d4d4d4] prose-pre:rounded-xl prose-pre:text-[13px] prose-li:text-[15px] prose-li:leading-[1.8]">
                                   {imageDataMatch ? (
-                                    <img
+                                    <Image
                                       src={imageDataMatch[0]}
                                       alt="generated image"
+                                      width={960}
+                                      height={540}
+                                      unoptimized
                                       className="max-w-full h-auto rounded-lg border border-[#e2e8f0]"
                                     />
                                   ) : (
@@ -1801,7 +1807,16 @@ export default function TutorPage() {
                                       img: ({ src, alt }) => {
                                         const safeSrc = typeof src === 'string' ? src.trim() : ''
                                         if (!safeSrc) return null
-                                        return <img src={safeSrc} alt={alt || 'generated image'} className="max-w-full h-auto rounded-lg border border-[#e2e8f0]" />
+                                        return (
+                                          <Image
+                                            src={safeSrc}
+                                            alt={alt || 'generated image'}
+                                            width={960}
+                                            height={540}
+                                            unoptimized
+                                            className="max-w-full h-auto rounded-lg border border-[#e2e8f0]"
+                                          />
+                                        )
                                       },
                                       a: ({ href, children }) => {
                                         const safeHref = typeof href === 'string' ? href.trim() : ''
@@ -1978,7 +1993,6 @@ export default function TutorPage() {
                                 <span>{playingMsgId === msg.id ? '暂停' : '播放'}</span>
                               </button>
                             )}
-                            <ProfileToolCallPanel calls={profileCalls} />
                             {visibleMcpCalls.length > 0 && (
                               <div className="mt-3 overflow-hidden rounded-xl border border-[#e0e7f5] bg-[#fafcff] shadow-[0_2px_8px_rgba(37,99,235,0.04)]">
                                 <div className="flex items-center gap-2 border-b border-[#eef2f8] bg-[#f4f8ff] px-3.5 py-2">

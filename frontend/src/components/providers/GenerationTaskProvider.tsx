@@ -126,8 +126,8 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
           } else {
             setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource: { id: resourceId, title: polish.title || prompt.slice(0, 20), type: 'video', status: 'completed', createdAt: new Date().toISOString() } } : t))
           }
-        } catch (err: any) {
-          setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err?.message || '视频生成失败' } : t))
+        } catch (err: unknown) {
+          setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err instanceof Error ? err.message : '视频生成失败' } : t))
         }
       })()
       return

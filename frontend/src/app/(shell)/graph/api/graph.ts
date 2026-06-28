@@ -4,6 +4,52 @@ import { getToken } from '@/lib/auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
+type RawUserStatus = Partial<KnowledgeNode['user_status']>
+type RawGraphNode = Partial<Omit<KnowledgeNode, 'user_status'>> & {
+  user_status?: RawUserStatus
+}
+type RawGraphEdge = Partial<KnowledgeEdge>
+type RawGraphData = Partial<GraphData> & {
+  nodes?: RawGraphNode[]
+  edges?: RawGraphEdge[]
+}
+type RawNodeDetail = {
+  node: RawGraphNode
+  prerequisites?: NodeRelation[]
+  successors?: NodeRelation[]
+  ai_suggestion?: string
+}
+
+function normalizeNode(n: RawGraphNode): KnowledgeNode {
+  const status = n.user_status?.status
+  return {
+    id: String(n.id),
+    name: String(n.name),
+    category: String(n.category || ''),
+    difficulty: Number(n.difficulty || 1),
+    description: String(n.description || ''),
+    user_status: {
+      mastery: Number(n.user_status?.mastery ?? 0),
+      status: status === 'mastered' || status === 'learning' || status === 'locked' ? status : 'not_started',
+      study_hours: Number(n.user_status?.study_hours ?? 0),
+      exercises_done: Number(n.user_status?.exercises_done ?? 0),
+      exercises_correct: Number(n.user_status?.exercises_correct ?? 0),
+      accuracy: Number(n.user_status?.accuracy ?? 0),
+      last_studied: n.user_status?.last_studied ?? null,
+    },
+  }
+}
+
+function normalizeEdge(e: RawGraphEdge): KnowledgeEdge {
+  const type = e.type === 'recommended' ? 'recommended' : 'prerequisite'
+  return {
+    source: String(e.source),
+    target: String(e.target),
+    type,
+    weight: Number(e.weight ?? 1),
+  }
+}
+
 // ─── Mock 数据 ───────────────────────────────────────────────────────────────
 
 const MOCK_NODES: KnowledgeNode[] = [
@@ -173,29 +219,9 @@ function generateAiSuggestion(node: KnowledgeNode): string {
 /** 获取图谱数据 */
 export async function fetchGraphData(): Promise<GraphData> {
   try {
-    const data = await fetchJson<any>('/api/graph/data')
-    const nodes = (data.nodes || []).map((n: any) => ({
-      id: String(n.id),
-      name: String(n.name),
-      category: String(n.category || ''),
-      difficulty: Number(n.difficulty || 1),
-      description: String(n.description || ''),
-      user_status: {
-        mastery: Number(n.user_status?.mastery ?? 0),
-        status: n.user_status?.status || 'not_started',
-        study_hours: Number(n.user_status?.study_hours ?? 0),
-        exercises_done: Number(n.user_status?.exercises_done ?? 0),
-        exercises_correct: Number(n.user_status?.exercises_correct ?? 0),
-        accuracy: Number(n.user_status?.accuracy ?? 0),
-        last_studied: n.user_status?.last_studied ?? null,
-      },
-    }))
-    const edges = (data.edges || []).map((e: any) => ({
-      source: String(e.source),
-      target: String(e.target),
-      type: e.type || 'prerequisite',
-      weight: Number(e.weight ?? 1),
-    }))
+    const data = await fetchJson<RawGraphData>('/api/graph/data')
+    const nodes = (data.nodes || []).map(normalizeNode)
+    const edges = (data.edges || []).map(normalizeEdge)
     // 如果后端返回空节点，回退到 mock 数据
     if (nodes.length === 0) {
       return MOCK_GRAPH_DATA
@@ -210,24 +236,9 @@ export async function fetchGraphData(): Promise<GraphData> {
 /** 获取节点详情 */
 export async function fetchNodeDetail(nodeId: string, graphData?: GraphData): Promise<NodeDetail> {
   try {
-    const data = await fetchJson<any>(`/api/graph/node/${nodeId}`)
+    const data = await fetchJson<RawNodeDetail>(`/api/graph/node/${nodeId}`)
     return {
-      node: {
-        id: String(data.node.id),
-        name: String(data.node.name),
-        category: String(data.node.category || ''),
-        difficulty: Number(data.node.difficulty || 1),
-        description: String(data.node.description || ''),
-        user_status: {
-          mastery: Number(data.node.user_status?.mastery ?? 0),
-          status: data.node.user_status?.status || 'not_started',
-          study_hours: Number(data.node.user_status?.study_hours ?? 0),
-          exercises_done: Number(data.node.user_status?.exercises_done ?? 0),
-          exercises_correct: Number(data.node.user_status?.exercises_correct ?? 0),
-          accuracy: Number(data.node.user_status?.accuracy ?? 0),
-          last_studied: data.node.user_status?.last_studied ?? null,
-        },
-      },
+      node: normalizeNode(data.node),
       prerequisites: data.prerequisites || [],
       successors: data.successors || [],
       ai_suggestion: String(data.ai_suggestion || ''),
@@ -250,34 +261,15 @@ export async function fetchNodeDetail(nodeId: string, graphData?: GraphData): Pr
 /** 生成/重新生成图谱 */
 export async function generateGraph(subject: string = 'Python'): Promise<GraphData> {
   try {
-    const data = await fetchJson<any>('/api/graph/generate', {
+    const data = await fetchJson<RawGraphData>('/api/graph/generate', {
       method: 'POST',
       body: JSON.stringify({ subject }),
     })
+    const nodes = (data.nodes || []).map(normalizeNode)
     return {
-      nodes: (data.nodes || []).map((n: any) => ({
-        id: String(n.id),
-        name: String(n.name),
-        category: String(n.category || ''),
-        difficulty: Number(n.difficulty || 1),
-        description: String(n.description || ''),
-        user_status: {
-          mastery: Number(n.user_status?.mastery ?? 0),
-          status: n.user_status?.status || 'not_started',
-          study_hours: Number(n.user_status?.study_hours ?? 0),
-          exercises_done: Number(n.user_status?.exercises_done ?? 0),
-          exercises_correct: Number(n.user_status?.exercises_correct ?? 0),
-          accuracy: Number(n.user_status?.accuracy ?? 0),
-          last_studied: n.user_status?.last_studied ?? null,
-        },
-      })),
-      edges: (data.edges || []).map((e: any) => ({
-        source: String(e.source),
-        target: String(e.target),
-        type: e.type || 'prerequisite',
-        weight: Number(e.weight ?? 1),
-      })),
-      stats: data.stats || computeStats(data.nodes || []),
+      nodes,
+      edges: (data.edges || []).map(normalizeEdge),
+      stats: data.stats || computeStats(nodes),
     }
   } catch {
     return MOCK_GRAPH_DATA

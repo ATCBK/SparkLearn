@@ -1,7 +1,7 @@
 import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay, ProfileUpdatePayload,
+  LearningPath, VideoInfo, ContributionDay,
 } from './types'
 
 const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
@@ -18,7 +18,7 @@ export async function getTodayTasks(): Promise<Task[]> {
   ]
 }
 
-export async function completeTask(_taskId: string): Promise<void> {
+export async function completeTask(): Promise<void> {
   await delay(200)
 }
 
@@ -78,7 +78,7 @@ export async function getProfile(): Promise<StudentProfile> {
   }
 }
 
-export async function updateProfile(_payload: ProfileUpdatePayload): Promise<void> {
+export async function updateProfile(): Promise<void> {
   await delay(200)
 }
 
@@ -131,7 +131,7 @@ export async function getChatHistory(): Promise<Message[]> {
 
 // ---- Quiz ----
 
-export async function getQuizQuestions(_chapter: string): Promise<QuizQuestion[]> {
+export async function getQuizQuestions(): Promise<QuizQuestion[]> {
   await delay(300)
   return [
     {

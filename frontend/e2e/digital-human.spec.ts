@@ -37,8 +37,6 @@ test.describe('Digital Human — Video Page', () => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto(`${BASE}/video`)
 
-    // Digital human should be accessible via floating button on mobile
-    const floatBtn = page.locator('button').filter({ has: page.locator('svg') }).last()
     // If there are videos, the floating digital human button should be visible
     // If no videos, the empty state is shown instead
   })
@@ -57,8 +55,6 @@ test.describe('Digital Human — Video Page', () => {
     await page.goto(`${BASE}/video`)
     await page.waitForLoadState('networkidle')
 
-    // Click first video card if available
-    const videoCards = page.locator('[class*="cursor-pointer"]').filter({ hasText: /全部视频|播放/ })
     // If videos exist, clicking one should show player area
   })
 
@@ -73,8 +69,6 @@ test.describe('Digital Human — Video Page', () => {
       await chatInput.fill('你好')
       await expect(chatInput).toHaveValue('你好')
 
-      // Send button should be enabled when input has text
-      const sendBtn = chatInput.locator('..').locator('button').last()
       // Clearing input should disable send
       await chatInput.fill('')
     }

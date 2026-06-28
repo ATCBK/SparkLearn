@@ -19,8 +19,6 @@ interface DoneResult {
 }
 
 type WorkerMessage = AnalyseMessage
-type WorkerResponse = VisemeResult | DoneResult
-
 function computeRMS(samples: Float32Array, start: number, end: number): number {
   let sum = 0
   let count = 0

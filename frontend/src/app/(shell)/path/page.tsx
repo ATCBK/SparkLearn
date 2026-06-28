@@ -60,33 +60,33 @@ const DEFAULT_SUGGESTIONS = [
 
 // ============ 宸ュ叿鍑芥暟 ============
 
+type RawPathNode = {
+  id?: string | number
+  title?: string
+  source?: string
+}
+
+type RawPathPhase = {
+  title?: string
+  description?: string
+  nodes?: RawPathNode[]
+}
+
 /** 灏?AI 杩斿洖鐨?phases 杞负鍙紪杈戞牸寮?*/
-function toEditablePhases(rawPhases: any[]): EditablePhase[] {
+function toEditablePhases(rawPhases: RawPathPhase[]): EditablePhase[] {
   if (!Array.isArray(rawPhases) || rawPhases.length === 0) return DEFAULT_PHASES
-  return rawPhases.slice(0, 3).map((p: any, pIdx: number) => ({
+  return rawPhases.slice(0, 3).map((p, pIdx: number) => ({
     id: (pIdx + 1) as 1 | 2 | 3,
     title: String(p.title || `闃舵 ${pIdx + 1}`),
     description: String(p.description || PHASE_DESCS[pIdx] || ''),
     nodes: Array.isArray(p.nodes)
-      ? p.nodes.map((n: any) => ({
+      ? p.nodes.map((n) => ({
           id: String(n.id ?? `node-${Math.random().toString(36).slice(2, 8)}`),
           title: String(n.title || '未命名步骤'),
           source: (n.source === 'user' ? 'user' : 'ai') as 'ai' | 'user',
         }))
       : [],
   }))
-}
-
-/** 璁＄畻鑺傜偣鍏ㄥ眬搴忓彿 */
-function getGlobalIndex(phases: EditablePhase[], nodeId: string): number {
-  let idx = 0
-  for (const phase of phases) {
-    for (const node of phase.nodes) {
-      if (node.id === nodeId) return idx + 1
-      idx++
-    }
-  }
-  return 0
 }
 
 // ============ 涓荤粍浠?============
@@ -233,23 +233,6 @@ export default function PathPage() {
       }
     },
     [gantt],
-  )
-
-  // 宸︿晶鑺傜偣閫夋嫨锛堝悓姝ュ埌鐢樼壒鍥撅級
-  const handlePathNodeSelect = useCallback(
-    (nodeId: string) => {
-      setSelectedNodeId(nodeId)
-
-      // 鎵惧埌瀵瑰簲鐨勭敇鐗瑰浘浠诲姟
-      const task = gantt.allTasks.find((t) => t.nodeId === nodeId)
-      if (task) {
-        gantt.selectTask(task.id)
-      }
-
-      // 鑾峰彇寤鸿
-      handleNodeClick(nodeId)
-    },
-    [gantt, handleNodeClick],
   )
 
   // 鏃ユ湡鍙樻洿澶勭悊
@@ -706,7 +689,7 @@ interface EmptyPhasePlaceholderProps {
   disabled: boolean
 }
 
-function EmptyPhasePlaceholder({ phaseId, onAdd, disabled }: EmptyPhasePlaceholderProps) {
+function EmptyPhasePlaceholder({ onAdd, disabled }: EmptyPhasePlaceholderProps) {
   const [inputValue, setInputValue] = useState('')
   const [showInput, setShowInput] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -811,11 +794,8 @@ function PathNode({
   const editInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (isEditing) {
-      setEditValue(node.title)
-      editInputRef.current?.focus()
-    }
-  }, [isEditing, node.title])
+    if (isEditing) editInputRef.current?.focus()
+  }, [isEditing])
 
   const handleEditConfirm = () => {
     if (editValue.trim()) {
@@ -875,6 +855,7 @@ function PathNode({
           <button
             onClick={(e) => {
               e.stopPropagation()
+              setEditValue(node.title)
               setIsEditing(true)
             }}
             className="flex h-6 w-6 items-center justify-center rounded-full bg-white border border-[#E5EAF2] text-[#6B7280] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shadow-sm"
@@ -948,6 +929,7 @@ function PathNode({
             className="text-xs font-bold text-[#111827] line-clamp-2 leading-tight cursor-text"
             onDoubleClick={(e) => {
               e.stopPropagation()
+              setEditValue(node.title)
               setIsEditing(true)
             }}
             title="双击编辑"

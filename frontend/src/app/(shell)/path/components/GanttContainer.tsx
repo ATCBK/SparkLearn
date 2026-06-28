@@ -19,9 +19,6 @@ interface Props {
   onTaskComplete?: (taskId: string, completed: boolean) => void
 }
 
-const LEFT_WIDTH = 320
-const ROW_HEIGHT = 56
-
 export function GanttContainer({
   phases,
   tasks,

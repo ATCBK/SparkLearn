@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { api } from '@/lib/api'
 import type { EditablePhase, EditablePathNode } from '@/lib/api/types'
 
@@ -20,9 +20,10 @@ export function usePathEditor(
   const pathIdRef = useRef(pathId)
   const targetRef = useRef(target)
 
-  // 同步外部传入的 pathId/target 变化
-  pathIdRef.current = pathId
-  targetRef.current = target
+  useEffect(() => {
+    pathIdRef.current = pathId
+    targetRef.current = target
+  }, [pathId, target])
 
   // 计算总节点数
   const totalNodes = phases.reduce((sum, p) => sum + p.nodes.length, 0)

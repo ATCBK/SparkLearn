@@ -8,27 +8,34 @@ interface UseASROptions {
   onError?: (error: string) => void
 }
 
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: typeof SpeechRecognition
+  webkitSpeechRecognition?: typeof SpeechRecognition
+}
+
 export function useASR(options: UseASROptions = {}) {
   const [isListening, setIsListening] = useState(false)
-  const [isSupported, setIsSupported] = useState(true)
+  const [isSupported, setIsSupported] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const speechWindow = window as SpeechRecognitionWindow
+    return Boolean(speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition)
+  })
   const [error, setError] = useState<string | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const errorCountRef = useRef(0)
   const optsRef = useRef(options)
-  optsRef.current = options
+
+  useEffect(() => {
+    optsRef.current = options
+  }, [options])
 
   const getRecognition = useCallback((): SpeechRecognition | null => {
     if (typeof window === 'undefined') return null
-    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition
+    const speechWindow = window as SpeechRecognitionWindow
+    const SpeechRecognitionAPI = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition
     if (!SpeechRecognitionAPI) return null
     return new SpeechRecognitionAPI()
   }, [])
-
-  useEffect(() => {
-    if (!getRecognition()) {
-      setIsSupported(false)
-    }
-  }, [getRecognition])
 
   const startListening = useCallback(() => {
     const recognition = getRecognition()

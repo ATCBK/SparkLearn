@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { GanttTask, GanttZoom } from '../hooks/gantt'
-import { dateToX, getTaskBarWidth, PHASE_COLORS, STATUS_COLORS, STATUS_TEXT } from '../utils/ganttUtils'
+import { dateToX, getTaskBarWidth } from '../utils/ganttUtils'
 import { formatDateCN, diffDays, addDays, formatDate } from '../utils/dateUtils'
 
 interface GanttTaskRowProps {
@@ -39,7 +39,6 @@ export function GanttTaskRow({
   onClick,
   onHover,
   onDateChange,
-  onTaskComplete,
   totalWidth,
 }: GanttTaskRowProps) {
   const barStyle = useMemo(() => {

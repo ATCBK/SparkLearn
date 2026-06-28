@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { api, ForumPost } from '@/lib/api'
 
@@ -12,7 +12,7 @@ export default function ForumPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function loadPosts(nextTab: 'latest' | 'hot' | 'recommended', keyword: string) {
+  const loadPosts = useCallback(async (nextTab: 'latest' | 'hot' | 'recommended', keyword: string) => {
     setLoading(true)
     setError('')
     try {
@@ -23,11 +23,11 @@ export default function ForumPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void loadPosts(tab, q)
-  }, [tab])
+  }, [loadPosts, q, tab])
 
   return (
     <div className="space-y-4">

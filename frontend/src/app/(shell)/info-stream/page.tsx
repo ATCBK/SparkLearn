@@ -293,6 +293,8 @@ function DiscoveryCard({
     <article className="overflow-hidden rounded-[14px] border border-line bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="grid grid-cols-[148px_minmax(0,1fr)] gap-4 max-[640px]:grid-cols-1">
         {item.thumbnail && (
+          // 外部采集缩略图域名不可预知，保留原生 img 避免 Next Image 远程域名拦截。
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.thumbnail}
             alt={item.title}

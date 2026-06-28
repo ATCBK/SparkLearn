@@ -2,14 +2,14 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { EditablePhase } from '@/lib/api/types';
-import type { GanttPlan, GanttTask, GanttZoom } from './gantt';
+import type { GanttPlan, GanttZoom } from './gantt';
 import {
   calculateOverallProgress,
   generateGanttPlan,
   getTaskStats,
   updateTaskProgress,
 } from '../utils/ganttUtils';
-import { diffDays, formatDate } from '../utils/dateUtils';
+import { diffDays } from '../utils/dateUtils';
 
 interface UseGanttDataOptions {
   initialZoom?: GanttZoom;

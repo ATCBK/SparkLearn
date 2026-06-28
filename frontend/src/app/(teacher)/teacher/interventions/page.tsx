@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { AlertTriangle, Bot, CheckCircle2, Clock } from 'lucide-react'
-import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { PageHead, Pill, ProtoButton, ProtoCard } from '@/components/proto'
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 

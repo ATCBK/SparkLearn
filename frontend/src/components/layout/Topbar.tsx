@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { PanelLeftClose } from 'lucide-react'
 import { PAGE_META } from '@/components/layout/navigation'
 
@@ -15,22 +15,18 @@ interface TopbarProps {
 export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }: TopbarProps) {
   const pathname = usePathname()
   const meta = PAGE_META[pathname] || PAGE_META['/']
-  const [nameChar, setNameChar] = useState('李')
-  const [avatarUrl, setAvatarUrl] = useState('')
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
+  const [{ nameChar, avatarUrl }] = useState(() => {
+    if (typeof window === 'undefined') return { nameChar: '李', avatarUrl: '' }
     try {
       const raw = localStorage.getItem('sparklearn_user')
-      if (!raw) return
+      if (!raw) return { nameChar: '李', avatarUrl: '' }
       const user = JSON.parse(raw) as { name?: string; avatar?: string }
       const c = (user?.name || '').trim()
-      if (c) setNameChar(c[0])
-      if (user?.avatar) setAvatarUrl(user.avatar)
+      return { nameChar: c ? c[0] : '李', avatarUrl: user?.avatar || '' }
     } catch {
-      // keep defaults
+      return { nameChar: '李', avatarUrl: '' }
     }
-  }, [])
+  })
 
   return (
     <header

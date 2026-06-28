@@ -49,10 +49,10 @@ function AvatarModel({ avatarId, visemeWeights, state = 'idle', onFpsWarning }: 
   const blinkTimer = useRef<number>(0)
   const blinkProgress = useRef<number>(0)
   const blinkActive = useRef<boolean>(false)
-  const nextBlink = useRef<number>(3 + Math.random() * 2)
+  const nextBlink = useRef<number>(4)
   const glanceTarget = useRef<number>(0)
   const glanceCurrent = useRef<number>(0)
-  const nextGlance = useRef<number>(8 + Math.random() * 7)
+  const nextGlance = useRef<number>(12)
   const glanceActive = useRef<boolean>(false)
   const fpsFrames = useRef<number[]>([])
   const fpsLowSince = useRef<number>(0)
@@ -192,6 +192,7 @@ function AvatarModel({ avatarId, visemeWeights, state = 'idle', onFpsWarning }: 
       // 头发跟随头部旋转
       for (const h of hairMeshes.current) {
         h.rotation.y = THREE.MathUtils.lerp(h.rotation.y, headTargetRot, delta * 2)
+        // eslint-disable-next-line react-hooks/immutability
         h.rotation.x = THREE.MathUtils.lerp(h.rotation.x, head.rotation.x, delta * 2)
       }
     }
@@ -199,6 +200,8 @@ function AvatarModel({ avatarId, visemeWeights, state = 'idle', onFpsWarning }: 
     // 眨眼时隐藏眼睛
     const eyeScale = blinkWeight > 0.3 ? 1 - (blinkWeight - 0.3) * 2 : 1
     for (const eye of eyeMeshes.current) {
+      // Three.js 对象需要在渲染帧中命令式更新。
+      // eslint-disable-next-line react-hooks/immutability
       eye.scale.y = Math.max(0.01, eyeScale)
     }
   })

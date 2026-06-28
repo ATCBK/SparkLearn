@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { GanttTask } from '../hooks/gantt';
 import { PHASE_COLORS, STATUS_COLORS, STATUS_TEXT } from '../utils/ganttUtils';
@@ -14,18 +14,12 @@ interface TaskDetailPanelProps {
 }
 
 export function TaskDetailPanel({ task, onClose, onProgressChange, onDateChange }: TaskDetailPanelProps) {
-  const [progress, setProgress] = useState(task?.progress || 0);
   const [editingDate, setEditingDate] = useState<'start' | 'end' | null>(null);
   const [tempDate, setTempDate] = useState('');
-
-  useEffect(() => {
-    if (task) setProgress(task.progress);
-  }, [task]);
 
   const handleProgressChange = useCallback(
     (value: number) => {
       const next = Math.min(100, Math.max(0, value));
-      setProgress(next);
       if (task && onProgressChange) onProgressChange(task.id, next);
     },
     [task, onProgressChange],
@@ -48,6 +42,7 @@ export function TaskDetailPanel({ task, onClose, onProgressChange, onDateChange 
 
   const phaseColor = PHASE_COLORS[task.phase] || PHASE_COLORS.目标;
   const daysLeft = diffDays(new Date(), task.endDate);
+  const progress = task.progress;
 
   return (
     <div className="flex h-full flex-col bg-[#F9FAFB]">

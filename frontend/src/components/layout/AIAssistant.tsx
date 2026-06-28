@@ -70,19 +70,6 @@ export function AIAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // 监听外部唤醒事件
-  useEffect(() => {
-    const handleOpen = (event: Event) => {
-      setOpen(true)
-      const detail = (event as CustomEvent<OpenAIAssistantDetail>).detail
-      if (detail?.prompt) {
-        void ask(detail.prompt)
-      }
-    }
-    window.addEventListener('open-ai-assistant', handleOpen)
-    return () => window.removeEventListener('open-ai-assistant', handleOpen)
-  }, [])
-
   // Drag state
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
@@ -207,9 +194,6 @@ export function AIAssistant() {
     }
   }, [open])
 
-  // 在 /tutor 页面不渲染
-  if (pathname === '/tutor') return null
-
   // TTS playback function
   async function playTts(msgId: string, text: string) {
     if (ttsAudioRef.current) {
@@ -270,7 +254,7 @@ export function AIAssistant() {
     setRecording(true)
   }
 
-  async function ask(text: string) {
+  const ask = useCallback(async (text: string) => {
     const question = text.trim()
     if (!question || streaming) return
     if (!open) setOpen(true)
@@ -331,9 +315,25 @@ export function AIAssistant() {
     } finally {
       setStreaming(false)
     }
-  }
+  }, [ctx.hint, ctx.title, open, pathname, streaming])
+
+  // 监听外部唤醒事件
+  useEffect(() => {
+    const handleOpen = (event: Event) => {
+      setOpen(true)
+      const detail = (event as CustomEvent<OpenAIAssistantDetail>).detail
+      if (detail?.prompt) {
+        void ask(detail.prompt)
+      }
+    }
+    window.addEventListener('open-ai-assistant', handleOpen)
+    return () => window.removeEventListener('open-ai-assistant', handleOpen)
+  }, [ask])
 
   const hasMessages = messages.length > 0
+
+  // 在 /tutor 页面不渲染
+  if (pathname === '/tutor') return null
 
   return (
     <>

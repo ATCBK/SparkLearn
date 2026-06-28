@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Check,
   Database,
-  FileText,
   Paperclip,
   Plus,
   Puzzle,
@@ -15,7 +14,6 @@ import {
   Sparkles,
   UserCog,
   Users,
-  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -234,7 +232,6 @@ export default function WorkshopPage() {
                   <p className="text-xs text-[#94a3b8] mb-3 text-center">多角色讨论中...</p>
                   <div className="space-y-3">
                     {hubMessages.map((evt, idx) => {
-                      const role = roles.find((r) => r.name === evt.agentName)
                       return (
                         <div key={`${evt.agentId}-${idx}`} className="flex items-start gap-3">
                           <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-[#64748b] to-[#94a3b8] flex items-center justify-center text-white text-[11px] font-bold">

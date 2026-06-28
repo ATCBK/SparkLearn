@@ -7,7 +7,7 @@ import { python } from '@codemirror/lang-python'
 import { javascript } from '@codemirror/lang-javascript'
 import { html } from '@codemirror/lang-html'
 import { Play, RotateCcw, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Terminal } from 'lucide-react'
-import { ProtoButton, SoftCard, Pill } from '@/components/proto'
+import { ProtoButton, Pill } from '@/components/proto'
 
 function getLanguageExtension(lang: string) {
   const normalized = lang.toLowerCase().trim()

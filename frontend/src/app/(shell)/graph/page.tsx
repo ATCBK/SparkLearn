@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils/cn'
 
 export default function GraphPage() {
   const graphData = useGraphStore((s) => s.graphData)
-  const isLoading = useGraphStore((s) => s.isLoading)
   const isFullscreen = useGraphStore((s) => s.isFullscreen)
   const loadData = useGraphStore((s) => s.loadData)
 

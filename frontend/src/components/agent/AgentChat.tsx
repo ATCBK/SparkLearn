@@ -6,19 +6,19 @@ import { ProtoCard, SoftCard } from '@/components/proto'
 import { Bookmark, ExternalLink, FileText, GitCompare, Loader2, Mic, MicOff, Pause, Search, Send, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
 import { PetAvatar, PetState, PetType, taskStatusToPetState } from './PetAvatar'
 
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>
+}
+
 type SpeechRecognitionConstructor = new () => {
   lang: string
   continuous: boolean
   interimResults: boolean
-  onresult: ((event: any) => void) | null
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
   onend: (() => void) | null
-  onerror: ((event?: any) => void) | null
+  onerror: ((event?: Event) => void) | null
   start: () => void
   stop: () => void
-}
-
-interface SpeechRecognitionEventLike {
-  results: ArrayLike<ArrayLike<{ transcript: string }>>
 }
 
 type AgentResultItem = {

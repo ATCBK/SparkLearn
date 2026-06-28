@@ -11,14 +11,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = join(__dirname, '..', 'public', 'avatars')
 const OUT_FILE = join(OUT_DIR, 'default-avatar.glb')
 
-// ====== 工具函数 ======
-
-function degToRad(d) { return d * Math.PI / 180 }
-
-function vec3Length(v, i) {
-  return Math.sqrt(v[i] * v[i] + v[i + 1] * v[i + 1] + v[i + 2] * v[i + 2])
-}
-
 // ====== 颜色常量 (线性空间值, GLTF baseColorFactor 标准) ======
 // sRGB → 线性转换: linear = (srgb/255)^2.2
 const SKIN_COLOR = [0.80, 0.58, 0.40]   // 暖肤色 sRGB(232,199,166)
@@ -27,7 +19,6 @@ const BLAZER_COLOR = [0.50, 0.07, 0.10]  // 玫红/中国红 sRGB(183,67,83)
 const SHIRT_COLOR = [0.90, 0.90, 0.90]   // 白色内搭
 const SKIRT_COLOR = [0.50, 0.07, 0.10]   // 同色玫红裙
 const SHOE_COLOR = [0.015, 0.015, 0.020] // 黑色鞋 sRGB(31,31,36)
-const EYE_WHITE = [0.90, 0.90, 0.90]
 const EYE_IRIS = [0.04, 0.03, 0.015]    // 深棕瞳色 sRGB(51,38,19)
 
 // ====== 1. 鹅蛋脸头部 ======
@@ -44,8 +35,6 @@ function createEggHeadGeometry(radius, widthSeg, heightSeg) {
     // 鹅蛋形: 上部略宽，下巴收尖，前后方向压扁(脸型)
     const phi = v * Math.PI * 0.95 // 下巴区域收窄
     const yPos = Math.cos(phi) * radius
-    const ringRadius = Math.sin(phi) * radius
-
     // 下巴收窄系数
     const chinNarrow = v > 0.55 ? 1 - (v - 0.55) * 0.7 : 1 + v * 0.08
 
@@ -458,12 +447,6 @@ function createShoeGeometry(side) {
 
 // ====== Morph Targets (面部表情) ======
 
-const VISEME_NAMES = [
-  'viseme_sil', 'viseme_PP', 'viseme_FF', 'viseme_TH', 'viseme_DD',
-  'viseme_kk', 'viseme_CH', 'viseme_SS', 'viseme_nn', 'viseme_RR',
-  'viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_U',
-]
-
 function createMorphTargets(headPositions, headRadius) {
   const morphs = {}
   const count = headPositions.length
@@ -707,9 +690,8 @@ function buildGLB(meshes) {
   // Deduplicate materials by their definition key
   const matCompactMap = new Map()
   const compactMaterials = []
-  meshes.forEach((mesh, i) => {
+  meshes.forEach((mesh) => {
     if (mesh.material && mesh.materialIndex !== undefined) {
-      const key = mesh.material.name || JSON.stringify(mesh.material.pbrMetallicRoughness)
       if (!matCompactMap.has(mesh.materialIndex)) {
         matCompactMap.set(mesh.materialIndex, compactMaterials.length)
         compactMaterials.push(mesh.material)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Lock, ExternalLink, AlertCircle } from 'lucide-react'
 
@@ -25,22 +25,22 @@ export default function ShareAccessPage() {
   const [error, setError] = useState('')
   const [resourceId, setResourceId] = useState('')
 
-  useEffect(() => {
-    fetchInfo()
-  }, [code])
-
-  async function fetchInfo() {
+  const fetchInfo = useCallback(async () => {
     try {
       const res = await fetch(`/api/sharing/${code}`)
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error || '获取失败')
       setInfo(json.data)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '获取失败')
     } finally {
       setLoading(false)
     }
-  }
+  }, [code])
+
+  useEffect(() => {
+    void fetchInfo()
+  }, [fetchInfo])
 
   async function handleAccess() {
     try {
@@ -52,8 +52,8 @@ export default function ShareAccessPage() {
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error || '访问失败')
       setResourceId(json.data.resource_id)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '访问失败')
     }
   }
 

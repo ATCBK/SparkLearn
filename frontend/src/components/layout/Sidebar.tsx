@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useSyncExternalStore } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { BarChart3, BookOpen, Bot, CheckSquare, Database, Globe, Home, LogOut, Map, MessageSquare, Network, Settings2, User, Zap } from 'lucide-react'
@@ -83,7 +84,7 @@ export function Sidebar({ state }: SidebarProps) {
     >
       <div className="border-b border-[#E5EAF2] p-4">
         <div className="flex items-center gap-3">
-          <img src="/sparklearn-logo-official.png" alt="SparkLearn Logo" className="h-10 w-10 shrink-0 object-contain" />
+          <Image src="/sparklearn-logo-official.png" alt="SparkLearn Logo" width={40} height={40} className="h-10 w-10 shrink-0 object-contain" />
           <div
             className={`min-w-0 flex-1 overflow-hidden transition-all duration-300 ease-out ${
               isExpanded ? 'max-w-[180px] opacity-100 translate-x-0' : 'max-w-0 opacity-0 -translate-x-1'

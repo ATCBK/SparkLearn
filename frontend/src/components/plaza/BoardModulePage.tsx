@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { MessageSquare, Plus, Search, X } from 'lucide-react'
 import { api, ForumPost } from '@/lib/api'
 
@@ -20,7 +20,7 @@ export function BoardModulePage({ title, description, boardTag }: { title: strin
   const [files, setFiles] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  async function loadPosts(nextTab: Tab, keyword: string) {
+  const loadPosts = useCallback(async (nextTab: Tab, keyword: string) => {
     setLoading(true)
     setError('')
     try {
@@ -31,11 +31,11 @@ export function BoardModulePage({ title, description, boardTag }: { title: strin
     } finally {
       setLoading(false)
     }
-  }
+  }, [boardTag])
 
   useEffect(() => {
     void loadPosts(tab, q)
-  }, [tab])
+  }, [loadPosts, q, tab])
 
   async function submitPost(e: FormEvent) {
     e.preventDefault()

@@ -111,7 +111,7 @@ export default function ShellLayout({
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router])
 
   if (!authReady) {
     return (

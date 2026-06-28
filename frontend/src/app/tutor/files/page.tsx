@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -23,21 +23,7 @@ export default function TutorFilesPage() {
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
 
-  useEffect(() => { void load() }, [])
-
-  async function load() {
-    setLoading(true)
-    try {
-      const data = await api.getTutorFiles()
-      setFiles(data)
-      if (!selected && data[0]) {
-        void openDetail(data[0])
-      }
-    } catch { /* ignore */ }
-    finally { setLoading(false) }
-  }
-
-  async function openDetail(file: TutorFile) {
+  const openDetail = useCallback(async (file: TutorFile) => {
     setSelected(file)
     setDetailLoading(true)
     try {
@@ -48,7 +34,21 @@ export default function TutorFilesPage() {
     } finally {
       setDetailLoading(false)
     }
-  }
+  }, [])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await api.getTutorFiles()
+      setFiles(data)
+      if (data[0]) {
+        void openDetail(data[0])
+      }
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }, [openDetail])
+
+  useEffect(() => { void load() }, [load])
 
   async function remove(id: number) {
     await api.deleteTutorFile(id)

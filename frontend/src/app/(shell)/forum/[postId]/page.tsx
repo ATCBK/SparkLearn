@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api, ForumAttachment, ForumComment, ForumPost } from '@/lib/api'
 
 export default function ForumPostDetailPage() {
@@ -16,7 +16,7 @@ export default function ForumPostDetailPage() {
   const [error, setError] = useState('')
   const [commentError, setCommentError] = useState('')
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     try {
       const detail = await api.getForumPostDetail(postId)
       const list = await api.getForumComments(postId)
@@ -26,13 +26,15 @@ export default function ForumPostDetailPage() {
     } catch (ex) {
       setError(ex instanceof Error ? ex.message : '加载失败')
     }
-  }
+  }, [postId])
 
   useEffect(() => {
-    if (!Number.isNaN(postId)) {
+    if (Number.isNaN(postId)) return
+    const timer = window.setTimeout(() => {
       void loadAll()
-    }
-  }, [postId])
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [loadAll, postId])
 
   if (error) {
     return <div className="rounded-lg bg-red-light p-3 text-sm text-red">{error}</div>

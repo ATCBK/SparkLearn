@@ -576,7 +576,6 @@ test.describe('视频播放页', () => {
   })
 
   test('点击视频列表项切换播放', async ({ page }) => {
-    const videoItems = page.locator('div[class*="ring"]')
     // 找到另一个视频卡片点击
     const videoCards = page.locator('div.cursor-pointer')
     if (await videoCards.count() > 1) {

@@ -1,12 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   Bot,
   CheckCircle2,
-  Database,
   Paperclip,
   Plus,
   Puzzle,
@@ -34,8 +33,8 @@ function skillToneClass(tone: LearningSkill['tone']) {
 export default function TutorSkillsPage() {
   const router = useRouter()
   const importInputRef = useRef<HTMLInputElement>(null)
-  const [customSkills, setCustomSkills] = useState<LearningSkill[]>([])
-  const [selectedSkillId, setSelectedSkillId] = useState('')
+  const [customSkills, setCustomSkills] = useState<LearningSkill[]>(() => readCustomSkills())
+  const [selectedSkillId, setSelectedSkillId] = useState(() => localStorage.getItem(SKILL_STORAGE_KEY) || '')
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -46,11 +45,6 @@ export default function TutorSkillsPage() {
     if (!keyword) return skillLibrary
     return skillLibrary.filter((skill) => `${skill.title} ${skill.shortTitle} ${skill.category} ${skill.summary} ${skill.output}`.toLowerCase().includes(keyword))
   }, [search, skillLibrary])
-
-  useEffect(() => {
-    setCustomSkills(readCustomSkills())
-    setSelectedSkillId(localStorage.getItem(SKILL_STORAGE_KEY) || '')
-  }, [])
 
   function chooseSkill(skillId: string) {
     const nextId = selectedSkillId === skillId ? '' : skillId

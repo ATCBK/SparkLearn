@@ -119,6 +119,7 @@ def _build_agui_process_events(
     *,
     profile: dict[str, Any] | None = None,
     include_a2ui_sync: bool = False,
+    include_run_finished: bool = True,
 ) -> list[dict[str, Any]]:
     run_id = f"sparklearn-tutor-run-{conversation_id}"
     weak_point = _first_text(_profile_value(profile, 'weak_points', []), '当前主题实践')
@@ -227,16 +228,49 @@ def _build_agui_process_events(
                 },
             ],
         )
-    events.append(
+    if include_run_finished:
+        events.append(
+            {
+                'type': 'RunFinished',
+                'runId': run_id,
+                'status': 'done',
+                'summary': '个性化调用过程完成',
+                'timestamp': now_iso(),
+            },
+        )
+    return events
+
+
+def _build_agui_a2ui_sync_events(conversation_id: int) -> list[dict[str, Any]]:
+    run_id = f"sparklearn-tutor-run-{conversation_id}"
+    return [
         {
-            'type': 'RunFinished',
+            'type': 'StepStarted',
             'runId': run_id,
-            'status': 'done',
-            'summary': '个性化调用过程完成',
+            'stepId': 'a2ui_sync',
+            'title': '同步 A2UI 个性化面板',
+            'summary': '将真实工具结果和个性化任务渲染成可交互 UI',
             'timestamp': now_iso(),
         },
-    )
-    return events
+        {
+            'type': 'StepFinished',
+            'runId': run_id,
+            'stepId': 'a2ui_sync',
+            'status': 'done',
+            'summary': 'A2UI 面板已生成',
+            'timestamp': now_iso(),
+        },
+    ]
+
+
+def _build_agui_run_finished_event(conversation_id: int) -> dict[str, Any]:
+    return {
+        'type': 'RunFinished',
+        'runId': f"sparklearn-tutor-run-{conversation_id}",
+        'status': 'done',
+        'summary': '个性化调用过程完成',
+        'timestamp': now_iso(),
+    }
 
 
 def _extract_task_card_topic(message: str) -> str:
@@ -1229,63 +1263,10 @@ async def tutor_chat(req: TutorReq):
         agui_events = _build_agui_process_events(
             conversation_id,
             profile=profile_for_process,
-            include_a2ui_sync=should_emit_a2ui,
+            include_run_finished=False,
         ) if effective_mode == 'knowledge_qa' else []
         for event in agui_events:
             yield ('agui', event)
-        if should_emit_a2ui:
-            a2ui_events = _build_a2ui_task_card_events(
-                req.message,
-                '',
-                conversation_id,
-                ui_only=a2ui_ui_only,
-                profile=profile_for_process,
-            )
-            for envelope in a2ui_events:
-                yield ('a2ui', envelope)
-
-        if a2ui_ui_only:
-            answer = ''
-            assistant_id = _execute_returning_id(
-                """
-                INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, meta_json, created_at)
-                VALUES (?, ?, 'assistant', ?, '[]', ?, ?)
-                """,
-                (
-                    conversation_id,
-                    settings.single_user_id,
-                    answer,
-                    json.dumps(
-                        {
-                            'mode': effective_mode,
-                            'a2ui_events': a2ui_events,
-                            'a2ui_ui_only': True,
-                            'agui_events': agui_events,
-                            'open_mode': bool(req.open_mode),
-                            'web_search': bool(effective_web_search),
-                        },
-                        ensure_ascii=False,
-                    ),
-                    now_iso(),
-                ),
-            )
-            yield (
-                'done',
-                {
-                    'message': {
-                        'id': assistant_id,
-                        'conversation_id': conversation_id,
-                        'role': 'assistant',
-                        'content': answer,
-                        'timestamp': now_iso(),
-                        'a2ui_ui_only': True,
-                    },
-                    'a2ui_events': a2ui_events,
-                    'a2ui_ui_only': True,
-                    'agui_events': agui_events,
-                },
-            )
-            return
 
         if effective_web_search and req.message.strip() and effective_mode != 'knowledge_reverse':
             search_results = search_web(req.message.strip())
@@ -1332,6 +1313,71 @@ async def tutor_chat(req: TutorReq):
                     history_for_model[0]['content'] = mcp_result_prompt + "\n\n" + history_for_model[0]['content']
                 else:
                     history_for_model.insert(0, {'role': 'system', 'content': mcp_result_prompt})
+
+        if should_emit_a2ui:
+            sync_events = _build_agui_a2ui_sync_events(conversation_id) if effective_mode == 'knowledge_qa' else []
+            agui_events.extend(sync_events)
+            for event in sync_events:
+                yield ('agui', event)
+            a2ui_events = _build_a2ui_task_card_events(
+                req.message,
+                mcp_context,
+                conversation_id,
+                ui_only=a2ui_ui_only,
+                profile=profile_for_process,
+            )
+            for envelope in a2ui_events:
+                yield ('a2ui', envelope)
+
+        if agui_events:
+            run_finished_event = _build_agui_run_finished_event(conversation_id)
+            agui_events.append(run_finished_event)
+            yield ('agui', run_finished_event)
+
+        if a2ui_ui_only:
+            answer = ''
+            assistant_id = _execute_returning_id(
+                """
+                INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, meta_json, created_at)
+                VALUES (?, ?, 'assistant', ?, '[]', ?, ?)
+                """,
+                (
+                    conversation_id,
+                    settings.single_user_id,
+                    answer,
+                    json.dumps(
+                        {
+                            'mode': effective_mode,
+                            'a2ui_events': a2ui_events,
+                            'a2ui_ui_only': True,
+                            'agui_events': agui_events,
+                            'mcp_enabled': bool(req.mcp_enabled),
+                            'mcp_calls': mcp_calls_payload,
+                            'open_mode': bool(req.open_mode),
+                            'web_search': bool(effective_web_search),
+                        },
+                        ensure_ascii=False,
+                    ),
+                    now_iso(),
+                ),
+            )
+            yield (
+                'done',
+                {
+                    'message': {
+                        'id': assistant_id,
+                        'conversation_id': conversation_id,
+                        'role': 'assistant',
+                        'content': answer,
+                        'timestamp': now_iso(),
+                        'a2ui_ui_only': True,
+                    },
+                    'a2ui_events': a2ui_events,
+                    'a2ui_ui_only': True,
+                    'agui_events': agui_events,
+                },
+            )
+            return
 
         confidence_payload: dict[str, Any] = {}
         citations_payload: list[dict[str, Any]] = []

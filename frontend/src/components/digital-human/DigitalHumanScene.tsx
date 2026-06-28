@@ -86,7 +86,7 @@ function StaticAvatarFallback({ state }: { state: string }) {
   )
 }
 
-function ErrorFallback({ message }: { message: string }) {
+function ErrorFallback() {
   return <StaticAvatarFallback state="error" />
 }
 

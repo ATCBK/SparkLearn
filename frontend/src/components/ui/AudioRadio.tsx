@@ -50,21 +50,20 @@ export function AudioRadio({ tracks, className }: AudioRadioProps) {
     return () => cleanupAudio()
   }, [cleanupAudio])
 
-  const updateProgress = useCallback(() => {
-    if (audioRef.current && playState === 'playing') {
-      setProgress(audioRef.current.currentTime)
-      animFrameRef.current = requestAnimationFrame(updateProgress)
-    }
-  }, [playState])
-
   useEffect(() => {
+    const updateProgress = () => {
+      if (audioRef.current && playState === 'playing') {
+        setProgress(audioRef.current.currentTime)
+        animFrameRef.current = requestAnimationFrame(updateProgress)
+      }
+    }
     if (playState === 'playing') {
       animFrameRef.current = requestAnimationFrame(updateProgress)
     }
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     }
-  }, [playState, updateProgress])
+  }, [playState])
 
   async function playTrack(index: number) {
     if (!tracks[index]) return

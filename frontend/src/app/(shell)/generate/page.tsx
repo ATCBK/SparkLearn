@@ -4,9 +4,9 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, MessageCircle, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, Database, NotebookPen, ChevronLeft, ChevronRight, Globe, Palette, Zap, ShieldCheck, CircleGauge, X, Info } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, NotebookPen, ChevronLeft, ChevronRight, Globe, Zap, ShieldCheck, CircleGauge, X, Info } from 'lucide-react'
 import { api, KnowledgeFile, Resource, ResourceQualityResult, StudentProfile, VideoStyle, VideoScriptSegment, VideoPolishResult } from '@/lib/api'
-import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard, Bar } from '@/components/proto'
+import { Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { AudioRadio } from '@/components/ui/AudioRadio'
 import { MarkdownCodePreview } from '@/components/ui/MarkdownCodePreview'
@@ -194,7 +194,7 @@ function GeneratePageContent() {
   // 视频模块专用状态
   const [videoStyleId, setVideoStyleId] = useState('apple-minimal')
   const [videoLevel, setVideoLevel] = useState('beginner')
-  const [videoDuration, setVideoDuration] = useState(90)
+  const [videoDuration] = useState(90)
   const [videoVoiceProvider, setVideoVoiceProvider] = useState<'cosyvoice' | 'xfyun'>('cosyvoice')
   const [videoVoice, setVideoVoice] = useState(getDefaultVoice('cosyvoice'))
   const defaultVoiceTone = getDefaultVoiceTone('cosyvoice')

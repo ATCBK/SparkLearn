@@ -487,7 +487,7 @@ export async function sendMessage(
     onConfidence?: (confidence: ConfidenceInfo) => void
     onCitations?: (citations: CitationItem[]) => void
     onTrustMeta?: (trustMeta: Record<string, unknown>) => void
-    onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string; status: string; ok: boolean; error: string; args?: Record<string, unknown> }) => void
+    onMcpCall?: (call: { serviceId: string; serviceName: string; toolName: string; status: string; ok: boolean; error: string; args?: Record<string, unknown>; resultPreview?: string; resultContext?: string }) => void
     onSearchResults?: (results: SearchResultItem[]) => void
     onA2UI?: (envelope: A2UIEnvelope) => void
     onAGUI?: (event: AGUIEvent) => void
@@ -594,6 +594,8 @@ export async function sendMessage(
         args: evt.payload.args && typeof evt.payload.args === 'object' && !Array.isArray(evt.payload.args)
           ? evt.payload.args as Record<string, unknown>
           : undefined,
+        resultPreview: String(evt.payload.result_preview || ''),
+        resultContext: String(evt.payload.result_context || ''),
       })
       return
     }
@@ -1492,7 +1494,6 @@ export async function generateVideo(
     }),
   })
 
-  const jobId = job.job_id
   const resourceId = job.resource_id
 
   // Step 3: Stream job events

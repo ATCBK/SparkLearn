@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Camera, Mail, GraduationCap, BookOpen, Clock, Target, ArrowLeft } from 'lucide-react'
 import { api, ProfileUpdatePayload, StudentProfile } from '@/lib/api'
 import { syncStudyBuddyProfile } from '@/lib/auth'
@@ -101,7 +102,7 @@ export default function ProfileSettingsPage() {
               <label className="group relative cursor-pointer">
                 <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-blue to-[#60a5fa] text-white shadow-lg ring-4 ring-blue/10">
                   {avatarPreview ? (
-                    <img src={avatarPreview} alt="头像" className="h-full w-full object-cover" />
+                    <Image src={avatarPreview} alt="头像" width={80} height={80} unoptimized className="h-full w-full object-cover" />
                   ) : (
                     <span className="text-[28px] font-bold">{form.name.charAt(0)}</span>
                   )}
