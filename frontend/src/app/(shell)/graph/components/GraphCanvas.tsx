@@ -4,13 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGraphStore } from '../store/graphStore'
 import type { GraphData, KnowledgeEdge, KnowledgeNode } from '../types/graph'
 
-type GraphClickParams = {
-  dataType?: string
-  data?: {
-    id?: string
-  }
-}
-
 const STATUS_COLORS: Record<string, string> = {
   mastered: '#16A34A',
   learning: '#2563EB',
@@ -34,6 +27,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 function getNodeSize(mastery: number): number {
   return 30 + (mastery / 100) * 30
+}
+
+function hasNodeId(data: unknown): data is { id: string } {
+  return Boolean(data && typeof data === 'object' && 'id' in data && typeof data.id === 'string')
 }
 
 function filterGraphData(graphData: GraphData, filter: string, searchQuery: string): { nodes: KnowledgeNode[]; edges: KnowledgeEdge[] } {
@@ -93,8 +90,8 @@ export function GraphCanvas() {
       chartRef.current = instance
       setIsEchartsReady(true)
 
-      instance.on('click', (params: GraphClickParams) => {
-        if (params.dataType === 'node' && params.data?.id) {
+      instance.on('click', (params) => {
+        if (params.dataType === 'node' && hasNodeId(params.data)) {
           selectNode(params.data.id)
         }
       })

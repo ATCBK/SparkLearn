@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, type Dispatch, type SetStateAction } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { api, A2UIEnvelope, A2UISurfaceState, AGUIEvent, CitationItem, ConfidenceInfo, Message, Resource, SearchResultItem, StudentProfile, TutorConversation, TutorFile, TutorRole, WorkshopHubEvent } from '@/lib/api'
@@ -256,6 +256,145 @@ function mcpCallToAGUIEvents(call: McpCallView, assistantId: string): AGUIEvent[
     timestamp: new Date().toISOString(),
   })
   return events
+}
+
+function appendAGUIEventsToMessage(messageId: string, events: AGUIEvent[], setMessages: Dispatch<SetStateAction<Message[]>>) {
+  if (events.length === 0) return
+  setMessages((prev) => prev.map((m) => (
+    m.id === messageId
+      ? { ...m, aguiEvents: events.reduce((items, event) => appendAGUIEvent(items, event), m.aguiEvents || []) }
+      : m
+  )))
+}
+
+function videoEventToAGUIEvents(
+  evt: { type: string; payload: Record<string, unknown> },
+  assistantId: string,
+  prompt: string,
+): AGUIEvent[] {
+  const runId = `sparklearn-video-${assistantId}`
+  const stepId = 'video_generation'
+  const toolCallId = `${assistantId}-video-generation`
+  const now = new Date().toISOString()
+  if (evt.type === 'progress') {
+    const stage = String(evt.payload.stage || 'video_generation')
+    const progress = Number(evt.payload.progress ?? 0)
+    return [
+      {
+        type: 'StepStarted',
+        runId,
+        stepId,
+        title: '视频生成',
+        summary: `正在执行 ${stage}${Number.isFinite(progress) ? ` · ${Math.round(progress)}%` : ''}`,
+        timestamp: now,
+      },
+      {
+        type: 'ToolCallStart',
+        runId,
+        stepId,
+        toolCallId,
+        toolName: 'video_generator',
+        label: '视频生成',
+        timestamp: now,
+      },
+      {
+        type: 'ToolCallArgs',
+        runId,
+        stepId,
+        toolCallId,
+        args: { prompt },
+        timestamp: now,
+      },
+      {
+        type: 'StateDelta',
+        runId,
+        stepId,
+        delta: { stage, progress },
+        summary: `进度 ${Number.isFinite(progress) ? Math.round(progress) : 0}%`,
+        timestamp: now,
+      },
+    ]
+  }
+  if (evt.type === 'artifact') {
+    return [
+      {
+        type: 'ToolCallResult',
+        runId,
+        stepId,
+        toolCallId,
+        toolName: 'video_generator',
+        status: 'done',
+        summary: `已生成 ${String(evt.payload.kind || 'artifact')}`,
+        data: { kind: evt.payload.kind || '', url: evt.payload.url || '' },
+        timestamp: now,
+      },
+    ]
+  }
+  if (evt.type === 'error') {
+    return [
+      {
+        type: 'ToolCallResult',
+        runId,
+        stepId,
+        toolCallId,
+        toolName: 'video_generator',
+        status: 'error',
+        summary: String(evt.payload.message || '视频生成失败'),
+        data: { message: evt.payload.message || '' },
+        timestamp: now,
+      },
+      {
+        type: 'StepFinished',
+        runId,
+        stepId,
+        status: 'error',
+        summary: String(evt.payload.message || '视频生成失败'),
+        timestamp: now,
+      },
+    ]
+  }
+  return []
+}
+
+function buildVideoFinishedAGUIEvents(assistantId: string, resource: Resource): AGUIEvent[] {
+  const runId = `sparklearn-video-${assistantId}`
+  const stepId = 'video_generation'
+  const toolCallId = `${assistantId}-video-generation`
+  const now = new Date().toISOString()
+  return [
+    {
+      type: 'ToolCallResult',
+      runId,
+      stepId,
+      toolCallId,
+      toolName: 'video_generator',
+      status: 'done',
+      summary: '视频生成完成',
+      data: {
+        id: resource.id,
+        title: resource.title,
+        hasMp4: resource.hasMp4,
+        videoUrl: resource.videoUrl || '',
+        sceneUrl: resource.sceneUrl || '',
+      },
+      timestamp: now,
+    },
+    {
+      type: 'StepFinished',
+      runId,
+      stepId,
+      status: 'done',
+      summary: '视频生成完成',
+      timestamp: now,
+    },
+    {
+      type: 'RunFinished',
+      runId,
+      status: 'done',
+      summary: '视频生成流程完成',
+      timestamp: now,
+    },
+  ]
 }
 
 function isResourceRecommendationQuery(text: string) {
@@ -1204,6 +1343,7 @@ export default function TutorPage() {
           styleId: 'apple-minimal',
           voice: videoVoice,
           onEvent: (evt) => {
+            appendAGUIEventsToMessage(assistantId, videoEventToAGUIEvents(evt, assistantId, userInput), setMessages)
             if (evt.type === 'progress') {
               const stage = String(evt.payload.stage || '').replace(/_/g, ' ').trim()
               const progress = Number(evt.payload.progress ?? 0)
@@ -1230,7 +1370,16 @@ export default function TutorPage() {
             : '视频已生成。'
         setMessages((prev) => prev.map((m) => (
           m.id === assistantId
-            ? { ...m, content: readyText, videoResource: resource, streaming: false }
+            ? {
+                ...m,
+                content: readyText,
+                videoResource: resource,
+                streaming: false,
+                aguiEvents: [
+                  ...(m.aguiEvents || []),
+                  ...buildVideoFinishedAGUIEvents(assistantId, resource),
+                ],
+              }
             : m
         )))
         setGeneratedResources((prev) => [resource, ...prev.filter((item) => item.id !== resource.id)])

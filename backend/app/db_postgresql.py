@@ -2,7 +2,7 @@ import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Iterable
 
 from .config import settings
@@ -32,7 +32,7 @@ def get_conn() -> Iterable[psycopg2.extensions.connection]:
 
 
 def now_iso() -> str:
-    return datetime.utcnow().isoformat() + 'Z'
+    return datetime.now(UTC).replace(tzinfo=None).isoformat() + 'Z'
 
 
 def init_db() -> None:

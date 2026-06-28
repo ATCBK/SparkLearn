@@ -13,11 +13,19 @@ def anyio_backend():
 
 
 @pytest_asyncio.fixture()
-async def client():
+async def client(tmp_path, monkeypatch):
     # Keep tests deterministic and offline.
-    settings.spark_app_id = ""
-    settings.spark_api_key = ""
-    settings.spark_api_secret = ""
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data")
+    monkeypatch.setattr(settings, "db_path", tmp_path / "data" / "db" / "sparklearn-test.db")
+    monkeypatch.setattr(settings, "spark_default_model", "lite")
+    monkeypatch.setattr(settings, "spark_use_bridge", False)
+    monkeypatch.setattr(settings, "spark_app_id", "")
+    monkeypatch.setattr(settings, "spark_api_key", "")
+    monkeypatch.setattr(settings, "spark_api_secret", "")
+    monkeypatch.setattr(settings, "deepseek_api_key", "")
+    monkeypatch.setattr(settings, "dashscope_api_key", "")
+    monkeypatch.setattr(settings, "video_ai_api_key", "")
+    monkeypatch.setattr(settings, "tavily_api_key", "")
     init_db()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

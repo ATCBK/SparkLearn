@@ -254,7 +254,7 @@ export default function ReportPage() {
 
                 {/* Row 2: Radar + Progress */}
                 <div className="grid grid-cols-2 gap-4 max-[760px]:grid-cols-1">
-                  <WeekSkillRadar report={report} />
+                  <WeekSkillRadar />
                   <WeekProgressStack />
                 </div>
               </div>

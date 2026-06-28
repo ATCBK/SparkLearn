@@ -187,15 +187,15 @@ def _build_agui_process_events(
             'runId': run_id,
             'stepId': 'intent',
             'title': '分析本轮学习意图',
-            'summary': '识别问题目标、输出形态和需要调用的学习能力',
+            'summary': '基于请求参数判断模式、输出形态和可用上下文',
             'timestamp': now_iso(),
         },
         {
             'type': 'StateDelta',
             'runId': run_id,
             'stepId': 'intent',
-            'delta': {'intent': 'personalized_learning_response', 'profileFirst': True},
-            'summary': '已确认本轮优先使用画像进行个性化适配',
+            'delta': {'profileContextLoaded': True},
+            'summary': '已完成本轮请求上下文整理',
             'timestamp': now_iso(),
         },
         {
@@ -273,6 +273,220 @@ def _build_agui_run_finished_event(conversation_id: int) -> dict[str, Any]:
     }
 
 
+def _build_agui_tool_step_events(
+    conversation_id: int,
+    *,
+    step_id: str,
+    title: str,
+    tool_name: str,
+    args: dict[str, Any] | None = None,
+    data: dict[str, Any] | None = None,
+    summary: str = '',
+    status: str = 'done',
+) -> list[dict[str, Any]]:
+    run_id = f"sparklearn-tutor-run-{conversation_id}"
+    tool_call_id = f"{run_id}-{step_id}"
+    normalized_status = 'error' if status == 'error' else 'done'
+    events: list[dict[str, Any]] = [
+        {
+            'type': 'StepStarted',
+            'runId': run_id,
+            'stepId': step_id,
+            'title': title,
+            'summary': summary or '开始执行',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'ToolCallStart',
+            'runId': run_id,
+            'stepId': step_id,
+            'toolCallId': tool_call_id,
+            'toolName': tool_name,
+            'label': title,
+            'timestamp': now_iso(),
+        },
+    ]
+    if args is not None:
+        events.append(
+            {
+                'type': 'ToolCallArgs',
+                'runId': run_id,
+                'stepId': step_id,
+                'toolCallId': tool_call_id,
+                'args': args,
+                'timestamp': now_iso(),
+            },
+        )
+    events.extend(
+        [
+            {
+                'type': 'ToolCallResult',
+                'runId': run_id,
+                'stepId': step_id,
+                'toolCallId': tool_call_id,
+                'toolName': tool_name,
+                'status': normalized_status,
+                'summary': summary or ('执行失败' if normalized_status == 'error' else '执行完成'),
+                'data': data or {},
+                'timestamp': now_iso(),
+            },
+            {
+                'type': 'StepFinished',
+                'runId': run_id,
+                'stepId': step_id,
+                'status': normalized_status,
+                'summary': summary or ('执行失败' if normalized_status == 'error' else '执行完成'),
+                'timestamp': now_iso(),
+            },
+        ],
+    )
+    return events
+
+
+def _build_agui_search_events(conversation_id: int, query: str, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _build_agui_tool_step_events(
+        conversation_id,
+        step_id='web_search',
+        title='联网搜索',
+        tool_name='tavily_search',
+        args={'query': query},
+        data={
+            'result_count': len(results),
+            'items': [
+                {
+                    'title': str(item.get('title', '')),
+                    'url': str(item.get('url', '')),
+                    'score': item.get('score'),
+                }
+                for item in results[:5]
+            ],
+        },
+        summary=f'已获取 {len(results)} 条联网搜索结果',
+    )
+
+
+def _build_agui_file_context_events(conversation_id: int, file_sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _build_agui_tool_step_events(
+        conversation_id,
+        step_id='file_context',
+        title='检索上传资料',
+        tool_name='retrieve_tutor_files',
+        args={'topK': len(file_sources)},
+        data={
+            'source_count': len(file_sources),
+            'sources': [
+                {
+                    'file_id': item.get('file_id'),
+                    'filename': str(item.get('filename') or item.get('name') or ''),
+                    'score': item.get('score'),
+                }
+                for item in file_sources[:5]
+            ],
+        },
+        summary=f'已命中 {len(file_sources)} 个上传资料片段',
+    )
+
+
+def _build_agui_trust_events(
+    conversation_id: int,
+    *,
+    confidence: dict[str, Any],
+    citations: list[dict[str, Any]],
+    trust_meta: dict[str, Any],
+) -> list[dict[str, Any]]:
+    return _build_agui_tool_step_events(
+        conversation_id,
+        step_id='trust_answer',
+        title='可信回答评估',
+        tool_name='trust_answer_controller',
+        args={'scene': 'tutor'},
+        data={
+            'confidence': confidence,
+            'citation_count': len(citations),
+            'reason_codes': trust_meta.get('reason_codes', []),
+        },
+        summary=f"可信度 {confidence.get('level', 'unknown')} · 引用 {len(citations)} 条",
+    )
+
+
+def _build_agui_workshop_events(
+    conversation_id: int,
+    *,
+    phase: str,
+    status: str,
+    round_no: int | None = None,
+    summary: str = '',
+) -> list[dict[str, Any]]:
+    suffix = f"_{round_no}" if round_no is not None else ''
+    phase_label = '画像分析' if phase == 'profile_analysis' else '综合总结' if phase == 'synthesis' else f'第 {round_no} 轮'
+    return _build_agui_tool_step_events(
+        conversation_id,
+        step_id=f'workshop_{phase}{suffix}',
+        title=f'多智能体研讨：{phase_label}',
+        tool_name='workshop_agents',
+        args={'phase': phase, 'round': round_no},
+        data={'phase': phase, 'round': round_no, 'status': status},
+        summary=summary or phase_label,
+        status=status,
+    )
+
+
+def _build_agui_image_generation_events(
+    conversation_id: int,
+    *,
+    prompt: str,
+    width: int,
+    height: int,
+    status: str = 'done',
+) -> list[dict[str, Any]]:
+    return _build_agui_tool_step_events(
+        conversation_id,
+        step_id='image_generation',
+        title='图片生成',
+        tool_name='xfyun_tti',
+        args={'prompt': prompt, 'width': width, 'height': height},
+        data={'width': width, 'height': height},
+        summary='图片生成失败' if status == 'error' else '图片生成完成',
+        status=status,
+    )
+
+
+def _build_agui_answer_generation_events(
+    conversation_id: int,
+    *,
+    mode: str,
+    model: str,
+    answer: str,
+) -> list[dict[str, Any]]:
+    run_id = f"sparklearn-tutor-run-{conversation_id}"
+    return [
+        {
+            'type': 'StepStarted',
+            'runId': run_id,
+            'stepId': 'answer_generation',
+            'title': '生成回答',
+            'summary': '开始接收模型输出',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'StateDelta',
+            'runId': run_id,
+            'stepId': 'answer_generation',
+            'delta': {'mode': mode, 'model': model, 'answer_length': len(answer or '')},
+            'summary': '模型输出已汇总',
+            'timestamp': now_iso(),
+        },
+        {
+            'type': 'StepFinished',
+            'runId': run_id,
+            'stepId': 'answer_generation',
+            'status': 'done',
+            'summary': '回答生成完成',
+            'timestamp': now_iso(),
+        },
+    ]
+
+
 def _extract_task_card_topic(message: str) -> str:
     topic = re.sub(r'(帮我|请|安排|生成|做成|制作|一个|一份|本周|今日|学习计划|学习任务卡|任务卡|多张|多胞胎)', '', message or '')
     topic = re.sub(r'[,，。.!！?？、\s]+', ' ', topic).strip()
@@ -302,6 +516,7 @@ def _build_a2ui_task_card_events(
     *,
     ui_only: bool = False,
     profile: dict[str, Any] | None = None,
+    generated_resources: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     topic = _extract_task_card_topic(message)
     surface_id = f"sparklearn-task-cards-{conversation_id}"
@@ -310,21 +525,49 @@ def _build_a2ui_task_card_events(
     preference = _first_text(_profile_value(profile, 'learning_preference', []), '直观讲解')
     current_stage = str(_profile_value(profile, 'current_stage', '') or _profile_value(profile, 'knowledge_level', '') or '学习推进中')
     daily_time = int(_profile_value(profile, 'daily_time', 25) or 25)
-    tasks = [
+    resource_items = [item for item in (generated_resources or []) if isinstance(item, dict)]
+    resource_tasks = []
+    for index, item in enumerate(resource_items[:3]):
+        resource_type = str(item.get('type') or 'resource')
+        resource_title = str(item.get('title') or f'{topic} 资源')
+        resource_href = str(item.get('href') or item.get('source_url') or '/generate')
+        resource_tasks.append(
+            {
+                'id': f'{surface_id}-resource-{index + 1}',
+                'title': f'学习真实资源：{resource_title}',
+                'description': str(item.get('excerpt') or f'基于资源库中已存在的“{resource_title}”继续学习。')[:180],
+                'durationMinutes': min(max(daily_time, 15), 45),
+                'difficulty': '推荐',
+                'media': {
+                    'type': resource_type,
+                    'title': resource_title,
+                    'description': '来自本轮真实资源上下文。',
+                    'label': str(item.get('type_label') or '资源'),
+                    'href': resource_href,
+                },
+                'resources': ['真实资源库', resource_title],
+                'actions': [
+                    {'name': 'open_media', 'label': '打开资源'},
+                    {'name': 'add_to_path', 'label': '加入学习路径'},
+                    {'name': 'complete_task', 'label': '标记完成'},
+                ],
+            },
+        )
+    tasks = resource_tasks or [
         {
             'id': f'{surface_id}-concept',
             'title': '夯实核心概念',
-            'description': f'围绕“{topic}”梳理关键概念、术语和常见误区，整理一页速记笔记。',
+            'description': f'围绕“{topic}”梳理关键概念、术语和常见误区。这是系统根据本轮问题生成的建议任务，不代表已有资源。',
             'durationMinutes': 25,
             'difficulty': '入门',
             'media': {
                 'type': 'document',
-                'title': f'{topic} 速记笔记',
-                'description': '用文字笔记沉淀概念、例子和易错点。',
-                'label': '笔记',
+                'title': f'{topic} 学习建议',
+                'description': '建议创建笔记沉淀概念、例子和易错点。',
+                'label': '建议',
                 'href': '/knowledge',
             },
-            'resources': ['对话回答摘要', '课程笔记', '知识库检索片段'],
+            'resources': ['建议任务', '本轮对话'],
             'actions': [
                 {'name': 'complete_task', 'label': '标记完成'},
                 {'name': 'open_media', 'label': '打开资料'},
@@ -334,17 +577,17 @@ def _build_a2ui_task_card_events(
         {
             'id': f'{surface_id}-practice',
             'title': '完成针对练习',
-            'description': f'基于“{topic}”做 5 道小题或 1 个小实验，优先暴露不会的点。',
+            'description': f'基于“{topic}”做 5 道小题或 1 个小实验。这是建议动作，需进入练习中心后生成或选择真实题目。',
             'durationMinutes': 35,
             'difficulty': '进阶',
             'media': {
                 'type': 'quiz',
-                'title': f'{topic} 针对练习',
-                'description': '用小测验检查是否真的理解，并沉淀错题。',
-                'label': '练习',
+                'title': f'{topic} 练习建议',
+                'description': '进入练习中心后生成或选择真实题目。',
+                'label': '建议',
                 'href': '/practice',
             },
-            'resources': ['练习中心', '错题本', 'AI 追问'],
+            'resources': ['建议任务', '练习中心'],
             'actions': [
                 {'name': 'complete_task', 'label': '标记完成'},
                 {'name': 'open_media', 'label': '开始练习'},
@@ -359,12 +602,12 @@ def _build_a2ui_task_card_events(
             'difficulty': '巩固',
             'media': {
                 'type': 'video',
-                'title': f'{topic} 复盘讲解',
-                'description': '用短视频或口播复盘，把卡点讲给未来的自己。',
-                'label': '视频',
+                'title': f'{topic} 复盘建议',
+                'description': '可在视频模块生成真实复盘视频。',
+                'label': '建议',
                 'href': '/video',
             },
-            'resources': ['学习报告', '个人画像', '本轮对话'],
+            'resources': ['建议任务', '学习报告', '本轮对话'],
             'actions': [
                 {'name': 'complete_task', 'label': '标记完成'},
                 {'name': 'open_media', 'label': '打开视频'},
@@ -388,6 +631,7 @@ def _build_a2ui_task_card_events(
                 'path': '/',
                 'value': {
                     'uiOnly': bool(ui_only),
+                    'sourceKind': 'generated_resources' if resource_tasks else 'suggested_tasks',
                     'learner': {
                         'name': learner_name,
                         'stage': current_stage,
@@ -1258,6 +1502,7 @@ async def tutor_chat(req: TutorReq):
         a2ui_events = []
         a2ui_ui_only = _should_use_a2ui_ui_only(req, effective_mode)
         profile_for_a2ui = req.page_context.get('student_profile') if isinstance(req.page_context, dict) and isinstance(req.page_context.get('student_profile'), dict) else None
+        resources_for_a2ui = req.page_context.get('generated_resources') if isinstance(req.page_context, dict) and isinstance(req.page_context.get('generated_resources'), list) else []
         profile_for_process = profile_for_a2ui or _load_profile_snapshot()
         should_emit_a2ui = a2ui_ui_only or _should_emit_a2ui_task_cards(req.message, effective_mode)
         agui_events = _build_agui_process_events(
@@ -1268,10 +1513,20 @@ async def tutor_chat(req: TutorReq):
         for event in agui_events:
             yield ('agui', event)
 
+        if file_sources:
+            file_agui_events = _build_agui_file_context_events(conversation_id, file_sources)
+            agui_events.extend(file_agui_events)
+            for event in file_agui_events:
+                yield ('agui', event)
+
         if effective_web_search and req.message.strip() and effective_mode != 'knowledge_reverse':
             search_results = search_web(req.message.strip())
         if search_results:
             yield ('search_results', {'items': search_results})
+            search_agui_events = _build_agui_search_events(conversation_id, req.message.strip(), search_results)
+            agui_events.extend(search_agui_events)
+            for event in search_agui_events:
+                yield ('agui', event)
             search_prompt = format_search_results(search_results)
             if history_for_model and history_for_model[0]['role'] == 'system':
                 history_for_model[0]['content'] = search_prompt + "\n\n" + history_for_model[0]['content']
@@ -1325,16 +1580,16 @@ async def tutor_chat(req: TutorReq):
                 conversation_id,
                 ui_only=a2ui_ui_only,
                 profile=profile_for_process,
+                generated_resources=resources_for_a2ui,
             )
             for envelope in a2ui_events:
                 yield ('a2ui', envelope)
 
-        if agui_events:
-            run_finished_event = _build_agui_run_finished_event(conversation_id)
-            agui_events.append(run_finished_event)
-            yield ('agui', run_finished_event)
-
         if a2ui_ui_only:
+            if agui_events:
+                run_finished_event = _build_agui_run_finished_event(conversation_id)
+                agui_events.append(run_finished_event)
+                yield ('agui', run_finished_event)
             answer = ''
             assistant_id = _execute_returning_id(
                 """
@@ -1417,6 +1672,15 @@ async def tutor_chat(req: TutorReq):
                 ),
             )
             yield ('workshop_phase', {'phase': 'profile_analysis', 'status': 'done'})
+            profile_workshop_events = _build_agui_workshop_events(
+                conversation_id,
+                phase='profile_analysis',
+                status='done',
+                summary='画像分析完成',
+            )
+            agui_events.extend(profile_workshop_events)
+            for event in profile_workshop_events:
+                yield ('agui', event)
 
             hub_log: list[dict[str, Any]] = []
             hub_log.append(
@@ -1470,6 +1734,16 @@ async def tutor_chat(req: TutorReq):
                     msg['delta'] = False
                     yield ('hub', msg)
                 yield ('workshop_phase', {'phase': 'discussion', 'round': round_no, 'status': 'done'})
+                discussion_events = _build_agui_workshop_events(
+                    conversation_id,
+                    phase='discussion',
+                    status='done',
+                    round_no=round_no,
+                    summary=f'第 {round_no} 轮研讨完成',
+                )
+                agui_events.extend(discussion_events)
+                for event in discussion_events:
+                    yield ('agui', event)
 
             yield ('workshop_phase', {'phase': 'synthesis', 'status': 'running'})
             answer, final_brief = await _workshop_synthesize_answer(
@@ -1493,6 +1767,15 @@ async def tutor_chat(req: TutorReq):
             for chunk in _chunk_text(answer, 120):
                 yield ('text', {'content': chunk})
             yield ('workshop_phase', {'phase': 'synthesis', 'status': 'done'})
+            synthesis_events = _build_agui_workshop_events(
+                conversation_id,
+                phase='synthesis',
+                status='done',
+                summary='研讨结论综合完成',
+            )
+            agui_events.extend(synthesis_events)
+            for event in synthesis_events:
+                yield ('agui', event)
         else:
             if req.mode == 'knowledge_reverse':
                 # 知识逆构模式：根据用户目标搜索内容 → 反推实现过程 → 配对真实资源
@@ -1514,6 +1797,10 @@ async def tutor_chat(req: TutorReq):
                         deduped.append(r)
                 deduped = deduped[:8]
                 yield ('search_results', {'items': deduped})
+                reverse_search_events = _build_agui_search_events(conversation_id, req.message.strip(), deduped)
+                agui_events.extend(reverse_search_events)
+                for event in reverse_search_events:
+                    yield ('agui', event)
                 reverse_prompt = _build_reverse_engineering_prompt(req.message, deduped, role_prompt)
                 assistant_parts = []
                 async for evt_type, payload in spark_lite.stream_chat_events(reverse_prompt, mode='knowledge_qa', history=[], model=effective_model):
@@ -1537,6 +1824,16 @@ async def tutor_chat(req: TutorReq):
                 )
                 answer = f"![AI生成图](data:image/png;base64,{image_b64})"
                 yield ('text', {'content': answer})
+                image_events = _build_agui_image_generation_events(
+                    conversation_id,
+                    prompt=req.message,
+                    width=512,
+                    height=512,
+                    status='done',
+                )
+                agui_events.extend(image_events)
+                for event in image_events:
+                    yield ('agui', event)
             elif req.open_mode:
                 if file_context and re.search(r'(文件|文档|上传|总结|要点|讲了什么|内容)', req.message):
                     answer = _fallback_answer_from_file_context(req.message, file_context, file_sources)
@@ -1605,6 +1902,15 @@ async def tutor_chat(req: TutorReq):
                 yield ('confidence', confidence_payload)
                 yield ('trust_meta', trust_meta_payload)
                 yield ('citations', {'items': citations_payload})
+                trust_events = _build_agui_trust_events(
+                    conversation_id,
+                    confidence=confidence_payload,
+                    citations=citations_payload,
+                    trust_meta=trust_meta_payload,
+                )
+                agui_events.extend(trust_events)
+                for event in trust_events:
+                    yield ('agui', event)
                 mcp_calls = trust_meta_payload.get('mcp_calls')
                 if isinstance(mcp_calls, list) and not mcp_calls_payload:
                     for item in mcp_calls:
@@ -1635,6 +1941,20 @@ async def tutor_chat(req: TutorReq):
                 if not answer:
                     answer = '当前证据不足，我先给出一个方向性建议：请补充题目或课程资料后我再给你更准确的结论。'
                     yield ('text', {'content': answer})
+        if answer and not _is_image_mode(effective_mode):
+            answer_agui_events = _build_agui_answer_generation_events(
+                conversation_id,
+                mode=effective_mode,
+                model=effective_model,
+                answer=answer,
+            )
+            agui_events.extend(answer_agui_events)
+            for event in answer_agui_events:
+                yield ('agui', event)
+        if agui_events:
+            run_finished_event = _build_agui_run_finished_event(conversation_id)
+            agui_events.append(run_finished_event)
+            yield ('agui', run_finished_event)
         assistant_id = _execute_returning_id(
             """
             INSERT INTO tutor_messages(conversation_id, user_id, sender_role, content, file_ids, meta_json, created_at)

@@ -9,7 +9,7 @@ import wave
 import base64
 import hashlib
 import hmac
-from datetime import datetime
+from datetime import UTC, datetime
 from email.utils import formatdate
 from html import escape
 from pathlib import Path
@@ -24,7 +24,7 @@ VIDEO_ARTIFACT_ROOT = settings.data_dir / "artifacts" / "video"
 
 
 def now_iso() -> str:
-    return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    return datetime.now(UTC).replace(tzinfo=None).isoformat(timespec="seconds") + "Z"
 
 
 def artifact_dir(resource_id: str) -> Path:

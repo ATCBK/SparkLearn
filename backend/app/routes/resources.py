@@ -4,7 +4,7 @@ import json
 import re
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -56,7 +56,7 @@ class ResourceQualityResp(BaseModel):
 
 
 def _now_date() -> str:
-    return datetime.utcnow().strftime("%Y-%m-%d")
+    return datetime.now(UTC).strftime("%Y-%m-%d")
 
 
 @router.get("")

@@ -170,7 +170,7 @@ export default function DigitalHumanScene({
   }, [])
 
   if (error && loading) {
-    return <ErrorFallback message={error} />
+    return <ErrorFallback />
   }
 
   if (isMobile || error) {

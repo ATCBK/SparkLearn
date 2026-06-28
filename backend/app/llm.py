@@ -5,7 +5,7 @@ import hmac
 import json
 import logging
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import UTC, datetime
 from urllib.parse import urlencode, urlparse
 
 import websockets
@@ -200,7 +200,7 @@ class SparkLiteAdapter:
         parsed = urlparse(base_url)
         host = parsed.netloc
         path = parsed.path
-        date = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+        date = datetime.now(UTC).strftime("%a, %d %b %Y %H:%M:%S GMT")
         signature_origin = f"host: {host}\ndate: {date}\nGET {path} HTTP/1.1"
         signature_sha = hmac.new(api_secret.encode("utf-8"), signature_origin.encode("utf-8"), digestmod=hashlib.sha256).digest()
         signature = base64.b64encode(signature_sha).decode("utf-8")

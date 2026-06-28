@@ -33,8 +33,8 @@ function skillToneClass(tone: LearningSkill['tone']) {
 export default function TutorSkillsPage() {
   const router = useRouter()
   const importInputRef = useRef<HTMLInputElement>(null)
-  const [customSkills, setCustomSkills] = useState<LearningSkill[]>(() => readCustomSkills())
-  const [selectedSkillId, setSelectedSkillId] = useState(() => localStorage.getItem(SKILL_STORAGE_KEY) || '')
+  const [customSkills, setCustomSkills] = useState<LearningSkill[]>(() => (typeof window === 'undefined' ? [] : readCustomSkills()))
+  const [selectedSkillId, setSelectedSkillId] = useState(() => (typeof window === 'undefined' ? '' : localStorage.getItem(SKILL_STORAGE_KEY) || ''))
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')

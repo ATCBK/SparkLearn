@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager
 import logging
 import sys
 import time
@@ -68,7 +69,13 @@ _configure_event_loop_policy()
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.app_name, version=settings.app_version)
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        init_db()
+        _log_model_config_sanity()
+        yield
+
+    app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
@@ -92,11 +99,6 @@ def create_app() -> FastAPI:
             elapsed,
         )
         return response
-
-    @app.on_event("startup")
-    async def on_startup() -> None:
-        init_db()
-        _log_model_config_sanity()
 
     @app.get("/health")
     async def health():

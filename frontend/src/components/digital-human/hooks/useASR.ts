@@ -8,9 +8,11 @@ interface UseASROptions {
   onError?: (error: string) => void
 }
 
+type SpeechRecognitionConstructor = new () => SpeechRecognition
+
 type SpeechRecognitionWindow = Window & {
-  SpeechRecognition?: typeof SpeechRecognition
-  webkitSpeechRecognition?: typeof SpeechRecognition
+  SpeechRecognition?: SpeechRecognitionConstructor
+  webkitSpeechRecognition?: SpeechRecognitionConstructor
 }
 
 export function useASR(options: UseASROptions = {}) {

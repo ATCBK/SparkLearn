@@ -6,20 +6,7 @@ import { ProtoCard, SoftCard } from '@/components/proto'
 import { Bookmark, ExternalLink, FileText, GitCompare, Loader2, Mic, MicOff, Pause, Search, Send, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
 import { PetAvatar, PetState, PetType, taskStatusToPetState } from './PetAvatar'
 
-interface SpeechRecognitionEventLike {
-  results: ArrayLike<ArrayLike<{ transcript: string }>>
-}
-
-type SpeechRecognitionConstructor = new () => {
-  lang: string
-  continuous: boolean
-  interimResults: boolean
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null
-  onend: (() => void) | null
-  onerror: ((event?: Event) => void) | null
-  start: () => void
-  stop: () => void
-}
+type SpeechRecognitionConstructor = new () => SpeechRecognition
 
 type AgentResultItem = {
   title?: string
@@ -89,7 +76,7 @@ export function AgentChat({
   const msgCounter = useRef(0)
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
   const ttsBlobUrlRef = useRef<string | null>(null)
-  const recognitionRef = useRef<InstanceType<SpeechRecognitionConstructor> | null>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
   const voiceBaseRef = useRef('')
 
   useEffect(() => {
@@ -156,7 +143,7 @@ export function AgentChat({
     recognition.continuous = false
     recognition.interimResults = true
     voiceBaseRef.current = input
-    recognition.onresult = (event: SpeechRecognitionEventLike) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let transcript = ''
       for (let i = 0; i < event.results.length; i++) {
         transcript += event.results[i][0].transcript

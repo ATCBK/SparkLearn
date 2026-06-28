@@ -1,6 +1,12 @@
 from app.routes.tutor_eval import (
     TutorReq,
+    _build_agui_answer_generation_events,
+    _build_agui_file_context_events,
+    _build_agui_image_generation_events,
     _build_agui_process_events,
+    _build_agui_search_events,
+    _build_agui_trust_events,
+    _build_agui_workshop_events,
     _build_a2ui_task_card_events,
     _should_emit_a2ui_task_cards,
     _should_use_a2ui_ui_only,
@@ -84,6 +90,37 @@ def test_a2ui_ui_only_uses_single_personalized_panel_component():
     assert events[2]["updateComponents"]["components"][0]["component"] == "PersonalizedLearningPanel"
 
 
+def test_a2ui_task_cards_use_real_generated_resources_when_available():
+    events = _build_a2ui_task_card_events(
+        "帮我安排 Python 学习",
+        "",
+        12,
+        generated_resources=[
+            {
+                "id": "res-1",
+                "title": "闭包讲义",
+                "type": "document",
+                "type_label": "文档",
+                "excerpt": "这是一份真实资源库中的闭包讲义。",
+                "href": "/generate?view=library&id=res-1",
+            },
+        ],
+    )
+
+    value = events[1]["updateDataModel"]["value"]
+    assert value["sourceKind"] == "generated_resources"
+    assert value["tasks"][0]["title"] == "学习真实资源：闭包讲义"
+    assert value["tasks"][0]["media"]["href"] == "/generate?view=library&id=res-1"
+
+
+def test_a2ui_task_cards_mark_template_items_as_suggestions():
+    events = _build_a2ui_task_card_events("帮我安排 Python 学习", "", 12)
+
+    value = events[1]["updateDataModel"]["value"]
+    assert value["sourceKind"] == "suggested_tasks"
+    assert "建议任务" in value["tasks"][0]["resources"]
+
+
 def test_agui_process_events_always_start_with_profile_loading():
     events = _build_agui_process_events(
         conversation_id=12,
@@ -118,3 +155,86 @@ def test_agui_process_events_include_collapsible_step_summaries():
     assert result_events[0]["data"]["weakPoint"] == "函数返回值"
     assert any(event["type"] == "StepStarted" and event["stepId"] == "a2ui_sync" for event in events)
     assert events[-1]["type"] == "RunFinished"
+
+
+def test_agui_search_events_wrap_web_search_as_tool_step():
+    events = _build_agui_search_events(
+        conversation_id=12,
+        query="Python 闭包",
+        results=[{"title": "闭包教程", "url": "https://example.com", "score": 0.9}],
+    )
+
+    assert [event["type"] for event in events] == ["StepStarted", "ToolCallStart", "ToolCallArgs", "ToolCallResult", "StepFinished"]
+    assert events[0]["stepId"] == "web_search"
+    assert events[1]["toolName"] == "tavily_search"
+    assert events[2]["args"]["query"] == "Python 闭包"
+    assert events[3]["data"]["result_count"] == 1
+
+
+def test_agui_file_context_events_wrap_file_retrieval():
+    events = _build_agui_file_context_events(
+        conversation_id=12,
+        file_sources=[{"file_id": 7, "filename": "lesson.md", "score": 0.82}],
+    )
+
+    assert events[0]["stepId"] == "file_context"
+    assert events[1]["toolName"] == "retrieve_tutor_files"
+    assert events[3]["data"]["source_count"] == 1
+    assert events[-1]["status"] == "done"
+
+
+def test_agui_trust_events_wrap_confidence_and_citations():
+    events = _build_agui_trust_events(
+        conversation_id=12,
+        confidence={"score": 0.86, "level": "high"},
+        citations=[{"id": "kb:1", "label": "来源1"}],
+        trust_meta={"reason_codes": ["grounded"]},
+    )
+
+    assert events[0]["stepId"] == "trust_answer"
+    assert events[1]["toolName"] == "trust_answer_controller"
+    assert events[3]["data"]["confidence"]["score"] == 0.86
+    assert events[3]["data"]["citation_count"] == 1
+
+
+def test_agui_workshop_events_wrap_multi_agent_phase():
+    events = _build_agui_workshop_events(
+        conversation_id=12,
+        phase="discussion",
+        status="done",
+        round_no=2,
+        summary="第 2 轮研讨完成",
+    )
+
+    assert events[0]["stepId"] == "workshop_discussion_2"
+    assert events[0]["title"] == "多智能体研讨：第 2 轮"
+    assert events[-1]["status"] == "done"
+
+
+def test_agui_image_generation_events_wrap_image_mode():
+    events = _build_agui_image_generation_events(
+        conversation_id=12,
+        prompt="画一张递归调用栈",
+        width=512,
+        height=512,
+        status="done",
+    )
+
+    assert events[0]["stepId"] == "image_generation"
+    assert events[1]["toolName"] == "xfyun_tti"
+    assert events[2]["args"]["width"] == 512
+    assert events[-1]["summary"] == "图片生成完成"
+
+
+def test_agui_answer_generation_events_wrap_model_output():
+    events = _build_agui_answer_generation_events(
+        conversation_id=12,
+        mode="knowledge_qa",
+        model="spark-lite",
+        answer="这是生成结果",
+    )
+
+    assert events[0]["stepId"] == "answer_generation"
+    assert [event["type"] for event in events] == ["StepStarted", "StateDelta", "StepFinished"]
+    assert events[1]["delta"]["mode"] == "knowledge_qa"
+    assert events[1]["delta"]["answer_length"] == 6

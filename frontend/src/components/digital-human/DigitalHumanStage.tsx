@@ -191,8 +191,9 @@ function AvatarModel({ avatarId, visemeWeights, state = 'idle', onFpsWarning }: 
 
       // 头发跟随头部旋转
       for (const h of hairMeshes.current) {
-        h.rotation.y = THREE.MathUtils.lerp(h.rotation.y, headTargetRot, delta * 2)
+        // Three.js 对象需要在渲染帧中命令式更新。
         // eslint-disable-next-line react-hooks/immutability
+        h.rotation.y = THREE.MathUtils.lerp(h.rotation.y, headTargetRot, delta * 2)
         h.rotation.x = THREE.MathUtils.lerp(h.rotation.x, head.rotation.x, delta * 2)
       }
     }

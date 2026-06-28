@@ -23,6 +23,10 @@ JWT_SECRET = "sparklearn-jwt-secret-change-in-production"
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 72
 
+
+def _utcnow_naive() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 # HTTP Bearer scheme
 bearer_scheme = HTTPBearer(auto_error=False)
 bearer_scheme_required = HTTPBearer(auto_error=True)
@@ -158,7 +162,7 @@ async def send_sms_code(req: SendCodeReq):
     )
     if recent:
         last_time = datetime.fromisoformat(recent["created_at"].rstrip("Z"))
-        elapsed = (datetime.utcnow() - last_time).total_seconds()
+        elapsed = (_utcnow_naive() - last_time).total_seconds()
         if elapsed < settings.sms_rate_limit_seconds:
             remaining = int(settings.sms_rate_limit_seconds - elapsed)
             raise HTTPException(
@@ -168,7 +172,7 @@ async def send_sms_code(req: SendCodeReq):
 
     # 生成并保存验证码
     code = sms_client.generate_code()
-    expires_at = datetime.utcnow() + timedelta(minutes=settings.sms_code_expire_minutes)
+    expires_at = _utcnow_naive() + timedelta(minutes=settings.sms_code_expire_minutes)
 
     execute(
         "INSERT INTO sms_codes (phone, code, purpose, expires_at, used, created_at) VALUES (?, ?, ?, ?, 0, ?)",
@@ -207,7 +211,7 @@ async def sms_login(req: SmsLoginReq):
 
     # 检查过期
     expires_at = datetime.fromisoformat(record["expires_at"].rstrip("Z"))
-    if datetime.utcnow() > expires_at:
+    if _utcnow_naive() > expires_at:
         raise HTTPException(status_code=400, detail="验证码已过期")
 
     # 标记验证码已使用
@@ -257,7 +261,7 @@ async def sms_register(req: SmsRegisterReq):
         raise HTTPException(status_code=400, detail="验证码错误")
 
     expires_at = datetime.fromisoformat(record["expires_at"].rstrip("Z"))
-    if datetime.utcnow() > expires_at:
+    if _utcnow_naive() > expires_at:
         raise HTTPException(status_code=400, detail="验证码已过期")
 
     # 检查手机号是否已注册

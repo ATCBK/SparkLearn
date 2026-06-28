@@ -4,7 +4,7 @@
 """
 
 import re
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -179,7 +179,7 @@ async def bookmark(
     if existing:
         cache_id = existing["id"]
     else:
-        expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat() + "Z"
+        expires_at = (datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=24)).isoformat() + "Z"
         execute(
             """
             INSERT INTO info_stream_cache (source, external_id, title, summary, url, thumbnail, author, tags, cached_at, expires_at)

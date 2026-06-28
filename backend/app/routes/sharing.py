@@ -6,7 +6,7 @@
 import json
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -56,7 +56,7 @@ async def create_share_link(
 
     expires_at = None
     if req.expire_hours:
-        expires_at = (datetime.utcnow() + timedelta(hours=req.expire_hours)).isoformat() + "Z"
+        expires_at = (datetime.now(UTC).replace(tzinfo=None) + timedelta(hours=req.expire_hours)).isoformat() + "Z"
 
     execute(
         """
@@ -154,7 +154,7 @@ async def get_share_info(share_code: str):
     # 检查过期
     if link_dict["expires_at"]:
         expires_at = datetime.fromisoformat(link_dict["expires_at"].rstrip("Z"))
-        if datetime.utcnow() > expires_at:
+        if datetime.now(UTC).replace(tzinfo=None) > expires_at:
             execute("UPDATE share_links SET status = 'expired' WHERE id = ?", (link_dict["id"],))
             raise HTTPException(status_code=410, detail="分享链接已过期")
 
@@ -205,7 +205,7 @@ async def access_share(
     # 检查过期
     if link_dict["expires_at"]:
         expires_at = datetime.fromisoformat(link_dict["expires_at"].rstrip("Z"))
-        if datetime.utcnow() > expires_at:
+        if datetime.now(UTC).replace(tzinfo=None) > expires_at:
             raise HTTPException(status_code=410, detail="分享链接已过期")
 
     # 验证密码

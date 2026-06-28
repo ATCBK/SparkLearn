@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter
@@ -357,7 +357,7 @@ def _with_mock_profile_history(history: list[dict[str, Any]], current_profile: d
     if len(items) >= 4:
         return items
 
-    base_time = _parse_iso(str(items[0].get("captured_at", ""))) if items else datetime.utcnow()
+    base_time = _parse_iso(str(items[0].get("captured_at", ""))) if items else datetime.now(UTC).replace(tzinfo=None)
     mock_profiles = _mock_profile_profiles(current_profile)
     used_ids = {str(item.get("id", "")) for item in items}
 

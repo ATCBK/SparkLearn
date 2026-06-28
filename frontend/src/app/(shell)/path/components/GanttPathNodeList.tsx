@@ -104,7 +104,7 @@ export function GanttPathNodeList({
               {/* 节点列表 */}
               <div className="space-y-1 ml-3">
                 {phase.nodes.map((node, nodeIdx) => {
-                  const task = getTaskForNode(node.id);
+                  const task = taskByNodeId.get(node.id);
                   const isSelected = selectedNodeId === node.id;
                   const globalIdx = getGlobalIndex(node.id);
                   const isCompleted = task?.status === 'completed';
