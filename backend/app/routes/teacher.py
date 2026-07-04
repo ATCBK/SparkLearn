@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from ..config import settings
-from ..db import fetch_all, fetch_one, get_conn, now_iso
+from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
 from ..llm import spark_lite
 from ..schemas import fail, ok
 
@@ -440,7 +440,7 @@ def _build_students() -> list[dict[str, Any]]:
             "id": settings.single_user_id,
             "name": name,
             "avatar": name[0],
-            "major": real_student["major"] or "计算机科学",
+            "major": real_student["major"] or "Python",
             "grade": real_student["grade"] or "大二",
             "current_stage": real_profile["current_stage"] or "函数与模块",
             "knowledge_level": real_profile["knowledge_level"] or "有一定基础",
@@ -623,7 +623,7 @@ async def ai_daily_report():
     avg_acc = round(sum(s["quiz_accuracy"] for s in students) / total * 100)
 
     prompt = (
-        f"你是编程课教师助手。生成今日班级学习日报（100字以内），语气专业亲切，重点突出问题。\n"
+        f"你是学科教师助手。生成今日班级学习日报（100字以内），语气专业亲切，重点突出问题。\n"
         f"班级{total}人，今日活跃{active}人，平均正确率{avg_acc}%，"
         f"高风险：{','.join(danger) if danger else '无'}，"
         f"预警：{','.join(warning) if warning else '无'}。"
@@ -661,6 +661,234 @@ class TeacherBroadcastCreateReq(BaseModel):
     target_type: str = "all"  # all | specific
     student_ids: list[str] = []
     material_file_ids: list[int] = []
+
+
+class TeacherSubjectReq(BaseModel):
+    name: str
+    code: str = ""
+    description: str = ""
+    enabled: bool = True
+
+
+class TeacherSubjectImportReq(BaseModel):
+    items: list[TeacherSubjectReq]
+
+
+def _subject_row(row: Any) -> dict[str, Any]:
+    return {
+        "id": int(row["id"]),
+        "name": str(row["name"]),
+        "code": str(row["code"] or ""),
+        "description": str(row["description"] or ""),
+        "enabled": bool(row["enabled"]),
+        "sort_order": int(row["sort_order"] or 0),
+        "created_at": str(row["created_at"]),
+        "updated_at": str(row["updated_at"]),
+    }
+
+
+@router.get("/subjects")
+async def list_teacher_subjects(enabled_only: bool = False):
+    if enabled_only:
+        rows = fetch_all(
+            """
+            SELECT * FROM teacher_subjects
+            WHERE user_id = ? AND enabled = 1 AND COALESCE(deleted, 0) = 0
+            ORDER BY sort_order ASC, id ASC
+            """,
+            (settings.single_user_id,),
+        )
+    else:
+        rows = fetch_all(
+            """
+            SELECT * FROM teacher_subjects
+            WHERE user_id = ? AND COALESCE(deleted, 0) = 0
+            ORDER BY sort_order ASC, id ASC
+            """,
+            (settings.single_user_id,),
+        )
+    return ok([_subject_row(row) for row in rows])
+
+
+@router.post("/subjects")
+async def create_teacher_subject(req: TeacherSubjectReq):
+    name = req.name.strip()
+    code = req.code.strip()
+    description = req.description.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+
+    existing = fetch_one(
+        "SELECT * FROM teacher_subjects WHERE user_id = ? AND name = ?",
+        (settings.single_user_id, name),
+    )
+    if existing:
+        if int(existing["deleted"] or 0) == 0:
+            raise HTTPException(status_code=400, detail="subject already exists")
+        execute(
+            """
+            UPDATE teacher_subjects
+            SET code = ?, description = ?, enabled = ?, deleted = 0, updated_at = ?
+            WHERE id = ? AND user_id = ?
+            """,
+            (
+                code,
+                description,
+                1 if req.enabled else 0,
+                now_iso(),
+                int(existing["id"]),
+                settings.single_user_id,
+            ),
+        )
+        restored = fetch_one("SELECT * FROM teacher_subjects WHERE id = ? AND user_id = ?", (int(existing["id"]), settings.single_user_id))
+        return ok(_subject_row(restored))
+
+    ts = now_iso()
+    max_row = fetch_one(
+        "SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM teacher_subjects WHERE user_id = ?",
+        (settings.single_user_id,),
+    )
+    sort_order = int(max_row["max_order"] if max_row else 0) + 1
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO teacher_subjects(
+                user_id, name, code, description, enabled, sort_order, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                settings.single_user_id,
+                name,
+                code,
+                description,
+                1 if req.enabled else 0,
+                sort_order,
+                ts,
+                ts,
+            ),
+        )
+        row = conn.execute("SELECT * FROM teacher_subjects WHERE id = last_insert_rowid()").fetchone()
+    return ok(_subject_row(row))
+
+
+@router.put("/subjects/{subject_id}")
+async def update_teacher_subject(subject_id: int, req: TeacherSubjectReq):
+    subject = fetch_one(
+        "SELECT * FROM teacher_subjects WHERE id = ? AND user_id = ? AND COALESCE(deleted, 0) = 0",
+        (subject_id, settings.single_user_id),
+    )
+    if not subject:
+        raise HTTPException(status_code=404, detail="subject not found")
+
+    name = req.name.strip()
+    code = req.code.strip()
+    description = req.description.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+
+    duplicated = fetch_one(
+        """
+        SELECT id FROM teacher_subjects
+        WHERE user_id = ? AND name = ? AND id != ? AND COALESCE(deleted, 0) = 0
+        """,
+        (settings.single_user_id, name, subject_id),
+    )
+    if duplicated:
+        raise HTTPException(status_code=400, detail="subject already exists")
+
+    execute(
+        """
+        UPDATE teacher_subjects
+        SET name = ?, code = ?, description = ?, enabled = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+        """,
+        (
+            name,
+            code,
+            description,
+            1 if req.enabled else 0,
+            now_iso(),
+            subject_id,
+            settings.single_user_id,
+        ),
+    )
+    row = fetch_one("SELECT * FROM teacher_subjects WHERE id = ? AND user_id = ?", (subject_id, settings.single_user_id))
+    return ok(_subject_row(row))
+
+
+@router.delete("/subjects/{subject_id}")
+async def delete_teacher_subject(subject_id: int):
+    subject = fetch_one(
+        "SELECT id FROM teacher_subjects WHERE id = ? AND user_id = ? AND COALESCE(deleted, 0) = 0",
+        (subject_id, settings.single_user_id),
+    )
+    if not subject:
+        raise HTTPException(status_code=404, detail="subject not found")
+    execute(
+        """
+        UPDATE teacher_subjects
+        SET enabled = 0, deleted = 1, updated_at = ?
+        WHERE id = ? AND user_id = ?
+        """,
+        (now_iso(), subject_id, settings.single_user_id),
+    )
+    return ok({"deleted": True, "id": subject_id})
+
+
+@router.post("/subjects/import")
+async def import_teacher_subjects(req: TeacherSubjectImportReq):
+    created = []
+    skipped = []
+    ts = now_iso()
+    with get_conn() as conn:
+        existing_names = {
+            str(row["name"])
+            for row in conn.execute(
+                "SELECT name FROM teacher_subjects WHERE user_id = ?",
+                (settings.single_user_id,),
+            ).fetchall()
+        }
+        max_row = conn.execute(
+            "SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM teacher_subjects WHERE user_id = ?",
+            (settings.single_user_id,),
+        ).fetchone()
+        sort_order = int(max_row["max_order"] if max_row else 0)
+
+        for item in req.items:
+            name = item.name.strip()
+            if not name or name in existing_names:
+                if name:
+                    skipped.append(name)
+                continue
+            sort_order += 1
+            conn.execute(
+                """
+                INSERT INTO teacher_subjects(
+                    user_id, name, code, description, enabled, sort_order, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    settings.single_user_id,
+                    name,
+                    item.code.strip(),
+                    item.description.strip(),
+                    1 if item.enabled else 0,
+                    sort_order,
+                    ts,
+                    ts,
+                ),
+            )
+            existing_names.add(name)
+            created.append(name)
+
+    return ok(
+        {
+            "created_count": len(created),
+            "skipped_count": len(skipped),
+            "created": created,
+            "skipped": skipped,
+        }
+    )
 
 
 @router.get("/broadcast/recipients")

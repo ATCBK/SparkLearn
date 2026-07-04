@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useGraphStore } from '../store/graphStore'
 import type { GraphData, KnowledgeEdge, KnowledgeNode } from '../types/graph'
+import { cn } from '@/lib/utils/cn'
 
 const STATUS_COLORS: Record<string, string> = {
   mastered: '#16A34A',
@@ -220,11 +221,20 @@ export function GraphCanvas() {
   }, [filteredNodes, filteredEdges, graphData, selectedNodeId, isEchartsReady])
 
   useEffect(() => {
-    const handleResize = () => {
-      chartRef.current?.resize()
-    }
+    const container = containerRef.current
+    const handleResize = () => chartRef.current?.resize()
+
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+
+    const resizeObserver = container ? new ResizeObserver(handleResize) : null
+    if (container) {
+      resizeObserver?.observe(container)
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      resizeObserver?.disconnect()
+    }
   }, [])
 
   useEffect(() => {
@@ -233,7 +243,12 @@ export function GraphCanvas() {
   }, [isFullscreen])
 
   return (
-    <div className="relative min-h-[500px] w-full">
+    <div
+      className={cn(
+        'relative h-full min-h-[560px] w-full max-[900px]:h-[560px] max-[900px]:min-h-0',
+        isFullscreen && 'h-[calc(100vh-170px)] max-h-none',
+      )}
+    >
       <div ref={containerRef} className="absolute inset-0 h-full w-full" />
 
       {(isLoading || !graphData || filteredNodes.length === 0) && (

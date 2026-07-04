@@ -1,6 +1,6 @@
  'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Send,
@@ -20,8 +20,14 @@ import {
   Zap,
   BarChart3,
   Sparkles,
+  Brain,
+  Calculator,
+  FlaskConical,
+  Languages,
+  TerminalSquare,
 } from 'lucide-react'
 import { syncStudyBuddyProfile } from '@/lib/auth'
+import { getTeacherSubjects } from '@/lib/api/real'
 
 /* ── 类型 ─────────────────────────────────────────── */
 
@@ -44,13 +50,15 @@ interface StepData {
 
 /* ── 步骤数据 ──────────────────────────────────────── */
 
+const DEFAULT_SUBJECTS = ['Python', 'Java', 'C/C++', 'JavaScript', 'Go', '数据结构与算法', '人工智能']
+
 const STEPS: StepData[] = [
   {
     key: 'major',
-    title: '专业方向',
-    greeting: '你好，我是小星同学。\n为了让后续资源和学习路径更贴合你的专业背景，我们先记录你的专业方向。',
-    question: '你的专业或方向是什么？',
-    tags: ['计算机科学', '软件工程', '人工智能', '数据科学', '信息安全', '网络工程'],
+    title: '学科方向',
+    greeting: '你好，我是小星同学。\n为了让后续资源和学习路径更贴合你的学习场景，我们先选择本次学习的学科方向。',
+    question: '你想学习哪个学科？',
+    tags: DEFAULT_SUBJECTS,
     multiSelect: false,
   },
   {
@@ -67,14 +75,14 @@ const STEPS: StepData[] = [
   },
   {
     key: 'level',
-    title: '编程基础',
-    greeting: '了解了！接下来了解一下你的编程基础，\n这样可以更好地为你安排内容 😊',
-    question: '你目前的编程水平是？',
+    title: '学习基础',
+    greeting: '了解了！接下来了解一下你的学习基础，\n这样可以更好地为你安排内容 😊',
+    question: '你目前的基础水平是？',
     cards: [
-      { icon: <Lightbulb size={20} />, label: '零基础', desc: '完全没接触过', color: 'orange' },
-      { icon: <FileText size={20} />, label: '入门阶段', desc: '学过一些基础语法', color: 'blue' },
-      { icon: <Code size={20} />, label: '有一定基础', desc: '能写简单项目', color: 'green' },
-      { icon: <GraduationCap size={20} />, label: '基础较好', desc: '熟练掌握一门语言', color: 'purple' },
+      { icon: <Lightbulb size={20} />, label: '零基础', desc: '刚开始接触', color: 'orange' },
+      { icon: <FileText size={20} />, label: '入门阶段', desc: '学过一些基础内容', color: 'blue' },
+      { icon: <Code size={20} />, label: '有一定基础', desc: '能完成基础练习', color: 'green' },
+      { icon: <GraduationCap size={20} />, label: '基础较好', desc: '能独立解决常见问题', color: 'purple' },
     ],
   },
   {
@@ -82,7 +90,7 @@ const STEPS: StepData[] = [
     title: '薄弱环节',
     greeting: '明白！知道了你的基础情况 👍\n接下来，我们来找出你觉得需要重点加强的方向，\n你觉得自己哪些方面需要加强？',
     question: '选择你想重点提升的方向（可多选）',
-    tags: ['语法与数据结构', '项目实战经验', '高级设计能力', '编程语言实践', '其他方面'],
+    tags: ['基础概念', '核心方法', '题目应用', '综合实践', '学习方法', '其他方面'],
     multiSelect: true,
   },
   {
@@ -117,6 +125,56 @@ interface ChatMessage {
   type: 'text' | 'options' | 'selection'
 }
 
+function subjectTone(tag: string, index: number) {
+  const presets = [
+    {
+      icon: <TerminalSquare size={18} />,
+      bg: 'from-[#eff6ff] to-[#dbeafe]',
+      text: 'text-[#1d4ed8]',
+      ring: 'ring-[#bfdbfe]',
+      active: 'from-[#2563eb] to-[#0f63d9]',
+      shadow: 'shadow-blue-200/70',
+    },
+    {
+      icon: <Calculator size={18} />,
+      bg: 'from-[#ecfdf5] to-[#d1fae5]',
+      text: 'text-[#047857]',
+      ring: 'ring-[#a7f3d0]',
+      active: 'from-[#059669] to-[#047857]',
+      shadow: 'shadow-emerald-200/70',
+    },
+    {
+      icon: <Languages size={18} />,
+      bg: 'from-[#fff7ed] to-[#ffedd5]',
+      text: 'text-[#c2410c]',
+      ring: 'ring-[#fed7aa]',
+      active: 'from-[#f97316] to-[#c2410c]',
+      shadow: 'shadow-orange-200/70',
+    },
+    {
+      icon: <FlaskConical size={18} />,
+      bg: 'from-[#ecfeff] to-[#cffafe]',
+      text: 'text-[#0e7490]',
+      ring: 'ring-[#a5f3fc]',
+      active: 'from-[#0891b2] to-[#0e7490]',
+      shadow: 'shadow-cyan-200/70',
+    },
+    {
+      icon: <Brain size={18} />,
+      bg: 'from-[#f5f3ff] to-[#ede9fe]',
+      text: 'text-[#6d28d9]',
+      ring: 'ring-[#ddd6fe]',
+      active: 'from-[#7c3aed] to-[#5b21b6]',
+      shadow: 'shadow-violet-200/70',
+    },
+  ]
+  if (tag.includes('Java') || tag.includes('Go')) return presets[1]
+  if (tag.includes('C/') || tag.includes('C++')) return presets[2]
+  if (tag.includes('数据结构') || tag.includes('算法')) return presets[3]
+  if (tag.includes('智能') || tag.includes('AI') || tag.includes('机器学习')) return presets[4]
+  return presets[index % presets.length]
+}
+
 /* ── 主组件 ─────────────────────────────────────────── */
 
 export default function OnboardingPage() {
@@ -127,8 +185,14 @@ export default function OnboardingPage() {
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
+  const [subjectOptions, setSubjectOptions] = useState<string[]>(DEFAULT_SUBJECTS)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const finishingRef = useRef(false)
+
+  const steps = useMemo(
+    () => STEPS.map((item, index) => (index === 0 ? { ...item, tags: subjectOptions } : item)),
+    [subjectOptions],
+  )
 
   // 初始化第一步的消息
   useEffect(() => {
@@ -138,8 +202,9 @@ export default function OnboardingPage() {
     }
 
     // 清空之前的状态，防止重复进入时消息重复
+    const pendingSubject = localStorage.getItem('sparklearn_pending_subject')
     setMessages([])
-    setSelections({})
+    setSelections(pendingSubject ? { 0: [pendingSubject] } : {})
     setStep(0)
     setShowOptions(false)
     setIsTyping(false)
@@ -151,11 +216,33 @@ export default function OnboardingPage() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const subjects = await getTeacherSubjects(true)
+        const names = subjects.map((item) => item.name).filter(Boolean)
+        if (!cancelled && names.length > 0) {
+          setSubjectOptions(names)
+          const pendingSubject = localStorage.getItem('sparklearn_pending_subject')
+          if (pendingSubject && names.includes(pendingSubject)) {
+            setSelections((prev) => ({ ...prev, 0: [pendingSubject] }))
+          }
+        }
+      } catch {
+        // 演示环境后端未启动时，保留默认学科选项。
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, showOptions])
 
   function startStep(stepIndex: number) {
-    const stepData = STEPS[stepIndex]
+    const stepData = steps[stepIndex]
     setIsTyping(true)
     setShowOptions(false)
 
@@ -183,7 +270,7 @@ export default function OnboardingPage() {
   }
 
   function toggle(opt: string) {
-    const current = STEPS[step]
+    const current = steps[step]
     setSelections(prev => {
       const arr = prev[step] || []
       if (current.multiSelect || current.tags) {
@@ -218,7 +305,7 @@ export default function OnboardingPage() {
     setShowOptions(false)
 
     // 进入下一步
-    if (step < STEPS.length - 1) {
+    if (step < steps.length - 1) {
       const nextStep = step + 1
       setStep(nextStep)
       setTimeout(() => startStep(nextStep), 300)
@@ -246,7 +333,7 @@ export default function OnboardingPage() {
     setShowOptions(false)
 
     // 进入下一步
-    if (step < STEPS.length - 1) {
+    if (step < steps.length - 1) {
       const nextStep = step + 1
       setStep(nextStep)
       setTimeout(() => startStep(nextStep), 300)
@@ -317,13 +404,13 @@ export default function OnboardingPage() {
   }
 
   const selected = selections[step] || []
-  const current = STEPS[step]
+  const current = steps[step]
 
   return (
     <div className="flex min-h-screen flex-col items-center px-4 py-8" style={{ backgroundImage: 'url(/ui-images/onboarding-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       {/* ═══ 顶部步骤指示器 ═══ */}
       <div className="mb-6 flex items-center justify-center gap-0">
-        {STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <div key={s.key} className="flex items-center">
             <div className="flex flex-col items-center gap-1.5">
               <div
@@ -345,7 +432,7 @@ export default function OnboardingPage() {
                 {s.title}
               </span>
             </div>
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div
                 className={`mx-3 mb-5 h-[2px] w-12 rounded-full transition-colors ${
                   i < step ? 'bg-[#34c759]' : 'bg-[#e2e8f0]'
@@ -426,9 +513,31 @@ export default function OnboardingPage() {
 
               {/* 标签选项 */}
               {current.tags && (
-                <div className="flex flex-wrap gap-2">
+                <div className={step === 0 ? 'grid grid-cols-5 gap-3 max-[720px]:grid-cols-3 max-[520px]:grid-cols-2' : 'flex flex-wrap gap-2'}>
                   {current.tags.map((tag) => {
                     const isActive = selected.includes(tag)
+                    const tone = subjectTone(tag, current.tags?.indexOf(tag) ?? 0)
+                    if (step === 0) {
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => toggle(tag)}
+                          className={`group relative min-h-[82px] overflow-hidden rounded-2xl border px-3 py-3 text-left transition-all duration-200 ${
+                            isActive
+                              ? `border-transparent bg-gradient-to-br ${tone.active} text-white shadow-lg ${tone.shadow}`
+                              : `border-white bg-gradient-to-br ${tone.bg} ${tone.text} shadow-sm ring-1 ${tone.ring} hover:-translate-y-0.5 hover:shadow-md`
+                          }`}
+                        >
+                          <span className={`absolute -right-4 -top-4 h-14 w-14 rounded-full ${isActive ? 'bg-white/15' : 'bg-white/50'}`} />
+                          <span className="relative flex h-full flex-col justify-between gap-2">
+                            <span className={`grid h-9 w-9 place-items-center rounded-xl transition-colors ${isActive ? 'bg-white/20 text-white' : 'bg-white/75'}`}>
+                              {tone.icon}
+                            </span>
+                            <span className="block truncate text-[15px] font-extrabold leading-tight">{tag}</span>
+                          </span>
+                        </button>
+                      )
+                    }
                     return (
                       <button
                         key={tag}
@@ -504,8 +613,8 @@ export default function OnboardingPage() {
                   : 'bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed'
               }`}
             >
-              {step === STEPS.length - 1 ? '完成建档' : '下一步'}
-              {step === STEPS.length - 1 ? <Sparkles size={15} /> : <ArrowRight size={15} />}
+              {step === steps.length - 1 ? '完成建档' : '下一步'}
+              {step === steps.length - 1 ? <Sparkles size={15} /> : <ArrowRight size={15} />}
             </button>
           </div>
         </div>

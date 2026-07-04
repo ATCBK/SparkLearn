@@ -137,6 +137,17 @@ export interface TeacherBroadcast {
   created_at: string
 }
 
+export interface TeacherSubject {
+  id: number
+  name: string
+  code: string
+  description: string
+  enabled: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
 export interface McpService {
   id: string
   name: string
@@ -436,6 +447,8 @@ export interface TaskCreatePayload {
 
 export interface KnowledgeFile {
   id: number
+  subjectId: number
+  subjectName: string
   filename: string
   mimeType: string
   sizeBytes: number

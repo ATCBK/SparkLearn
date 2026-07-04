@@ -85,11 +85,12 @@ async def generate_resource(req: GenerateReq):
         res_id = f"gen-{uuid.uuid4().hex[:8]}"
         yield ("progress", {"stage": "started", "resource_id": res_id, "progress": 5})
         resource_type = (req.type or "").strip().lower()
+        rag_prompt = await _build_resource_prompt_with_rag(req.type, req.prompt, req.knowledge_file_ids)
 
         if resource_type == "ppt":
             try:
                 yield ("progress", {"stage": "creating", "resource_id": res_id, "progress": 15})
-                created = await xfyun_ppt_client.create_ppt(query=req.prompt.strip() or "生成学习PPT")
+                created = await xfyun_ppt_client.create_ppt(query=rag_prompt.strip() or "生成学习PPT")
                 sid = str(created.get("sid", "")).strip()
                 cover_img = str(created.get("coverImgSrc", "")).strip()
                 title = str(created.get("title", "")).strip()
@@ -134,7 +135,7 @@ async def generate_resource(req: GenerateReq):
             # 播客电台：直接调用星火大模型生成播客脚本
             chunks: list[str] = []
             progress = 10
-            blog_prompt = _build_resource_prompt("blog", req.prompt)
+            blog_prompt = rag_prompt
 
             yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
             async for evt_type, payload in spark_lite.stream_chat_events(blog_prompt, mode="general", history=[]):
@@ -167,7 +168,7 @@ async def generate_resource(req: GenerateReq):
             provider_errors: list[str] = []
             explicit_source_url = ""
             progress = 10
-            resource_prompt = _build_resource_prompt(req.type, req.prompt)
+            resource_prompt = rag_prompt
 
             async for evt_type, payload in coze_adapter.stream_resource_text(
                 resource_type=req.type,
@@ -474,6 +475,54 @@ def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
             "主题：" + base
         )
     return base
+
+
+async def _build_resource_prompt_with_rag(resource_type: str, user_prompt: str, knowledge_file_ids: list[int] | None = None) -> str:
+    base = _build_resource_prompt(resource_type, user_prompt)
+    file_ids = _resolve_generation_knowledge_file_ids(knowledge_file_ids or [])
+    if not file_ids:
+        return base
+
+    context = await load_knowledge_context_async(file_ids, query=user_prompt, max_chars=4200)
+    if not context.strip():
+        return base
+    return (
+        f"{base}\n\n"
+        "学科知识库检索上下文:\n"
+        f"{context}\n\n"
+        "请优先依据以上知识库内容生成，若需要补充常识，请保持与知识库一致。"
+    )
+
+
+def _resolve_generation_knowledge_file_ids(explicit_ids: list[int]) -> list[int]:
+    ids = [int(x) for x in explicit_ids if int(x) > 0]
+    if ids:
+        return ids
+
+    subject_name = _current_profile_subject_name()
+    if not subject_name:
+        return []
+    rows = fetch_all(
+        """
+        SELECT id
+        FROM knowledge_files
+        WHERE user_id = ? AND status = 'indexed' AND subject_name = ?
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 8
+        """,
+        (settings.single_user_id, subject_name),
+    )
+    return [int(row["id"]) for row in rows]
+
+
+def _current_profile_subject_name() -> str:
+    profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+    if isinstance(profile, dict):
+        major = str(profile.get("major") or "").strip()
+        if major:
+            return major
+    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (settings.single_user_id,))
+    return str(student["major"]).strip() if student and student["major"] else ""
 
 
 def _profile_context_for_generation() -> str:

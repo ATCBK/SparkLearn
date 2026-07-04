@@ -1884,7 +1884,7 @@ async def tutor_chat(req: TutorReq):
                     mcp_prompt=mcp_context,
                     conversation_id=conversation_id,
                     file_ids=effective_file_ids,
-                    knowledge_file_ids=req.knowledge_file_ids or [],
+                    knowledge_file_ids=_resolve_subject_knowledge_file_ids_for_tutor(req.knowledge_file_ids or []),
                     user_file_sources=file_sources,
                     web_search_results=search_results,
                         use_profile=True,
@@ -2346,6 +2346,28 @@ def _load_profile_snapshot() -> dict[str, Any]:
         'practical_ability': row['practical_ability'] or '',
         'current_stage': row['current_stage'] or '',
     }
+
+
+def _resolve_subject_knowledge_file_ids_for_tutor(explicit_ids: list[int]) -> list[int]:
+    ids = [int(x) for x in explicit_ids if int(x) > 0]
+    if ids:
+        return ids
+
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+    subject_name = str(student['major']).strip() if student and student['major'] else ''
+    if not subject_name:
+        return []
+    rows = fetch_all(
+        """
+        SELECT id
+        FROM knowledge_files
+        WHERE user_id = ? AND status = 'indexed' AND subject_name = ?
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 8
+        """,
+        (settings.single_user_id, subject_name),
+    )
+    return [int(row['id']) for row in rows]
 
 
 def _profile_summary_text(profile: dict[str, Any]) -> str:

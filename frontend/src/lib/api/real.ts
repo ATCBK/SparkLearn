@@ -4,7 +4,7 @@ import type {
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, McpService, McpServicePayload,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherSubject, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
@@ -996,6 +996,8 @@ export async function getReport(period: 'week' | 'day' | 'month' = 'week'): Prom
 function toKnowledgeFile(raw: any): KnowledgeFile {
   return {
     id: Number(raw.id),
+    subjectId: Number(raw.subject_id || 0),
+    subjectName: String(raw.subject_name || ''),
     filename: String(raw.filename || ''),
     mimeType: String(raw.mime_type || ''),
     sizeBytes: Number(raw.size_bytes || 0),
@@ -1009,19 +1011,21 @@ function toKnowledgeFile(raw: any): KnowledgeFile {
   }
 }
 
-export async function getKnowledgeFiles(params?: { status?: string; search?: string }): Promise<KnowledgeFile[]> {
+export async function getKnowledgeFiles(params?: { status?: string; search?: string; subjectId?: number }): Promise<KnowledgeFile[]> {
   const query = new URLSearchParams()
   if (params?.status) query.set('status', params.status)
   if (params?.search) query.set('search', params.search)
+  if (params?.subjectId) query.set('subject_id', String(params.subjectId))
   const suffix = query.toString() ? `?${query.toString()}` : ''
   const data = await fetchJson<any[]>(`/api/knowledge/files${suffix}`)
   return data.map(toKnowledgeFile)
 }
 
-export async function uploadKnowledgeFiles(files: File[]): Promise<KnowledgeFile[]> {
+export async function uploadKnowledgeFiles(files: File[], subjectId?: number): Promise<KnowledgeFile[]> {
   const form = new FormData()
   files.forEach(file => form.append('files', file))
-  const res = await fetch(`${API_BASE}/api/knowledge/files`, { method: 'POST', body: form })
+  const suffix = subjectId ? `?subject_id=${subjectId}` : ''
+  const res = await fetch(`${API_BASE}/api/knowledge/files${suffix}`, { method: 'POST', body: form })
   const json = await res.json() as ApiResp<any[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
   return (json.data || []).map(toKnowledgeFile)
@@ -1386,6 +1390,50 @@ export async function createTeacherBroadcast(payload: {
 
 export async function getTeacherBroadcasts(): Promise<TeacherBroadcast[]> {
   return fetchJson('/api/teacher/broadcasts')
+}
+
+export async function getTeacherSubjects(enabledOnly = false): Promise<TeacherSubject[]> {
+  return fetchJson(`/api/teacher/subjects${enabledOnly ? '?enabled_only=true' : ''}`)
+}
+
+export async function createTeacherSubject(payload: {
+  name: string
+  code?: string
+  description?: string
+  enabled?: boolean
+}): Promise<TeacherSubject> {
+  return fetchJson('/api/teacher/subjects', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateTeacherSubject(subjectId: number, payload: {
+  name: string
+  code?: string
+  description?: string
+  enabled?: boolean
+}): Promise<TeacherSubject> {
+  return fetchJson(`/api/teacher/subjects/${subjectId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteTeacherSubject(subjectId: number): Promise<void> {
+  await fetchJson(`/api/teacher/subjects/${subjectId}`, { method: 'DELETE' })
+}
+
+export async function importTeacherSubjects(items: Array<{
+  name: string
+  code?: string
+  description?: string
+  enabled?: boolean
+}>): Promise<{ created_count: number; skipped_count: number; created: string[]; skipped: string[] }> {
+  return fetchJson('/api/teacher/subjects/import', {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+  })
 }
 
 

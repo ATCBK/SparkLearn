@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useSyncExternalStore } from 'react'
-import { AlertTriangle, BarChart3, BellRing, Bot, GraduationCap, LayoutDashboard, LogOut, MessageSquare, Monitor, Users } from 'lucide-react'
+import { AlertTriangle, BarChart3, BellRing, BookOpen, Bot, GraduationCap, LayoutDashboard, LogOut, MessageSquare, Monitor, Users } from 'lucide-react'
 
 const NAV = [
   { label: '工作台', href: '/teacher/dashboard', icon: LayoutDashboard },
+  { label: '学科管理', href: '/teacher/subjects', icon: BookOpen },
   { label: '学生管理', href: '/teacher/students', icon: Users },
   { label: '干预中心', href: '/teacher/interventions', icon: AlertTriangle },
   { label: '通知分发', href: '/teacher/broadcast', icon: BellRing },

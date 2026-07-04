@@ -5,7 +5,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
@@ -17,12 +17,15 @@ router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
 
 
 @router.get("/files")
-async def list_knowledge_files(status: str | None = None, search: str | None = None):
+async def list_knowledge_files(status: str | None = None, search: str | None = None, subject_id: int | None = None):
     clauses = ["user_id = ?"]
     params: list[Any] = [settings.single_user_id]
     if status:
         clauses.append("status = ?")
         params.append(status)
+    if subject_id is not None and int(subject_id) > 0:
+        clauses.append("subject_id = ?")
+        params.append(int(subject_id))
     if search:
         clauses.append("(filename LIKE ? OR tags LIKE ? OR summary LIKE ?)")
         q = f"%{search}%"
@@ -40,11 +43,12 @@ async def list_knowledge_files(status: str | None = None, search: str | None = N
 
 
 @router.post("/files")
-async def upload_knowledge_file(files: list[UploadFile] = File(...)):
+async def upload_knowledge_file(files: list[UploadFile] = File(...), subject_id: int = 0):
     saved: list[dict[str, Any]] = []
     upload_dir = settings.data_dir / "users" / settings.single_user_id / "knowledge"
     upload_dir.mkdir(parents=True, exist_ok=True)
     ts = now_iso()
+    subject = _resolve_subject(subject_id)
 
     for f in files:
         raw = await f.read()
@@ -54,11 +58,20 @@ async def upload_knowledge_file(files: list[UploadFile] = File(...)):
         file_id = _execute_returning_id(
             """
             INSERT INTO knowledge_files(
-              user_id, filename, stored_path, mime_type, size_bytes, status,
+              user_id, subject_id, subject_name, filename, stored_path, mime_type, size_bytes, status,
               tags, summary, chunk_count, reference_count, created_at, updated_at
-            ) VALUES (?, ?, '', ?, ?, 'pending', '[]', '', 0, 0, ?, ?)
+            ) VALUES (?, ?, ?, ?, '', ?, ?, 'pending', '[]', '', 0, 0, ?, ?)
             """,
-            (settings.single_user_id, filename, f.content_type or "application/octet-stream", len(raw), ts, ts),
+            (
+                settings.single_user_id,
+                subject["id"],
+                subject["name"],
+                filename,
+                f.content_type or "application/octet-stream",
+                len(raw),
+                ts,
+                ts,
+            ),
         )
         ext = Path(filename).suffix
         stored_path = upload_dir / f"{file_id}_{uuid.uuid4().hex[:8]}{ext}"
@@ -177,6 +190,18 @@ async def knowledge_chunks(file_id: int):
         (file_id,),
     )
     return ok([dict(r) for r in rows])
+
+
+@router.get("/retrieve")
+async def retrieve_knowledge(subject_id: int = 0, query: str = "", top_k: int = 8):
+    file_ids = _indexed_file_ids_for_subject(subject_id)
+    context, sources = await retrieve_knowledge_context_async(
+        file_ids,
+        query=query,
+        max_chars=5000,
+        top_k=max(1, min(int(top_k or 8), 20)),
+    )
+    return ok({"context": context, "sources": sources, "file_ids": file_ids})
 
 
 async def retrieve_knowledge_context_async(
@@ -335,6 +360,8 @@ def _file_row_to_dict(row) -> dict[str, Any]:
         return {}
     return {
         "id": int(row["id"]),
+        "subject_id": int(row["subject_id"] or 0) if "subject_id" in row.keys() else 0,
+        "subject_name": str(row["subject_name"] or "") if "subject_name" in row.keys() else "",
         "filename": row["filename"],
         "mime_type": row["mime_type"],
         "size_bytes": int(row["size_bytes"] or 0),
@@ -350,6 +377,35 @@ def _file_row_to_dict(row) -> dict[str, Any]:
 
 def _get_owned_file(file_id: int):
     return fetch_one("SELECT * FROM knowledge_files WHERE id = ? AND user_id = ?", (file_id, settings.single_user_id))
+
+
+def _resolve_subject(subject_id: int) -> dict[str, Any]:
+    sid = int(subject_id or 0)
+    if sid <= 0:
+        return {"id": 0, "name": ""}
+    row = fetch_one(
+        "SELECT id, name FROM teacher_subjects WHERE id = ? AND user_id = ?",
+        (sid, settings.single_user_id),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="subject not found")
+    return {"id": int(row["id"]), "name": str(row["name"])}
+
+
+def _indexed_file_ids_for_subject(subject_id: int) -> list[int]:
+    sid = int(subject_id or 0)
+    if sid <= 0:
+        return []
+    rows = fetch_all(
+        """
+        SELECT id
+        FROM knowledge_files
+        WHERE user_id = ? AND subject_id = ? AND status = 'indexed'
+        ORDER BY updated_at DESC, id DESC
+        """,
+        (settings.single_user_id, sid),
+    )
+    return [int(row["id"]) for row in rows]
 
 
 def _safe_json_list(raw: Any) -> list[str]:

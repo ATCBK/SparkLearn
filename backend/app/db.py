@@ -137,6 +137,8 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS knowledge_files (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               user_id TEXT NOT NULL,
+              subject_id INTEGER DEFAULT 0,
+              subject_name TEXT DEFAULT '',
               filename TEXT NOT NULL,
               stored_path TEXT NOT NULL,
               mime_type TEXT DEFAULT 'application/octet-stream',
@@ -317,6 +319,25 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
             ON teacher_broadcasts(user_id, created_at DESC);
 
+            CREATE TABLE IF NOT EXISTS teacher_subjects (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              name TEXT NOT NULL,
+              code TEXT DEFAULT '',
+              description TEXT DEFAULT '',
+              enabled INTEGER NOT NULL DEFAULT 1,
+              deleted INTEGER NOT NULL DEFAULT 0,
+              sort_order INTEGER NOT NULL DEFAULT 0,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_subjects_user_name
+            ON teacher_subjects(user_id, name);
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_subjects_user_enabled
+            ON teacher_subjects(user_id, enabled, sort_order);
+
             CREATE TABLE IF NOT EXISTS mcp_services (
               id TEXT PRIMARY KEY,
               owner_id TEXT NOT NULL,
@@ -425,6 +446,7 @@ def init_db() -> None:
         _ensure_knowledge_columns(conn)
         _ensure_tutor_message_columns(conn)
         _ensure_tutor_file_columns(conn)
+        _ensure_teacher_subject_columns(conn)
 
         timestamp = now_iso()
         conn.execute(
@@ -432,7 +454,7 @@ def init_db() -> None:
             INSERT OR IGNORE INTO students(user_id, name, email, major, grade, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (settings.single_user_id, '张同学', 'student@sparklearn.ai', '计算机科学', '大二', timestamp, timestamp),
+            (settings.single_user_id, '张同学', 'student@sparklearn.ai', 'Python', '大二', timestamp, timestamp),
         )
         conn.execute(
             """
@@ -467,6 +489,7 @@ def init_db() -> None:
 
         _seed_mastery(conn)
         _seed_tutor_workspace(conn)
+        _seed_teacher_subjects(conn)
         _seed_forum_posts(conn)
 
 
@@ -483,6 +506,12 @@ def _ensure_student_columns(conn: sqlite3.Connection) -> None:
 
 
 def _ensure_knowledge_columns(conn: sqlite3.Connection) -> None:
+    file_columns = {row['name'] for row in conn.execute('PRAGMA table_info(knowledge_files)').fetchall()}
+    if 'subject_id' not in file_columns:
+        conn.execute("ALTER TABLE knowledge_files ADD COLUMN subject_id INTEGER DEFAULT 0")
+    if 'subject_name' not in file_columns:
+        conn.execute("ALTER TABLE knowledge_files ADD COLUMN subject_name TEXT DEFAULT ''")
+
     columns = {row['name'] for row in conn.execute('PRAGMA table_info(knowledge_chunks)').fetchall()}
     if 'embedding_json' not in columns:
         conn.execute("ALTER TABLE knowledge_chunks ADD COLUMN embedding_json TEXT DEFAULT ''")
@@ -506,6 +535,12 @@ def _ensure_tutor_file_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE tutor_files ADD COLUMN analysis_json TEXT DEFAULT '{}'")
     if 'updated_at' not in columns:
         conn.execute("ALTER TABLE tutor_files ADD COLUMN updated_at TEXT DEFAULT ''")
+
+
+def _ensure_teacher_subject_columns(conn: sqlite3.Connection) -> None:
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(teacher_subjects)').fetchall()}
+    if 'deleted' not in columns:
+        conn.execute("ALTER TABLE teacher_subjects ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
 
 
 def _seed_mastery(conn: sqlite3.Connection) -> None:
@@ -603,6 +638,37 @@ def _seed_tutor_workspace(conn: sqlite3.Connection) -> None:
             """,
             (settings.single_user_id, role_id, '新对话', ts, ts),
         )
+
+
+def _seed_teacher_subjects(conn: sqlite3.Connection) -> None:
+    ts = now_iso()
+    defaults = [
+        ("Python", "python", "Python 编程、数据处理与项目实践", 1),
+        ("Java", "java", "Java 程序设计、面向对象与后端开发", 2),
+        ("C/C++", "cpp", "C 语言、C++、系统编程与工程实践", 3),
+        ("JavaScript", "javascript", "JavaScript、TypeScript 与 Web 前端工程", 4),
+        ("Go", "go", "Go 语言、并发编程与云原生服务开发", 5),
+        ("数据结构与算法", "data-structures-algorithms", "线性结构、树图、算法设计与复杂度分析", 6),
+        ("人工智能", "ai", "机器学习、深度学习与智能应用项目实践", 7),
+    ]
+    conn.executemany(
+        """
+        INSERT OR IGNORE INTO teacher_subjects(
+            user_id, name, code, description, enabled, sort_order, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+        """,
+        [(settings.single_user_id, name, code, desc, order, ts, ts) for name, code, desc, order in defaults],
+    )
+    conn.execute(
+        """
+        UPDATE teacher_subjects
+        SET enabled = 0, updated_at = ?
+        WHERE user_id = ?
+          AND name IN ('数学', '英语', '物理')
+          AND code IN ('math', 'english', 'physics')
+        """,
+        (ts, settings.single_user_id),
+    )
 
 
 def _seed_forum_posts(conn: sqlite3.Connection) -> None:
