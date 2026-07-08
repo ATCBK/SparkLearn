@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { BookOpen, KeyRound, Shield, Smartphone } from 'lucide-react'
+import { KeyRound, Shield, Smartphone } from 'lucide-react'
 import {
   isAuthenticated,
   persistDesktopAuthSession,
@@ -12,7 +12,7 @@ import {
   setUser,
   syncStudyBuddyProfile,
 } from '@/lib/auth'
-import { checkPhoneRegistered, getProfile, getTeacherSubjects, sendSmsCode, smsLogin, smsRegister, updateProfile } from '@/lib/api/real'
+import { checkPhoneRegistered, getProfile, sendSmsCode, smsLogin, smsRegister } from '@/lib/api/real'
 import './auth.css'
 
 const SLOGANS = [
@@ -22,7 +22,6 @@ const SLOGANS = [
   '随着学习行为积累，StudyBuddy 会越来越理解你的节奏。',
 ] as const
 
-const DEFAULT_SUBJECTS = ['Python', 'Java', 'C/C++', 'JavaScript', 'Go', '数据结构与算法', '人工智能']
 
 type AuthResultUser = {
   id?: string
@@ -72,8 +71,6 @@ export default function AuthPage() {
   const [sloganIndex, setSloganIndex] = useState(0)
   const [displayText, setDisplayText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
-  const [subjectOptions, setSubjectOptions] = useState<string[]>(DEFAULT_SUBJECTS)
-  const [selectedSubject, setSelectedSubject] = useState(DEFAULT_SUBJECTS[0])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const currentSlogan = useMemo(() => SLOGANS[sloganIndex], [sloganIndex])
@@ -122,24 +119,6 @@ export default function AuthPage() {
     return () => clearTimeout(timer)
   }, [countdown])
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const subjects = await getTeacherSubjects(true)
-        const names = subjects.map((item) => item.name).filter(Boolean)
-        if (!cancelled && names.length > 0) {
-          setSubjectOptions(names)
-          setSelectedSubject((current) => names.includes(current) ? current : names[0])
-        }
-      } catch {
-        // 后端未启动时保留默认展示学科。
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const showToast = useCallback((text: string) => {
     setToast(text)
@@ -226,14 +205,6 @@ export default function AuthPage() {
       setToken(result.token)
       setUser(authUser)
       await persistDesktopAuthSession(result.token, authUser)
-      localStorage.setItem('sparklearn_pending_subject', selectedSubject)
-      if (mode === 'login' && selectedSubject) {
-        try {
-          await updateProfile({ major: selectedSubject })
-        } catch {
-          // 画像不存在时会进入建档页，由建档流程写入学科。
-        }
-      }
       await syncStudyBuddyProfile('auth-success')
 
       showToast(mode === 'login' ? '登录成功' : '注册成功')
@@ -389,24 +360,6 @@ export default function AuthPage() {
               </button>
             </div>
 
-            <div className="subject-picker">
-              <div className="subject-picker-head">
-                <BookOpen size={16} />
-                <span>选择学习学科</span>
-              </div>
-              <div className="subject-options">
-                {subjectOptions.map((subject) => (
-                  <button
-                    key={subject}
-                    type="button"
-                    className={`subject-option ${selectedSubject === subject ? 'active' : ''}`}
-                    onClick={() => setSelectedSubject(subject)}
-                  >
-                    {subject}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             <div className="form-row">
               <label className="check-label">

@@ -1,4 +1,5 @@
 ﻿import json
+import asyncio
 import logging
 import re
 import uuid
@@ -27,6 +28,7 @@ from .mcp import _mcp_request
 router = APIRouter(prefix='/api', tags=['tutor-evaluation'])
 trust_answer_controller = TrustAnswerController()
 logger = logging.getLogger("tutor-eval")
+WEB_CAPTURE_ANALYSIS_TIMEOUT_SEC = 8.0
 
 
 class TutorReq(BaseModel):
@@ -1348,7 +1350,7 @@ async def import_web_capture(req: WebCaptureReq):
     uploads_dir.mkdir(parents=True, exist_ok=True)
     ts = now_iso()
     raw = text.encode('utf-8')
-    analysis = await _analyze_web_material(title, req.url, text)
+    analysis = await _analyze_web_material_with_timeout(title, req.url, text)
 
     file_id = _execute_returning_id(
         """
@@ -2913,6 +2915,16 @@ async def _analyze_web_material(title: str, url: str, text: str) -> dict[str, An
         raw = ''.join(raw_parts).strip()
         parsed = _parse_json_dict(_extract_first_json_object(raw))
         return _normalize_web_material_analysis(parsed, title, text)
+    except Exception:
+        return _normalize_web_material_analysis({}, title, text)
+
+
+async def _analyze_web_material_with_timeout(title: str, url: str, text: str) -> dict[str, Any]:
+    try:
+        return await asyncio.wait_for(
+            _analyze_web_material(title, url, text),
+            timeout=WEB_CAPTURE_ANALYSIS_TIMEOUT_SEC,
+        )
     except Exception:
         return _normalize_web_material_analysis({}, title, text)
 

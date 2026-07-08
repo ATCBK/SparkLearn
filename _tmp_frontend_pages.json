@@ -1,0 +1,226 @@
+[
+  {
+    "page": "(admin)/admin/audit/page.tsx",
+    "route": "/admin/admin/audit"
+  },
+  {
+    "page": "(admin)/admin/dashboard/page.tsx",
+    "route": "/admin/admin/dashboard"
+  },
+  {
+    "page": "(admin)/admin/forum/page.tsx",
+    "route": "/admin/admin/forum"
+  },
+  {
+    "page": "(admin)/admin/login/page.tsx",
+    "route": "/admin/admin/login"
+  },
+  {
+    "page": "(admin)/admin/page.tsx",
+    "route": "/admin/admin"
+  },
+  {
+    "page": "(admin)/admin/settings/page.tsx",
+    "route": "/admin/admin/settings"
+  },
+  {
+    "page": "(admin)/admin/users/page.tsx",
+    "route": "/admin/admin/users"
+  },
+  {
+    "page": "(shell)/agent/page.tsx",
+    "route": "/agent"
+  },
+  {
+    "page": "(shell)/feed/page.tsx",
+    "route": "/feed"
+  },
+  {
+    "page": "(shell)/forum/[postId]/page.tsx",
+    "route": "/forum/[postId]"
+  },
+  {
+    "page": "(shell)/forum/new/page.tsx",
+    "route": "/forum/new"
+  },
+  {
+    "page": "(shell)/forum/page.tsx",
+    "route": "/forum"
+  },
+  {
+    "page": "(shell)/generate/page.tsx",
+    "route": "/generate"
+  },
+  {
+    "page": "(shell)/graph/page.tsx",
+    "route": "/graph"
+  },
+  {
+    "page": "(shell)/info-stream/page.tsx",
+    "route": "/info-stream"
+  },
+  {
+    "page": "(shell)/knowledge/page.tsx",
+    "route": "/knowledge"
+  },
+  {
+    "page": "(shell)/page.tsx",
+    "route": "/"
+  },
+  {
+    "page": "(shell)/path/page.tsx",
+    "route": "/path"
+  },
+  {
+    "page": "(shell)/practice/favorites/page.tsx",
+    "route": "/practice/favorites"
+  },
+  {
+    "page": "(shell)/practice/mistakes/page.tsx",
+    "route": "/practice/mistakes"
+  },
+  {
+    "page": "(shell)/practice/page.tsx",
+    "route": "/practice"
+  },
+  {
+    "page": "(shell)/practice/records/page.tsx",
+    "route": "/practice/records"
+  },
+  {
+    "page": "(shell)/profile/page.tsx",
+    "route": "/profile"
+  },
+  {
+    "page": "(shell)/profile/settings/page.tsx",
+    "route": "/profile/settings"
+  },
+  {
+    "page": "(shell)/report/page.tsx",
+    "route": "/report"
+  },
+  {
+    "page": "(shell)/video/page.tsx",
+    "route": "/video"
+  },
+  {
+    "page": "(teacher)/teacher/ai/page.tsx",
+    "route": "/teacher/teacher/ai"
+  },
+  {
+    "page": "(teacher)/teacher/broadcast/page.tsx",
+    "route": "/teacher/teacher/broadcast"
+  },
+  {
+    "page": "(teacher)/teacher/dashboard/page.tsx",
+    "route": "/teacher/teacher/dashboard"
+  },
+  {
+    "page": "(teacher)/teacher/interventions/page.tsx",
+    "route": "/teacher/teacher/interventions"
+  },
+  {
+    "page": "(teacher)/teacher/login/page.tsx",
+    "route": "/teacher/teacher/login"
+  },
+  {
+    "page": "(teacher)/teacher/page.tsx",
+    "route": "/teacher/teacher"
+  },
+  {
+    "page": "(teacher)/teacher/reports/page.tsx",
+    "route": "/teacher/teacher/reports"
+  },
+  {
+    "page": "(teacher)/teacher/students/[id]/page.tsx",
+    "route": "/teacher/teacher/students/[id]"
+  },
+  {
+    "page": "(teacher)/teacher/students/page.tsx",
+    "route": "/teacher/teacher/students"
+  },
+  {
+    "page": "(teacher)/teacher/subjects/page.tsx",
+    "route": "/teacher/teacher/subjects"
+  },
+  {
+    "page": "auth/page.tsx",
+    "route": "/auth"
+  },
+  {
+    "page": "onboarding/page.tsx",
+    "route": "/onboarding"
+  },
+  {
+    "page": "plaza/[postId]/page.tsx",
+    "route": "/plaza/[postId]"
+  },
+  {
+    "page": "plaza/experience-share/page.tsx",
+    "route": "/plaza/experience-share"
+  },
+  {
+    "page": "plaza/history/page.tsx",
+    "route": "/plaza/history"
+  },
+  {
+    "page": "plaza/my-comments/page.tsx",
+    "route": "/plaza/my-comments"
+  },
+  {
+    "page": "plaza/my-likes/page.tsx",
+    "route": "/plaza/my-likes"
+  },
+  {
+    "page": "plaza/page.tsx",
+    "route": "/plaza"
+  },
+  {
+    "page": "plaza/qa/page.tsx",
+    "route": "/plaza/qa"
+  },
+  {
+    "page": "plaza/resource-share/page.tsx",
+    "route": "/plaza/resource-share"
+  },
+  {
+    "page": "plaza/team-study/page.tsx",
+    "route": "/plaza/team-study"
+  },
+  {
+    "page": "share/[code]/page.tsx",
+    "route": "/share/[code]"
+  },
+  {
+    "page": "tutor/files/page.tsx",
+    "route": "/tutor/files"
+  },
+  {
+    "page": "tutor/knowledge/page.tsx",
+    "route": "/tutor/knowledge"
+  },
+  {
+    "page": "tutor/mcp-store/docs/page.tsx",
+    "route": "/tutor/mcp-store/docs"
+  },
+  {
+    "page": "tutor/mcp-store/page.tsx",
+    "route": "/tutor/mcp-store"
+  },
+  {
+    "page": "tutor/page.tsx",
+    "route": "/tutor"
+  },
+  {
+    "page": "tutor/roles/page.tsx",
+    "route": "/tutor/roles"
+  },
+  {
+    "page": "tutor/skills/page.tsx",
+    "route": "/tutor/skills"
+  },
+  {
+    "page": "tutor/workshop/page.tsx",
+    "route": "/tutor/workshop"
+  }
+]
