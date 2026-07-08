@@ -303,7 +303,35 @@ def _extract_text(path: Path, mime_type: str, filename: str) -> str:
             doc.close()
     if suffix in {".txt", ".md"} or mime_type.startswith("text/"):
         return path.read_text(encoding="utf-8", errors="ignore").strip()
-    raise RuntimeError(f"unsupported format: {suffix or mime_type}; only txt/md/pdf are enabled now")
+    if suffix == ".docx" or "wordprocessingml.document" in mime_type:
+        return _extract_docx_text(path)
+    raise RuntimeError(f"unsupported format: {suffix or mime_type}; only txt/md/pdf/docx are enabled now")
+
+
+def _extract_docx_text(path: Path) -> str:
+    try:
+        from docx import Document
+    except Exception as ex:
+        raise RuntimeError("python-docx is required for DOCX parsing") from ex
+
+    try:
+        doc = Document(str(path))
+    except Exception as ex:
+        raise RuntimeError("failed to parse DOCX file") from ex
+
+    parts: list[str] = []
+    for paragraph in doc.paragraphs:
+        text = paragraph.text.strip()
+        if text:
+            parts.append(text)
+
+    for table in doc.tables:
+        for row in table.rows:
+            cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if cells:
+                parts.append(" | ".join(cells))
+
+    return "\n\n".join(parts).strip()
 
 
 def _chunk_text_by_structure(text: str, max_chars: int = 700, overlap: int = 120) -> list[str]:

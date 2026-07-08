@@ -785,3 +785,7 @@ def fetch_all(query: str, params: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
 def execute(query: str, params: tuple[Any, ...] = ()) -> None:
     with get_conn() as conn:
         conn.execute(query, params)
+
+
+if settings.db_type.lower() in {"postgres", "postgresql"}:
+    from .db_postgresql import execute, fetch_all, fetch_one, get_conn, init_db, now_iso

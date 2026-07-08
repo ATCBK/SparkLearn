@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import ipaddress
 import json
 import re
@@ -479,11 +480,17 @@ def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
 
 async def _build_resource_prompt_with_rag(resource_type: str, user_prompt: str, knowledge_file_ids: list[int] | None = None) -> str:
     base = _build_resource_prompt(resource_type, user_prompt)
+    if resource_type == "document":
+        return base
+
     file_ids = _resolve_generation_knowledge_file_ids(knowledge_file_ids or [])
     if not file_ids:
         return base
 
-    context = await load_knowledge_context_async(file_ids, query=user_prompt, max_chars=4200)
+    load_kwargs: dict[str, Any] = {"query": user_prompt}
+    if "max_chars" in inspect.signature(load_knowledge_context_async).parameters:
+        load_kwargs["max_chars"] = 4200
+    context = await load_knowledge_context_async(file_ids, **load_kwargs)
     if not context.strip():
         return base
     return (

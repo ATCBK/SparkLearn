@@ -175,13 +175,17 @@ async def send_sms_code(req: SendCodeReq):
     expires_at = _utcnow_naive() + timedelta(minutes=settings.sms_code_expire_minutes)
 
     execute(
-        "INSERT INTO sms_codes (phone, code, purpose, expires_at, used, created_at) VALUES (?, ?, ?, ?, 0, ?)",
-        (req.phone, code, req.purpose, expires_at.isoformat() + "Z", now_iso()),
+        "INSERT INTO sms_codes (phone, code, purpose, expires_at, used, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (req.phone, code, req.purpose, expires_at.isoformat() + "Z", False, now_iso()),
     )
 
     # 发送短信
     success = await sms_client.send_code(req.phone, code, req.purpose)
     if not success:
+        execute(
+            "DELETE FROM sms_codes WHERE phone = ? AND code = ? AND purpose = ? AND used = ?",
+            (req.phone, code, req.purpose, False),
+        )
         raise HTTPException(status_code=500, detail="短信发送失败")
 
     return ok({"message": "验证码已发送", "expires_in": settings.sms_code_expire_minutes * 60})
@@ -194,10 +198,10 @@ async def sms_login(req: SmsLoginReq):
     record = fetch_one(
         """
         SELECT id, code, expires_at, used FROM sms_codes
-        WHERE phone = ? AND purpose = 'login' AND used = 0
+        WHERE phone = ? AND purpose = 'login' AND used = ?
         ORDER BY created_at DESC LIMIT 1
         """,
-        (req.phone,),
+        (req.phone, False),
     )
 
     if not record:
@@ -215,7 +219,7 @@ async def sms_login(req: SmsLoginReq):
         raise HTTPException(status_code=400, detail="验证码已过期")
 
     # 标记验证码已使用
-    execute("UPDATE sms_codes SET used = 1 WHERE id = ?", (record["id"],))
+    execute("UPDATE sms_codes SET used = ? WHERE id = ?", (True, record["id"]))
 
     # 查找用户（不再自动创建）
     user = fetch_one("SELECT user_id, name FROM students WHERE phone = ?", (req.phone,))
@@ -245,10 +249,10 @@ async def sms_register(req: SmsRegisterReq):
     record = fetch_one(
         """
         SELECT id, code, expires_at, used FROM sms_codes
-        WHERE phone = ? AND purpose = 'register' AND used = 0
+        WHERE phone = ? AND purpose = 'register' AND used = ?
         ORDER BY created_at DESC LIMIT 1
         """,
-        (req.phone,),
+        (req.phone, False),
     )
 
     if not record:
@@ -270,7 +274,7 @@ async def sms_register(req: SmsRegisterReq):
         raise HTTPException(status_code=400, detail="该手机号已注册，请直接登录")
 
     # 标记验证码已使用
-    execute("UPDATE sms_codes SET used = 1 WHERE id = ?", (record["id"],))
+    execute("UPDATE sms_codes SET used = ? WHERE id = ?", (True, record["id"]))
 
     # 创建用户
     user_id = f"user_{req.phone}"

@@ -1,11 +1,186 @@
 import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import re
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any, Iterable
 
 from .config import settings
+
+
+_JSON_TEXT_COLUMNS = {
+    'goal',
+    'weak_points',
+    'learning_preference',
+    'file_ids',
+    'meta_json',
+    'analysis_json',
+    'tags',
+    'target_student_ids',
+    'material_file_ids',
+    'args_json',
+    'env_json',
+    'allowed_user_ids',
+    'extra_data',
+}
+
+
+class PgRow(dict):
+    def __init__(self, data: dict[str, Any]):
+        super().__init__({key: _normalize_value(key, value) for key, value in data.items()})
+        self._keys = list(self.keys())
+
+    def __getitem__(self, key: Any) -> Any:
+        if isinstance(key, int):
+            return super().__getitem__(self._keys[key])
+        return super().__getitem__(key)
+
+
+def _normalize_value(key: str, value: Any) -> Any:
+    if value is None:
+        return None
+    if key in _JSON_TEXT_COLUMNS and isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, datetime):
+        return value.replace(tzinfo=None).isoformat() + 'Z'
+    if isinstance(value, date):
+        return value.isoformat()
+    return value
+
+
+def _normalize_row(row: Any) -> PgRow | None:
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return PgRow(dict(row))
+    return row
+
+
+def _normalize_rows(rows: Iterable[Any]) -> list[PgRow]:
+    return [row for row in (_normalize_row(item) for item in rows) if row is not None]
+
+
+def _translate_placeholders(query: str) -> str:
+    if '?' not in query:
+        return query
+
+    result: list[str] = []
+    in_single = False
+    in_double = False
+    i = 0
+    while i < len(query):
+        ch = query[i]
+        if ch == "'" and not in_double:
+            result.append(ch)
+            if in_single and i + 1 < len(query) and query[i + 1] == "'":
+                result.append(query[i + 1])
+                i += 2
+                continue
+            in_single = not in_single
+        elif ch == '"' and not in_single:
+            in_double = not in_double
+            result.append(ch)
+        elif ch == '?' and not in_single and not in_double:
+            result.append('%s')
+        else:
+            result.append(ch)
+        i += 1
+    return ''.join(result)
+
+
+def _translate_query(
+    query: str,
+    params: tuple[Any, ...],
+    lastrowid: Any = None,
+    return_insert_id: bool = False,
+) -> tuple[str, tuple[Any, ...]]:
+    sql = query
+    normalized_params = tuple(params or ())
+    if 'last_insert_rowid()' in sql:
+        sql = sql.replace('last_insert_rowid()', '%s')
+        normalized_params = (*normalized_params, lastrowid)
+    sql = re.sub(r"datetime\(\s*'now'\s*\)", 'NOW()', sql, flags=re.IGNORECASE)
+    sql = re.sub(r'(\b\w+\.)?tags\s+LIKE', lambda m: f"{m.group(1) or ''}tags::text LIKE", sql, flags=re.IGNORECASE)
+    sql = re.sub(r'\bINSERT\s+OR\s+IGNORE\s+INTO\b', 'INSERT INTO', sql, flags=re.IGNORECASE)
+    sql = _translate_placeholders(sql)
+    if re.search(r'\bINSERT\s+INTO\b', sql, flags=re.IGNORECASE):
+        has_conflict = re.search(r'\bON\s+CONFLICT\b', sql, flags=re.IGNORECASE)
+        has_returning = re.search(r'\bRETURNING\b', sql, flags=re.IGNORECASE)
+        if return_insert_id and 'INSERT OR IGNORE' not in query.upper() and not has_returning:
+            sql = sql.rstrip().rstrip(';') + ' RETURNING id'
+        elif 'INSERT OR IGNORE' in query.upper() and not has_conflict:
+            sql = sql.rstrip().rstrip(';') + ' ON CONFLICT DO NOTHING'
+    return sql, normalized_params
+
+
+class PgCursorAdapter:
+    def __init__(self, cursor: Any, owner: 'PgConnectionAdapter', capture_lastrowid: bool = False):
+        self._cursor = cursor
+        self._owner = owner
+        self._capture_lastrowid = capture_lastrowid
+
+    def execute(self, query: str, params: tuple[Any, ...] = ()) -> 'PgCursorAdapter':
+        sql, normalized_params = _translate_query(
+            query,
+            tuple(params or ()),
+            self._owner.lastrowid,
+            return_insert_id=self._capture_lastrowid,
+        )
+        self._cursor.execute(sql, normalized_params)
+        if self._capture_lastrowid and re.search(r'\bINSERT\s+INTO\b', sql, flags=re.IGNORECASE):
+            try:
+                row = self._cursor.fetchone()
+                if row and 'id' in row:
+                    self._owner.lastrowid = row['id']
+            except psycopg2.ProgrammingError:
+                pass
+        return self
+
+    def executemany(self, query: str, params_seq: Iterable[tuple[Any, ...]]) -> 'PgCursorAdapter':
+        sql, _ = _translate_query(query, (), self._owner.lastrowid)
+        self._cursor.executemany(sql, list(params_seq))
+        return self
+
+    def fetchone(self) -> PgRow | None:
+        return _normalize_row(self._cursor.fetchone())
+
+    def fetchall(self) -> list[PgRow]:
+        return _normalize_rows(self._cursor.fetchall())
+
+    def __iter__(self):
+        return iter(self.fetchall())
+
+    @property
+    def rowcount(self) -> int:
+        return self._cursor.rowcount
+
+    @property
+    def lastrowid(self) -> Any:
+        return self._owner.lastrowid
+
+
+class PgConnectionAdapter:
+    def __init__(self, conn: psycopg2.extensions.connection):
+        self._conn = conn
+        self.lastrowid: Any = None
+
+    def cursor(self) -> PgCursorAdapter:
+        return PgCursorAdapter(self._conn.cursor(), self)
+
+    def execute(self, query: str, params: tuple[Any, ...] = ()) -> PgCursorAdapter:
+        cursor = PgCursorAdapter(self._conn.cursor(), self, capture_lastrowid=True)
+        return cursor.execute(query, params)
+
+    def executemany(self, query: str, params_seq: Iterable[tuple[Any, ...]]) -> PgCursorAdapter:
+        cursor = PgCursorAdapter(self._conn.cursor(), self)
+        return cursor.executemany(query, params_seq)
+
+    def commit(self) -> None:
+        self._conn.commit()
+
+    def close(self) -> None:
+        self._conn.close()
 
 
 def _ensure_dirs() -> None:
@@ -14,7 +189,7 @@ def _ensure_dirs() -> None:
 
 
 @contextmanager
-def get_conn() -> Iterable[psycopg2.extensions.connection]:
+def get_conn() -> Iterable[PgConnectionAdapter]:
     conn = psycopg2.connect(
         host=settings.db_host,
         port=settings.db_port,
@@ -24,11 +199,12 @@ def get_conn() -> Iterable[psycopg2.extensions.connection]:
         sslmode=settings.db_ssl_mode,
         cursor_factory=RealDictCursor
     )
+    adapter = PgConnectionAdapter(conn)
     try:
-        yield conn
-        conn.commit()
+        yield adapter
+        adapter.commit()
     finally:
-        conn.close()
+        adapter.close()
 
 
 def now_iso() -> str:
@@ -45,8 +221,11 @@ def init_db() -> None:
                 user_id VARCHAR(50) PRIMARY KEY,
                 name VARCHAR(100) DEFAULT '',
                 email VARCHAR(200) DEFAULT '',
+                phone VARCHAR(20) DEFAULT '',
+                avatar VARCHAR(500) DEFAULT '',
                 major VARCHAR(100) DEFAULT '',
                 grade VARCHAR(20) DEFAULT '',
+                last_login_at TIMESTAMP,
                 created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
@@ -114,6 +293,7 @@ def init_db() -> None:
                 sender_role VARCHAR(20) NOT NULL,
                 content TEXT NOT NULL,
                 file_ids JSONB DEFAULT '[]',
+                meta_json JSONB DEFAULT '{}',
                 created_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
 
@@ -132,9 +312,20 @@ def init_db() -> None:
                 created_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
 
+            CREATE TABLE IF NOT EXISTS tutor_file_chunks (
+                id SERIAL PRIMARY KEY,
+                file_id INTEGER NOT NULL,
+                chunk_index INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                embedding_json TEXT DEFAULT '',
+                created_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
             CREATE TABLE IF NOT EXISTS knowledge_files (
                 id SERIAL PRIMARY KEY,
                 user_id VARCHAR(50) NOT NULL,
+                subject_id INTEGER DEFAULT 0,
+                subject_name TEXT DEFAULT '',
                 filename VARCHAR(255) NOT NULL,
                 stored_path VARCHAR(500) NOT NULL,
                 mime_type VARCHAR(100) DEFAULT 'application/octet-stream',
@@ -153,6 +344,7 @@ def init_db() -> None:
                 file_id INTEGER NOT NULL,
                 chunk_index INTEGER NOT NULL,
                 content TEXT NOT NULL,
+                embedding_json TEXT DEFAULT '',
                 created_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
 
@@ -315,6 +507,53 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
             ON teacher_broadcasts(user_id, created_at DESC);
 
+            CREATE TABLE IF NOT EXISTS teacher_subjects (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                code VARCHAR(100) DEFAULT '',
+                description TEXT DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1,
+                deleted INTEGER NOT NULL DEFAULT 0,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_subjects_user_name
+            ON teacher_subjects(user_id, name);
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_subjects_user_enabled
+            ON teacher_subjects(user_id, enabled, sort_order);
+
+            CREATE TABLE IF NOT EXISTS mcp_services (
+                id VARCHAR(100) PRIMARY KEY,
+                owner_id VARCHAR(50) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                description TEXT DEFAULT '',
+                source VARCHAR(50) NOT NULL DEFAULT 'user',
+                transport VARCHAR(20) NOT NULL,
+                endpoint TEXT DEFAULT '',
+                command TEXT DEFAULT '',
+                args_json JSONB DEFAULT '[]',
+                env_json JSONB DEFAULT '{}',
+                enabled INTEGER NOT NULL DEFAULT 0,
+                last_status VARCHAR(20) NOT NULL DEFAULT 'unknown',
+                last_error TEXT DEFAULT '',
+                last_tested_at TEXT DEFAULT '',
+                startup_timeout_ms INTEGER NOT NULL DEFAULT 60000,
+                tool_timeout_ms INTEGER NOT NULL DEFAULT 30000,
+                long_task_timeout_ms INTEGER NOT NULL DEFAULT 120000,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_mcp_services_owner_source
+            ON mcp_services(owner_id, source);
+
+            CREATE INDEX IF NOT EXISTS idx_mcp_services_owner_enabled
+            ON mcp_services(owner_id, enabled);
+
             CREATE TABLE IF NOT EXISTS sms_codes (
                 id SERIAL PRIMARY KEY,
                 phone VARCHAR(20) NOT NULL,
@@ -392,6 +631,10 @@ def init_db() -> None:
         )
 
         _ensure_student_columns(cursor)
+        _ensure_knowledge_columns(cursor)
+        _ensure_tutor_message_columns(cursor)
+        _ensure_tutor_file_columns(cursor)
+        _ensure_teacher_subject_columns(cursor)
 
         timestamp = now_iso()
         cursor.execute(
@@ -436,37 +679,65 @@ def init_db() -> None:
 
         _seed_mastery(cursor)
         _seed_tutor_workspace(cursor)
+        _seed_teacher_subjects(cursor)
         _seed_forum_posts(cursor)
 
 
-def _ensure_student_columns(cursor) -> None:
-    cursor.execute("""
+def _column_exists(cursor, table_name: str, column_name: str) -> bool:
+    cursor.execute(
+        """
         SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'students' AND column_name = 'email'
-    """)
-    if not cursor.fetchone():
+        WHERE table_schema = 'public' AND table_name = %s AND column_name = %s
+        """,
+        (table_name, column_name),
+    )
+    return bool(cursor.fetchone())
+
+
+def _ensure_student_columns(cursor) -> None:
+    if not _column_exists(cursor, 'students', 'email'):
         cursor.execute("ALTER TABLE students ADD COLUMN email VARCHAR(200) DEFAULT ''")
 
-    cursor.execute("""
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'students' AND column_name = 'phone'
-    """)
-    if not cursor.fetchone():
+    if not _column_exists(cursor, 'students', 'phone'):
         cursor.execute("ALTER TABLE students ADD COLUMN phone VARCHAR(20) DEFAULT ''")
 
-    cursor.execute("""
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'students' AND column_name = 'avatar'
-    """)
-    if not cursor.fetchone():
+    if not _column_exists(cursor, 'students', 'avatar'):
         cursor.execute("ALTER TABLE students ADD COLUMN avatar VARCHAR(500) DEFAULT ''")
 
-    cursor.execute("""
-        SELECT column_name FROM information_schema.columns
-        WHERE table_name = 'students' AND column_name = 'last_login_at'
-    """)
-    if not cursor.fetchone():
+    if not _column_exists(cursor, 'students', 'last_login_at'):
         cursor.execute("ALTER TABLE students ADD COLUMN last_login_at TIMESTAMP")
+
+
+def _ensure_knowledge_columns(cursor) -> None:
+    if not _column_exists(cursor, 'knowledge_files', 'subject_id'):
+        cursor.execute("ALTER TABLE knowledge_files ADD COLUMN subject_id INTEGER DEFAULT 0")
+    if not _column_exists(cursor, 'knowledge_files', 'subject_name'):
+        cursor.execute("ALTER TABLE knowledge_files ADD COLUMN subject_name TEXT DEFAULT ''")
+    if not _column_exists(cursor, 'knowledge_chunks', 'embedding_json'):
+        cursor.execute("ALTER TABLE knowledge_chunks ADD COLUMN embedding_json TEXT DEFAULT ''")
+
+
+def _ensure_tutor_message_columns(cursor) -> None:
+    if not _column_exists(cursor, 'tutor_messages', 'meta_json'):
+        cursor.execute("ALTER TABLE tutor_messages ADD COLUMN meta_json JSONB DEFAULT '{}'")
+
+
+def _ensure_tutor_file_columns(cursor) -> None:
+    if not _column_exists(cursor, 'tutor_files', 'source_type'):
+        cursor.execute("ALTER TABLE tutor_files ADD COLUMN source_type VARCHAR(50) DEFAULT 'upload'")
+    if not _column_exists(cursor, 'tutor_files', 'source_url'):
+        cursor.execute("ALTER TABLE tutor_files ADD COLUMN source_url TEXT DEFAULT ''")
+    if not _column_exists(cursor, 'tutor_files', 'status'):
+        cursor.execute("ALTER TABLE tutor_files ADD COLUMN status VARCHAR(20) DEFAULT 'ready'")
+    if not _column_exists(cursor, 'tutor_files', 'analysis_json'):
+        cursor.execute("ALTER TABLE tutor_files ADD COLUMN analysis_json JSONB DEFAULT '{}'")
+    if not _column_exists(cursor, 'tutor_files', 'updated_at'):
+        cursor.execute("ALTER TABLE tutor_files ADD COLUMN updated_at TIMESTAMP DEFAULT NOW()")
+
+
+def _ensure_teacher_subject_columns(cursor) -> None:
+    if not _column_exists(cursor, 'teacher_subjects', 'deleted'):
+        cursor.execute("ALTER TABLE teacher_subjects ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
 
 
 def _seed_mastery(cursor) -> None:
@@ -565,6 +836,39 @@ def _seed_tutor_workspace(cursor) -> None:
             """,
             (settings.single_user_id, role_id, '新对话', ts, ts),
         )
+
+
+def _seed_teacher_subjects(cursor) -> None:
+    ts = now_iso()
+    defaults = [
+        ("Python", "python", "Python 编程、数据处理与项目实践", 1),
+        ("Java", "java", "Java 程序设计、面向对象与后端开发", 2),
+        ("C/C++", "cpp", "C 语言、C++、系统编程与工程实践", 3),
+        ("JavaScript", "javascript", "JavaScript、TypeScript 与 Web 前端工程", 4),
+        ("Go", "go", "Go 语言、并发编程与云原生服务开发", 5),
+        ("数据结构与算法", "data-structures-algorithms", "线性结构、树图、算法设计与复杂度分析", 6),
+        ("人工智能", "ai", "机器学习、深度学习与智能应用项目实践", 7),
+    ]
+    for name, code, desc, order in defaults:
+        cursor.execute(
+            """
+            INSERT INTO teacher_subjects(
+                user_id, name, code, description, enabled, sort_order, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, 1, %s, %s, %s)
+            ON CONFLICT (user_id, name) DO NOTHING
+            """,
+            (settings.single_user_id, name, code, desc, order, ts, ts),
+        )
+    cursor.execute(
+        """
+        UPDATE teacher_subjects
+        SET enabled = 0, updated_at = %s
+        WHERE user_id = %s
+          AND name IN ('数学', '英语', '物理')
+          AND code IN ('math', 'english', 'physics')
+        """,
+        (ts, settings.single_user_id),
+    )
 
 
 def _seed_forum_posts(cursor) -> None:

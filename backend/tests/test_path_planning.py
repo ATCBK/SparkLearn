@@ -51,3 +51,60 @@ async def test_path_node_suggestions_endpoint_returns_generate_library_links(cli
     body = response.json()
     assert body["success"] is True
     assert body["data"]["resources"][0]["link"] == "/generate?view=library&id=res-123"
+
+
+@pytest.mark.asyncio
+async def test_save_path_planning_endpoint_creates_history_entry(client):
+    response = await client.post(
+        "/api/path-planning/save",
+        json={
+            "path_id": "path-test",
+            "target": "学习 FastAPI",
+            "phases": [
+                {
+                    "id": 1,
+                    "title": "基础阶段",
+                    "description": "先打基础",
+                    "nodes": [
+                        {"id": "node-1", "title": "理解路由", "source": "user"},
+                    ],
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["data"] == {"saved": True, "path_id": "path-test"}
+
+    history_response = await client.get("/api/path-planning/history")
+    history = history_response.json()["data"]
+    assert len(history) == 1
+    assert history[0]["path_id"] == "path-test"
+    assert history[0]["phases"][0]["nodes"][0]["title"] == "理解路由"
+
+
+@pytest.mark.asyncio
+async def test_save_path_planning_endpoint_updates_existing_history_entry(client):
+    payload = {
+        "path_id": "path-update",
+        "target": "学习路径编辑",
+        "phases": [
+            {
+                "id": 1,
+                "title": "基础阶段",
+                "nodes": [{"id": "node-1", "title": "旧节点", "source": "ai"}],
+            },
+        ],
+    }
+    await client.post("/api/path-planning/save", json=payload)
+
+    payload["phases"][0]["nodes"][0]["title"] = "新节点"
+    response = await client.post("/api/path-planning/save", json=payload)
+
+    assert response.status_code == 200
+    history_response = await client.get("/api/path-planning/history")
+    history = history_response.json()["data"]
+    assert len(history) == 1
+    assert history[0]["phases"][0]["nodes"][0]["title"] == "新节点"

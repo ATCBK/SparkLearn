@@ -29,6 +29,8 @@
   --color-purple: #8b5cf6;
   --color-purple-light: #f3efff;
   --color-teal: #68a8f8;
+  --font-dm-sans: "DM Sans";
+  --font-noto-sans-sc: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB";
 
   --text-display: 34px;
   --text-h1: 26px;

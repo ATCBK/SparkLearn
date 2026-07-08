@@ -211,6 +211,7 @@ class Settings(BaseSettings):
     aliyun_sms_endpoint: str = "dypnsapi.aliyuncs.com"
     aliyun_sms_sign_name: str = ""
     aliyun_sms_template_code: str = "100001"
+    aliyun_sms_trust_env: bool = False
     sms_code_expire_minutes: int = 5
     sms_rate_limit_seconds: int = 60
 

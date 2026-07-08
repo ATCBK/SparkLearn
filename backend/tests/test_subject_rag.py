@@ -1,4 +1,7 @@
 import pytest
+from io import BytesIO
+
+from docx import Document
 
 
 @pytest.mark.asyncio
@@ -54,3 +57,57 @@ async def test_subject_knowledge_file_can_be_indexed_and_retrieved(client, monke
     from app.routes import tutor_eval as tutor_route
 
     assert int(uploaded["id"]) in tutor_route._resolve_subject_knowledge_file_ids_for_tutor([])
+
+
+@pytest.mark.asyncio
+async def test_docx_knowledge_file_can_be_indexed(client, monkeypatch):
+    from app.routes import knowledge as knowledge_route
+
+    async def fake_embed_para(text: str):
+        return [1.0, float(len(text) % 5), 0.25]
+
+    async def fake_summarize(text: str):
+        assert "函数返回值" in text
+        return "函数返回值资料 学习资料 DOCX"
+
+    monkeypatch.setattr(knowledge_route.xfyun_embedding, "embed_para", fake_embed_para)
+    monkeypatch.setattr(knowledge_route.spark_lite, "summarize", fake_summarize)
+
+    doc = Document()
+    doc.add_heading("函数返回值", level=1)
+    doc.add_paragraph("函数返回值用于把计算结果交还给调用方。")
+    table = doc.add_table(rows=1, cols=2)
+    table.cell(0, 0).text = "关键词"
+    table.cell(0, 1).text = "return"
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+
+    upload = await client.post(
+        "/api/knowledge/files",
+        files=[
+            (
+                "files",
+                (
+                    "函数返回值.docx",
+                    buffer.getvalue(),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ),
+            )
+        ],
+    )
+    assert upload.status_code == 200
+    uploaded = upload.json()["data"][0]
+
+    indexed = await client.put(f"/api/knowledge/files/{uploaded['id']}/index")
+    assert indexed.status_code == 200
+    body = indexed.json()
+    assert body["success"] is True
+    assert body["data"]["status"] == "indexed"
+    assert body["data"]["chunk_count"] >= 1
+
+    chunks = await client.get(f"/api/knowledge/chunks?file_id={uploaded['id']}")
+    assert chunks.status_code == 200
+    chunk_text = "\n".join(item["content"] for item in chunks.json()["data"])
+    assert "函数返回值用于把计算结果交还给调用方" in chunk_text
+    assert "关键词 | return" in chunk_text

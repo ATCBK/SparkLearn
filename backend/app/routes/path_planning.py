@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config import settings
 from ..db import execute, fetch_one, now_iso
@@ -27,6 +27,12 @@ class NodeSuggestionsReq(BaseModel):
     node_status: str = ''      # completed / current / next / locked
     phase_title: str = ''      # 所属阶段，如 "达标阶段"
     target: str = ''           # 整体路径目标，用于上下文
+
+
+class PathPlanningSaveReq(BaseModel):
+    path_id: str = ''
+    target: str = ''
+    phases: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class PathPlanningResp(BaseModel):
@@ -107,6 +113,64 @@ async def get_path_planning_history():
         []
     )
     return ok(history)
+
+
+@router.post('/path-planning/save')
+async def save_path_planning(req: PathPlanningSaveReq):
+    """
+    保存用户编辑后的路径阶段与节点。
+    前端会在增删改节点时调用该接口，按 path_id 更新历史记录。
+    """
+    now = now_iso()
+    path_id = req.path_id.strip() or f"path-{now.replace(':', '').replace('-', '').replace('Z', '')}"
+    target = req.target.strip() or '提升编程能力'
+    phases = _normalize_saved_phases(req.phases)
+
+    history = read_json(
+        settings.single_user_id,
+        'path_planning_history.json',
+        []
+    )
+    if not isinstance(history, list):
+        history = []
+
+    updated = False
+    for planning in history:
+        if isinstance(planning, dict) and planning.get('path_id') == path_id:
+            planning['target'] = target
+            planning['phases'] = phases
+            planning['updated_at'] = now
+            planning.setdefault('suggestions', [])
+            planning.setdefault('resources', [])
+            planning.setdefault('created_at', now)
+            updated = True
+            break
+
+    if not updated:
+        history.append({
+            'path_id': path_id,
+            'target': target,
+            'suggestions': [],
+            'resources': [],
+            'phases': phases,
+            'created_at': now,
+            'updated_at': now,
+        })
+
+    write_json(settings.single_user_id, 'path_planning_history.json', history)
+
+    append_jsonl(
+        settings.single_user_id,
+        'learning_events.jsonl',
+        {
+            'type': 'path_planning_saved',
+            'path_id': path_id,
+            'target': target,
+            'timestamp': now,
+        }
+    )
+
+    return ok({'saved': True, 'path_id': path_id})
 
 
 @router.post('/path-planning/node-suggestions')
@@ -452,6 +516,37 @@ def _normalize_path_resources(resources: list[dict[str, Any]]) -> list[dict[str,
             str(current.get('resource_id', '')),
         )
         normalized.append(current)
+    return normalized
+
+
+def _normalize_saved_phases(phases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for phase_idx, phase in enumerate(phases):
+        if not isinstance(phase, dict):
+            continue
+
+        raw_nodes = phase.get('nodes', [])
+        nodes: list[dict[str, Any]] = []
+        if isinstance(raw_nodes, list):
+            for node_idx, node in enumerate(raw_nodes):
+                if not isinstance(node, dict):
+                    continue
+                title = str(node.get('title', '')).strip()
+                if not title:
+                    continue
+                source = str(node.get('source', 'ai')).strip()
+                nodes.append({
+                    'id': str(node.get('id') or f"node-{phase_idx + 1}-{node_idx + 1}"),
+                    'title': title,
+                    'source': source if source in {'ai', 'user'} else 'ai',
+                })
+
+        normalized.append({
+            'id': phase_idx + 1,
+            'title': str(phase.get('title') or f"阶段 {phase_idx + 1}").strip(),
+            'description': str(phase.get('description') or '').strip(),
+            'nodes': nodes,
+        })
     return normalized
 
 

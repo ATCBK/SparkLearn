@@ -4,8 +4,9 @@ import logging
 import sys
 import time
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from .config import settings
 from .db import init_db
@@ -68,6 +69,44 @@ def _configure_event_loop_policy() -> None:
 _configure_event_loop_policy()
 
 
+class RequestLoggingMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self.logger = logging.getLogger("request")
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        start = time.monotonic()
+        method = scope.get("method", "")
+        path = scope.get("path", "")
+        status_code: int | None = None
+
+        async def send_wrapper(message: Message) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message.get("status", 500)
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        except Exception:
+            elapsed = time.monotonic() - start
+            self.logger.exception("%s %s -> error (%.3fs)", method, path, elapsed)
+            raise
+
+        elapsed = time.monotonic() - start
+        self.logger.info(
+            "%s %s -> %s (%.3fs)",
+            method,
+            path,
+            status_code or "-",
+            elapsed,
+        )
+
+
 def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -83,22 +122,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    request_logger = logging.getLogger("request")
-
-    @app.middleware("http")
-    async def log_requests(request: Request, call_next):
-        start = time.monotonic()
-        response = await call_next(request)
-        elapsed = time.monotonic() - start
-        request_logger.info(
-            "%s %s -> %d (%.3fs)",
-            request.method,
-            request.url.path,
-            response.status_code,
-            elapsed,
-        )
-        return response
+    app.add_middleware(RequestLoggingMiddleware)
 
     @app.get("/health")
     async def health():

@@ -28,19 +28,28 @@ export function usePathEditor(
   // 计算总节点数
   const totalNodes = phases.reduce((sum, p) => sum + p.nodes.length, 0)
 
+  const savePhases = useCallback((nextPhases: EditablePhase[], pathIdOverride?: string) => {
+    const currentPathId = pathIdOverride ?? pathIdRef.current
+    if (pathIdOverride) pathIdRef.current = pathIdOverride
+    return api
+      .savePathPlanning({
+        pathId: currentPathId,
+        target: targetRef.current,
+        phases: nextPhases,
+      })
+      .then((resp) => {
+        if (resp?.pathId) pathIdRef.current = resp.pathId
+      })
+      .catch((err) => console.error('路径保存失败:', err))
+  }, [])
+
   // 防抖保存
   const debouncedSave = useCallback((nextPhases: EditablePhase[]) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(() => {
-      api
-        .savePathPlanning({
-          pathId: pathIdRef.current,
-          target: targetRef.current,
-          phases: nextPhases,
-        })
-        .catch((err) => console.error('路径保存失败:', err))
+      savePhases(nextPhases)
     }, SAVE_DEBOUNCE_MS)
-  }, [])
+  }, [savePhases])
 
   // 生成唯一 ID
   const genId = () =>
@@ -159,18 +168,12 @@ export function usePathEditor(
 
   // 整体替换（用于重新生成覆盖）
   const replaceAll = useCallback(
-    (newPhases: EditablePhase[]) => {
+    (newPhases: EditablePhase[], pathIdOverride?: string) => {
       setPhases(newPhases)
       // 立即保存，不防抖
-      api
-        .savePathPlanning({
-          pathId: pathIdRef.current,
-          target: targetRef.current,
-          phases: newPhases,
-        })
-        .catch((err) => console.error('路径保存失败:', err))
+      savePhases(newPhases, pathIdOverride)
     },
-    [],
+    [savePhases],
   )
 
   return {

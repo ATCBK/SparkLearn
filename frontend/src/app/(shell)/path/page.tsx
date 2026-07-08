@@ -200,7 +200,7 @@ export default function PathPage() {
         if (data.pathId) setPathId(data.pathId)
 
         const editablePhases = toEditablePhases(data.phases ?? [])
-        editor.replaceAll(editablePhases)
+        editor.replaceAll(editablePhases, data.pathId)
 
         // 閲嶆柊鐢熸垚鐢樼壒鍥?
         gantt.regenerate(editablePhases)
