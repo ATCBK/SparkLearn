@@ -53,7 +53,7 @@ export default function NewForumPostPage() {
           multiple
           onChange={(e) => setFiles(Array.from(e.target.files || []))}
           className="w-full rounded-lg border border-line p-3 text-sm"
-          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.png,.jpg,.jpeg"
+          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.png,.jpg,.jpeg,.md,.txt"
         />
         {error && <div className="rounded-lg bg-red-light p-3 text-sm text-red">{error}</div>}
         <div className="flex gap-2">

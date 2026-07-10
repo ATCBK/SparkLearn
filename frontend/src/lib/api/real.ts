@@ -13,7 +13,7 @@ import { getToken } from '../auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
-type ApiResp<T> = { success: boolean; data: T; error?: string }
+type ApiResp<T> = { success: boolean; data: T; error?: string; detail?: unknown }
 type SseEvent = { type: string; payload: Record<string, unknown> }
 
 function applyA2UIEnvelope(surfaces: A2UISurfaceState[], envelope: A2UIEnvelope): A2UISurfaceState[] {
@@ -80,15 +80,9 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: { ..._authHeaders(), ...(init?.headers || {}) },
     })
-    const json = await res.json() as ApiResp<T> & { detail?: unknown }
+    const json = await res.json() as ApiResp<T>
     if (!res.ok || !json.success) {
-      const detail = Array.isArray(json.detail)
-        ? json.detail.map((item) => typeof item === 'object' && item !== null && 'msg' in item ? String((item as { msg: unknown }).msg) : String(item)).join('；')
-        : typeof json.detail === 'string'
-          ? json.detail
-          : ''
-      const baseMessage = json.error || detail || `请求失败：${res.status}`
-      throw new Error(`${baseMessage} [${method} ${path} -> ${res.status}]`)
+      throw new Error(formatApiError(json, method, path, res.status))
     }
     return json.data
   } catch (error) {
@@ -97,6 +91,16 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw error
   }
+}
+
+function formatApiError<T>(json: ApiResp<T>, method: string, path: string, status: number): string {
+  const detail = Array.isArray(json.detail)
+    ? json.detail.map((item) => typeof item === 'object' && item !== null && 'msg' in item ? String((item as { msg: unknown }).msg) : String(item)).join('；')
+    : typeof json.detail === 'string'
+      ? json.detail
+      : ''
+  const baseMessage = json.error || detail || `请求失败：${status}`
+  return `${baseMessage} [${method} ${path} -> ${status}]`
 }
 
 async function readSSE(
@@ -1340,9 +1344,10 @@ export async function toggleForumFavorite(postId: number): Promise<{ favorited: 
 export async function uploadForumAttachments(postId: number, files: File[]): Promise<ForumAttachment[]> {
   const form = new FormData()
   files.forEach(file => form.append('files', file))
-  const res = await fetch(`${API_BASE}/api/forum/posts/${postId}/attachments`, { method: 'POST', body: form })
+  const path = `/api/forum/posts/${postId}/attachments`
+  const res = await fetch(`${API_BASE}${path}`, { method: 'POST', body: form })
   const json = await res.json() as ApiResp<ForumAttachment[]>
-  if (!res.ok || !json.success) throw new Error(json.error || `上传失败: ${res.status}`)
+  if (!res.ok || !json.success) throw new Error(formatApiError(json, 'POST', path, res.status))
   return json.data || []
 }
 

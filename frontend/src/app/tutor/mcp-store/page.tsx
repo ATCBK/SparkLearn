@@ -68,6 +68,11 @@ export default function TutorMcpStorePage() {
     const online = services.filter((item) => item.last_status === 'online').length
     return { total: services.length, online }
   }, [services])
+  const selectedService = useMemo(
+    () => services.find((item) => item.id === editingId) || null,
+    [editingId, services],
+  )
+  const selectedIsSystem = selectedService?.source === 'system'
 
   const loadServices = useCallback(async () => {
     setLoading(true)
@@ -176,11 +181,15 @@ export default function TutorMcpStorePage() {
     setFeedback('桌面端 stdio MCP 配置已下载，请在 SparkLearn 桌面端中导入。')
   }
 
-async function submitForm(event: FormEvent<HTMLFormElement>) {
+  async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setFeedback('')
     try {
+      if (selectedIsSystem) {
+        setFeedback('内置系统 MCP 已安装，可在左侧测试、启用或停用。')
+        return
+      }
       if (form.transport === 'stdio' && !desktopReady) {
         notifyDesktopOnlyStdio()
         return
@@ -333,6 +342,7 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                           {service.last_status === 'online' ? <CheckCircle2 className="h-4 w-4 text-[#22c55e]" /> : <Circle className="h-4 w-4 text-[#a0aec0]" />}
                         </div>
                         <p className="text-xs text-[#7b869c] mt-1">{service.transport.toUpperCase()} · {service.enabled ? '已启用' : '未启用'}</p>
+                        {service.source === 'system' ? <p className="mt-1 text-xs font-medium text-[#2563eb]">系统内置服务</p> : null}
                         {service.last_error ? <p className="text-xs text-[#ef4444] mt-1 truncate">{service.last_error}</p> : null}
                         <div className="mt-3 flex items-center gap-2 text-[11px]">
                           <span onClick={(e) => { e.stopPropagation(); void testService(service.id) }} className="rounded-md bg-[#eaf0ff] px-2 py-1 text-[#3153db]">测试</span>
@@ -357,8 +367,12 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div>
                       <p className="text-xs text-[#8d99ae] mb-2">MCP 服务管理 / 添加 MCP 服务</p>
-                      <h1 className="text-3xl font-semibold text-[#111827]">添加 MCP 服务（{form.transport === 'http' ? '远程 HTTP' : '本地 stdio'}）</h1>
-                      <p className="text-sm text-[#7d889f] mt-2">{form.transport === 'http' ? 'HTTP 只需要 URL/认证/请求头' : 'stdio 只需要 command/args/env'}</p>
+                      <h1 className="text-3xl font-semibold text-[#111827]">
+                        {selectedIsSystem ? '内置 MCP 服务' : '添加 MCP 服务'}（{form.transport === 'http' ? '远程 HTTP' : '本地 stdio'}）
+                      </h1>
+                      <p className="text-sm text-[#7d889f] mt-2">
+                        {selectedIsSystem ? '系统内置服务已安装，可直接测试和启用。' : form.transport === 'http' ? 'HTTP 只需要 URL/认证/请求头' : 'stdio 只需要 command/args/env'}
+                      </p>
                     </div>
                     <button type="button" onClick={() => router.push('/tutor/mcp-store/docs')} className="text-sm text-[#2563eb] whitespace-nowrap">查看文档</button>
                   </div>
@@ -395,6 +409,7 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                       <div className="grid grid-cols-1 gap-3">
                         <input
                           value={form.name || ''}
+                          disabled={selectedIsSystem}
                           onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                           placeholder="显示名称，例如：Tavily Web Search / Filesystem MCP"
                           className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
@@ -402,6 +417,7 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                         />
                         <input
                           value={form.description || ''}
+                          disabled={selectedIsSystem}
                           onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                           placeholder="服务标识符（小写英文/数字/连字符），例如：tavily-web-search"
                           className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
@@ -413,6 +429,7 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                       <StepField index={3} title="服务端点 URL" required>
                         <input
                           value={form.endpoint || ''}
+                          disabled={selectedIsSystem}
                           onChange={(e) => setForm((p) => ({ ...p, endpoint: e.target.value }))}
                           placeholder="https://example.com/mcp"
                           className="h-10 w-full rounded-lg border border-[#ced7ea] bg-white px-3 text-sm outline-none focus:border-[#5d78f5]"
@@ -546,13 +563,18 @@ async function submitForm(event: FormEvent<HTMLFormElement>) {
                     ) : null}
                   </div>
 
+                  {selectedIsSystem ? <p className="mt-4 rounded-xl bg-[#eef4ff] p-3 text-sm text-[#3153db]">该服务由系统内置提供，工具名为 get_weather，会在 Tutor 开启 MCP 后按天气类问题自动调用。</p> : null}
                   {error ? <p className="mt-4 rounded-xl bg-[#fff1f2] p-3 text-sm text-[#dc2626]">{error}</p> : null}
                   {feedback ? <p className="mt-4 rounded-xl bg-[#ecfdf3] p-3 text-sm text-[#15803d]">{feedback}</p> : null}
                 </form>
 
                 <div className="shrink-0 border-t border-[#e8edf7] bg-white px-6 py-4 flex justify-end gap-3">
                   <button type="button" onClick={resetForm} className="h-10 rounded-lg border border-[#d4dced] px-4 text-sm text-[#475569]">取消</button>
-                  {form.transport === 'stdio' && !desktopReady ? (
+                  {selectedIsSystem ? (
+                    <button type="button" onClick={() => setFeedback('内置天气 MCP 已安装，无需保存配置。')} className="h-10 rounded-lg bg-[#2563eb] px-4 text-sm font-medium text-white inline-flex items-center gap-1.5">
+                      <Check className="h-4 w-4" /> 已安装
+                    </button>
+                  ) : form.transport === 'stdio' && !desktopReady ? (
                     <button type="button" onClick={downloadDesktopConfig} className="h-10 rounded-lg bg-[#d97706] px-4 text-sm font-medium text-white inline-flex items-center gap-1.5 hover:bg-[#b45309]">
                       <Download className="h-4 w-4" /> 下载桌面端配置
                     </button>

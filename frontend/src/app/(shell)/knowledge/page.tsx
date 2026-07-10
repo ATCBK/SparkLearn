@@ -49,7 +49,7 @@ export default function KnowledgePage() {
       await load()
       setSelected(uploaded[0] || null)
     } catch (ex) {
-      setError(ex instanceof Error ? ex.message : '上传失败')
+      setError(formatKnowledgeError(ex, '上传失败'))
     }
   }
 
@@ -61,7 +61,7 @@ export default function KnowledgePage() {
       await load()
       setSelected(updated)
     } catch (ex) {
-      setError(ex instanceof Error ? ex.message : '整理失败')
+      setError(formatKnowledgeError(ex, '资料整理失败，请稍后重试或检查文件内容。'))
       await load()
     } finally {
       setBusyId(null)
@@ -86,7 +86,7 @@ export default function KnowledgePage() {
       setChunks(data)
       setShowChunks(true)
     } catch (ex) {
-      setError(ex instanceof Error ? ex.message : '加载片段失败')
+      setError(formatKnowledgeError(ex, '加载片段失败'))
     } finally {
       setChunksLoading(false)
     }
@@ -266,4 +266,13 @@ function Info({ title, text }: { title: string; text: string }) {
 
 function statusLabel(status: string) {
   return { pending: '待处理', processing: '整理中', indexed: '已整理', failed: '失败' }[status] || status
+}
+
+function formatKnowledgeError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : ''
+  if (!message) return fallback
+  if (message.includes('Server error') || message.includes('Internal Server Error') || message.includes('http') || message.includes('index failed')) {
+    return fallback
+  }
+  return message.replace(/\s*\[[^\]]+->\s*\d+\]\s*$/, '')
 }

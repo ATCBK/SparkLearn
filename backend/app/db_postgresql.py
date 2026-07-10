@@ -679,6 +679,7 @@ def init_db() -> None:
 
         _seed_mastery(cursor)
         _seed_tutor_workspace(cursor)
+        _seed_mcp_services(cursor)
         _seed_teacher_subjects(cursor)
         _seed_forum_posts(cursor)
 
@@ -836,6 +837,46 @@ def _seed_tutor_workspace(cursor) -> None:
             """,
             (settings.single_user_id, role_id, '新对话', ts, ts),
         )
+
+
+def _seed_mcp_services(cursor) -> None:
+    ts = now_iso()
+    cursor.execute(
+        """
+        INSERT INTO mcp_services(
+          id, owner_id, name, description, source, transport, endpoint, command,
+          args_json, env_json, enabled, last_status, last_error, last_tested_at,
+          startup_timeout_ms, tool_timeout_ms, long_task_timeout_ms, created_at, updated_at
+        ) VALUES (%s, %s, %s, %s, 'system', 'http', %s, '', '[]', '{}', 1, 'online', '', %s, 60000, 15000, 30000, %s, %s)
+        ON CONFLICT(id) DO UPDATE SET
+          owner_id = EXCLUDED.owner_id,
+          name = EXCLUDED.name,
+          description = EXCLUDED.description,
+          source = 'system',
+          transport = 'http',
+          endpoint = EXCLUDED.endpoint,
+          command = '',
+          args_json = '[]',
+          env_json = '{}',
+          last_status = 'online',
+          last_error = '',
+          last_tested_at = EXCLUDED.last_tested_at,
+          startup_timeout_ms = 60000,
+          tool_timeout_ms = 15000,
+          long_task_timeout_ms = 30000,
+          updated_at = EXCLUDED.updated_at
+        """,
+        (
+            'system_weather_mcp',
+            settings.single_user_id,
+            '内置天气 MCP',
+            '系统内置天气查询服务，提供 get_weather 工具，可按城市查询实时天气和三天预报。',
+            'builtin://weather',
+            ts,
+            ts,
+            ts,
+        ),
+    )
 
 
 def _seed_teacher_subjects(cursor) -> None:

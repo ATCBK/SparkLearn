@@ -88,3 +88,10 @@ async def test_forum_rejects_invalid_moderation_and_attachment_inputs(client):
     )
     assert unsupported_file.status_code == 400
     assert "unsupported file type" in unsupported_file.json()["detail"]
+
+    markdown_file = await client.post(
+        f"/api/forum/posts/{post_id}/attachments",
+        files=[("files", ("部署说明.md", io.BytesIO("# 部署说明\n".encode("utf-8")), "text/markdown"))],
+    )
+    assert markdown_file.status_code == 200
+    assert markdown_file.json()["data"][0]["filename"] == "部署说明.md"

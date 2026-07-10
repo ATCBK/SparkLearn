@@ -29,6 +29,7 @@ export default function McpStoreDocsPage() {
           <section className="rounded-xl border border-[#e2e8f0] bg-white p-5">
             <h2 className="text-base font-semibold text-[#0f172a]">1. 基础信息</h2>
             <div className="mt-3 space-y-2 text-sm text-[#334155]">
+              <p><b>内置天气 MCP</b>：系统默认提供 `get_weather` 工具，可在商店中直接测试和启用，无需手动填写 URL。</p>
               <p><b>服务端点 URL</b>：用于 HTTP MCP，填写 HTTP/HTTPS 地址，例如 `https://example.com/mcp`。</p>
               <p><b>名称和图标</b>：用于在 SparkLearn 内区分不同 MCP 服务。</p>
               <p><b>服务器标识符</b>：建议使用全局唯一标识，如 `sparklearn-mcp-server`。</p>

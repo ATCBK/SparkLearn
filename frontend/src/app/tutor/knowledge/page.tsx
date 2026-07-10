@@ -56,13 +56,13 @@ export default function TutorKnowledgePage() {
       const uploaded = await api.uploadKnowledgeFiles([...fileList])
       await load()
       setSelected(uploaded[0] || null)
-    } catch (ex) { setError(ex instanceof Error ? ex.message : '上传失败') }
+    } catch (ex) { setError(formatKnowledgeError(ex, '上传失败')) }
   }
 
   async function indexFile(file: KnowledgeFile) {
     setBusyId(file.id); setError('')
     try { const updated = await api.indexKnowledgeFile(file.id); await load(); setSelected(updated) }
-    catch (ex) { setError(ex instanceof Error ? ex.message : '整理失败'); await load() }
+    catch (ex) { setError(formatKnowledgeError(ex, '资料整理失败，请稍后重试或检查文件内容。')); await load() }
     finally { setBusyId(null) }
   }
 
@@ -75,7 +75,7 @@ export default function TutorKnowledgePage() {
     if (showChunks) { setShowChunks(false); return }
     setChunksLoading(true)
     try { const data = await api.getKnowledgeChunks(selected.id); setChunks(data); setShowChunks(true) }
-    catch (ex) { setError(ex instanceof Error ? ex.message : '加载片段失败') }
+    catch (ex) { setError(formatKnowledgeError(ex, '加载片段失败')) }
     finally { setChunksLoading(false) }
   }
 
@@ -323,4 +323,13 @@ function InfoCard({ title, text }: { title: string; text: string }) {
       <span className="mt-1 block text-xs leading-5 text-[#64748b]">{text}</span>
     </div>
   )
+}
+
+function formatKnowledgeError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : ''
+  if (!message) return fallback
+  if (message.includes('Server error') || message.includes('Internal Server Error') || message.includes('http') || message.includes('index failed')) {
+    return fallback
+  }
+  return message.replace(/\s*\[[^\]]+->\s*\d+\]\s*$/, '')
 }

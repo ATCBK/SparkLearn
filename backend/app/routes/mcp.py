@@ -10,6 +10,7 @@ import time
 import uuid
 import warnings
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from fastapi import APIRouter
@@ -23,6 +24,31 @@ from ..schemas import fail, ok
 warnings.filterwarnings("ignore", message=".*SSL.*", category=UserWarning)
 
 router = APIRouter(prefix="/api/mcp", tags=["mcp"])
+
+BUILTIN_WEATHER_SERVICE_ID = "system_weather_mcp"
+BUILTIN_WEATHER_ENDPOINT = "builtin://weather"
+
+BUILTIN_WEATHER_TOOLS: list[dict[str, Any]] = [
+    {
+        "name": "get_weather",
+        "description": "查询指定城市的实时天气与未来三天天气预报，适合学习计划、出行学习安排等场景。",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "城市名，支持中文或英文，例如：北京、信阳、Shanghai。",
+                },
+                "days": {
+                    "type": "integer",
+                    "description": "预报天数，默认 3 天，最大 3 天。",
+                    "default": 3,
+                },
+            },
+            "required": ["city"],
+        },
+    }
+]
 
 
 class McpServicePayload(BaseModel):
@@ -304,6 +330,9 @@ class _McpHttpClient:
 
 
 async def _mcp_test(service: sqlite3.Row) -> dict[str, Any]:
+    if _is_builtin_weather_service(service):
+        return {"status": "online", "duration_ms": 0, "tool_count": len(BUILTIN_WEATHER_TOOLS)}
+
     transport = service["transport"]
     timeout = int(service["tool_timeout_ms"] or 30000)
     startup_timeout = int(service["startup_timeout_ms"] or 60000)
@@ -397,6 +426,53 @@ def _normalize_mcp_call_result(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _is_builtin_weather_service(service: sqlite3.Row) -> bool:
+    return (
+        str(service["id"] or "") == BUILTIN_WEATHER_SERVICE_ID
+        or str(service["endpoint"] or "").strip() == BUILTIN_WEATHER_ENDPOINT
+    )
+
+
+def _ensure_builtin_mcp_services() -> None:
+    ts = now_iso()
+    execute(
+        """
+        INSERT INTO mcp_services(
+          id, owner_id, name, description, source, transport, endpoint, command,
+          args_json, env_json, enabled, last_status, last_error, last_tested_at,
+          startup_timeout_ms, tool_timeout_ms, long_task_timeout_ms, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 'system', 'http', ?, '', '[]', '{}', 1, 'online', '', ?, 60000, 15000, 30000, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          owner_id = excluded.owner_id,
+          name = excluded.name,
+          description = excluded.description,
+          source = 'system',
+          transport = 'http',
+          endpoint = excluded.endpoint,
+          command = '',
+          args_json = '[]',
+          env_json = '{}',
+          last_status = 'online',
+          last_error = '',
+          last_tested_at = excluded.last_tested_at,
+          startup_timeout_ms = 60000,
+          tool_timeout_ms = 15000,
+          long_task_timeout_ms = 30000,
+          updated_at = excluded.updated_at
+        """,
+        (
+            BUILTIN_WEATHER_SERVICE_ID,
+            settings.single_user_id,
+            "内置天气 MCP",
+            "系统内置天气查询服务，提供 get_weather 工具，可按城市查询实时天气和三天预报。",
+            BUILTIN_WEATHER_ENDPOINT,
+            ts,
+            ts,
+            ts,
+        ),
+    )
+
+
 def _to_resp(row: sqlite3.Row) -> dict[str, Any]:
     return {
         "id": row["id"],
@@ -429,6 +505,7 @@ def _get_service_or_none(service_id: str):
 
 @router.get("/services")
 async def list_services(scope: str = "all"):
+    _ensure_builtin_mcp_services()
     if scope not in {"all", "system", "user"}:
         return fail("invalid scope")
     if scope == "all":
@@ -634,6 +711,9 @@ async def get_tools(service_id: str):
 
 async def _mcp_request(service: sqlite3.Row, method: str, params: dict[str, Any]) -> dict[str, Any]:
     """统一的 MCP 请求入口，根据 transport 自动选择客户端。"""
+    if _is_builtin_weather_service(service):
+        return await _builtin_weather_mcp_request(method, params, int(service["tool_timeout_ms"] or 15000))
+
     transport = service["transport"]
     timeout = int(service["tool_timeout_ms"] or 30000)
     startup_timeout = int(service["startup_timeout_ms"] or 60000)
@@ -655,6 +735,116 @@ async def _mcp_request(service: sqlite3.Row, method: str, params: dict[str, Any]
             return await client.request(method, params)
 
     raise RuntimeError(f"unsupported transport: {transport}")
+
+
+async def _builtin_weather_mcp_request(method: str, params: dict[str, Any], timeout_ms: int) -> dict[str, Any]:
+    if method == "tools/list":
+        return {"tools": BUILTIN_WEATHER_TOOLS}
+
+    if method == "tools/call":
+        tool_name = str(params.get("name") or "")
+        if tool_name not in {"get_weather", "weather", "weather_query"}:
+            raise RuntimeError(f"unsupported builtin weather tool: {tool_name}")
+        arguments = params.get("arguments") if isinstance(params.get("arguments"), dict) else {}
+        city = str(arguments.get("city") or "").strip() or "北京"
+        try:
+            days = max(1, min(int(arguments.get("days") or 3), 3))
+        except Exception:
+            days = 3
+        return await _query_weather(city, days, timeout_ms)
+
+    if method == "initialize":
+        return {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": "sparklearn-weather-mcp", "version": "1.0.0"},
+        }
+
+    raise RuntimeError(f"unsupported builtin weather method: {method}")
+
+
+async def _query_weather(city: str, days: int, timeout_ms: int) -> dict[str, Any]:
+    url = f"https://wttr.in/{quote(city)}"
+    timeout = max(3.0, timeout_ms / 1000)
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        resp = await client.get(
+            url,
+            params={"format": "j1", "lang": "zh"},
+            headers={"User-Agent": "SparkLearn-Weather-MCP/1.0"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    current = (data.get("current_condition") or [{}])[0]
+    forecast = data.get("weather") if isinstance(data.get("weather"), list) else []
+    location = _extract_weather_location(data) or city
+    current_desc = _weather_desc(current) or "未知"
+    current_line = (
+        f"{location} 当前天气：{current_desc}，"
+        f"气温 {current.get('temp_C', '--')}℃，"
+        f"体感 {current.get('FeelsLikeC', '--')}℃，"
+        f"湿度 {current.get('humidity', '--')}%，"
+        f"风向 {current.get('winddir16Point', '--')}，"
+        f"风速 {current.get('windspeedKmph', '--')} km/h。"
+    )
+
+    forecast_lines: list[str] = []
+    for item in forecast[:days]:
+        desc = _weather_desc(_pick_noon_weather(item)) or _weather_desc(item) or "未知"
+        forecast_lines.append(
+            f"{item.get('date', '')}：{desc}，"
+            f"{item.get('mintempC', '--')}~{item.get('maxtempC', '--')}℃，"
+            f"日照约 {item.get('sunHour', '--')} 小时。"
+        )
+
+    text = "\n".join(
+        [
+            current_line,
+            "未来预报：",
+            *(forecast_lines or ["暂无预报数据。"]),
+            "数据来源：wttr.in 公共天气服务。",
+        ]
+    )
+    return {
+        "content": [{"type": "text", "text": text}],
+        "isError": False,
+        "structuredContent": {
+            "city": city,
+            "location": location,
+            "current": current,
+            "forecast": forecast[:days],
+            "source": "wttr.in",
+        },
+    }
+
+
+def _extract_weather_location(data: dict[str, Any]) -> str:
+    area = (data.get("nearest_area") or [{}])[0]
+    names: list[str] = []
+    for key in ("areaName", "region", "country"):
+        value = area.get(key)
+        if isinstance(value, list) and value:
+            text = str(value[0].get("value") or "").strip()
+            if text:
+                names.append(text)
+    return "，".join(names)
+
+
+def _weather_desc(block: dict[str, Any]) -> str:
+    for key in ("lang_zh", "weatherDesc"):
+        values = block.get(key)
+        if isinstance(values, list) and values:
+            text = str(values[0].get("value") or "").strip()
+            if text:
+                return text
+    return ""
+
+
+def _pick_noon_weather(item: dict[str, Any]) -> dict[str, Any]:
+    hourly = item.get("hourly")
+    if not isinstance(hourly, list) or not hourly:
+        return item
+    return min(hourly, key=lambda x: abs(int(str(x.get("time") or "1200")) - 1200) if isinstance(x, dict) else 9999)
 
 
 @router.post("/services/{service_id}/call")

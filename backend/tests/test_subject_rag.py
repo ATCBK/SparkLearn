@@ -111,3 +111,45 @@ async def test_docx_knowledge_file_can_be_indexed(client, monkeypatch):
     chunk_text = "\n".join(item["content"] for item in chunks.json()["data"])
     assert "函数返回值用于把计算结果交还给调用方" in chunk_text
     assert "关键词 | return" in chunk_text
+
+
+@pytest.mark.asyncio
+async def test_knowledge_index_uses_local_embedding_fallback(client, monkeypatch):
+    from app.routes import knowledge as knowledge_route
+
+    async def broken_embed(text: str):
+        raise RuntimeError("Server error '500 Internal Server Error' for url 'https://emb-cn-huabei-1.xf-yun.com/'")
+
+    monkeypatch.setattr(knowledge_route.xfyun_embedding, "embed_para", broken_embed)
+    monkeypatch.setattr(knowledge_route.xfyun_embedding, "embed_query", broken_embed)
+
+    upload = await client.post(
+        "/api/knowledge/files",
+        files=[
+            (
+                "files",
+                (
+                    "Python基础语法知识库.md",
+                    "Python 函数可以使用 def 定义，参数用于接收调用方传入的数据。".encode("utf-8"),
+                    "text/markdown",
+                ),
+            )
+        ],
+    )
+    assert upload.status_code == 200
+    uploaded = upload.json()["data"][0]
+
+    indexed = await client.put(f"/api/knowledge/files/{uploaded['id']}/index")
+    assert indexed.status_code == 200
+    body = indexed.json()
+    assert body["success"] is True
+    assert body["data"]["status"] == "indexed"
+    assert body["data"]["chunk_count"] >= 1
+
+    context, sources = await knowledge_route.retrieve_knowledge_context_async([int(uploaded["id"])], query="Python 函数")
+    assert "Python 函数可以使用 def 定义" in context
+    assert sources[0]["filename"] == "Python基础语法知识库.md"
+
+    chunks = await client.get(f"/api/knowledge/chunks?file_id={uploaded['id']}")
+    chunk_text = "\n".join(item["content"] for item in chunks.json()["data"])
+    assert "Python 函数可以使用 def 定义" in chunk_text

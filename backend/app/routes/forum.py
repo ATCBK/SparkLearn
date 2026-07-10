@@ -18,7 +18,21 @@ _MAX_TITLE_LEN = 120
 _MAX_CONTENT_LEN = 10000
 _MAX_ATTACHMENTS_PER_POST = 5
 _MAX_FILE_SIZE = 20 * 1024 * 1024
-_ALLOWED_SUFFIXES = {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx", ".zip", ".png", ".jpg", ".jpeg"}
+_ALLOWED_SUFFIXES = {
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".xls",
+    ".xlsx",
+    ".zip",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".md",
+    ".txt",
+}
 
 
 class PostCreateReq(BaseModel):

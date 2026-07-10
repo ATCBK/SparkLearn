@@ -1,3 +1,4 @@
+import hashlib
 import json
 import math
 import re
@@ -14,6 +15,8 @@ from ..llm import spark_lite
 from ..schemas import fail, ok
 
 router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
+
+_LOCAL_EMBED_DIM = 384
 
 
 @router.get("/files")
@@ -99,7 +102,7 @@ async def index_knowledge_file(file_id: int):
         ts = now_iso()
         rows_to_insert: list[tuple[Any, ...]] = []
         for idx, chunk in enumerate(chunks):
-            emb = await xfyun_embedding.embed_para(chunk)
+            emb = await _embed_para_for_index(chunk)
             rows_to_insert.append((file_id, idx, chunk, json.dumps(emb, ensure_ascii=False), ts))
 
         with get_conn() as conn:
@@ -123,11 +126,12 @@ async def index_knowledge_file(file_id: int):
         updated = _get_owned_file(file_id)
         return ok(_file_row_to_dict(updated))
     except Exception as ex:
+        message = _friendly_index_error(ex)
         execute(
             "UPDATE knowledge_files SET status = 'failed', summary = ?, updated_at = ? WHERE id = ? AND user_id = ?",
-            (f"index failed: {ex}", now_iso(), file_id, settings.single_user_id),
+            (message, now_iso(), file_id, settings.single_user_id),
         )
-        return fail(f"index failed: {ex}")
+        return fail(message)
 
 
 @router.get("/files/{file_id}")
@@ -213,10 +217,13 @@ async def retrieve_knowledge_context_async(
     ids = [int(x) for x in file_ids if int(x) > 0]
     if not ids:
         return ("", [])
+    clean_query = (query or "").strip()
+    external_query_vec: list[float] = []
     try:
-        query_vec = await xfyun_embedding.embed_query(query or "") if (query or "").strip() else []
+        external_query_vec = await xfyun_embedding.embed_query(clean_query) if clean_query else []
     except Exception:
-        query_vec = []
+        external_query_vec = []
+    local_query_vec = _local_embedding(clean_query) if clean_query else []
 
     placeholders = ",".join("?" for _ in ids)
     rows = fetch_all(
@@ -240,14 +247,21 @@ async def retrieve_knowledge_context_async(
         file_label = str(row["filename"] or "")
         idx = int(row["chunk_index"] or 0)
         text_piece = f"[{file_label}#{idx + 1}] {content}"
-        if query_vec:
-            chunk_vec = _safe_json_floats(row["embedding_json"])
-            score = _cosine_similarity(query_vec, chunk_vec) if chunk_vec else 0.0
+        chunk_vec = _safe_json_floats(row["embedding_json"])
+        if clean_query and chunk_vec:
+            if external_query_vec and len(external_query_vec) == len(chunk_vec):
+                score = _cosine_similarity(external_query_vec, chunk_vec)
+            elif local_query_vec and len(chunk_vec) == _LOCAL_EMBED_DIM:
+                score = _cosine_similarity(local_query_vec, chunk_vec)
+            else:
+                score = _keyword_score(clean_query, content)
+        elif clean_query:
+            score = _keyword_score(clean_query, content)
         else:
             score = 0.0
         scored.append((score, text_piece, file_label, idx))
 
-    if query_vec:
+    if clean_query:
         scored.sort(key=lambda x: x[0], reverse=True)
         candidates = scored[:top_k]
     else:
@@ -454,6 +468,57 @@ def _safe_json_floats(raw: Any) -> list[float]:
     except Exception:
         pass
     return []
+
+
+async def _embed_para_for_index(text: str) -> list[float]:
+    try:
+        return await xfyun_embedding.embed_para(text)
+    except Exception:
+        return _local_embedding(text)
+
+
+def _local_embedding(text: str) -> list[float]:
+    vec = [0.0] * _LOCAL_EMBED_DIM
+    tokens = _tokenize_for_local_embedding(text)
+    if not tokens:
+        return vec
+    for token in tokens:
+        digest = hashlib.sha256(token.encode("utf-8")).digest()
+        bucket = int.from_bytes(digest[:4], "big") % _LOCAL_EMBED_DIM
+        sign = 1.0 if digest[4] % 2 == 0 else -1.0
+        weight = 1.0 + min(len(token), 12) / 12
+        vec[bucket] += sign * weight
+    norm = math.sqrt(sum(x * x for x in vec))
+    if norm <= 0:
+        return vec
+    return [round(x / norm, 8) for x in vec]
+
+
+def _tokenize_for_local_embedding(text: str) -> list[str]:
+    lowered = text.lower()
+    words = re.findall(r"[a-z0-9_#+.-]{2,}|[\u4e00-\u9fff]", lowered)
+    cjk_chars = [item for item in words if re.fullmatch(r"[\u4e00-\u9fff]", item)]
+    cjk_bigrams = [f"{a}{b}" for a, b in zip(cjk_chars, cjk_chars[1:])]
+    return words + cjk_bigrams
+
+
+def _keyword_score(query: str, content: str) -> float:
+    query_tokens = set(_tokenize_for_local_embedding(query))
+    content_tokens = set(_tokenize_for_local_embedding(content))
+    if not query_tokens or not content_tokens:
+        return 0.0
+    return len(query_tokens & content_tokens) / max(1, len(query_tokens))
+
+
+def _friendly_index_error(ex: Exception) -> str:
+    raw = str(ex).lower()
+    if "no content extracted" in raw:
+        return "整理失败：未能从文件中提取到有效文本，请检查文件内容。"
+    if "unsupported format" in raw:
+        return "整理失败：当前仅支持 PDF、DOCX、TXT、MD 格式。"
+    if "parse docx" in raw or "pymupdf" in raw:
+        return "整理失败：文件解析失败，请换一个可读取的文档后重试。"
+    return "整理失败：资料处理过程中出现异常，请稍后重试。"
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
