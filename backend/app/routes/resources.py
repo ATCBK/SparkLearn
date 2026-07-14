@@ -6,7 +6,7 @@ import re
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from html import escape
+from html import escape, unescape as html_unescape
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote, urlparse
@@ -310,6 +310,17 @@ async def get_resource_preview_html(resource_id: str):
 
     if _is_ppt_like_url(link):
         return HTMLResponse(content=_build_ppt_preview_html(link))
+
+    if _is_shutu_url(link):
+        try:
+            html = await _fetch_url_text(link)
+            image_url = _extract_shutu_image_url(html)
+            if not image_url:
+                image_url = await asyncio.to_thread(_extract_shutu_image_url_from_page_sync, link)
+            if image_url:
+                return HTMLResponse(content=_build_pan_zoom_image_preview_html(image_url, title=str(item.get("title") or "思维导图")))
+        except Exception:
+            pass
 
     if _is_iframe_embeddable_url(link):
         return HTMLResponse(content=_build_iframe_preview_html(link))
@@ -1035,8 +1046,233 @@ def _build_ppt_preview_html(source_url: str) -> str:
 def _is_iframe_embeddable_url(url: str) -> bool:
     """检测可以直接用 iframe 嵌入预览的 URL（如 mermaid.live、markmap 等）"""
     lowered = (url or "").lower()
-    embeddable_domains = ["mermaid.live", "markmap.keepto.top", "markmap.js.org", "preview.contentcube.cn"]
+    embeddable_domains = [
+        "mermaid.live",
+        "markmap.keepto.top",
+        "markmap.js.org",
+        "preview.contentcube.cn",
+        "gapi.shutu.cn",
+        "shutu.cn",
+    ]
     return any(domain in lowered for domain in embeddable_domains)
+
+
+def _is_shutu_url(url: str) -> bool:
+    lowered = (url or "").lower()
+    return "shutu.cn" in lowered
+
+
+def _extract_shutu_image_url(html: str) -> str:
+    if not html:
+        return ""
+    normalized = html_unescape(html).replace("\\/", "/")
+    patterns = [
+        r"https://static\.shutu\.cn/[^\"'<>\s]+?\.(?:png|jpe?g|webp)",
+        r"https://[^\"'<>\s]+?/shutu/[^\"'<>\s]+?\.(?:png|jpe?g|webp)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, normalized, flags=re.IGNORECASE)
+        if match:
+            return _sanitize_url(match.group(0))
+    return ""
+
+
+def _extract_shutu_image_url_from_page_sync(source_url: str) -> str:
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception:
+        return ""
+
+    image_urls: list[str] = []
+
+    def collect_url(url: str) -> None:
+        cleaned = _sanitize_url(url)
+        if cleaned and _is_shutu_image_url(cleaned) and cleaned not in image_urls:
+            image_urls.append(cleaned)
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            try:
+                page = browser.new_page(viewport={"width": 1440, "height": 960})
+                page.on("response", lambda response: collect_url(response.url))
+                page.goto(source_url, wait_until="networkidle", timeout=30000)
+                page.wait_for_timeout(5000)
+                for url in page.eval_on_selector_all("img", "els => els.map(el => el.currentSrc || el.src).filter(Boolean)"):
+                    collect_url(str(url))
+                for url in page.eval_on_selector_all("meta[property='og:image'], meta[name='twitter:image']", "els => els.map(el => el.content).filter(Boolean)"):
+                    collect_url(str(url))
+            finally:
+                browser.close()
+    except Exception:
+        return ""
+
+    return image_urls[0] if image_urls else ""
+
+
+def _is_shutu_image_url(url: str) -> bool:
+    lowered = (url or "").lower()
+    if re.search(r"\.(?:png|jpe?g|webp)(?:$|\?)", lowered) is None:
+        return False
+    return "static.shutu.cn/shutu/" in lowered or re.search(r"/shutu/(?:jpeg|jpg|png|webp)/", lowered) is not None
+
+
+def _build_pan_zoom_image_preview_html(image_url: str, *, title: str) -> str:
+    safe_url = image_url.replace('"', "&quot;")
+    safe_title = escape(title or "思维导图")
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{safe_title}</title>
+  <style>
+    html, body {{
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f5f7ff;
+      font-family: "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }}
+    .viewer {{
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(59, 130, 246, .08), transparent 28%),
+        linear-gradient(135deg, #f8fbff 0%, #f4f6ff 100%);
+    }}
+    .viewer:active {{ cursor: grabbing; }}
+    img {{
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      max-width: none;
+      max-height: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      transform-origin: 0 0;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, .14);
+      border-radius: 12px;
+      background: #fff;
+    }}
+    .toolbar {{
+      position: fixed;
+      right: 18px;
+      top: 18px;
+      z-index: 2;
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid rgba(203, 213, 225, .9);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .92);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .1);
+      backdrop-filter: blur(10px);
+    }}
+    button {{
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 9px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+    }}
+    button:hover {{ background: #dbeafe; }}
+    .reset {{
+      width: auto;
+      padding: 0 12px;
+      font-size: 13px;
+    }}
+  </style>
+</head>
+<body>
+  <div class="viewer" id="viewer">
+    <img id="mindmap" src="{safe_url}" alt="{safe_title}" draggable="false" />
+  </div>
+  <div class="toolbar">
+    <button id="zoomOut" aria-label="缩小">-</button>
+    <button id="zoomIn" aria-label="放大">+</button>
+    <button id="reset" class="reset" aria-label="适配全图">适配</button>
+  </div>
+  <script>
+    const viewer = document.getElementById('viewer');
+    const img = document.getElementById('mindmap');
+    let scale = 1;
+    let minScale = 0.2;
+    let maxScale = 5;
+    let x = 0;
+    let y = 0;
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function render() {{
+      img.style.transform = `translate(${{x}}px, ${{y}}px) scale(${{scale}})`;
+    }}
+
+    function fit() {{
+      const vw = viewer.clientWidth;
+      const vh = viewer.clientHeight;
+      const iw = img.naturalWidth || img.width;
+      const ih = img.naturalHeight || img.height;
+      if (!iw || !ih) return;
+      scale = Math.min(vw / iw, vh / ih) * 0.92;
+      minScale = Math.max(scale * 0.35, 0.05);
+      x = -iw * scale / 2;
+      y = -ih * scale / 2;
+      render();
+    }}
+
+    function zoomAt(nextScale, clientX, clientY) {{
+      nextScale = Math.min(maxScale, Math.max(minScale, nextScale));
+      const rect = viewer.getBoundingClientRect();
+      const px = clientX - rect.left - rect.width / 2;
+      const py = clientY - rect.top - rect.height / 2;
+      const beforeX = (px - x) / scale;
+      const beforeY = (py - y) / scale;
+      scale = nextScale;
+      x = px - beforeX * scale;
+      y = py - beforeY * scale;
+      render();
+    }}
+
+    img.addEventListener('load', fit);
+    window.addEventListener('resize', fit);
+    viewer.addEventListener('wheel', (event) => {{
+      event.preventDefault();
+      const factor = event.deltaY > 0 ? 0.9 : 1.1;
+      zoomAt(scale * factor, event.clientX, event.clientY);
+    }}, {{ passive: false }});
+    viewer.addEventListener('pointerdown', (event) => {{
+      dragging = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      viewer.setPointerCapture(event.pointerId);
+    }});
+    viewer.addEventListener('pointermove', (event) => {{
+      if (!dragging) return;
+      x += event.clientX - lastX;
+      y += event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      render();
+    }});
+    viewer.addEventListener('pointerup', () => {{ dragging = false; }});
+    viewer.addEventListener('pointercancel', () => {{ dragging = false; }});
+    document.getElementById('zoomIn').addEventListener('click', () => zoomAt(scale * 1.18, viewer.clientWidth / 2, viewer.clientHeight / 2));
+    document.getElementById('zoomOut').addEventListener('click', () => zoomAt(scale * 0.85, viewer.clientWidth / 2, viewer.clientHeight / 2));
+    document.getElementById('reset').addEventListener('click', fit);
+    if (img.complete) fit();
+  </script>
+</body>
+</html>"""
 
 
 def _build_iframe_preview_html(source_url: str) -> str:
@@ -1199,6 +1435,16 @@ def _extract_marked_url(text: str) -> str:
     return value if _is_valid_url(value) else ""
 
 
+def _extract_embeddable_markdown_url(text: str) -> str:
+    if not text:
+        return ""
+    for match in re.finditer(r"\[[^\]]+\]\((https?://[^)\s]+)\)", text):
+        value = _sanitize_url(match.group(1))
+        if _is_valid_url(value) and _is_iframe_embeddable_url(value):
+            return value
+    return ""
+
+
 def _strip_marked_url(text: str) -> str:
     if not text:
         return text
@@ -1212,7 +1458,8 @@ def _resource_source_url(item: dict[str, Any]) -> str:
     raw = str(item.get("source_url") or "").strip()
     if _is_valid_url(raw):
         return raw
-    return _extract_marked_url(str(item.get("content", "")))
+    content = str(item.get("content", ""))
+    return _extract_marked_url(content) or _extract_embeddable_markdown_url(content)
 
 
 def _normalize_generated_content(content: str, source_url: str) -> str:

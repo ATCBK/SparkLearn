@@ -231,6 +231,8 @@ export default function VideoPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [downloadingArtifactId, setDownloadingArtifactId] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState('')
   const [assistantOpen, setAssistantOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
   const [input, setInput] = useState('')
@@ -396,6 +398,20 @@ export default function VideoPage() {
       setError(err instanceof Error ? err.message : '删除失败')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  async function handleDownloadVideo(video: VideoInfo) {
+    if (downloadingArtifactId === video.id) return
+
+    try {
+      setDownloadingArtifactId(video.id)
+      setDownloadError('')
+      await api.downloadVideoArtifact(video.id, 'mp4')
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : '视频下载失败')
+    } finally {
+      setDownloadingArtifactId(null)
     }
   }
 
@@ -625,6 +641,12 @@ export default function VideoPage() {
         </Button>
       </div>
 
+      {downloadError && (
+        <div className="mb-4 rounded-[8px] border border-red-200 bg-red-light px-4 py-3 text-small text-red">
+          {downloadError}
+        </div>
+      )}
+
       {videos.length === 0 ? (
         <EmptyState
           type="resources"
@@ -743,9 +765,14 @@ export default function VideoPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => api.downloadVideoArtifact(selected.id, 'mp4')}>
-                        <Download className="h-4 w-4" />
-                        下载
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void handleDownloadVideo(selected)}
+                        disabled={downloadingArtifactId === selected.id}
+                      >
+                        {downloadingArtifactId === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        {downloadingArtifactId === selected.id ? '下载中...' : '下载'}
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => handleShare(selected)}>
                         <Share2 className="h-4 w-4" />

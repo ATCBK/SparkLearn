@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { Clock, History, Lightbulb, RefreshCw, Sparkles, Target } from 'lucide-react'
 import { api, ProfileAnalysisResp, ProfileHistoryItem, ProfileHistoryResp, Resource as ResourceType } from '@/lib/api'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function ProfilePage() {
   const [gender, setGender] = useState<'male' | 'female'>('male')
@@ -263,25 +265,54 @@ function ProfileHistoryPanel({
                         <b className="text-small text-ink">{step.title}</b>
                         <span className="shrink-0 text-micro text-green">{step.status === 'done' ? '已完成' : step.status}</span>
                       </div>
-                      <p className="mt-1 text-micro leading-5 text-muted">{step.detail}</p>
+                      <p className="mt-1 whitespace-pre-line break-words text-micro leading-5 text-muted">{step.detail}</p>
                     </div>
                   </div>
                 ))}
                 <div className="rounded-[10px] border border-purple/20 bg-[#faf7ff] p-3">
                   <b className="text-small text-ink">最终诊断</b>
-                  <p className="mt-2 text-small leading-7 text-ink">{analysis.analysis}</p>
+                  <ProfileAnalysisMarkdown content={analysis.analysis} />
                 </div>
               </div>
             ) : (
-              <p className="text-small leading-7 text-ink">
-                {analysis?.analysis || buildDefaultProfileAnalysis(latest)}
-              </p>
+              <ProfileAnalysisMarkdown content={analysis?.analysis || buildDefaultProfileAnalysis(latest)} plain />
             )}
           </div>
         </div>
       </div>
     </ProtoCard>
   )
+}
+
+function ProfileAnalysisMarkdown({ content, plain = false }: { content: string; plain?: boolean }) {
+  const normalizedContent = normalizeProfileAnalysisMarkdown(content)
+
+  return (
+    <div className={`${plain ? '' : 'mt-2'} break-words text-small leading-7 text-ink`}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-bold text-ink">{children}</strong>,
+          ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          h1: ({ children }) => <h3 className="mt-3 text-base font-bold text-ink first:mt-0">{children}</h3>,
+          h2: ({ children }) => <h3 className="mt-3 text-base font-bold text-ink first:mt-0">{children}</h3>,
+          h3: ({ children }) => <h3 className="mt-3 text-small font-bold text-ink first:mt-0">{children}</h3>,
+        }}
+      >
+        {normalizedContent}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
+function normalizeProfileAnalysisMarkdown(content: string) {
+  return content
+    .trim()
+    .replace(/\s+(\*\*[^*\n]+?\*\*[：:])/g, '\n\n$1')
+    .replace(/([。！？；])\s+(?=\*\*[^*\n]+?\*\*[：:])/g, '$1\n\n')
 }
 
 function ProfileHistoryRow({ item, active }: { item: ProfileHistoryItem; active: boolean }) {

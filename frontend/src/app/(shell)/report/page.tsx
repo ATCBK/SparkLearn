@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Calendar, FileText, Sparkles, BarChart3, Clo
 import { PageHead, Pill, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 import { api, ReportData } from '@/lib/api'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 type ViewMode = 'day' | 'week' | 'month'
 
@@ -286,14 +288,14 @@ export default function ReportPage() {
                 <SoftCard className="mb-4">
                   <div className="flex items-start gap-2">
                     <FileText className="h-4 w-4 text-blue mt-0.5 shrink-0" />
-                    <div className="text-small leading-7 text-ink whitespace-pre-wrap max-h-[150px] overflow-y-auto pr-1">
+                    <div className="max-h-[150px] overflow-y-auto pr-1 text-small leading-7 text-ink">
                       {aiGenerating ? (
                         <span className="inline-flex items-center gap-2 text-muted">
                           <span className="inline-block h-2 w-2 rounded-full bg-purple animate-pulse" />
                           AI 正在分析学习数据并生成{modeLabels[mode]}...
                         </span>
                       ) : (
-                        aiSummary || report.aiSummary
+                        <ReportSummaryMarkdown content={aiSummary || report.aiSummary} />
                       )}
                     </div>
                   </div>
@@ -515,6 +517,37 @@ function DayHourlyCurve({ data }: { data: number[] }) {
       </div>
     </div>
   )
+}
+
+function ReportSummaryMarkdown({ content }: { content: string }) {
+  const normalizedContent = normalizeReportSummaryMarkdown(content)
+
+  return (
+    <div className="break-words">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-bold text-ink">{children}</strong>,
+          ul: ({ children }) => <ul className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          h1: ({ children }) => <h3 className="mt-3 text-base font-bold text-ink first:mt-0">{children}</h3>,
+          h2: ({ children }) => <h3 className="mt-3 text-base font-bold text-ink first:mt-0">{children}</h3>,
+          h3: ({ children }) => <h3 className="mt-3 text-small font-bold text-ink first:mt-0">{children}</h3>,
+        }}
+      >
+        {normalizedContent}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
+function normalizeReportSummaryMarkdown(content: string) {
+  return content
+    .trim()
+    .replace(/\s+(\*\*[^*\n]+?\*\*[：:])/g, '\n\n$1')
+    .replace(/([。！？；])\s+(?=\*\*[^*\n]+?\*\*[：:])/g, '$1\n\n')
 }
 
 /** Task completion donut chart */

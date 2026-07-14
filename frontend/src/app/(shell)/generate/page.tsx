@@ -4,7 +4,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, NotebookPen, ChevronLeft, ChevronRight, Globe, Zap, ShieldCheck, CircleGauge, X, Info } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock, FileText, Layers, Play, Save, Sparkles, ArrowLeft, Download, Trash2, Search, Presentation, Brain, Video, Radio, CheckSquare, BookOpen, Code, NotebookPen, ChevronLeft, ChevronRight, Globe, Zap, ShieldCheck, CircleGauge, X, Info, Loader2 } from 'lucide-react'
 import { api, KnowledgeFile, Resource, ResourceQualityResult, StudentProfile, VideoStyle, VideoScriptSegment, VideoPolishResult } from '@/lib/api'
 import { Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -217,6 +217,7 @@ function GeneratePageContent() {
   const [filter, setFilter] = useState('全部')
   const [libraryError, setLibraryError] = useState('')
   const [deletingResourceId, setDeletingResourceId] = useState('')
+  const [downloadingResourceId, setDownloadingResourceId] = useState('')
   const [detailLoadingId, setDetailLoadingId] = useState('')
   const [qualityLoadingId, setQualityLoadingId] = useState('')
   const [qualityResults, setQualityResults] = useState<Record<string, ResourceQualityResult>>({})
@@ -355,6 +356,20 @@ function GeneratePageContent() {
     }
   }
 
+  async function downloadSelectedResource(res: Resource) {
+    if (!res.id || downloadingResourceId === res.id) return
+
+    setDownloadingResourceId(res.id)
+    setLibraryError('')
+    try {
+      await api.downloadResource(res.id)
+    } catch (ex) {
+      setLibraryError(ex instanceof Error ? ex.message : '下载资源失败')
+    } finally {
+      setDownloadingResourceId('')
+    }
+  }
+
   async function openLibraryView(nextSelectedId?: string) {
     setQuery('')
     setFilter('全部')
@@ -404,7 +419,7 @@ function GeneratePageContent() {
   const selected = filtered.find(r => r.id === selectedId) || filtered[0]
   const selectedQuality = selected ? qualityResults[selected.id] : null
   const generatedQuality = resource ? qualityResults[resource.id] : null
-  const generatedPreviewUrl = resource?.sourceUrl
+  const generatedPreviewUrl = resource && (resource.sourceUrl || resource.type === 'mindmap')
     ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${resource.id}/preview/html`
     : ''
   const activeQualityResource = (resource && resource.id === qualityDialogResourceId)
@@ -436,7 +451,7 @@ function GeneratePageContent() {
   if (view === 'library') {
     const selectedIcon = selected ? resourceIcon(selected.type) : resourceIcon('document')
     const completedCount = resources.filter(r => r.status === 'completed').length
-    const previewUrl = selected?.sourceUrl && selected.type !== 'web_material'
+    const previewUrl = selected && selected.type !== 'web_material' && (selected.sourceUrl || selected.type === 'mindmap')
       ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`
       : ''
 
@@ -582,7 +597,14 @@ function GeneratePageContent() {
                       onOpen={() => setQualityDialogResourceId(selected.id)}
                     />
                     <ProtoButton variant="secondary"><Sparkles className="h-4 w-4" />AI </ProtoButton>
-                    <ProtoButton variant="tertiary" onClick={() => void api.downloadResource(selected.id)}><Download className="h-4 w-4" />下载</ProtoButton>
+                    <ProtoButton
+                      variant="tertiary"
+                      onClick={() => void downloadSelectedResource(selected)}
+                      disabled={downloadingResourceId === selected.id}
+                    >
+                      {downloadingResourceId === selected.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      {downloadingResourceId === selected.id ? '下载中...' : '下载'}
+                    </ProtoButton>
                     <ProtoButton variant="tertiary" onClick={() => openResourceNotes(selected)}><NotebookPen className="h-4 w-4" />笔记</ProtoButton>
                     <button
                       onClick={() => void removeResource(selected.id)}

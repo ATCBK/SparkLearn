@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGraphStore } from '../store/graphStore'
 import type { GraphData, KnowledgeEdge, KnowledgeNode } from '../types/graph'
 import { cn } from '@/lib/utils/cn'
@@ -79,6 +79,23 @@ export function GraphCanvas() {
     return filterGraphData(graphData, filter, searchQuery)
   }, [graphData, filter, searchQuery])
 
+  const resizeChart = useCallback(() => {
+    const chart = chartRef.current
+    const container = containerRef.current
+
+    if (!chart || chart.isDisposed() || !container?.isConnected || container.clientWidth === 0 || container.clientHeight === 0) {
+      return
+    }
+
+    try {
+      chart.resize()
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[GraphCanvas] resize skipped because chart is not ready', error)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (!containerRef.current || typeof window === 'undefined' || chartRef.current) return
 
@@ -100,8 +117,10 @@ export function GraphCanvas() {
 
     return () => {
       disposed = true
-      chartRef.current?.dispose()
+      setIsEchartsReady(false)
+      const chart = chartRef.current
       chartRef.current = null
+      chart?.dispose()
     }
   }, [selectNode])
 
@@ -222,7 +241,7 @@ export function GraphCanvas() {
 
   useEffect(() => {
     const container = containerRef.current
-    const handleResize = () => chartRef.current?.resize()
+    const handleResize = () => resizeChart()
 
     window.addEventListener('resize', handleResize)
 
@@ -235,12 +254,12 @@ export function GraphCanvas() {
       window.removeEventListener('resize', handleResize)
       resizeObserver?.disconnect()
     }
-  }, [])
+  }, [resizeChart])
 
   useEffect(() => {
-    const timer = setTimeout(() => chartRef.current?.resize(), 150)
+    const timer = setTimeout(() => resizeChart(), 150)
     return () => clearTimeout(timer)
-  }, [isFullscreen])
+  }, [isFullscreen, resizeChart])
 
   return (
     <div
