@@ -11,6 +11,8 @@ def _ensure_dirs() -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.db_path.parent.mkdir(parents=True, exist_ok=True)
     (settings.data_dir / 'users' / settings.single_user_id).mkdir(parents=True, exist_ok=True)
+    if settings.demo_user_id:
+        (settings.data_dir / 'users' / settings.demo_user_id).mkdir(parents=True, exist_ok=True)
 
 
 @contextmanager
@@ -504,6 +506,12 @@ def _ensure_student_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE students ADD COLUMN avatar TEXT DEFAULT ''")
     if 'last_login_at' not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN last_login_at TEXT DEFAULT ''")
+    if 'password_hash' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN password_hash TEXT DEFAULT ''")
+    if 'is_demo' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN is_demo INTEGER DEFAULT 0")
+    if 'auth_provider' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN auth_provider TEXT DEFAULT 'phone'")
 
 
 def _ensure_knowledge_columns(conn: sqlite3.Connection) -> None:

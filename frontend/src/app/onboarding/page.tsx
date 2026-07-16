@@ -26,7 +26,7 @@ import {
   Languages,
   TerminalSquare,
 } from 'lucide-react'
-import { syncStudyBuddyProfile } from '@/lib/auth'
+import { getToken, syncStudyBuddyProfile } from '@/lib/auth'
 import { getTeacherSubjects } from '@/lib/api/real'
 
 /* ── 类型 ─────────────────────────────────────────── */
@@ -377,7 +377,10 @@ export default function OnboardingPage() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/profile/onboarding`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+          },
           body: JSON.stringify(body),
         }
       )

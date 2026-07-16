@@ -10,7 +10,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from .config import settings
 from .db import init_db
-from .auth import router as auth_router
+from .auth import initialize_configured_demo_user, router as auth_router
 from .routes.learning import router as learning_router
 from .routes.memory import router as memory_router
 from .routes.knowledge import router as knowledge_router
@@ -111,6 +111,7 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         init_db()
+        initialize_configured_demo_user()
         _log_model_config_sanity()
         yield
 

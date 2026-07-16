@@ -222,6 +222,13 @@ class Settings(BaseSettings):
     aliyun_oss_cdn_domain: str = ""
 
     single_user_id: str = "single_user"
+    auth_dev_bypass: bool = False
+    demo_user_phone: str = ""
+    demo_user_id: str = "demo_user"
+    demo_user_password: str = ""
+    auth_password_min_length: int = 8
+    auth_password_require_letter: bool = True
+    auth_password_require_digit: bool = True
     use_mock_data: bool = True
     cors_origin: str = "http://localhost:3000"
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]

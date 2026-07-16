@@ -4,11 +4,13 @@
 """
 
 import logging
+import shutil
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 from pydantic import BaseModel, Field
 
 from .config import settings
@@ -30,6 +32,171 @@ def _utcnow_naive() -> datetime:
 # HTTP Bearer scheme
 bearer_scheme = HTTPBearer(auto_error=False)
 bearer_scheme_required = HTTPBearer(auto_error=True)
+password_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+
+
+def is_demo_phone(phone: str) -> bool:
+    return bool(settings.demo_user_phone) and phone == settings.demo_user_phone
+
+
+def resolve_user_id_for_phone(phone: str) -> str:
+    if is_demo_phone(phone):
+        return settings.demo_user_id or f"user_{phone}"
+    return f"user_{phone}"
+
+
+def validate_password_strength(password: str) -> str | None:
+    if len(password or "") < settings.auth_password_min_length:
+        return f"密码至少需要 {settings.auth_password_min_length} 位"
+    if settings.auth_password_require_letter and not any(ch.isalpha() for ch in password):
+        return "密码需要包含字母"
+    if settings.auth_password_require_digit and not any(ch.isdigit() for ch in password):
+        return "密码需要包含数字"
+    return None
+
+
+def hash_password(password: str) -> str:
+    return password_context.hash(password)
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    if not password_hash:
+        return False
+    return password_context.verify(password, password_hash)
+
+
+def ensure_user_workspace(user_id: str) -> None:
+    (settings.data_dir / "users" / user_id).mkdir(parents=True, exist_ok=True)
+
+
+def seed_demo_account_data(user_id: str) -> None:
+    """把当前单用户演示数据复制到演示账号空间。"""
+    if not user_id or user_id == settings.single_user_id:
+        return
+
+    source_dir = settings.data_dir / "users" / settings.single_user_id
+    target_dir = settings.data_dir / "users" / user_id
+    if source_dir.exists():
+        shutil.copytree(source_dir, target_dir, dirs_exist_ok=True)
+
+    source_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+    if source_student:
+        execute(
+            """
+            UPDATE students
+            SET email = ?, major = ?, grade = ?, avatar = ?, updated_at = ?
+            WHERE user_id = ?
+            """,
+            (
+                source_student["email"] if "email" in source_student.keys() else "",
+                source_student["major"] if "major" in source_student.keys() else "",
+                source_student["grade"] if "grade" in source_student.keys() else "",
+                source_student["avatar"] if "avatar" in source_student.keys() else "",
+                now_iso(),
+                user_id,
+            ),
+        )
+
+    source_profile = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
+    if source_profile:
+        execute(
+            """
+            INSERT INTO profiles(
+              user_id, goal, knowledge_level, weak_points, learning_preference, cognitive_style,
+              daily_time, practical_ability, current_stage, version, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+              goal=excluded.goal,
+              knowledge_level=excluded.knowledge_level,
+              weak_points=excluded.weak_points,
+              learning_preference=excluded.learning_preference,
+              cognitive_style=excluded.cognitive_style,
+              daily_time=excluded.daily_time,
+              practical_ability=excluded.practical_ability,
+              current_stage=excluded.current_stage,
+              version=excluded.version,
+              updated_at=excluded.updated_at
+            """,
+            (
+                user_id,
+                source_profile["goal"],
+                source_profile["knowledge_level"],
+                source_profile["weak_points"],
+                source_profile["learning_preference"],
+                source_profile["cognitive_style"],
+                source_profile["daily_time"],
+                source_profile["practical_ability"],
+                source_profile["current_stage"],
+                source_profile["version"],
+                now_iso(),
+            ),
+        )
+
+    execute("DELETE FROM mastery_records WHERE user_id = ?", (user_id,))
+    execute(
+        """
+        INSERT INTO mastery_records(
+          user_id, knowledge_point_id, knowledge_point_name, score, chapter, last_updated
+        )
+        SELECT ?, knowledge_point_id, knowledge_point_name, score, chapter, last_updated
+        FROM mastery_records
+        WHERE user_id = ?
+        """,
+        (user_id, settings.single_user_id),
+    )
+
+
+def initialize_configured_demo_user() -> None:
+    """根据环境配置创建可直接密码登录的演示账号。"""
+    phone = settings.demo_user_phone.strip()
+    password = settings.demo_user_password.strip()
+    if not phone or not password:
+        return
+
+    password_error = validate_password_strength(password)
+    if password_error:
+        logger.warning("演示账号密码不满足规则：%s", password_error)
+        return
+
+    user_id = settings.demo_user_id or f"user_{phone}"
+    ts = now_iso()
+    password_hash = hash_password(password)
+    ensure_user_workspace(user_id)
+    existing = fetch_one("SELECT user_id FROM students WHERE phone = ?", (phone,))
+    if existing:
+        execute(
+            """
+            UPDATE students
+            SET user_id = ?, password_hash = ?, is_demo = 1, auth_provider = ?, updated_at = ?
+            WHERE phone = ?
+            """,
+            (user_id, password_hash, "phone_password", ts, phone),
+        )
+    else:
+        execute(
+            """
+            INSERT INTO students(
+              user_id, name, phone, password_hash, is_demo, auth_provider, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+            """,
+            (user_id, "演示账号", phone, password_hash, "phone_password", ts, ts),
+        )
+        execute(
+            "INSERT OR IGNORE INTO profiles(user_id, updated_at) VALUES (?, ?)",
+            (user_id, ts),
+        )
+
+    seed_demo_account_data(user_id)
+
+
+def _user_payload(row, phone: str | None = None) -> dict:
+    is_demo = bool(row["is_demo"]) if row and "is_demo" in row.keys() else False
+    return {
+        "user_id": row["user_id"],
+        "name": row["name"],
+        "phone": phone if phone is not None else row["phone"],
+        "is_demo": is_demo,
+    }
 
 
 def create_access_token(user_id: str, expires_delta: timedelta | None = None) -> str:
@@ -60,7 +227,7 @@ async def get_current_user(
     兼容模式：如果 single_user_id 不为空，直接返回该用户（用于本地开发）。
     """
     # 兼容模式：本地开发跳过认证
-    if settings.single_user_id:
+    if settings.auth_dev_bypass and settings.single_user_id:
         return {"user_id": settings.single_user_id, "phone": "", "name": "张同学"}
 
     # 正式模式：验证 JWT
@@ -87,21 +254,21 @@ async def get_current_user(
         )
 
     # 验证用户是否存在
-    user = fetch_one("SELECT user_id, name, phone, avatar FROM students WHERE user_id = ?", (user_id,))
+    user = fetch_one("SELECT user_id, name, phone, avatar, is_demo FROM students WHERE user_id = ?", (user_id,))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户不存在",
         )
 
-    return {"user_id": user["user_id"], "name": user["name"], "phone": user["phone"]}
+    return _user_payload(user)
 
 
 async def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict | None:
     """获取当前用户（可选，不强制登录）"""
-    if settings.single_user_id:
+    if settings.auth_dev_bypass and settings.single_user_id:
         return {"user_id": settings.single_user_id, "phone": "", "name": "张同学"}
 
     if credentials is None:
@@ -115,11 +282,11 @@ async def get_optional_user(
     if not user_id:
         return None
 
-    user = fetch_one("SELECT user_id, name, phone FROM students WHERE user_id = ?", (user_id,))
+    user = fetch_one("SELECT user_id, name, phone, is_demo FROM students WHERE user_id = ?", (user_id,))
     if not user:
         return None
 
-    return {"user_id": user["user_id"], "name": user["name"], "phone": user["phone"]}
+    return _user_payload(user)
 
 
 # ─── 路由 ────────────────────────────────────────────────────────────────────────
@@ -141,6 +308,12 @@ class SmsRegisterReq(BaseModel):
     phone: str = Field(min_length=11, max_length=11)
     code: str = Field(min_length=6, max_length=6)
     name: str = Field(default="", max_length=50)
+    password: str = ""
+
+
+class PasswordLoginReq(BaseModel):
+    phone: str = Field(min_length=11, max_length=11)
+    password: str = Field(min_length=1)
 
 
 @router.get("/check-phone/{phone}")
@@ -222,7 +395,7 @@ async def sms_login(req: SmsLoginReq):
     execute("UPDATE sms_codes SET used = ? WHERE id = ?", (True, record["id"]))
 
     # 查找用户（不再自动创建）
-    user = fetch_one("SELECT user_id, name FROM students WHERE phone = ?", (req.phone,))
+    user = fetch_one("SELECT user_id, name, phone, is_demo FROM students WHERE phone = ?", (req.phone,))
     if not user:
         raise HTTPException(status_code=404, detail="该手机号未注册，请先注册")
 
@@ -234,12 +407,23 @@ async def sms_login(req: SmsLoginReq):
 
     return ok({
         "token": token,
-        "user": {
-            "user_id": user["user_id"],
-            "name": user["name"],
-            "phone": req.phone,
-        },
+        "user": _user_payload(user, req.phone),
     })
+
+
+@router.post("/password/login")
+async def password_login(req: PasswordLoginReq):
+    """手机号 + 密码登录"""
+    user = fetch_one(
+        "SELECT user_id, name, phone, password_hash, is_demo FROM students WHERE phone = ?",
+        (req.phone,),
+    )
+    if not user or not verify_password(req.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="手机号或密码错误")
+
+    execute("UPDATE students SET last_login_at = ? WHERE user_id = ?", (now_iso(), user["user_id"]))
+    token = create_access_token(user["user_id"])
+    return ok({"token": token, "user": _user_payload(user, req.phone)})
 
 
 @router.post("/sms/register")
@@ -268,6 +452,10 @@ async def sms_register(req: SmsRegisterReq):
     if _utcnow_naive() > expires_at:
         raise HTTPException(status_code=400, detail="验证码已过期")
 
+    password_error = validate_password_strength(req.password)
+    if password_error:
+        raise HTTPException(status_code=400, detail=password_error)
+
     # 检查手机号是否已注册
     existing = fetch_one("SELECT user_id FROM students WHERE phone = ?", (req.phone,))
     if existing:
@@ -277,17 +465,26 @@ async def sms_register(req: SmsRegisterReq):
     execute("UPDATE sms_codes SET used = ? WHERE id = ?", (True, record["id"]))
 
     # 创建用户
-    user_id = f"user_{req.phone}"
+    user_id = resolve_user_id_for_phone(req.phone)
     ts = now_iso()
     name = req.name or f"用户{req.phone[-4:]}"
+    password_hash = hash_password(req.password)
+    is_demo = 1 if is_demo_phone(req.phone) else 0
+    ensure_user_workspace(user_id)
     execute(
-        "INSERT INTO students (user_id, name, phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-        (user_id, name, req.phone, ts, ts),
+        """
+        INSERT INTO students (
+            user_id, name, phone, password_hash, is_demo, auth_provider, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (user_id, name, req.phone, password_hash, is_demo, "phone_password", ts, ts),
     )
     execute(
         "INSERT INTO profiles (user_id, updated_at) VALUES (?, ?)",
         (user_id, ts),
     )
+    if is_demo:
+        seed_demo_account_data(user_id)
 
     # 生成 JWT
     token = create_access_token(user_id)
@@ -298,6 +495,7 @@ async def sms_register(req: SmsRegisterReq):
             "user_id": user_id,
             "name": name,
             "phone": req.phone,
+            "is_demo": bool(is_demo),
         },
     })
 

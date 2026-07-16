@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { PanelLeftClose } from 'lucide-react'
+import { LogOut, PanelLeftClose, Settings } from 'lucide-react'
+import { logout } from '@/lib/auth'
 import { PAGE_META } from '@/components/layout/navigation'
 
 interface TopbarProps {
@@ -15,6 +16,7 @@ interface TopbarProps {
 export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }: TopbarProps) {
   const pathname = usePathname()
   const meta = PAGE_META[pathname] || PAGE_META['/']
+  const [userPanelOpen, setUserPanelOpen] = useState(false)
   const [{ nameChar, avatarUrl }] = useState(() => {
     if (typeof window === 'undefined') return { nameChar: '李', avatarUrl: '' }
     try {
@@ -48,18 +50,44 @@ export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <Link
-          href="/profile/settings"
-          className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-90"
-          title="个人设置"
-        >
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="用户头像" className="h-9 w-9 rounded-full object-cover ring-1 ring-[#e5e7eb]" />
-          ) : (
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-blue text-sm font-bold text-white">{nameChar}</span>
-          )}
-        </Link>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setUserPanelOpen((value) => !value)}
+            className="inline-flex items-center justify-center rounded-full transition-opacity hover:opacity-90"
+            title="用户面板"
+            aria-label="打开用户面板"
+            aria-expanded={userPanelOpen}
+          >
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="用户头像" className="h-9 w-9 rounded-full object-cover ring-1 ring-[#e5e7eb]" />
+            ) : (
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-blue text-sm font-bold text-white">{nameChar}</span>
+            )}
+          </button>
+
+          {userPanelOpen ? (
+            <div className="absolute right-0 top-11 w-44 overflow-hidden rounded-xl border border-[#e5e7eb] bg-white py-2 shadow-lg shadow-black/10">
+              <Link
+                href="/profile/settings"
+                onClick={() => setUserPanelOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-[#475569] transition-colors hover:bg-[#f8fafc] hover:text-[#2563eb]"
+              >
+                <Settings className="h-4 w-4" />
+                个人设置
+              </Link>
+              <button
+                type="button"
+                onClick={logout}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-[#475569] transition-colors hover:bg-[#fef2f2] hover:text-[#dc2626]"
+              >
+                <LogOut className="h-4 w-4" />
+                退出登录
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   )

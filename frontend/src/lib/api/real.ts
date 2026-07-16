@@ -198,17 +198,24 @@ export async function checkPhoneRegistered(phone: string): Promise<{ registered:
   return fetchJson(`/api/auth/check-phone/${phone}`)
 }
 
-export async function smsLogin(phone: string, code: string): Promise<{ token: string; user: { id: string; name: string; phone: string } }> {
+export async function smsLogin(phone: string, code: string): Promise<{ token: string; user: { id?: string; user_id?: string; name: string; phone: string; is_demo?: boolean } }> {
   return fetchJson('/api/auth/sms/login', {
     method: 'POST',
     body: JSON.stringify({ phone, code }),
   })
 }
 
-export async function smsRegister(phone: string, code: string, name?: string): Promise<{ token: string; user: { id: string; name: string; phone: string } }> {
+export async function passwordLogin(phone: string, password: string): Promise<{ token: string; user: { id?: string; user_id?: string; name: string; phone: string; is_demo?: boolean } }> {
+  return fetchJson('/api/auth/password/login', {
+    method: 'POST',
+    body: JSON.stringify({ phone, password }),
+  })
+}
+
+export async function smsRegister(phone: string, code: string, name: string | undefined, password: string): Promise<{ token: string; user: { id?: string; user_id?: string; name: string; phone: string; is_demo?: boolean } }> {
   return fetchJson('/api/auth/sms/register', {
     method: 'POST',
-    body: JSON.stringify({ phone, code, name }),
+    body: JSON.stringify({ phone, code, name, password }),
   })
 }
 

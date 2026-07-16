@@ -3,11 +3,12 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..config import settings
+from ..auth import get_current_user
 from ..db import execute, fetch_one, now_iso
 from ..llm import spark_lite
 from ..schemas import fail, ok
@@ -53,23 +54,24 @@ class ProfileUpdateReq(BaseModel):
 
 
 @router.post("/onboarding")
-async def onboarding(req: ProfileOnboardingReq):
+async def onboarding(req: ProfileOnboardingReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     profile = _build_profile_from_onboarding(req)
     major = _first_nonempty(req.major)
     if major:
-        _upsert_student_major(major)
+        _upsert_student_major(user_id, major)
         profile["major"] = major
-    _upsert_profile(profile)
-    _write_profile_snapshot(profile)
-    _record_profile_history(profile, reason="onboarding")
-    append_jsonl(settings.single_user_id, "learning_events.jsonl", {"type": "profile_onboarding", "profile": profile})
+    _upsert_profile(user_id, profile)
+    _write_profile_snapshot(user_id, profile)
+    _record_profile_history(user_id, profile, reason="onboarding")
+    append_jsonl(user_id, "learning_events.jsonl", {"type": "profile_onboarding", "profile": profile})
     return ok({"version": profile["version"], "message": "onboarding profile saved"})
 
 
 @router.post("/initiate")
-async def initiate():
+async def initiate(current_user: dict = Depends(get_current_user)):
     session_id = f"sess_{uuid.uuid4().hex[:8]}"
-    _sessions[session_id] = {"round": 1, "messages": []}
+    _sessions[session_id] = {"round": 1, "messages": [], "user_id": current_user["user_id"]}
     return ok(
         {
             "session_id": session_id,
@@ -98,14 +100,15 @@ async def chat(req: ProfileChatReq):
         round_no += 1
         session["round"] = round_no
         if round_no > 3:
+            user_id = str(session.get("user_id") or settings.single_user_id)
             profile = _build_profile_from_dialog(session["messages"])
             if profile.get("major"):
-                _upsert_student_major(str(profile["major"]))
-            _upsert_profile(profile)
-            _write_profile_snapshot(profile)
-            _record_profile_history(profile, reason="dialog")
+                _upsert_student_major(user_id, str(profile["major"]))
+            _upsert_profile(user_id, profile)
+            _write_profile_snapshot(user_id, profile)
+            _record_profile_history(user_id, profile, reason="dialog")
             append_jsonl(
-                settings.single_user_id,
+                user_id,
                 "learning_events.jsonl",
                 {"type": "profile_dialog_completed", "session_id": req.session_id, "profile": profile},
             )
@@ -118,17 +121,19 @@ async def chat(req: ProfileChatReq):
 
 
 @router.get("")
-async def get_profile():
-    profile_row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
+async def get_profile(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    profile_row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
     if not profile_row:
         return fail("profile not found")
-    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     return ok(_row_to_profile(profile_row, student_row))
 
 
 @router.put("")
-async def update_profile(req: ProfileUpdateReq):
-    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
+async def update_profile(req: ProfileUpdateReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
     if not row:
         return fail("profile not found")
     student_patch = req.model_dump(include={"name", "email", "major", "grade"}, exclude_none=True)
@@ -138,7 +143,7 @@ async def update_profile(req: ProfileUpdateReq):
     )
 
     if student_patch:
-        current_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+        current_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
         if current_student:
             next_student = {
                 "name": current_student["name"],
@@ -159,20 +164,20 @@ async def update_profile(req: ProfileUpdateReq):
                     str(next_student.get("major", "")).strip(),
                     str(next_student.get("grade", "")).strip(),
                     now_iso(),
-                    settings.single_user_id,
+                    user_id,
                 ),
             )
 
-    updated_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+    updated_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     profile = _row_to_profile(row, updated_student)
     profile.update(profile_patch)
     profile["version"] = int(profile.get("version", 1)) + 1
     profile["updated_at"] = now_iso()
-    _upsert_profile(profile)
-    _write_profile_snapshot(profile)
-    _record_profile_history(profile, reason="manual_update")
+    _upsert_profile(user_id, profile)
+    _write_profile_snapshot(user_id, profile)
+    _record_profile_history(user_id, profile, reason="manual_update")
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         "learning_events.jsonl",
         {"type": "profile_updated", "patch": {**student_patch, **profile_patch}},
     )
@@ -180,14 +185,15 @@ async def update_profile(req: ProfileUpdateReq):
 
 
 @router.get("/history")
-async def get_profile_history():
-    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
-    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+async def get_profile_history(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     current_profile = _row_to_profile(row, student_row) if row else {}
     if row:
-        _record_profile_history(current_profile, reason="history_view")
+        _record_profile_history(user_id, current_profile, reason="history_view")
 
-    history = _with_mock_profile_history(_load_profile_history(), current_profile)
+    history = _with_mock_profile_history(_load_profile_history(user_id), current_profile)
     latest = history[0] if history else None
     next_update_at = _next_history_update_at(str(latest.get("captured_at", ""))) if latest else ""
     return ok(
@@ -200,20 +206,21 @@ async def get_profile_history():
 
 
 @router.post("/history/analyze")
-async def analyze_profile_history():
-    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
-    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+async def analyze_profile_history(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     current_profile = _row_to_profile(row, student_row) if row else {}
-    history = _with_mock_profile_history(_load_profile_history(), current_profile)
+    history = _with_mock_profile_history(_load_profile_history(user_id), current_profile)
     steps = _build_profile_analysis_steps(current_profile, history)
     prompt = _build_profile_analysis_prompt(current_profile, history)
     analysis = await _collect_profile_analysis(prompt)
     payload = {"analysis": analysis, "analysis_steps": steps, "updated_at": now_iso()}
-    write_json(settings.single_user_id, PROFILE_ANALYSIS_FILE, payload)
+    write_json(user_id, PROFILE_ANALYSIS_FILE, payload)
     return ok(payload)
 
 
-def _upsert_profile(profile: dict[str, Any]) -> None:
+def _upsert_profile(user_id: str, profile: dict[str, Any]) -> None:
     execute(
         """
         INSERT INTO profiles(
@@ -233,7 +240,7 @@ def _upsert_profile(profile: dict[str, Any]) -> None:
           updated_at=excluded.updated_at
         """,
         (
-            settings.single_user_id,
+            user_id,
             json.dumps(profile.get("goal", []), ensure_ascii=False),
             profile.get("knowledge_level", ""),
             json.dumps(profile.get("weak_points", []), ensure_ascii=False),
@@ -248,12 +255,12 @@ def _upsert_profile(profile: dict[str, Any]) -> None:
     )
 
 
-def _upsert_student_major(major: str) -> None:
-    current_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
+def _upsert_student_major(user_id: str, major: str) -> None:
+    current_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     if current_student:
         execute(
             "UPDATE students SET major = ?, updated_at = ? WHERE user_id = ?",
-            (major.strip(), now_iso(), settings.single_user_id),
+            (major.strip(), now_iso(), user_id),
         )
         return
 
@@ -262,7 +269,7 @@ def _upsert_student_major(major: str) -> None:
         INSERT INTO students(user_id, name, email, major, grade, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (settings.single_user_id, "", "", major.strip(), "", now_iso(), now_iso()),
+        (user_id, "", "", major.strip(), "", now_iso(), now_iso()),
     )
 
 
@@ -344,8 +351,8 @@ def _extract_major(text: str) -> str:
     return ""
 
 
-def _load_profile_history() -> list[dict[str, Any]]:
-    raw = read_json(settings.single_user_id, PROFILE_HISTORY_FILE, [])
+def _load_profile_history(user_id: str) -> list[dict[str, Any]]:
+    raw = read_json(user_id, PROFILE_HISTORY_FILE, [])
     if not isinstance(raw, list):
         return []
     items = [item for item in raw if isinstance(item, dict)]
@@ -420,11 +427,11 @@ def _mock_profile_profiles(current_profile: dict[str, Any]) -> list[dict[str, An
     ]
 
 
-def _record_profile_history(profile: dict[str, Any], reason: str) -> None:
+def _record_profile_history(user_id: str, profile: dict[str, Any], reason: str) -> None:
     if not profile:
         return
 
-    history = _load_profile_history()
+    history = _load_profile_history(user_id)
     now = now_iso()
     latest = history[0] if history else None
     snapshot = _profile_history_snapshot(profile, now, reason)
@@ -440,7 +447,7 @@ def _record_profile_history(profile: dict[str, Any], reason: str) -> None:
     else:
         history.insert(0, snapshot)
 
-    write_json(settings.single_user_id, PROFILE_HISTORY_FILE, history[:12])
+    write_json(user_id, PROFILE_HISTORY_FILE, history[:12])
 
 
 def _profile_history_snapshot(profile: dict[str, Any], captured_at: str, reason: str) -> dict[str, Any]:
@@ -572,5 +579,5 @@ async def _collect_profile_analysis(prompt: str) -> str:
     return "AI 暂未生成新的画像分析。建议先查看最近一次画像：结合学习目标、薄弱点和当前阶段，优先完成一组短练习并更新错题记录。"
 
 
-def _write_profile_snapshot(profile: dict[str, Any]) -> None:
-    write_json(settings.single_user_id, "profile_snapshot.json", profile)
+def _write_profile_snapshot(user_id: str, profile: dict[str, Any]) -> None:
+    write_json(user_id, "profile_snapshot.json", profile)
