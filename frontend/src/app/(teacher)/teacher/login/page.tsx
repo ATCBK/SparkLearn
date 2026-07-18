@@ -24,7 +24,7 @@ export default function TeacherLoginPage() {
       window.dispatchEvent(new Event('teacher-auth-changed'))
       router.push('/teacher/dashboard')
     } else {
-      setError('账号或密码错误，账号：teacher / SparkLearn1')
+      setError('账号或密码错误，请核对后重试')
     }
     setLoading(false)
   }
@@ -104,7 +104,7 @@ export default function TeacherLoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-[#9ca3af]">
-          账号：teacher &nbsp;/&nbsp; 密码：SparkLearn1
+          教师账号已配置，登录信息请联系项目负责人获取
         </p>
       </div>
     </div>
