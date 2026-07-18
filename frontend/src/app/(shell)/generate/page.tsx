@@ -12,6 +12,8 @@ import { AudioRadio } from '@/components/ui/AudioRadio'
 import { MarkdownCodePreview } from '@/components/ui/MarkdownCodePreview'
 import { CodePracticePanel } from '@/components/ui/CodePracticePanel'
 import { useGenerationTasks } from '@/components/providers/GenerationTaskProvider'
+import { GenerationFailureContactDialog } from '@/components/ui/GenerationFailureContactDialog'
+import { buildUrlAccessUrl } from '@/lib/api/real'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '自动保存']
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
@@ -26,15 +28,36 @@ const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
 ]
 
 const TYPE_PROMPTS: Record<string, string> = {
-  document: '请基于当前薄弱点"函数返回值"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。',
-  ppt: '请基于"函数返回值"生成一份课堂演示PPT，包含核心概念、代码示例和课堂互动环节。',
-  mindmap: '请基于"函数返回值"生成一份思维导图，梳理函数定义、参数传递、返回值、作用域之间的关系。',
-  video: '请基于"函数返回值"生成一段教学视频脚本，用生活化类比 return 的作用。',
-  blog: '请用通俗易懂的方式"函数返回值"这个概念，像播客节目一样轻松有趣地科普，让零基础的人也能听懂。',
-  quiz: '请基于"函数返回值"生成一组练习题，覆盖简单、中等、困难三个难度。',
-  reading: '请基于"函数返回值"生成一份拓展阅读材料，包含背景知识和实际应用场景。',
-  code: '请基于"函数返回值"生成一个完整的代码案例，包含问题描述、代码实现和详细。',
+  document: '请根据我填写的学习目标或薄弱点生成一份结构化讲义，包含概念解释、示例、常见错误和检查题。',
+  ppt: '请根据我填写的学习目标或薄弱点生成一份课堂演示 PPT，包含核心概念、案例和互动环节。',
+  mindmap: '请根据我填写的学习目标或薄弱点生成一份思维导图，梳理关键概念和前后依赖关系。',
+  video: '请根据我填写的学习目标或薄弱点生成一段教学视频脚本，包含生活化类比和练习提示。',
+  blog: '请根据我填写的学习目标或薄弱点生成一段轻松易懂的播客稿，让零基础的人也能听懂。',
+  quiz: '请根据我填写的学习目标或薄弱点生成一组练习题，覆盖简单、中等、困难三个难度。',
+  reading: '请根据我填写的学习目标或薄弱点生成一份拓展阅读材料，包含背景知识和实际应用场景。',
+  code: '请根据我填写的学习目标或薄弱点生成一个完整代码案例，包含问题描述、代码实现和讲解。',
 }
+
+const GENERATION_FOCUS_OPTIONS = [
+  {
+    id: 'project',
+    title: '项目案例优先',
+    description: '用"成绩统计小程序"承载函数参数、返回值和局部变量。',
+    promptHint: '生成侧重点：项目案例优先。请用一个可运行的小项目承载知识点，突出函数参数、返回值、局部变量和模块拆分。',
+  },
+  {
+    id: 'mistake',
+    title: '错题拆解优先',
+    description: '逐题解释为什么 print 输出不等于 return。',
+    promptHint: '生成侧重点：错题拆解优先。请先解释典型错误，再给出修正示例和原因。',
+  },
+  {
+    id: 'practice',
+    title: '达标练习优先',
+    description: '先给题，再按错误类型补。',
+    promptHint: '生成侧重点：达标练习优先。请先给达标练习，再按错误类型给补救讲解。',
+  },
+] as const
 
 const DEFAULT_VIDEO_STYLES: VideoStyle[] = [
   { id: 'apple-minimal', name: '苹果极简风', description: '白底+蓝色点缀，系统化技术教学', accent_color: '#0071e3', bg_gradient: 'linear-gradient(135deg, #ffffff 0%, #e8f7ff 48%, #f7f3ff 100%)', font_family: '', code_bg: '#1d1d1f', code_color: '#f5f5f7', card_bg: 'rgba(255,255,255,.74)', tone: '简洁、现代、克制' },
@@ -183,7 +206,8 @@ function GeneratePageContent() {
   const [view, setView] = useState<'generate' | 'library'>(initialView)
   const [step, setStep] = useState(0)
   const [type, setType] = useState<Resource['type']>('document')
-  const [prompt, setPrompt] = useState('请基于当前薄弱点"函数返回值"生成一份12分钟代码案例讲义，包含生活化类比、可运行代码、常见错误和5道检查题。')
+  const [prompt, setPrompt] = useState('')
+  const [generationFocus, setGenerationFocus] = useState<(typeof GENERATION_FOCUS_OPTIONS)[number]['id']>('project')
   const [profile, setProfile] = useState<StudentProfile | null>(null)
   const [knowledge, setKnowledge] = useState<KnowledgeFile[]>([])
   const [selectedKnowledge, setSelectedKnowledge] = useState<number[]>([])
@@ -222,6 +246,7 @@ function GeneratePageContent() {
   const [qualityLoadingId, setQualityLoadingId] = useState('')
   const [qualityResults, setQualityResults] = useState<Record<string, ResourceQualityResult>>({})
   const [qualityDialogResourceId, setQualityDialogResourceId] = useState('')
+  const [failureDialog, setFailureDialog] = useState<{ message: string; detail?: string } | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -273,7 +298,16 @@ function GeneratePageContent() {
     }
   }, [loadResources, view])
 
+  function buildFocusedPrompt() {
+    const focus = GENERATION_FOCUS_OPTIONS.find((item) => item.id === generationFocus)
+    return focus ? `${prompt.trim()}\n\n${focus.promptHint}` : prompt.trim()
+  }
+
   async function startGenerate() {
+    if (!prompt.trim()) {
+      setError('请先填写这次要生成的真实学习内容。')
+      return
+    }
     console.log('[startGenerate] type:', type, 'prompt:', prompt.slice(0, 50))
     setStep(3)
     setGenerating(true)
@@ -282,9 +316,10 @@ function GeneratePageContent() {
     setSseMessages([])
     setResource(null)
     try {
+      const focusedPrompt = buildFocusedPrompt()
       const res = await api.generateResource(
         type,
-        prompt,
+        focusedPrompt,
         selectedKnowledge,
         type === 'video' ? getVideoOptions() : undefined,
       )
@@ -296,6 +331,10 @@ function GeneratePageContent() {
       const msg = ex instanceof Error ? ex.message : '生成失败'
       setError(msg)
       if (type === 'video') setGenerateError(msg)
+      setFailureDialog({
+        message: '资源生成没有成功完成，请联系项目负责人处理。',
+        detail: msg,
+      })
     } finally {
       setGenerating(false)
     }
@@ -307,10 +346,15 @@ function GeneratePageContent() {
     setPolishResult(null)
     setShowSegments(false)
     try {
-      const result = await api.polishVideoPrompt(prompt, videoDuration, videoLevel, videoStyleId, videoVoice)
+      const result = await api.polishVideoPrompt(buildFocusedPrompt(), videoDuration, videoLevel, videoStyleId, videoVoice)
       setPolishResult(result)
     } catch (ex) {
-      setPolishError(ex instanceof Error ? ex.message : '润色失败')
+      const msg = ex instanceof Error ? ex.message : '润色失败'
+      setPolishError(msg)
+      setFailureDialog({
+        message: '视频脚本润色失败，请联系项目负责人处理。',
+        detail: msg,
+      })
     } finally {
       setPolishing(false)
     }
@@ -332,7 +376,12 @@ function GeneratePageContent() {
           if (msg) setSseMessages(prev => [...prev, msg])
         }
         if (evt.type === 'error') {
-          setGenerateError(String(evt.payload.message || '视频生成失败'))
+          const msg = String(evt.payload.message || '视频生成失败')
+          setGenerateError(msg)
+          setFailureDialog({
+            message: '视频生成没有成功完成，请联系项目负责人处理。',
+            detail: msg,
+          })
         }
       },
     }
@@ -420,7 +469,7 @@ function GeneratePageContent() {
   const selectedQuality = selected ? qualityResults[selected.id] : null
   const generatedQuality = resource ? qualityResults[resource.id] : null
   const generatedPreviewUrl = resource && (resource.sourceUrl || resource.type === 'mindmap')
-    ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${resource.id}/preview/html`
+    ? buildUrlAccessUrl(`/api/resources/${resource.id}/preview/html`)
     : ''
   const activeQualityResource = (resource && resource.id === qualityDialogResourceId)
     ? resource
@@ -452,7 +501,7 @@ function GeneratePageContent() {
     const selectedIcon = selected ? resourceIcon(selected.type) : resourceIcon('document')
     const completedCount = resources.filter(r => r.status === 'completed').length
     const previewUrl = selected && selected.type !== 'web_material' && (selected.sourceUrl || selected.type === 'mindmap')
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/resources/${selected.id}/preview/html`
+      ? buildUrlAccessUrl(`/api/resources/${selected.id}/preview/html`)
       : ''
 
     return (
@@ -715,7 +764,7 @@ function GeneratePageContent() {
       <ProtoCard className="p-0">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div><b className="text-ink">资源生成流程</b><p className="text-micro text-muted">按步骤确认上下文、资料来源和生成要求，生成完成后会自动保存到我的资源。</p></div>
-          <Pill tone="blue">当前：函数返回值补弱</Pill>
+          <Pill tone="blue">{profile?.weakPoints?.[0] ? `当前：${profile.weakPoints[0]}` : '当前：暂无画像薄弱点'}</Pill>
         </div>
         <div className="p-5">
         <div className="mb-4 flex flex-col items-start gap-3 min-[760px]:flex-row min-[760px]:items-center min-[760px]:justify-between">
@@ -727,14 +776,14 @@ function GeneratePageContent() {
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
             {step < 3 && <ProtoButton onClick={() => setStep(step + 1)}>下一步</ProtoButton>}
             {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />{type === 'video' ? '生成视频' : '开始生成'}</ProtoButton>}
-            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, prompt, selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice, voiceProvider: videoVoiceProvider, voiceSpeed: videoVoiceSpeed, voicePitch: videoVoicePitch, voiceVolume: videoVoiceVolume } : undefined); setStep(0) }}>后台生成</ProtoButton>}
+            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, buildFocusedPrompt(), selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice, voiceProvider: videoVoiceProvider, voiceSpeed: videoVoiceSpeed, voicePitch: videoVoicePitch, voiceVolume: videoVoiceVolume } : undefined); setStep(0) }}>后台生成</ProtoButton>}
           </div>
         </div>
 
         {step === 0 && (
           <div className="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1">
-            <SoftCard><b className="text-ink">当前节点</b><p className="mt-2 text-small text-muted">{profile?.currentStage || '函数返回值与作用域修正'}。模块导入已暂缓，需要先修正 return 返回给调用处的理解。</p></SoftCard>
-            <SoftCard><b className="text-ink">学生偏好</b><p className="mt-2 text-small text-muted">{profile?.learningPreference?.join('、') || '代码案例优先，短讲义加检查题效果最好'}。</p></SoftCard>
+            <SoftCard><b className="text-ink">当前节点</b><p className="mt-2 text-small text-muted">{profile?.currentStage || '暂无当前节点。完成画像采集或创建学习路径后会自动带入。'}</p></SoftCard>
+            <SoftCard><b className="text-ink">学生偏好</b><p className="mt-2 text-small text-muted">{profile?.learningPreference?.length ? profile.learningPreference.join('、') : '暂无学习偏好。新用户不会默认套用演示偏好。'}</p></SoftCard>
             <SoftCard><b className="text-ink">错题证据</b><p className="mt-2 text-small text-muted">3 道题把局部变量、返回值和 print 输出混在一起。</p></SoftCard>
             <SoftCard><b className="text-ink">本次目标</b><p className="mt-2 text-small text-muted">12 分钟内能解释"函数内部算出的结果如何交给主流程"。</p></SoftCard>
           </div>
@@ -755,7 +804,7 @@ function GeneratePageContent() {
               }
               const t = IconMap[item.type] || { icon: <FileText className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' }
               return (
-                <button key={item.type} onClick={() => { setType(item.type); setPrompt(TYPE_PROMPTS[item.type] || prompt) }} className={`rounded-[12px] border p-4 text-left ${type === item.type ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
+                <button key={item.type} onClick={() => { setType(item.type); setPrompt(TYPE_PROMPTS[item.type] || '') }} className={`rounded-[12px] border p-4 text-left ${type === item.type ? 'border-blue bg-blue-light' : 'border-line bg-white hover:border-blue'}`}>
                   <div className={`mb-3 grid h-9 w-9 place-items-center rounded-xl ${t.color}`}>
                     {t.icon}
                   </div>
@@ -772,9 +821,28 @@ function GeneratePageContent() {
             <div>
               <h3 className="text-h3 font-bold text-ink">生成侧重点</h3>
               <div className="mt-3 grid gap-3">
-                <SoftCard className="bg-blue-light"><b className="text-ink">项目案例优先</b><span className="mt-1 block text-small text-muted">用"成绩统计小程序"承载函数参数、返回值和局部变量。</span></SoftCard>
-                <SoftCard><b className="text-ink">错题拆解优先</b><span className="mt-1 block text-small text-muted">逐题解释为什么 print 输出不等于 return。</span></SoftCard>
-                <SoftCard><b className="text-ink">达标练习优先</b><span className="mt-1 block text-small text-muted">先给题，再按错误类型补。</span></SoftCard>
+                {GENERATION_FOCUS_OPTIONS.map((option) => {
+                  const selected = generationFocus === option.id
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setGenerationFocus(option.id)}
+                      aria-pressed={selected}
+                      className={`rounded-[12px] border p-4 text-left transition-all ${
+                        selected
+                          ? 'border-blue bg-blue-light shadow-[0_10px_24px_rgba(37,99,235,0.12)]'
+                          : 'border-line bg-white hover:border-blue/50 hover:bg-[#f8fbff]'
+                      }`}
+                    >
+                      <span className="flex items-center justify-between gap-3">
+                        <b className="text-ink">{option.title}</b>
+                        {selected && <CheckCircle2 className="h-4 w-4 text-blue" />}
+                      </span>
+                      <span className="mt-1 block text-small text-muted">{option.description}</span>
+                    </button>
+                  )
+                })}
               </div>
 
               {/* 视频风格选择器 —— 仅在选择"教学视频"时显示 */}
@@ -953,7 +1021,7 @@ function GeneratePageContent() {
 
             <label className="grid gap-2">
               <span className="text-small font-bold text-ink">生成要求</span>
-              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={type === 'video' ? 4 : 7} className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
+              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={type === 'video' ? 4 : 7} placeholder="填写你这次真正想生成的学习内容。新用户没有画像数据时，系统不会自动带入演示薄弱点。" className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
             </label>
 
             {/* 视频：润色按钮 + 结果 */}
@@ -1211,6 +1279,12 @@ function GeneratePageContent() {
         resource={activeQualityResource}
         result={activeQualityResult}
         onClose={() => setQualityDialogResourceId('')}
+      />
+      <GenerationFailureContactDialog
+        open={Boolean(failureDialog)}
+        message={failureDialog?.message}
+        detail={failureDialog?.detail}
+        onClose={() => setFailureDialog(null)}
       />
     </div>
   )

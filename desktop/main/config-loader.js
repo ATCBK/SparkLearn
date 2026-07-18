@@ -1,8 +1,20 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const rootDir = path.resolve(__dirname, '..', '..');
-const desktopDir = path.join(rootDir, 'desktop');
+function getAppRootDir() {
+  if (process.versions?.electron) {
+    try {
+      const { app } = require('electron');
+      return app.getAppPath();
+    } catch (_) {
+      return path.resolve(__dirname, '..');
+    }
+  }
+  return path.resolve(__dirname, '..', '..');
+}
+
+const rootDir = getAppRootDir();
+const desktopDir = path.basename(rootDir) === 'desktop' ? rootDir : path.join(rootDir, 'desktop');
 
 function readJsonIfExists(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -55,7 +67,47 @@ function resolveCwd(cwd) {
 }
 
 function applyEnvOverrides(config, env = process.env) {
-  const patched = { ...config };
+  const patched = mergeDeep({}, config);
+  const apiBaseUrl = env.SPARKLEARN_API_BASE_URL || env.NEXT_PUBLIC_API_BASE_URL;
+  const frontendUrl = env.SPARKLEARN_FRONTEND_URL;
+  const frontendEnabled = env.SPARKLEARN_DESKTOP_FRONTEND_ENABLED;
+  const backendEnabled = env.SPARKLEARN_DESKTOP_BACKEND_ENABLED;
+
+  if (frontendUrl && patched.frontend) {
+    patched.frontend = {
+      ...patched.frontend,
+      url: frontendUrl,
+    };
+  }
+
+  if (typeof frontendEnabled === 'string' && patched.frontend) {
+    patched.frontend = {
+      ...patched.frontend,
+      enabled: !['0', 'false', 'no', 'off'].includes(frontendEnabled.trim().toLowerCase()),
+    };
+  }
+
+  if (apiBaseUrl) {
+    patched.api = {
+      ...(patched.api || {}),
+      baseUrl: apiBaseUrl,
+    };
+    patched.frontend = {
+      ...(patched.frontend || {}),
+      env: {
+        ...((patched.frontend && patched.frontend.env) || {}),
+        NEXT_PUBLIC_API_BASE_URL: apiBaseUrl,
+      },
+    };
+  }
+
+  if (typeof backendEnabled === 'string' && patched.backend) {
+    patched.backend = {
+      ...patched.backend,
+      enabled: !['0', 'false', 'no', 'off'].includes(backendEnabled.trim().toLowerCase()),
+    };
+  }
+
   return patched;
 }
 
@@ -67,8 +119,11 @@ function normalizeService(service) {
 }
 
 function loadConfig() {
-  const examplePath = path.join(desktopDir, 'config', 'desktop.config.example.json');
-  const localPath = path.join(desktopDir, 'config', 'desktop.config.json');
+  const configDir = fs.existsSync(path.join(rootDir, 'config'))
+    ? path.join(rootDir, 'config')
+    : path.join(desktopDir, 'config');
+  const examplePath = path.join(configDir, 'desktop.config.example.json');
+  const localPath = path.join(configDir, 'desktop.config.json');
   const defaultConfig = readJsonIfExists(examplePath);
   const localConfig = readJsonIfExists(localPath);
   const rootEnv = readRootEnv();

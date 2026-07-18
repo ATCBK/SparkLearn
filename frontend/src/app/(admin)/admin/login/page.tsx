@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, ShieldCheck, User } from 'lucide-react'
+import { Eye, EyeOff, Lock, ShieldCheck, User } from 'lucide-react'
 
 export default function AdminLoginPage() {
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -17,11 +18,11 @@ export default function AdminLoginPage() {
     setLoading(true)
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    if (username === 'admin' && password === '123456') {
+    if (username === 'admin' && password === 'SparkLearn1') {
       localStorage.setItem('admin_token', 'demo_admin_token')
       router.push('/admin/dashboard')
     } else {
-      setError('账号或密码错误，演示账号：admin / 123456')
+      setError('账号或密码错误，账号：admin / SparkLearn1')
     }
     setLoading(false)
   }
@@ -66,13 +67,21 @@ export default function AdminLoginPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="请输入密码"
-                className="h-11 w-full rounded-[10px] border border-[#e5e7eb] bg-[#f9fafb] pl-10 pr-4 text-sm outline-none transition-colors focus:border-[#2563eb] focus:bg-white"
+                className="h-11 w-full rounded-[10px] border border-[#e5e7eb] bg-[#f9fafb] pl-10 pr-11 text-sm outline-none transition-colors focus:border-[#2563eb] focus:bg-white"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute right-3 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-[#9ca3af] transition-colors hover:bg-[#eef2ff] hover:text-[#2563eb]"
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
 
@@ -87,7 +96,7 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-[#9ca3af]">演示账号：admin / 密码：123456</p>
+        <p className="mt-6 text-center text-xs text-[#9ca3af]">账号：admin / 密码：SparkLearn1</p>
       </div>
     </div>
   )

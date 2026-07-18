@@ -190,10 +190,10 @@ async def get_profile_history(current_user: dict = Depends(get_current_user)):
     row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
     student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     current_profile = _row_to_profile(row, student_row) if row else {}
-    if row:
+    if row and _profile_has_meaningful_data(current_profile):
         _record_profile_history(user_id, current_profile, reason="history_view")
 
-    history = _with_mock_profile_history(_load_profile_history(user_id), current_profile)
+    history = _load_profile_history(user_id)
     latest = history[0] if history else None
     next_update_at = _next_history_update_at(str(latest.get("captured_at", ""))) if latest else ""
     return ok(
@@ -211,7 +211,7 @@ async def analyze_profile_history(current_user: dict = Depends(get_current_user)
     row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
     student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     current_profile = _row_to_profile(row, student_row) if row else {}
-    history = _with_mock_profile_history(_load_profile_history(user_id), current_profile)
+    history = _load_profile_history(user_id)
     steps = _build_profile_analysis_steps(current_profile, history)
     prompt = _build_profile_analysis_prompt(current_profile, history)
     analysis = await _collect_profile_analysis(prompt)
@@ -359,72 +359,14 @@ def _load_profile_history(user_id: str) -> list[dict[str, Any]]:
     return sorted(items, key=lambda item: str(item.get("captured_at", "")), reverse=True)
 
 
-def _with_mock_profile_history(history: list[dict[str, Any]], current_profile: dict[str, Any]) -> list[dict[str, Any]]:
-    items = list(history)
-    if len(items) >= 4:
-        return items
-
-    base_time = _parse_iso(str(items[0].get("captured_at", ""))) if items else datetime.now(UTC).replace(tzinfo=None)
-    mock_profiles = _mock_profile_profiles(current_profile)
-    used_ids = {str(item.get("id", "")) for item in items}
-
-    for idx, mock_profile in enumerate(mock_profiles, start=1):
-        if len(items) >= 4:
-            break
-        captured_at = (base_time - timedelta(days=PROFILE_HISTORY_INTERVAL_DAYS * idx)).isoformat() + "Z"
-        snapshot = _profile_history_snapshot(mock_profile, captured_at, reason="mock_history")
-        snapshot["id"] = f"mock-profile-{idx}"
-        if snapshot["id"] not in used_ids:
-            items.append(snapshot)
-            used_ids.add(snapshot["id"])
-
-    return sorted(items, key=lambda item: str(item.get("captured_at", "")), reverse=True)
-
-
-def _mock_profile_profiles(current_profile: dict[str, Any]) -> list[dict[str, Any]]:
-    major = str(current_profile.get("major", "")).strip() or "计算机科学"
-    grade = str(current_profile.get("grade", "")).strip() or "大二"
-    return [
-        {
-            "major": major,
-            "grade": grade,
-            "goal": ["完成 Python 小项目", "巩固函数与模块"],
-            "knowledge_level": "有一些基础",
-            "weak_points": ["函数返回值", "作用域"],
-            "learning_preference": ["代码案例", "短练习"],
-            "cognitive_style": "归纳型",
-            "daily_time": 60,
-            "practical_ability": "可以完成小功能，需要加强拆解能力",
-            "current_stage": "函数与模块补弱",
-            "version": 3,
-        },
-        {
-            "major": major,
-            "grade": grade,
-            "goal": ["掌握基础语法", "提升做题稳定性"],
-            "knowledge_level": "入门阶段",
-            "weak_points": ["循环嵌套", "条件判断"],
-            "learning_preference": ["视频讲解", "示例驱动"],
-            "cognitive_style": "视觉型",
-            "daily_time": 45,
-            "practical_ability": "能跟写示例，独立迁移还不稳定",
-            "current_stage": "基础语法巩固",
-            "version": 2,
-        },
-        {
-            "major": major,
-            "grade": grade,
-            "goal": ["建立编程学习节奏"],
-            "knowledge_level": "零基础",
-            "weak_points": ["变量类型", "表达式理解"],
-            "learning_preference": ["图解", "低难度练习"],
-            "cognitive_style": "演示型",
-            "daily_time": 30,
-            "practical_ability": "需要跟随步骤完成练习",
-            "current_stage": "入门建档",
-            "version": 1,
-        },
-    ]
+def _profile_has_meaningful_data(profile: dict[str, Any]) -> bool:
+    if not profile:
+        return False
+    for key in ("goal", "weak_points", "learning_preference"):
+        value = profile.get(key)
+        if isinstance(value, list) and any(str(item).strip() for item in value):
+            return True
+    return any(str(profile.get(key, "")).strip() for key in ("major", "grade", "knowledge_level", "cognitive_style", "practical_ability", "current_stage"))
 
 
 def _record_profile_history(user_id: str, profile: dict[str, Any], reason: str) -> None:

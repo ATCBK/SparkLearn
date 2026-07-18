@@ -21,6 +21,7 @@ import {
   Users,
 } from 'lucide-react'
 import { api, McpService, McpServicePayload } from '@/lib/api'
+import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
 
 type TabKey = 'auth' | 'headers' | 'config'
 
@@ -307,10 +308,7 @@ export default function TutorMcpStorePage() {
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
             <ArrowLeft className="w-4 h-4" /> 返回主平台
           </button>
-          <div className="flex items-center gap-2.5 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center text-xs font-bold text-white">梁</div>
-            <div><p className="text-sm font-medium text-[#1e293b]">梁明</p><p className="text-[11px] text-[#94a3b8]">学习平台</p></div>
-          </div>
+          <TutorUserBadge />
         </div>
       </nav>
 

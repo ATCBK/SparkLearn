@@ -18,7 +18,7 @@ def test_pick_resources_for_node_uses_generate_library_route(monkeypatch):
 
     monkeypatch.setattr(path_planning, "read_json", fake_read_json)
 
-    resources = path_planning._pick_resources_for_node("函数返回值", count=1)
+    resources = path_planning._pick_resources_for_node("single_user", "函数返回值", count=1)
 
     assert len(resources) == 1
     assert resources[0]["link"] == "/generate?view=library&id=res-123"
@@ -26,7 +26,10 @@ def test_pick_resources_for_node_uses_generate_library_route(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_path_node_suggestions_endpoint_returns_generate_library_links(client, monkeypatch):
+    from app.config import settings
     from app.routes import path_planning
+
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
 
     async def fake_generate_ai_node_suggestions(**kwargs):
         return (
@@ -54,7 +57,11 @@ async def test_path_node_suggestions_endpoint_returns_generate_library_links(cli
 
 
 @pytest.mark.asyncio
-async def test_save_path_planning_endpoint_creates_history_entry(client):
+async def test_save_path_planning_endpoint_creates_history_entry(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
+
     response = await client.post(
         "/api/path-planning/save",
         json={
@@ -86,7 +93,11 @@ async def test_save_path_planning_endpoint_creates_history_entry(client):
 
 
 @pytest.mark.asyncio
-async def test_save_path_planning_endpoint_updates_existing_history_entry(client):
+async def test_save_path_planning_endpoint_updates_existing_history_entry(client, monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
+
     payload = {
         "path_id": "path-update",
         "target": "学习路径编辑",

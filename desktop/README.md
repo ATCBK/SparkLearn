@@ -32,6 +32,30 @@ Default config is in `config/desktop.config.example.json`.
 
 For local overrides, create `config/desktop.config.json`. This file should not be committed.
 
+For a lightweight judge/demo package, deploy the web frontend and API backend on
+the server, then copy `config/desktop.config.server.example.json` to
+`config/desktop.config.json`. Replace:
+
+- `https://your-sparklearn-web.example.com` with the deployed frontend origin.
+- `https://your-sparklearn-api.example.com` with the deployed backend origin.
+
+This mode disables local frontend/backend services and opens the server frontend
+inside the desktop window.
+
+If you want to run the local frontend while connecting it to a deployed backend,
+keep `frontend.enabled` as `true`, set `backend.enabled` to `false`, and set
+`NEXT_PUBLIC_API_BASE_URL` to the deployed backend origin.
+
+You can also use environment variables without writing a local config file:
+
+```powershell
+$env:SPARKLEARN_FRONTEND_URL="https://your-sparklearn-web.example.com"
+$env:SPARKLEARN_API_BASE_URL="https://your-sparklearn-api.example.com"
+$env:SPARKLEARN_DESKTOP_FRONTEND_ENABLED="false"
+$env:SPARKLEARN_DESKTOP_BACKEND_ENABLED="false"
+npm run dev
+```
+
 StudyBuddy configuration is available from the desktop menu:
 
 ```text

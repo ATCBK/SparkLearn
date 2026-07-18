@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Resource } from '@/lib/api'
+import { GenerationFailureContactDialog } from '@/components/ui/GenerationFailureContactDialog'
 
 interface GenerationTask {
   id: string
@@ -19,6 +20,24 @@ interface GenerationTaskContextType {
   dismissTask: (id: string) => void
 }
 
+type ResourceSseEvent = {
+  type?: string
+  payload?: {
+    message?: unknown
+    error?: unknown
+    resource?: {
+      id?: string | number
+      title?: string
+      type?: string
+      status?: string
+      created_at?: string
+      content?: string
+      source_url?: string
+      progress?: number
+    }
+  }
+}
+
 const GenerationTaskContext = createContext<GenerationTaskContextType>({
   tasks: [],
   startBackgroundGeneration: () => {},
@@ -33,6 +52,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export function GenerationTaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<GenerationTask[]>([])
+  const [failureDialog, setFailureDialog] = useState<{ message: string; detail?: string } | null>(null)
   const router = useRouter()
   const taskIdRef = useRef(0)
 
@@ -127,7 +147,9 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
             setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource: { id: resourceId, title: polish.title || prompt.slice(0, 20), type: 'video', status: 'completed', createdAt: new Date().toISOString() } } : t))
           }
         } catch (err: unknown) {
-          setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err instanceof Error ? err.message : '视频生成失败' } : t))
+          const message = err instanceof Error ? err.message : '视频生成失败'
+          setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: message } : t))
+          setFailureDialog({ message: '后台视频生成失败，请联系项目负责人处理。', detail: message })
         }
       })()
       return
@@ -154,32 +176,39 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
         for (const c of chunks) {
           const line = c.split('\n').find(l => l.startsWith('data: '))
           if (!line) continue
+          let evt: ResourceSseEvent | null = null
           try {
-            const evt = JSON.parse(line.slice(6))
-            if (evt.type === 'done' && evt.payload?.resource) {
-              const raw = evt.payload.resource
-              resource = {
-                id: raw.id,
-                title: raw.title,
-                type: raw.type,
-                status: raw.status,
-                createdAt: raw.created_at,
-                content: raw.content,
-                sourceUrl: raw.source_url,
-                progress: raw.progress,
-              }
-            }
+            evt = JSON.parse(line.slice(6))
           } catch { /* ignore parse errors */ }
+          if (!evt) continue
+          if (evt.type === 'error') {
+            throw new Error(String(evt.payload?.message || evt.payload?.error || '生成失败'))
+          }
+          if (evt.type === 'done' && evt.payload?.resource) {
+            const raw = evt.payload.resource
+            resource = {
+              id: String(raw.id || taskId),
+              title: raw.title || prompt.slice(0, 20) || '生成资源',
+              type: (raw.type || type) as Resource['type'],
+              status: (raw.status || 'completed') as Resource['status'],
+              createdAt: raw.created_at || new Date().toISOString(),
+              content: raw.content,
+              sourceUrl: raw.source_url,
+              progress: raw.progress,
+            }
+          }
         }
       }
 
       if (resource) {
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource } : t))
       } else {
-        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: '生成结果为空' } : t))
+        throw new Error('生成结果为空')
       }
     }).catch((err) => {
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: err?.message || '生成失败' } : t))
+      const message = err?.message || '生成失败'
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: message } : t))
+      setFailureDialog({ message: '后台资源生成失败，请联系项目负责人处理。', detail: message })
     })
   }, [])
 
@@ -240,6 +269,12 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
           </div>
         </div>
       ))}
+      <GenerationFailureContactDialog
+        open={Boolean(failureDialog)}
+        message={failureDialog?.message}
+        detail={failureDialog?.detail}
+        onClose={() => setFailureDialog(null)}
+      />
       {/* 生成中指示器 - 右上角 */}
       {tasks.some(t => t.status === 'generating') && (
         <div className="fixed top-4 right-6 z-[9998] flex items-center gap-2 rounded-full bg-white border border-[#e5e7eb] px-4 py-2 shadow-md">

@@ -4,13 +4,16 @@
 import { useEffect, useState } from 'react'
 import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { Clock, History, Lightbulb, RefreshCw, Sparkles, Target } from 'lucide-react'
-import { api, ProfileAnalysisResp, ProfileHistoryItem, ProfileHistoryResp, Resource as ResourceType } from '@/lib/api'
+import { api, MasteryRecord, ProfileAnalysisResp, ProfileHistoryItem, ProfileHistoryResp, Resource as ResourceType, StudentProfile, Task } from '@/lib/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 export default function ProfilePage() {
   const [gender, setGender] = useState<'male' | 'female'>('male')
   const [recentResources, setRecentResources] = useState<ResourceType[]>([])
+  const [profile, setProfile] = useState<StudentProfile | null>(null)
+  const [mastery, setMastery] = useState<MasteryRecord[]>([])
+  const [todayTasks, setTodayTasks] = useState<Task[]>([])
   const [profileHistory, setProfileHistory] = useState<ProfileHistoryResp | null>(null)
   const [analysis, setAnalysis] = useState<ProfileAnalysisResp | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -19,6 +22,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     api.getRecentResources().then(data => setRecentResources(data.slice(0, 3))).catch(() => {})
+    api.getProfile().then(setProfile).catch(() => setProfile(null))
+    api.getMasteryData().then(setMastery).catch(() => setMastery([]))
+    api.getTodayTasks().then(setTodayTasks).catch(() => setTodayTasks([]))
     setHistoryLoading(true)
     api.getProfileHistory()
       .then(setProfileHistory)
@@ -48,6 +54,16 @@ export default function ProfilePage() {
   }
 
   const avatarSrc = gender === 'male' ? '/ui-images/profile-male.png' : '/ui-images/profile-female.png'
+  const radarData = buildAbilityRadar(profile, mastery)
+  const hasRadarData = radarData.some(item => item.value > 0)
+  const profileReady = hasMeaningfulProfile(profile)
+  const weakestMastery = [...mastery].filter(item => Number.isFinite(Number(item.score))).sort((a, b) => Number(a.score) - Number(b.score))[0]
+  const attentionPoint = profile?.weakPoints?.[0] || weakestMastery?.knowledgePointName || ''
+  const attentionScore = weakestMastery ? Math.round(Number(weakestMastery.score || 0) * 100) : null
+  const learningPreference = profile?.learningPreference?.[0] || ''
+  const stageGoal = profile?.currentStage || profile?.goals?.[0] || ''
+  const displayName = profile?.name?.trim() || '新用户'
+  const latestProfileDate = formatProfileDate(profileHistory?.items?.[0]?.captured_at)
 
   return (
     <div>
@@ -56,9 +72,9 @@ export default function ProfilePage() {
         title="学习画像"
         description="这一页只保留会直接影响你学习体验的内容：当前卡点、适合的学法和本阶段目标。"
         chips={[
-          { value: '48%', label: '返回值掌握', icon: <Target className="h-4 w-4" />, tone: 'purple' as const },
-          { value: '案例驱动', label: '学习偏好', icon: <Lightbulb className="h-4 w-4" />, tone: 'blue' as const },
-          { value: '08:12', label: '最近更新', icon: <Clock className="h-4 w-4" />, tone: 'green' as const },
+          { value: attentionScore !== null ? `${attentionScore}%` : '暂无', label: '掌握数据', icon: <Target className="h-4 w-4" />, tone: 'purple' as const },
+          { value: learningPreference || '未选择', label: '学习偏好', icon: <Lightbulb className="h-4 w-4" />, tone: 'blue' as const },
+          { value: latestProfileDate || '暂无', label: '最近更新', icon: <Clock className="h-4 w-4" />, tone: 'green' as const },
         ]}
       />
 
@@ -82,56 +98,88 @@ export default function ProfilePage() {
           </div>
           <div className="absolute bottom-6 left-6 right-6 rounded-[14px] border border-line bg-white/92 p-4 shadow-md backdrop-blur">
             <Pill tone="blue">人物画像</Pill>
-            <h2 className="mt-2 text-h2 font-bold text-ink">李明 · 项目实践准备期</h2>
-            <p className="mt-2 text-small leading-6 text-muted">基础语法已经够用，当前重点是把函数和模块这块学顺，尽快回到小项目实践。</p>
+            <h2 className="mt-2 text-h2 font-bold text-ink">
+              {profileReady ? `${displayName}${stageGoal ? ` · ${stageGoal}` : ''}` : '还没有生成学习画像'}
+            </h2>
+            <p className="mt-2 text-small leading-6 text-muted">
+              {profileReady
+                ? buildProfileSummary(profile)
+                : '第一次登录时这里不会展示演示学生数据。完成画像采集后，系统会根据你的目标、基础和偏好生成专属画像。'}
+            </p>
           </div>
         </ProtoCard>
 
         <div className="grid grid-cols-2 gap-4 max-[760px]:grid-cols-1">
           <ProtoCard>
             <Pill tone="orange">需要关注</Pill>
-            <h2 className="mt-3 text-h2 font-bold text-ink">函数返回值</h2>
-            <p className="mt-2 text-small leading-6 text-muted">这块不是完全不会，而是关键概念容易串线，导致一做题就乱。</p>
-            <div className="mt-4 flex items-center gap-5">
-              <div className="grid h-[100px] w-[100px] shrink-0 place-items-center rounded-full border border-[#eef3f9]" style={{ background: 'radial-gradient(circle at center, #fff 0 34px, transparent 35px), conic-gradient(#2563eb 0 48%, #e8eff8 48% 100%)' }}>
-                <div className="text-center"><b className="block text-[24px] leading-none">48%</b><span className="text-[10px] text-muted">当前稳定度</span></div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Pill>return 和 print 容易混</Pill>
-                <Pill>局部变量作用范围不够稳</Pill>
-              </div>
-            </div>
+            {attentionPoint ? (
+              <>
+                <h2 className="mt-3 text-h2 font-bold text-ink">{attentionPoint}</h2>
+                <p className="mt-2 text-small leading-6 text-muted">
+                  {attentionScore !== null ? '系统会优先关注当前掌握度较低的知识点。' : '这是你在画像采集中标记的薄弱方向。'}
+                </p>
+                <div className="mt-4 flex items-center gap-5">
+                  <div className="grid h-[100px] w-[100px] shrink-0 place-items-center rounded-full border border-[#eef3f9]" style={{ background: `radial-gradient(circle at center, #fff 0 34px, transparent 35px), conic-gradient(#2563eb 0 ${attentionScore ?? 0}%, #e8eff8 ${attentionScore ?? 0}% 100%)` }}>
+                    <div className="text-center"><b className="block text-[24px] leading-none">{attentionScore !== null ? `${attentionScore}%` : '--'}</b><span className="text-[10px] text-muted">当前稳定度</span></div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(profile?.weakPoints?.length ? profile.weakPoints : [attentionPoint]).slice(0, 3).map(point => <Pill key={point}>{point}</Pill>)}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <EmptyBlock title="暂无薄弱点数据" text="完成画像采集或练习评测后，系统会在这里显示真实需要关注的知识点。" />
+            )}
           </ProtoCard>
 
           <ProtoCard>
             <Pill tone="purple">更适合的学法</Pill>
-            <h2 className="mt-3 text-h2 font-bold text-ink">先看例子，再做短练</h2>
-            <p className="mt-3 text-small leading-6 text-muted">和纯文字解释相比，你更吃“短讲解 + 可运行代码 + 立刻验证”这一套。</p>
-            <div className="mt-4 grid grid-cols-[1.2fr_.8fr] gap-3">
-              <SoftCard className="bg-blue-light"><b className="text-small text-ink">代码案例最容易进入状态</b><div className="mt-4 space-y-2"><i className="block h-2 w-4/5 rounded-full bg-blue" /><i className="block h-2 w-3/5 rounded-full bg-blue/60" /><i className="block h-2 w-2/3 rounded-full bg-blue/40" /></div></SoftCard>
-              <div className="grid gap-3"><SoftCard><b>短讲解</b></SoftCard><SoftCard><b>即时反馈</b></SoftCard></div>
-            </div>
+            {learningPreference ? (
+              <>
+                <h2 className="mt-3 text-h2 font-bold text-ink">{learningPreference}</h2>
+                <p className="mt-3 text-small leading-6 text-muted">这是你当前画像中记录的学习偏好，后续资源推荐会优先参考它。</p>
+                <div className="mt-4 grid grid-cols-[1.2fr_.8fr] gap-3">
+                  <SoftCard className="bg-blue-light"><b className="text-small text-ink">已记录的偏好</b><div className="mt-4 flex flex-wrap gap-2">{profile?.learningPreference.slice(0, 4).map(item => <Pill key={item}>{item}</Pill>)}</div></SoftCard>
+                  <div className="grid gap-3"><SoftCard><b>{profile?.cognitiveStyle || '认知风格待补充'}</b></SoftCard><SoftCard><b>{profile?.dailyTime ? `${profile.dailyTime} 分钟/天` : '学习时长待补充'}</b></SoftCard></div>
+                </div>
+              </>
+            ) : (
+              <EmptyBlock title="暂无学习偏好" text="新用户不会默认套用演示学法。完成画像采集后，这里会展示你真正适合的学习方式。" />
+            )}
           </ProtoCard>
 
           <ProtoCard>
             <Pill tone="green">阶段目标</Pill>
-            <h2 className="mt-3 text-h2 font-bold text-ink">完成 Python 小项目</h2>
-            <p className="mt-3 text-small leading-6 text-muted">当前不是重学整章，而是把进入项目实践前的最后一段补顺。</p>
-            <div className="mt-4 space-y-3">
-              <Goal title="基础语法" text="变量、分支和循环已经够用。" done />
-              <Goal title="函数补强" text="先把返回值和作用域彻底理顺。" current />
-              <Goal title="模块导入" text="通过后回到小项目拆分与调用。" />
-            </div>
+            {stageGoal || profile?.goals?.length ? (
+              <>
+                <h2 className="mt-3 text-h2 font-bold text-ink">{stageGoal || '目标待确认'}</h2>
+                <p className="mt-3 text-small leading-6 text-muted">{profile?.practicalAbility || profile?.knowledgeLevel || '系统会根据你的画像和练习结果持续调整阶段目标。'}</p>
+                <div className="mt-4 space-y-3">
+                  {(profile?.goals?.length ? profile.goals : [stageGoal]).filter(Boolean).slice(0, 3).map((goal, idx) => (
+                    <Goal key={goal} title={goal} text={idx === 0 ? '当前优先目标' : '后续目标'} current={idx === 0} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <EmptyBlock title="暂无阶段目标" text="完成画像采集后，系统会生成本阶段目标；没有真实数据时不显示演示路线。" />
+            )}
           </ProtoCard>
 
           <ProtoCard>
             <Pill tone="blue">今天先做</Pill>
-            <h2 className="mt-3 text-h2 font-bold text-ink">补弱后再确认路径</h2>
-            <div className="mt-4 space-y-3">
-              <Plan idx="01" title="看 12 分钟案例讲义" text="把结果怎么传出来这件事先看顺。" time="12 分钟" />
-              <Plan idx="02" title="做 8 道返回值短练" text="只测这一类题，不再分散到其他知识点。" time="8 题" />
-            </div>
-            <ProtoButton href="/path" variant="secondary" className="mt-4">查看路径</ProtoButton>
+            {todayTasks.length > 0 ? (
+              <>
+                <h2 className="mt-3 text-h2 font-bold text-ink">继续完成今日任务</h2>
+                <div className="mt-4 space-y-3">
+                  {todayTasks.slice(0, 3).map((task, idx) => (
+                    <Plan key={task.id} idx={String(idx + 1).padStart(2, '0')} title={task.title} text={task.status === 'completed' ? '已完成' : '待完成'} time={`${task.duration} 分钟`} />
+                  ))}
+                </div>
+                <ProtoButton href="/path" variant="secondary" className="mt-4">查看路径</ProtoButton>
+              </>
+            ) : (
+              <EmptyBlock title="今天还没有任务" text="新用户不会默认出现演示任务。创建学习路径或生成资源后，这里会出现真实待办。" action={<ProtoButton href="/path" variant="secondary">创建路径</ProtoButton>} />
+            )}
           </ProtoCard>
         </div>
       </div>
@@ -139,20 +187,18 @@ export default function ProfilePage() {
       <div className="mt-5 grid grid-cols-[1.1fr_.9fr] gap-4 max-[960px]:grid-cols-1">
         <ProtoCard>
           <div className="flex items-center justify-between gap-3"><h2 className="text-h2 font-bold text-ink">能力雷达</h2><ProtoButton variant="secondary" onClick={() => window.dispatchEvent(new Event('open-ai-assistant'))}>告诉 AI 你想怎么学</ProtoButton></div>
-          <div className="mt-5 grid grid-cols-[260px_1fr] gap-5 max-[760px]:grid-cols-1">
-            <RadarChart data={[
-              { name: '语法基础', value: 84 },
-              { name: '案例理解', value: 68 },
-              { name: '练习稳定', value: 57 },
-              { name: '项目迁移', value: 42 },
-              { name: '结果传递', value: 53 },
-            ]} />
-            <div className="space-y-3">
-              {[
-                ['语法基础', 84], ['案例理解', 68], ['练习稳定', 57], ['项目迁移', 42], ['结果传递', 53],
-              ].map(([name, value]) => <Radar key={name as string} name={name as string} value={value as number} />)}
+          {hasRadarData ? (
+            <div className="mt-5 grid grid-cols-[260px_1fr] gap-5 max-[760px]:grid-cols-1">
+              <RadarChart data={radarData} />
+              <div className="space-y-3">
+                {radarData.map(item => <Radar key={item.name} name={item.name} value={item.value} />)}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="mt-5 rounded-[12px] border border-dashed border-line bg-[#fbfdff] p-6 text-small leading-6 text-muted">
+              暂无能力雷达数据。第一次登录时这里不会展示演示分数；完成画像采集、学习任务或练习评测后，系统会根据你的真实记录生成能力雷达。
+            </div>
+          )}
         </ProtoCard>
 
         <ProtoCard>
@@ -315,6 +361,42 @@ function normalizeProfileAnalysisMarkdown(content: string) {
     .replace(/([。！？；])\s+(?=\*\*[^*\n]+?\*\*[：:])/g, '$1\n\n')
 }
 
+function hasMeaningfulProfile(profile: StudentProfile | null) {
+  if (!profile) return false
+  return Boolean(
+    profile.major
+    || profile.grade
+    || profile.goals.length
+    || profile.knowledgeLevel
+    || profile.weakPoints.length
+    || profile.learningPreference.length
+    || profile.cognitiveStyle
+    || profile.dailyTime
+    || profile.practicalAbility
+    || profile.currentStage,
+  )
+}
+
+function buildProfileSummary(profile: StudentProfile | null) {
+  if (!profile) return ''
+  const parts = [
+    profile.knowledgeLevel ? `当前基础：${profile.knowledgeLevel}` : '',
+    profile.weakPoints.length ? `需要关注：${profile.weakPoints.slice(0, 2).join('、')}` : '',
+    profile.learningPreference.length ? `偏好：${profile.learningPreference.slice(0, 2).join('、')}` : '',
+  ].filter(Boolean)
+  return parts.length ? parts.join('。') : '画像已创建，但关键学习信息还不完整，可以继续补充目标、薄弱点和学习偏好。'
+}
+
+function EmptyBlock({ title, text, action }: { title: string; text: string; action?: React.ReactNode }) {
+  return (
+    <div className="mt-4 rounded-[12px] border border-dashed border-line bg-[#fbfdff] p-5">
+      <b className="block text-small text-ink">{title}</b>
+      <p className="mt-2 text-small leading-6 text-muted">{text}</p>
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  )
+}
+
 function ProfileHistoryRow({ item, active }: { item: ProfileHistoryItem; active: boolean }) {
   return (
     <div className={`rounded-[12px] border p-4 ${active ? 'border-blue/40 bg-blue-light' : 'border-line bg-white'}`}>
@@ -396,6 +478,43 @@ function reasonLabel(reason: string) {
     history_view: '自动快照',
   }
   return labels[reason] || '画像更新'
+}
+
+function buildAbilityRadar(profile: StudentProfile | null, mastery: MasteryRecord[]) {
+  const average = (rows: MasteryRecord[], fallback = 0) => {
+    if (!rows.length) return fallback
+    return Math.round((rows.reduce((sum, item) => sum + Number(item.score || 0), 0) / rows.length) * 100)
+  }
+  const byText = (keywords: string[]) => mastery.filter(item => {
+    const text = `${item.knowledgePointName} ${item.chapter}`.toLowerCase()
+    return keywords.some(keyword => text.includes(keyword.toLowerCase()))
+  })
+  const overall = average(mastery)
+  const profileReady = Boolean(profile && (
+    profile.goals.length
+    || profile.weakPoints.length
+    || profile.learningPreference.length
+    || profile.knowledgeLevel
+    || profile.currentStage
+  ))
+
+  if (!mastery.length && !profileReady) {
+    return [
+      { name: '语法基础', value: 0 },
+      { name: '案例理解', value: 0 },
+      { name: '练习稳定', value: 0 },
+      { name: '项目迁移', value: 0 },
+      { name: '结果传递', value: 0 },
+    ]
+  }
+
+  return [
+    { name: '语法基础', value: average(byText(['变量', '表达式', '条件', '循环', '列表', '字典']), mastery.length ? overall : 0) },
+    { name: '案例理解', value: average(byText(['函数', '模块', '类', '对象']), mastery.length ? overall : 0) },
+    { name: '练习稳定', value: overall },
+    { name: '项目迁移', value: average(byText(['项目', '文件', 'json', '日志', '异步']), mastery.length ? overall : 0) },
+    { name: '结果传递', value: average(byText(['返回', '作用域', '参数', '闭包']), mastery.length ? overall : 0) },
+  ]
 }
 
 function Goal({ title, text, done, current }: { title: string; text: string; done?: boolean; current?: boolean }) {

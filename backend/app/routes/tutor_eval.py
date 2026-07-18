@@ -6,11 +6,12 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..config import settings
+from ..auth import get_current_user
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..llm import spark_lite
 from ..memory_engine import build_injected_context, update_memory_from_turn
@@ -22,7 +23,7 @@ from ..trust_citation import render_confidence
 from ..trust_schemas import TrustAnswerRequest
 from ..xfyun_tti import generate_image_base64
 from .common import sse_wrap
-from .mcp import _mcp_request
+from .mcp import _ensure_builtin_mcp_services, _mcp_request
 
 router = APIRouter(prefix='/api', tags=['tutor-evaluation'])
 trust_answer_controller = TrustAnswerController()
@@ -670,13 +671,9 @@ def _build_a2ui_task_card_events(
     ]
 
 
-def _build_mcp_tools_prompt() -> str:
+def _build_mcp_tools_prompt(user_id: str) -> str:
     """查询已启用的 MCP 服务，构建工具描述文本用于注入 system prompt。"""
-    rows = fetch_all(
-        "SELECT name, description, transport, command, args_json FROM mcp_services "
-        "WHERE owner_id = ? AND enabled = 1 ORDER BY updated_at DESC",
-        (settings.single_user_id,),
-    )
+    rows = _get_available_mcp_services(user_id)
     if not rows:
         return ""
 
@@ -693,11 +690,11 @@ def _build_mcp_tools_prompt() -> str:
     return "\n".join(lines)
 
 
-async def _maybe_call_mcp_tools(question: str) -> tuple[str, list[dict[str, Any]]]:
+async def _maybe_call_mcp_tools(user_id: str, question: str) -> tuple[str, list[dict[str, Any]]]:
     """Run enabled MCP tools that can be selected deterministically from the user question."""
     context_blocks: list[str] = []
     calls: list[dict[str, Any]] = []
-    async for event in _iter_mcp_tool_call_events(question):
+    async for event in _iter_mcp_tool_call_events(user_id, question):
         call = dict(event)
         result_context = str(call.pop("result_context", "") or "")
         if result_context:
@@ -707,15 +704,12 @@ async def _maybe_call_mcp_tools(question: str) -> tuple[str, list[dict[str, Any]
     return ("\n\n".join(context_blocks), calls)
 
 
-async def _iter_mcp_tool_call_events(question: str) -> AsyncGenerator[dict[str, Any], None]:
+async def _iter_mcp_tool_call_events(user_id: str, question: str) -> AsyncGenerator[dict[str, Any], None]:
     """Yield MCP call progress events and final result context for this question."""
     if not question.strip():
         return
 
-    services = fetch_all(
-        "SELECT * FROM mcp_services WHERE owner_id = ? AND enabled = 1 ORDER BY updated_at DESC",
-        (settings.single_user_id,),
-    )
+    services = _get_available_mcp_services(user_id)
     if not services:
         return
 
@@ -780,11 +774,29 @@ async def _iter_mcp_tool_call_events(question: str) -> AsyncGenerator[dict[str, 
             return
 
 
+def _get_available_mcp_services(user_id: str):
+    """返回当前用户可用的 MCP 服务；系统内置 MCP 对所有正式用户全局可见。"""
+    _ensure_builtin_mcp_services()
+    return fetch_all(
+        """
+        SELECT *
+        FROM mcp_services
+        WHERE enabled = 1
+          AND last_status = 'online'
+          AND (owner_id = ? OR source = 'system')
+        ORDER BY
+          CASE WHEN source = 'system' THEN 0 ELSE 1 END,
+          updated_at DESC
+        """,
+        (user_id,),
+    )
+
+
 def _infer_mcp_tool_args(question: str, tool_name: str, tool_desc: str) -> dict[str, Any] | None:
     text = question.strip()
     haystack = f"{tool_name}\n{tool_desc}".lower()
     is_weather_tool = "weather" in haystack or "天气" in tool_desc or tool_name == "get_weather"
-    asks_weather = any(x in text for x in ["天气", "气温", "温度", "下雨", "预报", "weather"])
+    asks_weather = any(x in text.lower() for x in ["天气", "气温", "温度", "下雨", "预报", "weather"])
     asks_lookup = any(x in text for x in ["查", "查询", "查找", "搜索", "找一下", "看看", "看一下", "帮我"])
     if is_weather_tool and asks_weather:
         city = _extract_weather_city(text)
@@ -880,7 +892,8 @@ class UpdateConversationReq(BaseModel):
 
 
 @router.get('/tutor/roles')
-async def list_roles():
+async def list_roles(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     rows = fetch_all(
         """
         SELECT id, name, persona, background, style_guide, rules, enabled, created_at, updated_at
@@ -888,13 +901,14 @@ async def list_roles():
         WHERE user_id = ?
         ORDER BY updated_at DESC
         """,
-        (settings.single_user_id,),
+        (user_id,),
     )
     return ok([_role_row_to_dict(r) for r in rows])
 
 
 @router.post('/tutor/roles')
-async def create_role(req: CreateRoleReq):
+async def create_role(req: CreateRoleReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     ts = now_iso()
     role_id = _execute_returning_id(
         """
@@ -902,7 +916,7 @@ async def create_role(req: CreateRoleReq):
         VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
         """,
         (
-            settings.single_user_id,
+            user_id,
             req.name.strip() or '新角色',
             req.persona,
             req.background,
@@ -920,8 +934,9 @@ async def create_role(req: CreateRoleReq):
 
 
 @router.put('/tutor/roles/{role_id}')
-async def update_role(role_id: int, req: UpdateRoleReq):
-    row = fetch_one('SELECT * FROM tutor_roles WHERE id = ? AND user_id = ?', (role_id, settings.single_user_id))
+async def update_role(role_id: int, req: UpdateRoleReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    row = fetch_one('SELECT * FROM tutor_roles WHERE id = ? AND user_id = ?', (role_id, user_id))
     if not row:
         return fail('role not found')
 
@@ -942,7 +957,7 @@ async def update_role(role_id: int, req: UpdateRoleReq):
             1 if bool(data.get('enabled', 1)) else 0,
             now_iso(),
             role_id,
-            settings.single_user_id,
+            user_id,
         ),
     )
 
@@ -954,7 +969,8 @@ async def update_role(role_id: int, req: UpdateRoleReq):
 
 
 @router.delete('/tutor/roles/{role_id}')
-async def delete_role(role_id: int):
+async def delete_role(role_id: int, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     another = fetch_one(
         """
         SELECT id FROM tutor_roles
@@ -962,7 +978,7 @@ async def delete_role(role_id: int):
         ORDER BY updated_at DESC
         LIMIT 1
         """,
-        (settings.single_user_id, role_id),
+        (user_id, role_id),
     )
 
     if another:
@@ -974,7 +990,7 @@ async def delete_role(role_id: int):
             INSERT INTO tutor_roles(user_id, name, persona, background, style_guide, rules, enabled, created_at, updated_at)
             VALUES (?, '通用学习导师', '', '', '', '', 1, ?, ?)
             """,
-            (settings.single_user_id, ts, ts),
+            (user_id, ts, ts),
         )
 
     execute(
@@ -983,9 +999,9 @@ async def delete_role(role_id: int):
         SET role_id = ?, updated_at = ?
         WHERE user_id = ? AND role_id = ?
         """,
-        (fallback_role_id, now_iso(), settings.single_user_id, role_id),
+        (fallback_role_id, now_iso(), user_id, role_id),
     )
-    execute('DELETE FROM tutor_roles WHERE id = ? AND user_id = ?', (role_id, settings.single_user_id))
+    execute('DELETE FROM tutor_roles WHERE id = ? AND user_id = ?', (role_id, user_id))
     return ok({'deleted': True})
 
 
@@ -1097,9 +1113,9 @@ def _analyze_role_request(question: str, profile: dict[str, Any] | None) -> dict
     }
 
 
-async def _generate_role_from_question(question: str) -> dict[str, str]:
+async def _generate_role_from_question(user_id: str, question: str) -> dict[str, str]:
     clean_question = ' '.join((question or '').split())[:200] or '创建一个学习导师'
-    profile = _load_profile_snapshot()
+    profile = _load_profile_snapshot(user_id)
     analysis_prompt = (
         "请根据用户需求和学习画像输出结构化画像 JSON，不要输出解释。\n"
         f"用户需求：{clean_question}\n"
@@ -1140,8 +1156,9 @@ async def _generate_role_from_question(question: str) -> dict[str, str]:
 
 
 @router.post('/tutor/roles/generate-from-question')
-async def generate_role_from_question(req: GenerateRoleReq):
-    role = await _generate_role_from_question(req.question)
+async def generate_role_from_question(req: GenerateRoleReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    role = await _generate_role_from_question(user_id, req.question)
     ts = now_iso()
     role_id = _execute_returning_id(
         """
@@ -1149,7 +1166,7 @@ async def generate_role_from_question(req: GenerateRoleReq):
         VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
         """,
         (
-            settings.single_user_id,
+            user_id,
             role.get('name') or '个性化学习导师',
             role.get('persona') or '',
             role.get('background') or '',
@@ -1167,7 +1184,8 @@ async def generate_role_from_question(req: GenerateRoleReq):
 
 
 @router.get('/tutor/conversations')
-async def list_conversations():
+async def list_conversations(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     rows = fetch_all(
         """
         SELECT c.id, c.role_id, c.title, c.created_at, c.updated_at,
@@ -1182,21 +1200,22 @@ async def list_conversations():
         WHERE c.user_id = ?
         ORDER BY c.updated_at DESC
         """,
-        (settings.single_user_id, settings.single_user_id),
+        (user_id, user_id),
     )
     return ok([dict(r) for r in rows])
 
 
 @router.post('/tutor/conversations')
-async def create_conversation(req: CreateConversationReq):
-    role_id = req.role_id or _default_role_id()
+async def create_conversation(req: CreateConversationReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    role_id = req.role_id or _default_role_id(user_id)
     ts = now_iso()
     conv_id = _execute_returning_id(
         """
         INSERT INTO tutor_conversations(user_id, role_id, title, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (settings.single_user_id, role_id, (req.title or '新对话')[:80], ts, ts),
+        (user_id, role_id, (req.title or '新对话')[:80], ts, ts),
     )
     row = fetch_one(
         'SELECT id, role_id, title, created_at, updated_at, 0 AS message_count FROM tutor_conversations WHERE id = ?',
@@ -1206,10 +1225,11 @@ async def create_conversation(req: CreateConversationReq):
 
 
 @router.put('/tutor/conversations/{conversation_id}')
-async def update_conversation(conversation_id: int, req: UpdateConversationReq):
+async def update_conversation(conversation_id: int, req: UpdateConversationReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     row = fetch_one(
         'SELECT * FROM tutor_conversations WHERE id = ? AND user_id = ?',
-        (conversation_id, settings.single_user_id),
+        (conversation_id, user_id),
     )
     if not row:
         return fail('conversation not found')
@@ -1223,11 +1243,11 @@ async def update_conversation(conversation_id: int, req: UpdateConversationReq):
         WHERE id = ? AND user_id = ?
         """,
         (
-            int(data.get('role_id') or _default_role_id()),
+            int(data.get('role_id') or _default_role_id(user_id)),
             str(data.get('title') or '新对话')[:80],
             now_iso(),
             conversation_id,
-            settings.single_user_id,
+            user_id,
         ),
     )
 
@@ -1244,20 +1264,22 @@ async def update_conversation(conversation_id: int, req: UpdateConversationReq):
         ) m ON c.id = m.conversation_id
         WHERE c.id = ?
         """,
-        (settings.single_user_id, conversation_id),
+        (user_id, conversation_id),
     )
     return ok(dict(updated))
 
 
 @router.delete('/tutor/conversations/{conversation_id}')
-async def delete_conversation(conversation_id: int):
-    execute('DELETE FROM tutor_messages WHERE conversation_id = ? AND user_id = ?', (conversation_id, settings.single_user_id))
-    execute('DELETE FROM tutor_conversations WHERE id = ? AND user_id = ?', (conversation_id, settings.single_user_id))
+async def delete_conversation(conversation_id: int, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    execute('DELETE FROM tutor_messages WHERE conversation_id = ? AND user_id = ?', (conversation_id, user_id))
+    execute('DELETE FROM tutor_conversations WHERE id = ? AND user_id = ?', (conversation_id, user_id))
     return ok({'deleted': True})
 
 
 @router.get('/tutor/messages')
-async def tutor_messages(conversation_id: int, limit: int = 100):
+async def tutor_messages(conversation_id: int, limit: int = 100, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     rows = fetch_all(
         """
         SELECT id, conversation_id, sender_role, content, file_ids, created_at
@@ -1266,33 +1288,35 @@ async def tutor_messages(conversation_id: int, limit: int = 100):
         ORDER BY id ASC
         LIMIT ?
         """,
-        (settings.single_user_id, conversation_id, max(1, min(limit, 500))),
+        (user_id, conversation_id, max(1, min(limit, 500))),
     )
-    return ok([_message_row_to_dict(r) for r in rows])
+    return ok([_message_row_to_dict(r, user_id) for r in rows])
 
 
 @router.delete('/tutor/messages/{message_id}')
-async def delete_tutor_message(message_id: int):
+async def delete_tutor_message(message_id: int, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     row = fetch_one(
         'SELECT id, conversation_id FROM tutor_messages WHERE id = ? AND user_id = ?',
-        (message_id, settings.single_user_id),
+        (message_id, user_id),
     )
     if not row:
         return fail('message not found')
 
     conversation_id = int(row['conversation_id'])
-    execute('DELETE FROM tutor_messages WHERE id = ? AND user_id = ?', (message_id, settings.single_user_id))
+    execute('DELETE FROM tutor_messages WHERE id = ? AND user_id = ?', (message_id, user_id))
     execute(
         'UPDATE tutor_conversations SET updated_at = ? WHERE id = ? AND user_id = ?',
-        (now_iso(), conversation_id, settings.single_user_id),
+        (now_iso(), conversation_id, user_id),
     )
     return ok({'deleted': True, 'conversation_id': conversation_id})
 
 
 @router.post('/tutor/files')
-async def upload_tutor_file(files: list[UploadFile] = File(...)):
+async def upload_tutor_file(files: list[UploadFile] = File(...), current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     saved: list[dict[str, Any]] = []
-    uploads_dir = settings.data_dir / 'users' / settings.single_user_id / 'uploads'
+    uploads_dir = settings.data_dir / 'users' / user_id / 'uploads'
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
     for f in files:
@@ -1306,7 +1330,7 @@ async def upload_tutor_file(files: list[UploadFile] = File(...)):
             VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
-                settings.single_user_id,
+                user_id,
                 f.filename or 'file.bin',
                 '',
                 f.content_type or 'application/octet-stream',
@@ -1338,13 +1362,14 @@ async def upload_tutor_file(files: list[UploadFile] = File(...)):
 
 
 @router.post('/tutor/files/web-capture')
-async def import_web_capture(req: WebCaptureReq):
+async def import_web_capture(req: WebCaptureReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     text = _clean_web_material_text(req.text or req.excerpt)
     if not text:
         return fail('网页正文为空，无法保存到我的资料')
 
     title = _clean_web_material_title(req.title, req.url)
-    uploads_dir = settings.data_dir / 'users' / settings.single_user_id / 'uploads'
+    uploads_dir = settings.data_dir / 'users' / user_id / 'uploads'
     uploads_dir.mkdir(parents=True, exist_ok=True)
     ts = now_iso()
     raw = text.encode('utf-8')
@@ -1358,7 +1383,7 @@ async def import_web_capture(req: WebCaptureReq):
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            settings.single_user_id,
+            user_id,
             title,
             '',
             'text/plain; charset=utf-8',
@@ -1376,50 +1401,52 @@ async def import_web_capture(req: WebCaptureReq):
     stored_path.write_text(text, encoding='utf-8')
     execute('UPDATE tutor_files SET stored_path = ? WHERE id = ?', (str(stored_path), file_id))
     await _index_tutor_file(file_id=file_id, stored_path=stored_path, filename=title + '.txt', mime_type='text/plain')
-    row = fetch_one('SELECT * FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, settings.single_user_id))
-    append_jsonl(settings.single_user_id, 'web_material_imports.jsonl', {'file_id': file_id, 'title': title, 'url': req.url.strip(), 'created_at': ts})
+    row = fetch_one('SELECT * FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, user_id))
+    append_jsonl(user_id, 'web_material_imports.jsonl', {'file_id': file_id, 'title': title, 'url': req.url.strip(), 'created_at': ts})
     return ok(_tutor_file_row_to_dict(row, include_content=True))
 
 
 @router.get('/tutor/files')
-async def list_tutor_files():
+async def list_tutor_files(current_user: dict = Depends(get_current_user)):
     """列出用户上传过的所有文件"""
     rows = fetch_all(
         "SELECT * FROM tutor_files WHERE user_id = ? AND COALESCE(source_type, 'upload') != 'web_capture' ORDER BY created_at DESC",
-        (settings.single_user_id,),
+        (current_user["user_id"],),
     )
     return ok([_tutor_file_row_to_dict(r) for r in rows])
 
 
 @router.get('/tutor/files/{file_id}')
-async def get_tutor_file(file_id: int):
-    row = fetch_one('SELECT * FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, settings.single_user_id))
+async def get_tutor_file(file_id: int, current_user: dict = Depends(get_current_user)):
+    row = fetch_one('SELECT * FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, current_user["user_id"]))
     if not row:
         raise HTTPException(status_code=404, detail='文件不存在')
     return ok(_tutor_file_row_to_dict(row, include_content=True))
 
 
 @router.delete('/tutor/files/{file_id}')
-async def delete_tutor_file(file_id: int):
+async def delete_tutor_file(file_id: int, current_user: dict = Depends(get_current_user)):
     """删除一个上传的文件"""
-    row = fetch_one('SELECT id, stored_path FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, settings.single_user_id))
+    user_id = current_user["user_id"]
+    row = fetch_one('SELECT id, stored_path FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, user_id))
     if not row:
         raise HTTPException(status_code=404, detail='文件不存在')
     stored = Path(row['stored_path'])
     if stored.exists():
         stored.unlink()
     execute('DELETE FROM tutor_file_chunks WHERE file_id = ?', (file_id,))
-    execute('DELETE FROM tutor_files WHERE id = ?', (file_id,))
+    execute('DELETE FROM tutor_files WHERE id = ? AND user_id = ?', (file_id, user_id))
     return ok({'deleted': True})
 
 
 @router.post('/tutor/chat')
-async def tutor_chat(req: TutorReq):
-    conversation_id = req.conversation_id or _create_tutor_conversation(role_id=req.role_id)
-    role_id = req.role_id or _role_id_for_conversation(conversation_id) or _default_role_id()
+async def tutor_chat(req: TutorReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    conversation_id = req.conversation_id or _create_tutor_conversation(user_id, role_id=req.role_id)
+    role_id = req.role_id or _role_id_for_conversation(user_id, conversation_id) or _default_role_id(user_id)
     role = fetch_one(
         'SELECT id, name, persona, background, style_guide, rules FROM tutor_roles WHERE id = ? AND user_id = ?',
-        (role_id, settings.single_user_id),
+        (role_id, user_id),
     )
     role_prompt = _build_role_prompt(dict(role) if role else None)
 
@@ -1430,7 +1457,7 @@ async def tutor_chat(req: TutorReq):
             FROM tutor_messages
             WHERE user_id = ? AND conversation_id = ? AND sender_role = 'user'
             """,
-            (settings.single_user_id, conversation_id),
+            (user_id, conversation_id),
         )
         before_user_count = int(before_count_row['cnt']) if before_count_row else 0
 
@@ -1443,7 +1470,7 @@ async def tutor_chat(req: TutorReq):
             """,
             (
                 conversation_id,
-                settings.single_user_id,
+                user_id,
                 req.message,
                 json.dumps(effective_file_ids, ensure_ascii=False),
                 now_iso(),
@@ -1452,14 +1479,14 @@ async def tutor_chat(req: TutorReq):
 
         execute(
             'UPDATE tutor_conversations SET updated_at = ? WHERE id = ? AND user_id = ?',
-            (now_iso(), conversation_id, settings.single_user_id),
+            (now_iso(), conversation_id, user_id),
         )
 
         if before_user_count == 0:
             title = await _generate_conversation_title(req.message)
             execute(
                 "UPDATE tutor_conversations SET title = ? WHERE id = ? AND user_id = ? AND title = '新对话'",
-                (title, conversation_id, settings.single_user_id),
+                (title, conversation_id, user_id),
             )
 
         yield ('meta', {'mode': req.mode, 'conversation_id': conversation_id, 'role_id': role_id, 'user_message_id': user_msg_id})
@@ -1472,17 +1499,17 @@ async def tutor_chat(req: TutorReq):
             ORDER BY id DESC
             LIMIT 12
             """,
-            (settings.single_user_id, conversation_id),
+            (user_id, conversation_id),
         )
 
         page_prompt = _build_page_context_prompt(req.page_context)
-        memory_prompt = build_injected_context(settings.single_user_id, req.message, top_k=8)
-        file_context, file_sources = await _retrieve_tutor_file_context(effective_file_ids, req.message)
+        memory_prompt = build_injected_context(user_id, req.message, top_k=8)
+        file_context, file_sources = await _retrieve_tutor_file_context(user_id, effective_file_ids, req.message)
         file_prompt = ''
         if file_context:
             file_prompt = f"以下是用户上传文件检索到的相关片段，请优先基于这些证据回答：\n{file_context}"
             yield ('sources', {'items': file_sources})
-        mcp_prompt = _build_mcp_tools_prompt() if req.mcp_enabled else ""
+        mcp_prompt = _build_mcp_tools_prompt(user_id) if req.mcp_enabled else ""
         merged_system_prompt = "\n\n".join(p for p in [role_prompt, page_prompt, memory_prompt] if p)
         if file_prompt:
             merged_system_prompt = "\n\n".join(p for p in [merged_system_prompt, file_prompt] if p)
@@ -1503,7 +1530,7 @@ async def tutor_chat(req: TutorReq):
         a2ui_ui_only = _should_use_a2ui_ui_only(req, effective_mode)
         profile_for_a2ui = req.page_context.get('student_profile') if isinstance(req.page_context, dict) and isinstance(req.page_context.get('student_profile'), dict) else None
         resources_for_a2ui = req.page_context.get('generated_resources') if isinstance(req.page_context, dict) and isinstance(req.page_context.get('generated_resources'), list) else []
-        profile_for_process = profile_for_a2ui or _load_profile_snapshot()
+        profile_for_process = profile_for_a2ui or _load_profile_snapshot(user_id)
         should_emit_a2ui = a2ui_ui_only or _should_emit_a2ui_task_cards(req.message, effective_mode)
         agui_events = _build_agui_process_events(
             conversation_id,
@@ -1537,7 +1564,7 @@ async def tutor_chat(req: TutorReq):
         mcp_calls_payload: list[dict[str, Any]] = []
         if req.mcp_enabled and req.message.strip():
             mcp_context_blocks: list[str] = []
-            async for item in _iter_mcp_tool_call_events(req.message):
+            async for item in _iter_mcp_tool_call_events(user_id, req.message):
                 result_context = str(item.get('result_context') or '')
                 if result_context:
                     mcp_context_blocks.append(result_context)
@@ -1598,7 +1625,7 @@ async def tutor_chat(req: TutorReq):
                 """,
                 (
                     conversation_id,
-                    settings.single_user_id,
+                    user_id,
                     answer,
                     json.dumps(
                         {
@@ -1639,11 +1666,11 @@ async def tutor_chat(req: TutorReq):
         trust_meta_payload: dict[str, Any] = {'mcp_calls': mcp_calls_payload} if mcp_calls_payload else {}
 
         if req.workshop_enabled:
-            profile = _load_profile_snapshot()
+            profile = _load_profile_snapshot(user_id)
             profile_summary = _profile_summary_text(profile)
             complexity = _estimate_question_complexity(req.message)
             rounds = _rounds_for_complexity(complexity)
-            participants = _build_workshop_participants(req, role)
+            participants = _build_workshop_participants(user_id, req, role)
 
             yield (
                 'workshop_meta',
@@ -1820,7 +1847,7 @@ async def tutor_chat(req: TutorReq):
                     prompt=req.message,
                     width=512,
                     height=512,
-                    uid=settings.single_user_id,
+                    uid=user_id,
                 )
                 answer = f"![AI生成图](data:image/png;base64,{image_b64})"
                 yield ('text', {'content': answer})
@@ -1884,7 +1911,7 @@ async def tutor_chat(req: TutorReq):
                     mcp_prompt=mcp_context,
                     conversation_id=conversation_id,
                     file_ids=effective_file_ids,
-                    knowledge_file_ids=_resolve_subject_knowledge_file_ids_for_tutor(req.knowledge_file_ids or []),
+                    knowledge_file_ids=_resolve_subject_knowledge_file_ids_for_tutor(user_id, req.knowledge_file_ids or []),
                     user_file_sources=file_sources,
                     web_search_results=search_results,
                         use_profile=True,
@@ -1962,7 +1989,7 @@ async def tutor_chat(req: TutorReq):
             """,
             (
                 conversation_id,
-                settings.single_user_id,
+                user_id,
                 answer,
                 json.dumps(
                     {
@@ -1985,7 +2012,7 @@ async def tutor_chat(req: TutorReq):
         )
 
         append_jsonl(
-            settings.single_user_id,
+            user_id,
             'learning_events.jsonl',
             {
                 'type': 'tutor_chat',
@@ -1995,13 +2022,13 @@ async def tutor_chat(req: TutorReq):
             },
         )
         memory_update = update_memory_from_turn(
-            user_id=settings.single_user_id,
+            user_id=user_id,
             user_message=req.message,
             assistant_message=answer,
             page_context=req.page_context,
         )
         append_jsonl(
-            settings.single_user_id,
+            user_id,
             'learning_events.jsonl',
             {
                 'type': 'memory_updated',
@@ -2044,9 +2071,10 @@ async def tutor_chat(req: TutorReq):
 
 
 @router.get('/tutor/history')
-async def tutor_history(limit: int = 20, conversation_id: int | None = None):
+async def tutor_history(limit: int = 20, conversation_id: int | None = None, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     if conversation_id is None:
-        conversation_id = _ensure_default_conversation()
+        conversation_id = _ensure_default_conversation(user_id)
 
     rows = fetch_all(
         """
@@ -2056,12 +2084,12 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
         ORDER BY id DESC
         LIMIT ?
         """,
-        (settings.single_user_id, conversation_id, max(1, min(limit, 500))),
+        (user_id, conversation_id, max(1, min(limit, 500))),
     )
 
     data = []
     for row in reversed(rows):
-        files = _resolve_file_names(_parse_json_list(row['file_ids']))
+        files = _resolve_file_names(user_id, _parse_json_list(row['file_ids']))
         meta = _parse_json_dict(row['meta_json']) if 'meta_json' in row.keys() else {}
         trust_meta = meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {}
         mcp_calls = meta.get('mcp_calls') if isinstance(meta.get('mcp_calls'), list) else trust_meta.get('mcp_calls')
@@ -2090,22 +2118,23 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None):
 
 
 @router.get('/evaluation/report')
-async def get_evaluation_report(period: str = 'week'):
+async def get_evaluation_report(period: str = 'week', current_user: dict = Depends(get_current_user)):
     from .report_service import get_evaluation_report as _get_report
 
-    return await _get_report(period)
+    return await _get_report(period, user_id=current_user["user_id"])
 
 
 @router.post('/evaluation/refresh')
-async def refresh_evaluation(req: EvalRefreshReq):
+async def refresh_evaluation(req: EvalRefreshReq, current_user: dict = Depends(get_current_user)):
     from .report_service import get_evaluation_report as _get_report
+    user_id = current_user["user_id"]
 
     summary = await spark_lite.summarize('函数与面向对象')
-    report_resp = await _get_report()
+    report_resp = await _get_report(user_id=user_id)
     report = report_resp.data
     report['ai_summary'] = summary
 
-    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'evaluation_refresh', 'force': req.force})
+    append_jsonl(user_id, 'learning_events.jsonl', {'type': 'evaluation_refresh', 'force': req.force})
     return ok({'message': '评估完成', 'report': report})
 
 
@@ -2114,15 +2143,16 @@ class AiSummaryReq(BaseModel):
 
 
 @router.post('/report/ai-summary')
-async def generate_report_ai_summary(req: AiSummaryReq):
+async def generate_report_ai_summary(req: AiSummaryReq, current_user: dict = Depends(get_current_user)):
     """Stream an AI-generated learning report summary via SSE."""
     period = req.period if req.period in {'day', 'week', 'month'} else 'week'
+    user_id = current_user["user_id"]
 
     # Gather context data for the AI
-    profile_row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (settings.single_user_id,))
+    profile_row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (user_id,))
     mastery_rows = fetch_all(
         'SELECT knowledge_point_name, score, chapter FROM mastery_records WHERE user_id = ? ORDER BY score ASC LIMIT 5',
-        (settings.single_user_id,),
+        (user_id,),
     )
     weak_points = [{'name': r['knowledge_point_name'], 'score': round(float(r['score']), 2)} for r in mastery_rows]
 
@@ -2130,7 +2160,7 @@ async def generate_report_ai_summary(req: AiSummaryReq):
     period_label = period_labels.get(period, '本周')
 
     # Build stats context
-    report_resp = await get_evaluation_report(period)
+    report_resp = await get_evaluation_report(period, current_user)
     stats = report_resp.data['stats']
 
     prompt = (
@@ -2196,7 +2226,7 @@ def _build_page_context_prompt(page_context: dict[str, Any] | None) -> str:
     )
 
 
-def _message_row_to_dict(row) -> dict[str, Any]:
+def _message_row_to_dict(row, user_id: str) -> dict[str, Any]:
     file_ids = _parse_json_list(row['file_ids'])
     meta = _parse_json_dict(row['meta_json']) if 'meta_json' in row.keys() else {}
     trust_meta = meta.get('trust_meta') if isinstance(meta.get('trust_meta'), dict) else {}
@@ -2207,7 +2237,7 @@ def _message_row_to_dict(row) -> dict[str, Any]:
         'sender_role': row['sender_role'],
         'content': row['content'],
         'file_ids': file_ids,
-        'file_names': _resolve_file_names(file_ids),
+        'file_names': _resolve_file_names(user_id, file_ids),
         'confidence': meta.get('confidence') if isinstance(meta.get('confidence'), dict) else None,
         'citations': meta.get('citations') if isinstance(meta.get('citations'), list) else [],
         'trust_meta': trust_meta,
@@ -2240,23 +2270,23 @@ def _parse_json_list(raw: str | None) -> list[int]:
     return out
 
 
-def _resolve_file_names(file_ids: list[int]) -> list[str]:
+def _resolve_file_names(user_id: str, file_ids: list[int]) -> list[str]:
     if not file_ids:
         return []
 
     placeholders = ','.join('?' for _ in file_ids)
     rows = fetch_all(
         f'SELECT id, filename FROM tutor_files WHERE user_id = ? AND id IN ({placeholders})',
-        (settings.single_user_id, *file_ids),
+        (user_id, *file_ids),
     )
     mapping = {int(r['id']): str(r['filename']) for r in rows}
     return [mapping[i] for i in file_ids if i in mapping]
 
 
-def _default_role_id() -> int:
+def _default_role_id(user_id: str) -> int:
     row = fetch_one(
         'SELECT id FROM tutor_roles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
-        (settings.single_user_id,),
+        (user_id,),
     )
     if row:
         return int(row['id'])
@@ -2267,11 +2297,11 @@ def _default_role_id() -> int:
         INSERT INTO tutor_roles(user_id, name, persona, background, style_guide, rules, enabled, created_at, updated_at)
         VALUES (?, '通用学习导师', '', '', '', '', 1, ?, ?)
         """,
-        (settings.single_user_id, ts, ts),
+        (user_id, ts, ts),
     )
 
 
-def _ensure_default_conversation() -> int:
+def _ensure_default_conversation(user_id: str) -> int:
     row = fetch_one(
         """
         SELECT id
@@ -2280,7 +2310,7 @@ def _ensure_default_conversation() -> int:
         ORDER BY updated_at DESC
         LIMIT 1
         """,
-        (settings.single_user_id,),
+        (user_id,),
     )
     if row:
         return int(row['id'])
@@ -2291,25 +2321,25 @@ def _ensure_default_conversation() -> int:
         INSERT INTO tutor_conversations(user_id, role_id, title, created_at, updated_at)
         VALUES (?, ?, '新对话', ?, ?)
         """,
-        (settings.single_user_id, _default_role_id(), ts, ts),
+        (user_id, _default_role_id(user_id), ts, ts),
     )
 
 
-def _create_tutor_conversation(title: str = '新对话', role_id: int | None = None) -> int:
+def _create_tutor_conversation(user_id: str, title: str = '新对话', role_id: int | None = None) -> int:
     ts = now_iso()
     return _execute_returning_id(
         """
         INSERT INTO tutor_conversations(user_id, role_id, title, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (settings.single_user_id, role_id or _default_role_id(), title, ts, ts),
+        (user_id, role_id or _default_role_id(user_id), title, ts, ts),
     )
 
 
-def _role_id_for_conversation(conversation_id: int) -> int | None:
+def _role_id_for_conversation(user_id: str, conversation_id: int) -> int | None:
     row = fetch_one(
         'SELECT role_id FROM tutor_conversations WHERE id = ? AND user_id = ?',
-        (conversation_id, settings.single_user_id),
+        (conversation_id, user_id),
     )
     if not row:
         return None
@@ -2332,8 +2362,8 @@ def _build_role_prompt(role: dict[str, Any] | None) -> str:
     return merged
 
 
-def _load_profile_snapshot() -> dict[str, Any]:
-    row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (settings.single_user_id,))
+def _load_profile_snapshot(user_id: str) -> dict[str, Any]:
+    row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (user_id,))
     if not row:
         return {}
     return {
@@ -2348,12 +2378,12 @@ def _load_profile_snapshot() -> dict[str, Any]:
     }
 
 
-def _resolve_subject_knowledge_file_ids_for_tutor(explicit_ids: list[int]) -> list[int]:
+def _resolve_subject_knowledge_file_ids_for_tutor(user_id: str, explicit_ids: list[int]) -> list[int]:
     ids = [int(x) for x in explicit_ids if int(x) > 0]
     if ids:
         return ids
 
-    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (user_id,))
     subject_name = str(student['major']).strip() if student and student['major'] else ''
     if not subject_name:
         return []
@@ -2365,7 +2395,7 @@ def _resolve_subject_knowledge_file_ids_for_tutor(explicit_ids: list[int]) -> li
         ORDER BY updated_at DESC, id DESC
         LIMIT 8
         """,
-        (settings.single_user_id, subject_name),
+        (user_id, subject_name),
     )
     return [int(row['id']) for row in rows]
 
@@ -2470,7 +2500,7 @@ def _rounds_for_complexity(complexity: str) -> int:
     return min(5, max(1, mapping.get(complexity, 3)))
 
 
-def _build_workshop_participants(req: TutorReq, active_role: Any) -> list[dict[str, str]]:
+def _build_workshop_participants(user_id: str, req: TutorReq, active_role: Any) -> list[dict[str, str]]:
     participants: list[dict[str, str]] = [
         {
             'id': 'clarifier',
@@ -2518,7 +2548,7 @@ def _build_workshop_participants(req: TutorReq, active_role: Any) -> list[dict[s
             WHERE user_id = ? AND id IN ({placeholders})
             ORDER BY updated_at DESC
             """,
-            (settings.single_user_id, *custom_ids),
+            (user_id, *custom_ids),
         )
         for row in rows:
             participants.append(
@@ -2990,7 +3020,7 @@ async def _index_tutor_file(*, file_id: int, stored_path: Path, filename: str, m
         )
 
 
-async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_chars: int = 3500, top_k: int = 8) -> tuple[str, list[dict[str, Any]]]:
+async def _retrieve_tutor_file_context(user_id: str, file_ids: list[int], query: str, max_chars: int = 3500, top_k: int = 8) -> tuple[str, list[dict[str, Any]]]:
     ids = [int(x) for x in file_ids if int(x) > 0]
     if not ids:
         return ('', [])
@@ -3003,7 +3033,7 @@ async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_char
         WHERE f.user_id = ? AND c.file_id IN ({placeholders})
         ORDER BY c.file_id ASC, c.chunk_index ASC
         """,
-        (settings.single_user_id, *ids),
+        (user_id, *ids),
     )
     if not rows:
         # Fallback: if chunk table is empty, read original uploaded files directly.
@@ -3014,7 +3044,7 @@ async def _retrieve_tutor_file_context(file_ids: list[int], query: str, max_char
             WHERE user_id = ? AND id IN ({placeholders})
             ORDER BY id ASC
             """,
-            (settings.single_user_id, *ids),
+            (user_id, *ids),
         )
         selected: list[str] = []
         sources: list[dict[str, Any]] = []

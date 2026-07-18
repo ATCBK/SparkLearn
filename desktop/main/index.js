@@ -284,6 +284,14 @@ function createWindow() {
     },
   });
 
+  mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'loading.html'));
+}
+
+function loadFrontendWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  }
+
   const startUrl = `${config.frontend.url.replace(/\/$/, '')}/`;
   mainWindow.loadURL(startUrl);
 }
@@ -334,6 +342,7 @@ function installMenu() {
 }
 
 async function bootstrap() {
+  try {
   logManager = new LogManager();
   config = loadConfig();
   processManager = new ProcessManager(config, logManager);
@@ -354,14 +363,25 @@ async function bootstrap() {
   ipcMain.handle('desktop:studybuddy-profile:sync', (_event, payload) => syncStudyBuddyProfile(payload || {}));
 
   try {
-    await processManager.startAll();
     installMenu();
     createWindow();
+    await processManager.startAll();
+    loadFrontendWindow();
   } catch (error) {
     logManager.error(error.stack || error.message);
     dialog.showErrorBox(
       'SparkLearn 启动失败',
       `${error.message}\n\n日志目录：${logManager.logDir}`,
+    );
+    app.quit();
+  }
+  } catch (error) {
+    if (logManager) {
+      logManager.error(error.stack || error.message);
+    }
+    dialog.showErrorBox(
+      'SparkLearn 启动失败',
+      `${error.message}\n\n日志目录：${logManager ? logManager.logDir : app.getPath('userData')}`,
     );
     app.quit();
   }

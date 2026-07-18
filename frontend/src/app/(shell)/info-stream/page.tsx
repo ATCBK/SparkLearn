@@ -46,7 +46,7 @@ const SOURCE_ICONS: Record<string, LucideIcon> = {
   'pen-tool': PenTool,
 }
 
-const DISCOVERY_PROMPTS = ['人工智能 函数 模块', 'Python return 作用域', '机器学习 入门 项目']
+const DISCOVERY_PROMPTS = ['人工智能', 'Python return 作用域', '机器学习 入门 项目']
 
 function numberMeta(value: unknown) {
   return typeof value === 'number' ? value.toLocaleString() : ''
@@ -80,7 +80,7 @@ function getSourceColor(source: string): string {
 }
 
 export default function InfoStreamPage() {
-  const [keyword, setKeyword] = useState('人工智能 函数 模块')
+  const [keyword, setKeyword] = useState('人工智能')
   const [activeSource, setActiveSource] = useState('all')
   const [sources, setSources] = useState<Source[]>([])
   const [items, setItems] = useState<InfoItem[]>([])

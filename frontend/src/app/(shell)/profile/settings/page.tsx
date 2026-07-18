@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Camera, Mail, GraduationCap, BookOpen, Clock, Target, ArrowLeft } from 'lucide-react'
 import { api, ProfileUpdatePayload, StudentProfile } from '@/lib/api'
-import { syncStudyBuddyProfile } from '@/lib/auth'
+import { getUser, setUser, syncStudyBuddyProfile } from '@/lib/auth'
 import { PageHead, ProtoButton, ProtoCard } from '@/components/proto'
 
 export default function ProfileSettingsPage() {
@@ -42,10 +42,23 @@ export default function ProfileSettingsPage() {
       major: form.major,
       grade: form.grade,
       goals: form.goals,
+      knowledgeLevel: form.knowledgeLevel,
+      weakPoints: form.weakPoints,
+      learningPreference: form.learningPreference,
+      cognitiveStyle: form.cognitiveStyle,
       dailyTime: form.dailyTime,
+      practicalAbility: form.practicalAbility,
+      currentStage: form.currentStage,
     }
     try {
       await api.updateProfile(payload)
+      const nextProfile = await api.getProfile()
+      setForm(nextProfile)
+      const currentUser = getUser()
+      if (currentUser && nextProfile.name.trim()) {
+        setUser({ ...currentUser, name: nextProfile.name.trim() })
+        window.dispatchEvent(new Event('sparklearn:user-updated'))
+      }
       await syncStudyBuddyProfile('profile-settings')
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
@@ -61,7 +74,7 @@ export default function ProfileSettingsPage() {
       <PageHead
         eyebrow="个人中心"
         title="个人设置"
-        description="管理你的基本信息和学习偏好。学习画像由系统自动生成，无需手动修改。"
+        description="管理你的基本信息、学习目标和画像基础资料。保存后会同步到学习画像与学习伙伴。"
         actions={
           <ProtoButton href="/profile" variant="tertiary">
             <ArrowLeft className="h-4 w-4" />
@@ -154,6 +167,43 @@ export default function ProfileSettingsPage() {
                 onChange={v => update('goals', split(v))}
                 placeholder="用逗号分隔多个目标"
               />
+              <FormField
+                label="当前阶段"
+                value={form.currentStage}
+                onChange={v => update('currentStage', v)}
+                placeholder="如：函数与模块到项目实战过渡期"
+              />
+              <FormField
+                label="薄弱点"
+                value={form.weakPoints.join('，')}
+                onChange={v => update('weakPoints', split(v))}
+                placeholder="用逗号分隔多个薄弱点"
+              />
+              <FormField
+                label="学习方式偏好"
+                value={form.learningPreference.join('，')}
+                onChange={v => update('learningPreference', split(v))}
+                placeholder="如：先看案例再做短练，互动问答"
+              />
+              <TextAreaField
+                label="知识基础"
+                value={form.knowledgeLevel}
+                onChange={v => update('knowledgeLevel', v)}
+                placeholder="描述当前基础水平"
+              />
+              <TextAreaField
+                label="认知风格"
+                value={form.cognitiveStyle}
+                onChange={v => update('cognitiveStyle', v)}
+                placeholder="描述更适合怎样理解和迁移知识"
+              />
+              <TextAreaField
+                label="实践能力"
+                value={form.practicalAbility}
+                onChange={v => update('practicalAbility', v)}
+                placeholder="描述当前能独立完成什么，还需要补什么"
+                className="col-span-2 max-[640px]:col-span-1"
+              />
               <div>
                 <label className="mb-2 block text-small font-bold text-ink">
                   <span className="flex items-center gap-2">
@@ -186,8 +236,7 @@ export default function ProfileSettingsPage() {
               <div>
                 <p className="text-small font-bold text-ink">关于学习画像</p>
                 <p className="mt-1 text-micro leading-5 text-muted">
-                  知识基础、薄弱点、认知风格等画像数据由系统根据你的学习行为自动分析生成，无需手动修改。
-                  你可以在「学习画像」页面查看完整的 AI 分析结果。
+                  这里维护的是画像基础资料。系统后续会结合学习行为继续分析，但演示账号也可以在这里直接补充姓名、目标、薄弱点和学习偏好。
                 </p>
               </div>
             </div>
@@ -239,6 +288,33 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="h-11 w-full rounded-[10px] border border-line bg-[#fafbfc] px-4 text-small text-ink outline-none transition-colors placeholder:text-soft focus:border-blue focus:bg-white focus:ring-2 focus:ring-blue/10"
+      />
+    </label>
+  )
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  className = '',
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  className?: string
+}) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-2 block text-small font-bold text-ink">{label}</span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={3}
+        className="w-full resize-none rounded-[10px] border border-line bg-[#fafbfc] px-4 py-3 text-small leading-6 text-ink outline-none transition-colors placeholder:text-soft focus:border-blue focus:bg-white focus:ring-2 focus:ring-blue/10"
       />
     </label>
   )

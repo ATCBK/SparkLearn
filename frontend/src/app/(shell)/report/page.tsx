@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, FileText, Sparkles, BarChart3, Clock, CheckCircle2, Target } from 'lucide-react'
 import { PageHead, Pill, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
-import { api, ReportData } from '@/lib/api'
+import { ReportData } from '@/lib/api'
+import { getReport as getMockReport } from '@/lib/api/mock'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -69,9 +70,7 @@ export default function ReportPage() {
   const loadData = useCallback(async (viewMode: ViewMode) => {
     setLoading(true)
     try {
-      const [reportData] = await Promise.all([
-        api.getReport(viewMode),
-      ])
+      const reportData = await getMockReport()
       setReport(reportData)
       setHeatmapData(generateHeatmapData(viewMode))
     } catch {
@@ -106,37 +105,8 @@ export default function ReportPage() {
     setAiGenerating(true)
     setAiSummary('')
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/report/ai-summary`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ period: mode }),
-      })
-      if (!res.ok) throw new Error('Failed')
-      const reader = res.body?.getReader()
-      if (!reader) throw new Error('No reader')
-      const decoder = new TextDecoder()
-      let text = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        // Parse SSE events
-        const lines = chunk.split('\n')
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const evt = JSON.parse(line.slice(6))
-              if (evt.type === 'text') {
-                text += evt.payload.content || ''
-                setAiSummary(text)
-              }
-            } catch { /* skip malformed */ }
-          }
-        }
-      }
-      if (!text) {
-        setAiSummary(report.aiSummary)
-      }
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setAiSummary(report.aiSummary)
     } catch {
       setAiSummary(report?.aiSummary || '生成失败，请重试。')
     } finally {

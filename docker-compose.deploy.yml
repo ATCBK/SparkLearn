@@ -1,0 +1,56 @@
+services:
+  nginx:
+    image: docker.m.daocloud.io/library/nginx:1.27-alpine
+    container_name: sparklearn-nginx
+    network_mode: host
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    image: sparklearn-backend:latest
+    container_name: sparklearn-backend
+    env_file:
+      - .env.deploy
+    environment:
+      DATA_DIR: /app/backend/data
+      DB_PATH: /app/backend/data/db/sparklearn.db
+      FFMPEG_PATH: /usr/bin/ffmpeg
+      DEBUG: "false"
+      ALLOW_SINGLE_USER_BYPASS: "false"
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_DEFAULT_PER_WINDOW: "120"
+      RATE_LIMIT_AUTH_PER_WINDOW: "20"
+      RATE_LIMIT_SMS_PER_WINDOW: "3"
+      RATE_LIMIT_AI_PER_WINDOW: "10"
+      TRUSTED_PROXY_HEADERS: "true"
+      MAX_REQUEST_BODY_BYTES: "20971520"
+      CORS_ORIGINS: '["http://121.41.78.3","http://sparklearn.cn","http://www.sparklearn.cn"]'
+    volumes:
+      - ./data/backend:/app/backend/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://121.41.78.3
+        NEXT_PUBLIC_DEMO_MODE: "on"
+        NEXT_PUBLIC_RUNTIME_MODE: real
+        NEXT_PUBLIC_USE_MOCK_DATA: "false"
+    image: sparklearn-frontend:latest
+    container_name: sparklearn-frontend
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped

@@ -5,10 +5,11 @@ import random
 import re
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from ..config import settings
+from ..auth import get_current_user
 from ..db import execute, fetch_one, now_iso
 from ..llm import spark_lite
 from ..schemas import ok
@@ -44,18 +45,19 @@ class PathPlanningResp(BaseModel):
 
 
 @router.post('/path-planning/generate')
-async def generate_path_planning(req: PathPlanningReq):
+async def generate_path_planning(req: PathPlanningReq, current_user: dict = Depends(get_current_user)):
     """
     基于用户画像和目标，使用讯飞大模型生成个性化学习路径规划
     """
     # 获取用户画像
-    profile_row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (settings.single_user_id,))
-    profile = _profile_dict(profile_row)
+    user_id = current_user["user_id"]
+    profile_row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (user_id,))
+    profile = _profile_dict(user_id, profile_row)
     
     # 获取用户掌握度数据
     mastery_rows = fetch_one(
         'SELECT COUNT(*) as total, SUM(CASE WHEN score >= 0.8 THEN 1 ELSE 0 END) as mastered FROM mastery_records WHERE user_id = ?',
-        (settings.single_user_id,)
+        (user_id,)
     )
     
     # 调用 AI 生成路径规划
@@ -63,7 +65,8 @@ async def generate_path_planning(req: PathPlanningReq):
     suggestions, resources, phases = await _generate_ai_path_planning(
         target=target,
         profile=profile,
-        mastery_stats=mastery_rows
+        mastery_stats=mastery_rows,
+        user_id=user_id,
     )
     resources = _normalize_path_resources(resources)
     
@@ -80,16 +83,16 @@ async def generate_path_planning(req: PathPlanningReq):
     
     # 保存到用户数据目录
     planning_history = read_json(
-        settings.single_user_id,
+        user_id,
         'path_planning_history.json',
         []
     )
     planning_history.append(planning_data)
-    write_json(settings.single_user_id, 'path_planning_history.json', planning_history)
+    write_json(user_id, 'path_planning_history.json', planning_history)
     
     # 记录事件
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {
             'type': 'path_planning_generated',
@@ -103,12 +106,12 @@ async def generate_path_planning(req: PathPlanningReq):
 
 
 @router.get('/path-planning/history')
-async def get_path_planning_history():
+async def get_path_planning_history(current_user: dict = Depends(get_current_user)):
     """
     获取路径规划历史
     """
     history = read_json(
-        settings.single_user_id,
+        current_user["user_id"],
         'path_planning_history.json',
         []
     )
@@ -116,18 +119,19 @@ async def get_path_planning_history():
 
 
 @router.post('/path-planning/save')
-async def save_path_planning(req: PathPlanningSaveReq):
+async def save_path_planning(req: PathPlanningSaveReq, current_user: dict = Depends(get_current_user)):
     """
     保存用户编辑后的路径阶段与节点。
     前端会在增删改节点时调用该接口，按 path_id 更新历史记录。
     """
+    user_id = current_user["user_id"]
     now = now_iso()
     path_id = req.path_id.strip() or f"path-{now.replace(':', '').replace('-', '').replace('Z', '')}"
     target = req.target.strip() or '提升编程能力'
     phases = _normalize_saved_phases(req.phases)
 
     history = read_json(
-        settings.single_user_id,
+        user_id,
         'path_planning_history.json',
         []
     )
@@ -157,10 +161,10 @@ async def save_path_planning(req: PathPlanningSaveReq):
             'updated_at': now,
         })
 
-    write_json(settings.single_user_id, 'path_planning_history.json', history)
+    write_json(user_id, 'path_planning_history.json', history)
 
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {
             'type': 'path_planning_saved',
@@ -174,16 +178,17 @@ async def save_path_planning(req: PathPlanningSaveReq):
 
 
 @router.post('/path-planning/node-suggestions')
-async def generate_node_suggestions(req: NodeSuggestionsReq):
+async def generate_node_suggestions(req: NodeSuggestionsReq, current_user: dict = Depends(get_current_user)):
     """
     针对路径图上单个节点，基于用户画像与节点目标生成建议与资源推送。
     仅返回，不落盘，供点击节点时实时调用。
     """
+    user_id = current_user["user_id"]
     profile_row = fetch_one(
         'SELECT * FROM profiles WHERE user_id = ?',
-        (settings.single_user_id,),
+        (user_id,),
     )
-    profile = _profile_dict(profile_row)
+    profile = _profile_dict(user_id, profile_row)
 
     node_goal = (req.node_goal or req.node_title or '学习任务').strip()
     node_title = (req.node_title or node_goal).strip()
@@ -197,11 +202,12 @@ async def generate_node_suggestions(req: NodeSuggestionsReq):
         phase_title=phase_title,
         target=req.target.strip(),
         profile=profile,
+        user_id=user_id,
     )
     resources = _normalize_path_resources(resources)
 
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {
             'type': 'path_node_suggestions',
@@ -223,12 +229,12 @@ async def generate_node_suggestions(req: NodeSuggestionsReq):
 
 
 @router.get('/path-planning/{path_id}')
-async def get_path_planning(path_id: str):
+async def get_path_planning(path_id: str, current_user: dict = Depends(get_current_user)):
     """
     获取特定的路径规划
     """
     history = read_json(
-        settings.single_user_id,
+        current_user["user_id"],
         'path_planning_history.json',
         []
     )
@@ -243,7 +249,8 @@ async def get_path_planning(path_id: str):
 async def _generate_ai_path_planning(
     target: str,
     profile: dict[str, Any],
-    mastery_stats: Any
+    mastery_stats: Any,
+    user_id: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """
     使用讯飞大模型生成路径规划建议、资源推荐和阶段路径节点。
@@ -331,14 +338,14 @@ async def _generate_ai_path_planning(
                         break
                 if valid_phases:
                     # 从已有资源中选取推荐
-                    resources = _pick_resources_for_node(target)
+                    resources = _pick_resources_for_node(user_id, target)
                     if isinstance(suggestions, list) and len(suggestions) >= 2:
                         return suggestions, resources, phases
                     return _get_default_suggestions(), resources, phases
 
             # phases 格式不对但 suggestions 可用
             if isinstance(suggestions, list) and len(suggestions) >= 2:
-                resources = _pick_resources_for_node(target)
+                resources = _pick_resources_for_node(user_id, target)
                 return suggestions, resources, []
     except Exception as e:
         print(f"Error generating path planning: {e}")
@@ -388,18 +395,18 @@ def _get_default_suggestions() -> list[dict[str, Any]]:
     return [
         {
             'id': 1,
-            'text': '先补返回值，再补作用域',
-            'desc': '根据当前画像、推荐和路径状态自动推荐。'
+            'text': '先完善画像，再生成路径',
+            'desc': '当前还没有足够的真实学习数据，建议先补充目标、基础和薄弱点。'
         },
         {
             'id': 2,
-            'text': '资源 10 分钟 + 练习 5 题',
-            'desc': '根据当前画像、推荐和路径状态自动推荐。'
+            'text': '完成一次真实练习评测',
+            'desc': '系统会根据练习结果识别掌握度，而不是使用演示数据。'
         },
         {
             'id': 3,
-            'text': '卡住就换一种讲法',
-            'desc': '根据当前画像、推荐和路径状态自动推荐。'
+            'text': '生成第一份学习资源',
+            'desc': '有了真实资源和学习记录后，推荐会逐步变得个性化。'
         }
     ]
 
@@ -411,30 +418,30 @@ def _get_default_resources() -> list[dict[str, Any]]:
     return [
         {
             'id': 1,
-            'title': '函数返回值项目讲义',
-            'tag': '优先学习',
-            'link': '/generate?view=library&id=1'
+            'title': '暂无个性化资源',
+            'tag': '待生成',
+            'link': '/generate'
         },
         {
             'id': 2,
-            'title': '函数作用域精讲讲义',
-            'tag': '待复习',
-            'link': '/generate?view=library&id=2'
+            'title': '先完成画像采集',
+            'tag': '待完善',
+            'link': '/onboarding'
         },
         {
             'id': 3,
-            'title': '返回值补弱题练',
-            'tag': '5 题',
-            'link': '/practice?topic=返回值'
+            'title': '完成一次练习评测',
+            'tag': '待评测',
+            'link': '/practice'
         }
     ]
 
 
-def _profile_dict(row) -> dict[str, Any]:
+def _profile_dict(user_id: str, row) -> dict[str, Any]:
     """
     将数据库行转换为字典
     """
-    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (user_id,))
     major = str(student['major']).strip() if student and student['major'] else ''
 
     if not row:
@@ -550,14 +557,14 @@ def _normalize_saved_phases(phases: list[dict[str, Any]]) -> list[dict[str, Any]
     return normalized
 
 
-def _pick_resources_for_node(node_goal: str, count: int = 3) -> list[dict[str, Any]]:
+def _pick_resources_for_node(user_id: str, node_goal: str, count: int = 3) -> list[dict[str, Any]]:
     """
     从用户已有资源库中选取与节点目标相关的资源。
     优先匹配标题/内容包含 node_goal 关键词的资源；不足时随机补齐。
     返回格式: [{"id": ..., "title": ..., "tag": ..., "link": ...}]
     """
     all_resources = read_json(
-        settings.single_user_id,
+        user_id,
         'resources_index.json',
         [],
     )
@@ -620,12 +627,13 @@ async def _generate_ai_node_suggestions(
     phase_title: str,
     target: str,
     profile: dict[str, Any],
+    user_id: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """
     针对单个路径节点，调用 AI 生成学习建议，并从已有资源库中推荐资源。
     """
     # 先从资源库选取资源
-    resources = _pick_resources_for_node(node_goal)
+    resources = _pick_resources_for_node(user_id, node_goal)
 
     # 构建资源列表描述供 AI 参考
     resource_titles = [r['title'] for r in resources] if resources else ['暂无已有资源']

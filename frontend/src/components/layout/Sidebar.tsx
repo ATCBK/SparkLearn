@@ -141,9 +141,6 @@ export function Sidebar({ state }: SidebarProps) {
           <>
             {desktopReady && (
               <div className="relative">
-                <div className="absolute -right-1 -top-2 z-10 rounded-full bg-[#2563EB] px-2 py-0.5 text-[10px] font-extrabold text-white shadow-sm">
-                  支持多渠道
-                </div>
                 <button
                   type="button"
                   onClick={openStudyBuddyConfig}
@@ -189,7 +186,6 @@ export function Sidebar({ state }: SidebarProps) {
                 className="relative grid h-9 w-9 place-items-center rounded-lg text-[#2563EB] transition-colors hover:bg-[#EEF5FF]"
               >
                 <Zap className="h-4 w-4" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#2563EB]" />
               </button>
             )}
             <Link

@@ -2,7 +2,9 @@ import asyncio
 import inspect
 import ipaddress
 import json
+import os
 import re
+import shutil
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
@@ -12,11 +14,12 @@ from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
 from ..coze import coze_adapter
+from ..auth import get_current_user, get_current_user_for_url_access
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one
 from ..llm import spark_lite
@@ -61,10 +64,11 @@ def _now_date() -> str:
 
 
 @router.get("")
-async def get_resources():
-    resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
+async def get_resources(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    resources = read_json(user_id, "resources_index.json", [])
     # 合并视频资源
-    video_resources = read_json(settings.single_user_id, "video_resources.json", [])
+    video_resources = read_json(user_id, "video_resources.json", [])
     for vr in video_resources:
         resources.append({
             "id": vr.get("id", ""),
@@ -76,17 +80,19 @@ async def get_resources():
             "source_url": None,
             "progress": 100,
         })
-    resources.extend(_web_material_resources())
+    resources.extend(_web_material_resources(user_id))
     return ok(resources)
 
 
 @router.post("/generate")
-async def generate_resource(req: GenerateReq):
+async def generate_resource(req: GenerateReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+
     async def gen() -> AsyncGenerator[tuple[str, dict[str, Any]], None]:
         res_id = f"gen-{uuid.uuid4().hex[:8]}"
         yield ("progress", {"stage": "started", "resource_id": res_id, "progress": 5})
         resource_type = (req.type or "").strip().lower()
-        rag_prompt = await _build_resource_prompt_with_rag(req.type, req.prompt, req.knowledge_file_ids)
+        rag_prompt = await _build_resource_prompt_with_rag(user_id, req.type, req.prompt, req.knowledge_file_ids)
 
         if resource_type == "ppt":
             try:
@@ -174,7 +180,7 @@ async def generate_resource(req: GenerateReq):
             async for evt_type, payload in coze_adapter.stream_resource_text(
                 resource_type=req.type,
                 prompt=resource_prompt,
-                user_id=settings.single_user_id,
+                user_id=user_id,
             ):
                 if evt_type == "text":
                     chunk = str(payload.get("content", ""))
@@ -233,18 +239,19 @@ async def generate_resource(req: GenerateReq):
                 "progress": 100,
             }
 
-        resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
+        resources = read_json(user_id, "resources_index.json", [])
         resources.append(resource)
-        write_json(settings.single_user_id, "resources_index.json", resources)
-        append_jsonl(settings.single_user_id, "resource_usage.jsonl", {"type": "resource_generated", "resource_id": res_id})
+        write_json(user_id, "resources_index.json", resources)
+        append_jsonl(user_id, "resource_usage.jsonl", {"type": "resource_generated", "resource_id": res_id})
         yield ("done", {"resource_id": res_id, "resource": resource})
 
     return StreamingResponse(sse_wrap(gen()), media_type="text/event-stream")
 
 
 @router.post("/code/evaluate/{resource_id}")
-async def evaluate_code_resource(resource_id: str, req: CodeEvaluateReq):
-    item = _find_resource(resource_id)
+async def evaluate_code_resource(resource_id: str, req: CodeEvaluateReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    item = _find_resource(user_id, resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
     if str(item.get("type", "")) != "code":
@@ -261,7 +268,7 @@ async def evaluate_code_resource(resource_id: str, req: CodeEvaluateReq):
         hint=req.hint.strip(),
         student_code=student_code,
     )
-    append_jsonl(settings.single_user_id, "resource_code_evaluations.jsonl", {
+    append_jsonl(user_id, "resource_code_evaluations.jsonl", {
         "resource_id": resource_id,
         "question": req.question.strip(),
         "student_code": student_code,
@@ -272,25 +279,26 @@ async def evaluate_code_resource(resource_id: str, req: CodeEvaluateReq):
 
 
 @router.post("/{resource_id}/quality-evaluate")
-async def evaluate_resource_quality(resource_id: str):
-    item = _find_resource(resource_id)
+async def evaluate_resource_quality(resource_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    item = _find_resource(user_id, resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
 
-    profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+    profile = read_json(user_id, "profile_snapshot.json", {})
     result = await _evaluate_resource_quality(item, profile if isinstance(profile, dict) else {})
     return ok(result)
 
 
 @router.get("/{resource_id}")
-async def get_resource_detail(resource_id: str):
-    item = _find_resource(resource_id)
+async def get_resource_detail(resource_id: str, current_user: dict = Depends(get_current_user)):
+    item = _find_resource(current_user["user_id"], resource_id)
     return ok(item)
 
 
 @router.get("/{resource_id}/preview")
-async def get_resource_preview(resource_id: str):
-    item = _find_resource(resource_id)
+async def get_resource_preview(resource_id: str, current_user: dict = Depends(get_current_user)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
     link = _resource_source_url(item)
@@ -298,8 +306,8 @@ async def get_resource_preview(resource_id: str):
 
 
 @router.get("/{resource_id}/preview/html")
-async def get_resource_preview_html(resource_id: str):
-    item = _find_resource(resource_id)
+async def get_resource_preview_html(resource_id: str, current_user: dict = Depends(get_current_user_for_url_access)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
     link = _resource_source_url(item)
@@ -339,13 +347,13 @@ async def get_resource_preview_html(resource_id: str):
 
 
 @router.get("/{resource_id}/download")
-async def download_resource(resource_id: str):
-    return await download_resource_pdf(resource_id)
+async def download_resource(resource_id: str, current_user: dict = Depends(get_current_user_for_url_access)):
+    return await download_resource_pdf(resource_id, current_user)
 
 
 @router.get("/{resource_id}/download/html")
-async def download_resource_html(resource_id: str):
-    item = _find_resource(resource_id)
+async def download_resource_html(resource_id: str, current_user: dict = Depends(get_current_user_for_url_access)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
     link = _resource_source_url(item)
@@ -369,8 +377,8 @@ async def download_resource_html(resource_id: str):
 
 
 @router.get("/{resource_id}/download/pdf")
-async def download_resource_pdf(resource_id: str):
-    item = _find_resource(resource_id)
+async def download_resource_pdf(resource_id: str, current_user: dict = Depends(get_current_user_for_url_access)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
     title = str(item.get("title", "resource")).strip() or "resource"
@@ -384,8 +392,8 @@ async def download_resource_pdf(resource_id: str):
 
 
 @router.get("/{resource_id}/download/source")
-async def download_resource_source(resource_id: str):
-    item = _find_resource(resource_id)
+async def download_resource_source(resource_id: str, current_user: dict = Depends(get_current_user_for_url_access)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
     source_url = _resource_source_url(item)
@@ -404,32 +412,33 @@ async def download_resource_source(resource_id: str):
 
 
 @router.delete("/{resource_id}")
-async def delete_resource(resource_id: str):
+async def delete_resource(resource_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     if resource_id.startswith("webmat-"):
         file_id = _web_material_id(resource_id)
         if file_id:
-            row = fetch_one("SELECT id, stored_path FROM tutor_files WHERE id = ? AND user_id = ? AND source_type = 'web_capture'", (file_id, settings.single_user_id))
+            row = fetch_one("SELECT id, stored_path FROM tutor_files WHERE id = ? AND user_id = ? AND source_type = 'web_capture'", (file_id, user_id))
             if row:
                 path = Path(str(row["stored_path"] or ""))
                 if path.exists() and path.is_file():
                     path.unlink()
                 execute("DELETE FROM tutor_file_chunks WHERE file_id = ?", (file_id,))
-                execute("DELETE FROM tutor_files WHERE id = ? AND user_id = ?", (file_id, settings.single_user_id))
+                execute("DELETE FROM tutor_files WHERE id = ? AND user_id = ?", (file_id, user_id))
                 return ok({"resource_id": resource_id, "deleted": True})
         return ok({"resource_id": resource_id, "deleted": False})
 
-    resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
+    resources = read_json(user_id, "resources_index.json", [])
     before = len(resources)
     next_resources = [r for r in resources if str(r.get("id", "")) != resource_id]
     removed = before - len(next_resources)
-    write_json(settings.single_user_id, "resources_index.json", next_resources)
-    append_jsonl(settings.single_user_id, "resource_usage.jsonl", {"type": "resource_deleted", "resource_id": resource_id, "removed_count": removed})
+    write_json(user_id, "resources_index.json", next_resources)
+    append_jsonl(user_id, "resource_usage.jsonl", {"type": "resource_deleted", "resource_id": resource_id, "removed_count": removed})
     return ok({"resource_id": resource_id, "deleted": removed > 0})
 
 
 @router.get("/recommendations/list")
-async def get_recommendations():
-    resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
+async def get_recommendations(current_user: dict = Depends(get_current_user)):
+    resources = read_json(current_user["user_id"], "resources_index.json", [])
     if not resources:
         return ok([])
 
@@ -456,9 +465,9 @@ def _default_resources() -> list[dict[str, Any]]:
     ]
 
 
-def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
+def _build_resource_prompt(resource_type: str, user_prompt: str, user_id: str) -> str:
     base = user_prompt.strip()
-    profile_context = _profile_context_for_generation()
+    profile_context = _profile_context_for_generation(user_id)
     if profile_context and resource_type != "document":
         base = f"{base}\n\n用户画像上下文:\n{profile_context}"
     if resource_type == "document":
@@ -489,19 +498,17 @@ def _build_resource_prompt(resource_type: str, user_prompt: str) -> str:
     return base
 
 
-async def _build_resource_prompt_with_rag(resource_type: str, user_prompt: str, knowledge_file_ids: list[int] | None = None) -> str:
-    base = _build_resource_prompt(resource_type, user_prompt)
-    if resource_type == "document":
-        return base
+async def _build_resource_prompt_with_rag(user_id: str, resource_type: str, user_prompt: str, knowledge_file_ids: list[int] | None = None) -> str:
+    base = _build_resource_prompt(resource_type, user_prompt, user_id)
 
-    file_ids = _resolve_generation_knowledge_file_ids(knowledge_file_ids or [])
+    file_ids = _resolve_generation_knowledge_file_ids(user_id, knowledge_file_ids or [])
     if not file_ids:
         return base
 
     load_kwargs: dict[str, Any] = {"query": user_prompt}
     if "max_chars" in inspect.signature(load_knowledge_context_async).parameters:
         load_kwargs["max_chars"] = 4200
-    context = await load_knowledge_context_async(file_ids, **load_kwargs)
+    context = await load_knowledge_context_async(file_ids, user_id=user_id, **load_kwargs)
     if not context.strip():
         return base
     return (
@@ -512,12 +519,12 @@ async def _build_resource_prompt_with_rag(resource_type: str, user_prompt: str, 
     )
 
 
-def _resolve_generation_knowledge_file_ids(explicit_ids: list[int]) -> list[int]:
+def _resolve_generation_knowledge_file_ids(user_id: str, explicit_ids: list[int]) -> list[int]:
     ids = [int(x) for x in explicit_ids if int(x) > 0]
     if ids:
         return ids
 
-    subject_name = _current_profile_subject_name()
+    subject_name = _current_profile_subject_name(user_id)
     if not subject_name:
         return []
     rows = fetch_all(
@@ -528,27 +535,27 @@ def _resolve_generation_knowledge_file_ids(explicit_ids: list[int]) -> list[int]
         ORDER BY updated_at DESC, id DESC
         LIMIT 8
         """,
-        (settings.single_user_id, subject_name),
+        (user_id, subject_name),
     )
     return [int(row["id"]) for row in rows]
 
 
-def _current_profile_subject_name() -> str:
-    profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+def _current_profile_subject_name(user_id: str) -> str:
+    profile = read_json(user_id, "profile_snapshot.json", {})
     if isinstance(profile, dict):
         major = str(profile.get("major") or "").strip()
         if major:
             return major
-    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (settings.single_user_id,))
+    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (user_id,))
     return str(student["major"]).strip() if student and student["major"] else ""
 
 
-def _profile_context_for_generation() -> str:
-    profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+def _profile_context_for_generation(user_id: str) -> str:
+    profile = read_json(user_id, "profile_snapshot.json", {})
     if not isinstance(profile, dict) or not profile:
         return ""
     parts = []
-    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (settings.single_user_id,))
+    student = fetch_one("SELECT major FROM students WHERE user_id = ?", (user_id,))
     major = str(profile.get("major") or "").strip()
     if not major and student and student["major"]:
         major = str(student["major"]).strip()
@@ -844,10 +851,10 @@ def _parse_code_evaluation_json(raw: str) -> dict[str, Any] | None:
     return {"correct": correct, "result": result, "reason": reason[:80]}
 
 
-def _find_resource(resource_id: str) -> dict[str, Any] | None:
+def _find_resource(user_id: str, resource_id: str) -> dict[str, Any] | None:
     if resource_id.startswith("webmat-"):
-        return _find_web_material_resource(resource_id)
-    resources = read_json(settings.single_user_id, "resources_index.json", _default_resources())
+        return _find_web_material_resource(user_id, resource_id)
+    resources = read_json(user_id, "resources_index.json", [])
     for item in resources:
         if str(item.get("id", "")) == resource_id:
             return item
@@ -859,7 +866,7 @@ def _web_material_id(resource_id: str) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _web_material_resources() -> list[dict[str, Any]]:
+def _web_material_resources(user_id: str) -> list[dict[str, Any]]:
     rows = fetch_all(
         """
         SELECT *
@@ -867,18 +874,18 @@ def _web_material_resources() -> list[dict[str, Any]]:
         WHERE user_id = ? AND source_type = 'web_capture'
         ORDER BY created_at DESC, id DESC
         """,
-        (settings.single_user_id,),
+        (user_id,),
     )
     return [_web_material_row_to_resource(row, include_content=False) for row in rows]
 
 
-def _find_web_material_resource(resource_id: str) -> dict[str, Any] | None:
+def _find_web_material_resource(user_id: str, resource_id: str) -> dict[str, Any] | None:
     file_id = _web_material_id(resource_id)
     if not file_id:
         return None
     row = fetch_one(
         "SELECT * FROM tutor_files WHERE id = ? AND user_id = ? AND source_type = 'web_capture'",
-        (file_id, settings.single_user_id),
+        (file_id, user_id),
     )
     return _web_material_row_to_resource(row, include_content=True) if row else None
 
@@ -1322,7 +1329,7 @@ def _render_pdf_from_html_sync(html_doc: str) -> bytes:
         raise HTTPException(status_code=500, detail=f"未安装 Playwright：{ex}") from ex
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = _launch_chromium(p)
         try:
             page = browser.new_page()
             page.set_content(html_doc, wait_until="domcontentloaded")
@@ -1345,7 +1352,7 @@ def _render_pdf_from_url_sync(source_url: str) -> bytes:
     """
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = _launch_chromium(p)
         try:
             page = browser.new_page()
             page.goto(source_url, wait_until="networkidle", timeout=60000)
@@ -1353,6 +1360,17 @@ def _render_pdf_from_url_sync(source_url: str) -> bytes:
             return page.pdf(format="A4", print_background=True, margin={"top": "14mm", "right": "12mm", "bottom": "14mm", "left": "12mm"})
         finally:
             browser.close()
+
+
+def _launch_chromium(playwright):
+    chromium_path = (
+        os.getenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH")
+        or shutil.which("chromium")
+        or shutil.which("chromium-browser")
+        or shutil.which("google-chrome")
+    )
+    launch_kwargs = {"executable_path": chromium_path} if chromium_path else {}
+    return playwright.chromium.launch(headless=True, **launch_kwargs)
 
 
 def _markdown_as_printable_html(*, title: str, markdown_text: str) -> str:

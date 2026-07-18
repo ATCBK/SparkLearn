@@ -7,7 +7,7 @@ import logging
 import shutil
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -144,6 +144,16 @@ def seed_demo_account_data(user_id: str) -> None:
         """,
         (user_id, settings.single_user_id),
     )
+    execute("DELETE FROM contribution_days WHERE user_id = ?", (user_id,))
+    execute(
+        """
+        INSERT INTO contribution_days(user_id, date, count)
+        SELECT ?, date, count
+        FROM contribution_days
+        WHERE user_id = ?
+        """,
+        (user_id, settings.single_user_id),
+    )
 
 
 def initialize_configured_demo_user() -> None:
@@ -262,6 +272,17 @@ async def get_current_user(
         )
 
     return _user_payload(user)
+
+
+async def get_current_user_for_url_access(
+    access_token: str | None = Query(default=None),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict:
+    if credentials is not None:
+        return await get_current_user(credentials)
+    if access_token:
+        return await get_current_user(HTTPAuthorizationCredentials(scheme="Bearer", credentials=access_token))
+    return await get_current_user(None)
 
 
 async def get_optional_user(

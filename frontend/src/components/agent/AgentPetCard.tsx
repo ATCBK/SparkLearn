@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AgentPet, api } from '@/lib/api'
 import { Bar, Pill, ProtoCard } from '@/components/proto'
 import { Cpu, FileText, GitCompare, Search, Settings, Sparkles, Star, TrendingUp, Zap } from 'lucide-react'
@@ -31,6 +31,17 @@ const STATE_MESSAGES: Record<PetState, string> = {
   levelup: '已升级，新的能力已开放。',
 }
 
+const AVATAR_OPTIONS: Array<{ id: PetType; label: string }> = [
+  { id: 'fox', label: '灵狐' },
+  { id: 'owl', label: '智枭' },
+  { id: 'robot', label: '芯助' },
+  { id: 'cat', label: '星猫' },
+  { id: 'dragon', label: '焰龙' },
+  { id: 'penguin', label: '冰企鹅' },
+  { id: 'bunny', label: '棉兔' },
+  { id: 'panda', label: '竹圆' },
+]
+
 export function AgentPetCard({
   pet,
   petState = 'idle',
@@ -44,17 +55,24 @@ export function AgentPetCard({
 }) {
   const [showSettings, setShowSettings] = useState(false)
   const [personality, setPersonality] = useState(pet.personality)
+  const [avatar, setAvatar] = useState<PetType>(pet.avatar as PetType)
   const [saving, setSaving] = useState(false)
 
   const xpProgress = pet.next_level_xp ? Math.round((pet.xp / pet.next_level_xp) * 100) : 100
   const xpToNext = pet.next_level_xp ? Math.max(0, pet.next_level_xp - pet.xp) : 0
   const displayStatus = statusText || STATE_MESSAGES[petState]
+  const hasSettingsChanged = personality !== pet.personality || avatar !== pet.avatar
 
-  async function savePersonality() {
-    if (personality === pet.personality) return
+  useEffect(() => {
+    setPersonality(pet.personality)
+    setAvatar(pet.avatar as PetType)
+  }, [pet.personality, pet.avatar])
+
+  async function saveSettings() {
+    if (!hasSettingsChanged) return
     setSaving(true)
     try {
-      await api.updateAgentPet({ personality })
+      await api.updateAgentPet({ personality, avatar })
       onUpdate()
       setShowSettings(false)
     } finally {
@@ -108,9 +126,27 @@ export function AgentPetCard({
               </button>
             ))}
           </div>
-          {personality !== pet.personality && (
+          <div className="mt-4 mb-2 text-small font-bold text-ink">伙伴头像</div>
+          <div className="grid grid-cols-4 gap-2">
+            {AVATAR_OPTIONS.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setAvatar(item.id)}
+                className={`flex min-h-[76px] flex-col items-center justify-center gap-1 rounded-[8px] border px-2 py-2 text-micro font-bold transition-colors ${
+                  avatar === item.id
+                    ? 'border-blue bg-blue-light text-blue'
+                    : 'border-line bg-[#f8fafc] text-muted hover:bg-[#eef4fb]'
+                }`}
+                aria-label={`切换为${item.label}`}
+              >
+                <PetAvatar type={item.id} state={avatar === item.id ? 'waiting' : 'idle'} size="sm" />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+          {hasSettingsChanged && (
             <button
-              onClick={savePersonality}
+              onClick={saveSettings}
               disabled={saving}
               className="mt-3 h-9 w-full rounded-[8px] bg-blue text-small font-bold text-white transition-colors hover:bg-blue-dark disabled:opacity-50"
             >

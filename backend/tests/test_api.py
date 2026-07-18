@@ -210,7 +210,10 @@ async def test_tutor_workspace_closed_loop(client):
 
 @pytest.mark.asyncio
 async def test_agent_task_uses_learning_companion_backend(client, monkeypatch):
+    from app.config import settings
     from app.routes import agent as agent_route
+
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
 
     async def fake_execute_fallback_task(task_id: str, task_type: str, input_text: str, persona_prompt: str):
         assert task_id
@@ -242,6 +245,18 @@ async def test_agent_task_uses_learning_companion_backend(client, monkeypatch):
     else:
         assert pet_resp.json()["success"] is True
 
+    update_pet = await client.patch(
+        "/api/agent/pet",
+        json={"avatar": "panda", "personality": "encouraging"},
+    )
+    assert update_pet.status_code == 200
+    assert update_pet.json()["success"] is True
+    assert update_pet.json()["data"]["avatar"] == "panda"
+
+    current_pet = await client.get("/api/agent/pet")
+    assert current_pet.status_code == 200
+    assert current_pet.json()["data"]["avatar"] == "panda"
+
     create = await client.post(
         "/api/agent/task",
         json={"task_type": "search", "input_text": "Python 闭包"},
@@ -261,3 +276,31 @@ async def test_agent_task_uses_learning_companion_backend(client, monkeypatch):
     assert data["status"] == "completed"
     assert data["result"]["items"][0]["title"] == "闭包入门"
     assert any(step["action"] == "start" for step in data["steps"])
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_returns_local_fallback_when_llm_unavailable(client, monkeypatch):
+    from app.config import settings
+    from app.routes import agent as agent_route
+
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
+
+    async def broken_stream(*args, **kwargs):
+        raise RuntimeError("model unavailable")
+        yield ""
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", broken_stream)
+
+    pet_resp = await client.post(
+        "/api/agent/pet",
+        json={"name": "小星", "avatar": "fox", "personality": "encouraging"},
+    )
+    assert pet_resp.status_code == 200
+
+    chat_resp = await client.post("/api/agent/chat", json={"message": "Python 闭包怎么理解？"})
+
+    assert chat_resp.status_code == 200
+    body = chat_resp.json()
+    assert body["success"] is True
+    assert "answer" in body["data"]
+    assert "Python 闭包" in body["data"]["answer"]

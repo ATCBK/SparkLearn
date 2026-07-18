@@ -35,12 +35,13 @@ export default function HomePage() {
   }, [])
 
   const pending = tasks.filter(t => t.status !== 'completed')
-  const totalMinutes = pending.reduce((sum, task) => sum + task.duration, 0) || 24
-  const completion = tasks.length ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 72
+  const totalMinutes = pending.reduce((sum, task) => sum + task.duration, 0)
+  const completion = tasks.length ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0
+  const hasLearningData = tasks.length > 0 || resources.length > 0 || recs.length > 0
 
   const focusTitle = useMemo(() => {
-    const first = recs[0]?.resource?.title || resources[0]?.title || '函数返回值'
-    return first.length > 18 ? '函数返回值' : first
+    const first = recs[0]?.resource?.title || resources[0]?.title || ''
+    return first && first.length > 18 ? first.slice(0, 18) : first
   }, [recs, resources])
 
   async function addTask() {
@@ -91,11 +92,11 @@ export default function HomePage() {
       <PageHead
         eyebrow="学习中心 / 资源回顾与新推荐"
         title="今日学习工作台"
-        description="今天先把当前卡点补上，再完成一轮短练习，最后确认是否进入下一模块。"
+        description={hasLearningData ? '今天先处理待完成任务，再根据学习记录继续推进。' : '这是你的第一次登录。完成画像采集、创建任务或提交练习后，这里会生成个人学习工作台。'}
         chips={[
-          { value: `${totalMinutes} 分钟`, label: '今日预计', icon: <Clock className="h-4 w-4" />, tone: 'blue' as const },
-          { value: `${pending.length} 项`, label: '路径待确认', icon: <GitBranch className="h-4 w-4" />, tone: 'orange' as const },
-          { value: '12 天', label: '连续学习', icon: <Flame className="h-4 w-4" />, tone: 'green' as const },
+          { value: tasks.length ? `${totalMinutes} 分钟` : '暂无', label: '今日预计', icon: <Clock className="h-4 w-4" />, tone: 'blue' as const },
+          { value: `${pending.length} 项`, label: '待完成任务', icon: <GitBranch className="h-4 w-4" />, tone: 'orange' as const },
+          { value: '0 天', label: '连续学习', icon: <Flame className="h-4 w-4" />, tone: 'green' as const },
         ]}
       />
 
@@ -108,20 +109,20 @@ export default function HomePage() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
         <div className="relative z-10 max-w-[680px] space-y-3.5">
-          <Pill tone="blue">优先薄弱点</Pill>
-          <h2 className="text-[24px] font-bold leading-tight text-ink">{focusTitle}</h2>
+          <Pill tone="blue">{hasLearningData ? '优先薄弱点' : '首次学习空间'}</Pill>
+          <h2 className="text-[24px] font-bold leading-tight text-ink">{focusTitle || '还没有形成个人学习数据'}</h2>
           <p className="text-small leading-6 text-muted">
-            先补当前卡点，再做短练习。做完这一轮，今天的路径就能继续往前走。
+            {hasLearningData ? '先补当前卡点，再做短练习。做完这一轮，今天的路径就能继续往前走。' : '完成画像采集后，系统会开始为你生成路径、任务、资源和学习报告。'}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Pill tone="orange">先补当前卡点</Pill>
-            <Pill tone="blue">再做短练习</Pill>
-            <Pill tone="purple">做完确认下一步</Pill>
-            <Pill tone="green">预计 {totalMinutes} 分钟</Pill>
+            <Pill tone="orange">{hasLearningData ? '先补当前卡点' : '等待画像采集'}</Pill>
+            <Pill tone="blue">{hasLearningData ? '再做短练习' : '暂无今日任务'}</Pill>
+            <Pill tone="purple">{hasLearningData ? '做完确认下一步' : '暂无学习报告'}</Pill>
+            <Pill tone="green">{tasks.length ? `预计 ${totalMinutes} 分钟` : '预计暂无'}</Pill>
           </div>
           <div className="flex flex-wrap gap-2.5 pt-1">
-            <ProtoButton href="/generate?view=library">开始回顾资源</ProtoButton>
-            <ProtoButton href="/practice" variant="secondary">先做练习</ProtoButton>
+            <ProtoButton href="/onboarding">完善学习画像</ProtoButton>
+            <ProtoButton href={hasLearningData ? '/practice' : '/path'} variant="secondary">{hasLearningData ? '先做练习' : '查看学习路径'}</ProtoButton>
           </div>
         </div>
       </ProtoCard>
@@ -129,8 +130,8 @@ export default function HomePage() {
       <div className="mt-5 grid grid-cols-4 overflow-hidden rounded-[12px] border border-line bg-white shadow-md max-[760px]:grid-cols-2">
         {[
           { value: `${completion}%`, label: '今日任务', desc: '已完成比例', icon: <PieChart className="h-5 w-5" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
-          { value: `${tasks.length || 8} 项`, label: '任务池', desc: '可创建和删除', icon: <ClipboardList className="h-5 w-5" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
-          { value: '12 天', label: '连续学习', desc: '保持得不错', icon: <Flame className="h-5 w-5" />, color: 'bg-[#ecfdf5] text-[#059669]' },
+          { value: `${tasks.length} 项`, label: '任务池', desc: tasks.length ? '可创建和删除' : '暂无任务', icon: <ClipboardList className="h-5 w-5" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+          { value: '0 天', label: '连续学习', desc: '开始后累计', icon: <Flame className="h-5 w-5" />, color: 'bg-[#ecfdf5] text-[#059669]' },
           { value: `${pending.length} 项`, label: '待完成', desc: '完成后进入下一步', icon: <CheckCircle2 className="h-5 w-5" />, color: 'bg-[#ecfdf5] text-[#059669]' },
         ].map((item, idx) => (
           <div key={item.label} className={`flex items-center gap-3 p-4 ${idx !== 3 ? 'border-r border-[#eef2f7]' : ''}`}>
@@ -154,7 +155,7 @@ export default function HomePage() {
               </div>
               <h2 className="text-h2 font-bold text-ink">今日任务</h2>
             </div>
-            <Pill tone="blue">{pending.length} 条待完成</Pill>
+            <Pill tone="blue">{pending.length ? `${pending.length} 条待完成` : '暂无任务'}</Pill>
           </div>
           <form
             className="mt-4 flex gap-2"
@@ -187,7 +188,7 @@ export default function HomePage() {
                 })}
               />
             ))}
-            {!tasks.length && <SoftCard className="text-small text-muted">暂无任务，先创建一条今日学习任务。</SoftCard>}
+            {!tasks.length && <SoftCard className="text-small text-muted">暂无任务。第一次登录时这里会保持空状态，创建任务或完成画像后再继续推进。</SoftCard>}
           </div>
         </ProtoCard>
 
@@ -210,6 +211,9 @@ export default function HomePage() {
             }))).slice(0, 3).map(rec => (
               <Reco key={rec.id} title={rec.resource.title} meta={rec.reason} action="学习" resourceId={rec.resource.id} />
             ))}
+            {!recs.length && !resources.length && (
+              <SoftCard className="text-small text-muted">暂无推荐资源。完成画像采集、上传知识文件或生成资源后，系统会在这里推荐下一步内容。</SoftCard>
+            )}
           </div>
           <ProtoButton href="/generate" variant="secondary" className="mt-5">根据当前卡点生成新资源</ProtoButton>
         </ProtoCard>

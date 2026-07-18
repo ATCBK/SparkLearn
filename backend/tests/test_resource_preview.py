@@ -1,11 +1,14 @@
 import pytest
 import httpx
 
+from app.auth import create_access_token
+from app.config import settings
 from app.routes import resources as resources_route
 
 
 @pytest.mark.asyncio
 async def test_preview_html_retries_known_document_host_with_insecure_ssl(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
     item = {
         "id": "doc-ssl-preview",
         "title": "函数返回值讲义",
@@ -39,7 +42,7 @@ async def test_preview_html_retries_known_document_host_with_insecure_ssl(client
                 "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired",
             )
 
-    monkeypatch.setattr(resources_route, "_find_resource", lambda resource_id: item)
+    monkeypatch.setattr(resources_route, "_find_resource", lambda *args: item)
     monkeypatch.setattr(resources_route.httpx, "AsyncClient", FakeAsyncClient)
 
     resp = await client.get("/api/resources/doc-ssl-preview/preview/html")
@@ -59,6 +62,28 @@ def test_normalize_generated_content_removes_concatenated_source_urls():
     normalized = resources_route._normalize_generated_content(content, source_url)
 
     assert normalized == ""
+
+
+@pytest.mark.asyncio
+async def test_preview_html_accepts_access_token_query(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_dev_bypass", False)
+    item = {
+        "id": "query-token-preview",
+        "title": "preview",
+        "type": "document",
+        "content": "# Preview OK",
+        "source_url": None,
+    }
+    monkeypatch.setattr(resources_route, "_find_resource", lambda *args: item)
+
+    missing = await client.get("/api/resources/query-token-preview/preview/html")
+    assert missing.status_code == 401
+
+    token = create_access_token(settings.single_user_id)
+    resp = await client.get(f"/api/resources/query-token-preview/preview/html?access_token={token}")
+
+    assert resp.status_code == 200
+    assert "Preview OK" in resp.text
 
 
 def test_contentcube_preview_url_is_iframe_embeddable():
@@ -81,6 +106,7 @@ def test_extract_shutu_image_url_from_preview_html():
 
 @pytest.mark.asyncio
 async def test_preview_html_wraps_contentcube_url_with_iframe(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
     item = {
         "id": "contentcube-preview",
         "title": "Python函数讲义",
@@ -89,7 +115,7 @@ async def test_preview_html_wraps_contentcube_url_with_iframe(client, monkeypatc
         "source_url": "https://preview.contentcube.cn/preview_1781430809752_8pqecz.html",
     }
 
-    monkeypatch.setattr(resources_route, "_find_resource", lambda resource_id: item)
+    monkeypatch.setattr(resources_route, "_find_resource", lambda *args: item)
 
     resp = await client.get("/api/resources/contentcube-preview/preview/html")
 
@@ -100,6 +126,7 @@ async def test_preview_html_wraps_contentcube_url_with_iframe(client, monkeypatc
 
 @pytest.mark.asyncio
 async def test_preview_html_extracts_shutu_markdown_link(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
     item = {
         "id": "shutu-mindmap-preview",
         "title": "函数返回值思维导图",
@@ -114,7 +141,7 @@ async def test_preview_html_extracts_shutu_markdown_link(client, monkeypatch):
     async def fake_fetch_url_text(url: str) -> str:
         return '<img src="https://static.shutu.cn/shutu/jpeg/opend0/2026/07/12/demo.jpeg">'
 
-    monkeypatch.setattr(resources_route, "_find_resource", lambda resource_id: item)
+    monkeypatch.setattr(resources_route, "_find_resource", lambda *args: item)
     monkeypatch.setattr(resources_route, "_fetch_url_text", fake_fetch_url_text)
 
     resp = await client.get("/api/resources/shutu-mindmap-preview/preview/html")
@@ -126,6 +153,7 @@ async def test_preview_html_extracts_shutu_markdown_link(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_preview_html_renders_shutu_as_pan_zoom_image(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
     item = {
         "id": "shutu-pan-zoom-preview",
         "title": "函数返回值思维导图",
@@ -137,7 +165,7 @@ async def test_preview_html_renders_shutu_as_pan_zoom_image(client, monkeypatch)
     async def fake_fetch_url_text(url: str) -> str:
         return '<img src="https://static.shutu.cn/shutu/jpeg/opend0/2026/07/12/demo.jpeg">'
 
-    monkeypatch.setattr(resources_route, "_find_resource", lambda resource_id: item)
+    monkeypatch.setattr(resources_route, "_find_resource", lambda *args: item)
     monkeypatch.setattr(resources_route, "_fetch_url_text", fake_fetch_url_text)
 
     resp = await client.get("/api/resources/shutu-pan-zoom-preview/preview/html")
@@ -150,6 +178,7 @@ async def test_preview_html_renders_shutu_as_pan_zoom_image(client, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_preview_html_renders_shutu_with_browser_extracted_image(client, monkeypatch):
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
     item = {
         "id": "shutu-browser-preview",
         "title": "函数返回值思维导图",
@@ -161,7 +190,7 @@ async def test_preview_html_renders_shutu_with_browser_extracted_image(client, m
     async def fake_fetch_url_text(url: str) -> str:
         return "<html></html>"
 
-    monkeypatch.setattr(resources_route, "_find_resource", lambda resource_id: item)
+    monkeypatch.setattr(resources_route, "_find_resource", lambda *args: item)
     monkeypatch.setattr(resources_route, "_fetch_url_text", fake_fetch_url_text)
     monkeypatch.setattr(
         resources_route,

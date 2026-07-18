@@ -1,0 +1,15 @@
+{
+  "api": {
+    "baseUrl": "https://your-sparklearn-api.example.com"
+  },
+  "frontend": {
+    "enabled": false,
+    "url": "https://your-sparklearn-web.example.com",
+    "env": {
+      "NEXT_PUBLIC_API_BASE_URL": "https://your-sparklearn-api.example.com"
+    }
+  },
+  "backend": {
+    "enabled": false
+  }
+}

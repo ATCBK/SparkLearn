@@ -8,6 +8,12 @@ import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/p
 
 type WrongItem = Awaited<ReturnType<typeof api.getWrongQuizItems>>[number]
 
+function getKnowledgePoint(item: WrongItem) {
+  const question = item.question || {}
+  const value = question.knowledge_point_name || question.knowledge_point_id
+  return typeof value === 'string' && value.trim() ? value : '待分析'
+}
+
 export default function MistakesPage() {
   const [items, setItems] = useState<WrongItem[]>([])
   async function load() { setItems(await api.getWrongQuizItems()) }
@@ -33,7 +39,7 @@ export default function MistakesPage() {
                 <div className="min-w-0">
                   <Pill tone="orange">错 {item.count} 次</Pill>
                   <h2 className="mt-3 break-words text-h2 font-bold text-ink">{item.content}</h2>
-                  <p className="mt-2 break-words text-small text-muted">错因分类：概念混淆 · 关联知识点：函数返回值</p>
+                  <p className="mt-2 break-words text-small text-muted">错因分类：待分析 · 关联知识点：{getKnowledgePoint(item)}</p>
                 </div>
               </div>
               <div className="flex shrink-0 gap-2 max-[640px]:w-full max-[640px]:justify-end">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks, ClipboardList, Target, TrendingUp } from 'lucide-react'
 import { api, QuizQuestion } from '@/lib/api'
 import { Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
@@ -63,10 +63,10 @@ export default function PracticePage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [submitted, setSubmitted] = useState(false)
   const [selectedAnswer, setSelectedAnswer] = useState<string | string[] | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [count, setCount] = useState('4')
-  const [topic, setTopic] = useState('函数返回值')
+  const [topic, setTopic] = useState('')
   const [generating, setGenerating] = useState(false)
   const [autoMode, setAutoMode] = useState(true)
   const [progressPage, setProgressPage] = useState(0)
@@ -75,39 +75,6 @@ export default function PracticePage() {
   function hasAnswer(answer: string | string[] | null): boolean {
     return Array.isArray(answer) ? answer.length > 0 : Boolean(answer)
   }
-
-  // 初始加载题目 - 自动生成4道题
-  useEffect(() => {
-    let cancelled = false
-
-    async function init() {
-      setLoading(true)
-      setError('')
-      try {
-        const data = await api.getQuizQuestions('函数返回值', 4)
-        if (cancelled) return
-        if (data && data.length > 0) {
-          const enriched = data.map(enrichQuestion)
-          setQuestions(enriched)
-          setCurrentIndex(0)
-          setSubmitted(false)
-          setSelectedAnswer(null)
-        } else {
-          setError('未获取到题目数据，请稍后重试')
-          setQuestions([])
-        }
-      } catch (ex) {
-        if (cancelled) return
-        setError(ex instanceof Error ? ex.message : '初始化题目失败')
-        setQuestions([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    void init()
-    return () => { cancelled = true }
-  }, [])
 
   async function generateQuestions() {
     if (!topic.trim()) {
@@ -605,6 +572,7 @@ export default function PracticePage() {
                   onChange={(e) => setTopic(e.target.value)}
                   className="mt-2 h-10 w-full rounded-[10px] border border-line bg-white px-3 text-small outline-none focus:border-blue"
                 >
+                  <option value="">请选择真实练习主题</option>
                   <option value="函数返回值">函数返回值</option>
                   <option value="循环语句">循环语句</option>
                   <option value="条件判断">条件判断</option>
@@ -620,7 +588,7 @@ export default function PracticePage() {
                   type="text"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="例如：函数返回值"
+                  placeholder="输入你想练习的知识点"
                   className="mt-2 h-10 w-full rounded-[10px] border border-line px-3 text-small outline-none focus:border-blue"
                 />
               </>

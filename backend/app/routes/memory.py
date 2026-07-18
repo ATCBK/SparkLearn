@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from ..config import settings
+from ..auth import get_current_user
 from ..memory_engine import (
     add_memory_item,
     build_injected_context,
@@ -63,22 +63,22 @@ class PatchSemanticReq(BaseModel):
 
 
 @router.get("")
-async def get_memory():
-    return ok(load_user_memory(settings.single_user_id))
+async def get_memory(current_user: dict = Depends(get_current_user)):
+    return ok(load_user_memory(current_user["user_id"]))
 
 
 @router.get("/profile/{user_id}")
-async def get_profile(user_id: str):
-    if user_id != settings.single_user_id:
+async def get_profile(user_id: str, current_user: dict = Depends(get_current_user)):
+    if user_id != current_user["user_id"]:
         return fail("user not found")
     return ok(load_user_memory(user_id).get("semantic", {}))
 
 
 @router.post("/add")
-async def add_memory(req: AddMemoryReq):
+async def add_memory(req: AddMemoryReq, current_user: dict = Depends(get_current_user)):
     try:
         item = add_memory_item(
-            user_id=settings.single_user_id,
+            user_id=current_user["user_id"],
             memory_type=req.memory_type,
             content=req.content,
             tags=req.tags,
@@ -94,27 +94,27 @@ async def add_memory(req: AddMemoryReq):
 
 
 @router.post("/search")
-async def search(req: SearchMemoryReq):
-    rows = search_memory(settings.single_user_id, req.query, req.types, req.top_k)
+async def search(req: SearchMemoryReq, current_user: dict = Depends(get_current_user)):
+    rows = search_memory(current_user["user_id"], req.query, req.types, req.top_k)
     return ok(rows)
 
 
 @router.post("/inject-context")
-async def inject_context(req: InjectContextReq):
-    context_text = build_injected_context(settings.single_user_id, req.question, req.top_k)
+async def inject_context(req: InjectContextReq, current_user: dict = Depends(get_current_user)):
+    context_text = build_injected_context(current_user["user_id"], req.question, req.top_k)
     return ok({"context": context_text})
 
 
 @router.post("/consolidate")
-async def consolidate(req: ConsolidateReq):
-    data = consolidate_memory(settings.single_user_id, req.threshold)
+async def consolidate(req: ConsolidateReq, current_user: dict = Depends(get_current_user)):
+    data = consolidate_memory(current_user["user_id"], req.threshold)
     return ok(data)
 
 
 @router.post("/forget")
-async def forget(req: ForgetReq):
+async def forget(req: ForgetReq, current_user: dict = Depends(get_current_user)):
     data = forget_memory(
-        settings.single_user_id,
+        current_user["user_id"],
         max_age_days=req.max_age_days,
         importance_below=req.importance_below,
         clear_working=req.clear_working,
@@ -123,12 +123,13 @@ async def forget(req: ForgetReq):
 
 
 @router.put("/profile")
-async def patch_profile(req: PatchSemanticReq):
-    mem = load_user_memory(settings.single_user_id)
+async def patch_profile(req: PatchSemanticReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    mem = load_user_memory(user_id)
     sem = mem.get("semantic", {})
     patch = req.model_dump(exclude_none=True)
     for k, v in patch.items():
         sem[k] = v
     mem["semantic"] = sem
-    saved = save_user_memory(settings.single_user_id, mem)
+    saved = save_user_memory(user_id, mem)
     return ok(saved.get("semantic", {}))

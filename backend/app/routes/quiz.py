@@ -6,10 +6,11 @@ import uuid
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..config import settings
+from ..auth import get_current_user
 from ..db import execute, fetch_all, fetch_one
 from ..llm import spark_lite
 from ..schemas import ok
@@ -132,7 +133,7 @@ _DEFAULT_QUIZ_SET = [
 
 
 @router.get('')
-async def get_quiz(chapter: str | None = None, count: int = 4, use_llm: bool = False):
+async def get_quiz(chapter: str | None = None, count: int = 4, use_llm: bool = False, current_user: dict = Depends(get_current_user)):
     """
     获取练习题目
     
@@ -143,23 +144,24 @@ async def get_quiz(chapter: str | None = None, count: int = 4, use_llm: bool = F
     """
     requested_count = max(1, min(count, 50))
     batch_id = uuid.uuid4().hex[:8]
+    user_id = current_user["user_id"]
 
     # 策略：优先使用预设题库，只在明确要求时才使用 LLM
     quiz_set = None
     
     if use_llm:
         # 用户明确要求使用 LLM 生成
-        generated = await _generate_quiz_with_llm(chapter, requested_count, batch_id)
+        generated = await _generate_quiz_with_llm(user_id, chapter, requested_count, batch_id)
         quiz_set = generated
     
     # 如果 LLM 生成失败或未使用，使用预设题库
     if not quiz_set:
         quiz_set = _build_default_batch(requested_count, batch_id)
 
-    write_json(settings.single_user_id, 'latest_quiz_set.json', quiz_set)
+    write_json(user_id, 'latest_quiz_set.json', quiz_set)
     
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {'type': 'quiz_generated', 'count': len(quiz_set), 'chapter': chapter or '', 'batch_id': batch_id, 'use_llm': use_llm},
     )
@@ -178,11 +180,12 @@ async def get_quiz(chapter: str | None = None, count: int = 4, use_llm: bool = F
 
 
 @router.post('/submit')
-async def submit_quiz(req: SubmitReq):
+async def submit_quiz(req: SubmitReq, current_user: dict = Depends(get_current_user)):
     """
     提交答案并判题
     """
-    quiz_set = _latest_quiz_set()
+    user_id = current_user["user_id"]
+    quiz_set = _latest_quiz_set(user_id)
     target = next((q for q in quiz_set if q['id'] == req.quiz_id), None)
     if not target:
         raise HTTPException(status_code=404, detail='quiz not found')
@@ -211,7 +214,7 @@ async def submit_quiz(req: SubmitReq):
         explanation = f"{explanation} {str(llm_judge.get('reason')).strip()}".strip()
 
     # 第5步：保存答题记录
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+    records = read_json(user_id, 'quiz_records.json', [])
     records.append(
         {
             'quiz_id': req.quiz_id,
@@ -232,19 +235,19 @@ async def submit_quiz(req: SubmitReq):
             'at': date.today().isoformat(),
         }
     )
-    write_json(settings.single_user_id, 'quiz_records.json', records)
+    write_json(user_id, 'quiz_records.json', records)
 
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {'type': 'submit_quiz', 'quiz_id': req.quiz_id, 'correct': correct, 'judge_mode': judge_mode},
     )
 
     # 第6步：更新掌握度
-    _update_mastery(target['knowledge_point_id'], 0.05 if correct else -0.03)
+    _update_mastery(user_id, target['knowledge_point_id'], 0.05 if correct else -0.03)
     mastery_row = fetch_one(
         'SELECT score FROM mastery_records WHERE user_id = ? AND knowledge_point_id = ?',
-        (settings.single_user_id, target['knowledge_point_id']),
+        (user_id, target['knowledge_point_id']),
     )
 
     return ok(
@@ -262,11 +265,11 @@ async def submit_quiz(req: SubmitReq):
 
 
 @router.get('/records')
-async def get_quiz_records():
+async def get_quiz_records(current_user: dict = Depends(get_current_user)):
     """
     获取所有答题记录
     """
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+    records = read_json(current_user["user_id"], 'quiz_records.json', [])
     if not isinstance(records, list):
         records = []
     
@@ -277,11 +280,11 @@ async def get_quiz_records():
 
 
 @router.get('/records/stats')
-async def get_quiz_records_stats():
+async def get_quiz_records_stats(current_user: dict = Depends(get_current_user)):
     """
     获取答题统计
     """
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+    records = read_json(current_user["user_id"], 'quiz_records.json', [])
     if not isinstance(records, list):
         records = []
     
@@ -299,11 +302,12 @@ async def get_quiz_records_stats():
 
 
 @router.delete('/records/{quiz_id}')
-async def delete_quiz_record(quiz_id: str):
+async def delete_quiz_record(quiz_id: str, current_user: dict = Depends(get_current_user)):
     """
     删除特定的答题记录
     """
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+    user_id = current_user["user_id"]
+    records = read_json(user_id, 'quiz_records.json', [])
     if not isinstance(records, list):
         records = []
     
@@ -312,14 +316,14 @@ async def delete_quiz_record(quiz_id: str):
     after = len(filtered)
     removed = before - after
     
-    write_json(settings.single_user_id, 'quiz_records.json', filtered)
+    write_json(user_id, 'quiz_records.json', filtered)
     
     return ok({'quiz_id': quiz_id, 'removed_count': removed})
 
 
 @router.get('/wrong')
-async def get_wrong_quiz():
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+async def get_wrong_quiz(current_user: dict = Depends(get_current_user)):
+    records = read_json(current_user["user_id"], 'quiz_records.json', [])
     wrong = [r for r in records if not r.get('correct', False)]
 
     grouped: dict[str, dict[str, Any]] = {}
@@ -344,8 +348,9 @@ async def get_wrong_quiz():
 
 
 @router.delete('/wrong/{quiz_id}')
-async def delete_wrong_quiz(quiz_id: str):
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+async def delete_wrong_quiz(quiz_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    records = read_json(user_id, 'quiz_records.json', [])
     if not isinstance(records, list):
         records = []
 
@@ -354,9 +359,9 @@ async def delete_wrong_quiz(quiz_id: str):
     after = len(filtered)
     removed = before - after
 
-    write_json(settings.single_user_id, 'quiz_records.json', filtered)
+    write_json(user_id, 'quiz_records.json', filtered)
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {'type': 'delete_wrong_quiz', 'quiz_id': quiz_id, 'removed_count': removed},
     )
@@ -364,16 +369,17 @@ async def delete_wrong_quiz(quiz_id: str):
 
 
 @router.get('/favorites')
-async def get_favorites():
-    favorites = read_json(settings.single_user_id, 'quiz_favorites.json', [])
+async def get_favorites(current_user: dict = Depends(get_current_user)):
+    favorites = read_json(current_user["user_id"], 'quiz_favorites.json', [])
     if not isinstance(favorites, list):
         favorites = []
     return ok(favorites)
 
 
 @router.post('/favorites')
-async def set_favorite(req: FavoriteReq):
-    favorites = read_json(settings.single_user_id, 'quiz_favorites.json', [])
+async def set_favorite(req: FavoriteReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    favorites = read_json(user_id, 'quiz_favorites.json', [])
     if not isinstance(favorites, list):
         favorites = []
 
@@ -381,7 +387,7 @@ async def set_favorite(req: FavoriteReq):
 
     if req.favorite:
         if existing_index is None:
-            question = _find_question_snapshot(req.quiz_id)
+            question = _find_question_snapshot(user_id, req.quiz_id)
             favorites.append(
                 {
                     'quiz_id': req.quiz_id,
@@ -393,9 +399,9 @@ async def set_favorite(req: FavoriteReq):
         if existing_index is not None:
             favorites.pop(existing_index)
 
-    write_json(settings.single_user_id, 'quiz_favorites.json', favorites)
+    write_json(user_id, 'quiz_favorites.json', favorites)
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {'type': 'quiz_favorite', 'quiz_id': req.quiz_id, 'favorite': req.favorite},
     )
@@ -403,8 +409,8 @@ async def set_favorite(req: FavoriteReq):
     return ok({'quiz_id': req.quiz_id, 'favorite': req.favorite})
 
 
-def _find_question_snapshot(quiz_id: str) -> dict[str, Any]:
-    latest = _latest_quiz_set()
+def _find_question_snapshot(user_id: str, quiz_id: str) -> dict[str, Any]:
+    latest = _latest_quiz_set(user_id)
     from_latest = next((q for q in latest if str(q.get('id')) == quiz_id), None)
     if from_latest:
         return {
@@ -417,7 +423,7 @@ def _find_question_snapshot(quiz_id: str) -> dict[str, Any]:
             'knowledge_point_name': from_latest.get('knowledge_point_name', ''),
         }
 
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+    records = read_json(user_id, 'quiz_records.json', [])
     for item in reversed(records if isinstance(records, list) else []):
         if str(item.get('quiz_id')) == quiz_id and isinstance(item.get('question'), dict):
             return item['question']
@@ -425,11 +431,11 @@ def _find_question_snapshot(quiz_id: str) -> dict[str, Any]:
     return {'id': quiz_id, 'type': 'single', 'content': '题目内容暂不可用', 'options': None, 'explanation': ''}
 
 
-async def _generate_quiz_with_llm(chapter: str | None, count: int, batch_id: str) -> list[dict[str, Any]] | None:
+async def _generate_quiz_with_llm(user_id: str, chapter: str | None, count: int, batch_id: str) -> list[dict[str, Any]] | None:
     import asyncio
     
     chapter_text = chapter or 'Python 基础'
-    context = _build_personalized_quiz_context()
+    context = _build_personalized_quiz_context(user_id)
     
     # 计算题型分布
     single_count = max(1, count // 2)
@@ -664,13 +670,13 @@ def _build_default_batch(count: int, batch_id: str) -> list[dict[str, Any]]:
     return out
 
 
-def _build_personalized_quiz_context() -> dict[str, Any]:
-    profile = read_json(settings.single_user_id, 'profile_snapshot.json', {})
-    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+def _build_personalized_quiz_context(user_id: str) -> dict[str, Any]:
+    profile = read_json(user_id, 'profile_snapshot.json', {})
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (user_id,))
     major = str(profile.get('major') or '').strip()
     if not major and student and student['major']:
         major = str(student['major']).strip()
-    records = read_json(settings.single_user_id, 'quiz_records.json', [])
+    records = read_json(user_id, 'quiz_records.json', [])
     if not isinstance(records, list):
         records = []
 
@@ -696,7 +702,7 @@ def _build_personalized_quiz_context() -> dict[str, Any]:
         ORDER BY score ASC
         LIMIT 5
         """,
-        (settings.single_user_id,),
+        (user_id,),
     )
     weakest_mastery = [
         {
@@ -727,8 +733,8 @@ def _build_personalized_quiz_context() -> dict[str, Any]:
     }
 
 
-def _latest_quiz_set() -> list[dict[str, Any]]:
-    latest = read_json(settings.single_user_id, 'latest_quiz_set.json', [])
+def _latest_quiz_set(user_id: str) -> list[dict[str, Any]]:
+    latest = read_json(user_id, 'latest_quiz_set.json', [])
     if isinstance(latest, list) and latest:
         valid = [q for q in latest if isinstance(q, dict) and q.get('id')]
         if valid:
@@ -793,10 +799,10 @@ def _is_correct_rule(q: dict[str, Any], answer: str | list[str]) -> bool:
     return result
 
 
-def _update_mastery(kp_id: str, delta: float) -> None:
+def _update_mastery(user_id: str, kp_id: str, delta: float) -> None:
     row = fetch_one(
         'SELECT score FROM mastery_records WHERE user_id = ? AND knowledge_point_id = ?',
-        (settings.single_user_id, kp_id),
+        (user_id, kp_id),
     )
     if not row:
         return
@@ -804,5 +810,5 @@ def _update_mastery(kp_id: str, delta: float) -> None:
     score = max(0.0, min(1.0, float(row['score']) + delta))
     execute(
         "UPDATE mastery_records SET score = ?, last_updated = datetime('now') WHERE user_id = ? AND knowledge_point_id = ?",
-        (score, settings.single_user_id, kp_id),
+        (score, user_id, kp_id),
     )

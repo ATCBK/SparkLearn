@@ -780,6 +780,11 @@ export interface CreateAgentTaskPayload {
   input_text: string
 }
 
+export interface AgentChatResp {
+  answer: string
+  created_at: string
+}
+
 export interface BookmarkPayload {
   task_id: string
   item_index: number

@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
 
 const SYSTEM_AGENTS = [
   { id: 'profile-agent', name: '画像分析师', desc: '分析学习者基础与薄弱点，给出个性化建议' },
@@ -283,10 +284,7 @@ export default function RolesPage() {
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
             <ArrowLeft className="w-4 h-4" /> 返回主平台
           </button>
-          <div className="flex items-center gap-2.5 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2563eb] to-[#60a5fa] flex items-center justify-center text-xs font-bold text-white">李</div>
-            <div><p className="text-sm font-medium text-[#1e293b]">李明</p><p className="text-[11px] text-[#94a3b8]">学习平台</p></div>
-          </div>
+          <TutorUserBadge />
         </div>
       </nav>
 

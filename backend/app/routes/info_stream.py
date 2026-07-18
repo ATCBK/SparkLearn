@@ -112,19 +112,19 @@ def _safe_resource_key(value: str) -> str:
     return clean[:80] or "item"
 
 
-def _upsert_info_resource(resource: dict[str, Any]) -> dict[str, Any]:
-    resources = read_json(settings.single_user_id, "resources_index.json", [])
+def _upsert_info_resource(user_id: str, resource: dict[str, Any]) -> dict[str, Any]:
+    resources = read_json(user_id, "resources_index.json", [])
     if not isinstance(resources, list):
         resources = []
 
     for idx, item in enumerate(resources):
         if str(item.get("id", "")) == str(resource.get("id", "")):
             resources[idx] = {**item, **resource}
-            write_json(settings.single_user_id, "resources_index.json", resources)
+            write_json(user_id, "resources_index.json", resources)
             return resources[idx]
 
     resources.insert(0, resource)
-    write_json(settings.single_user_id, "resources_index.json", resources)
+    write_json(user_id, "resources_index.json", resources)
     return resource
 
 
@@ -220,16 +220,17 @@ async def import_resource(
     if not req.title.strip() or not req.url.strip():
         raise HTTPException(status_code=400, detail="title and url are required")
 
-    resource = _upsert_info_resource(_info_resource(req))
+    user_id = current_user["user_id"]
+    resource = _upsert_info_resource(user_id, _info_resource(req))
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         "resource_usage.jsonl",
         {
             "type": "info_stream_imported",
             "resource_id": resource["id"],
             "source": req.source,
             "external_id": req.external_id,
-            "user_id": current_user["user_id"],
+            "user_id": user_id,
         },
     )
     return ok({"resource": resource})

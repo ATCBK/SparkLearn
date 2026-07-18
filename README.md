@@ -73,6 +73,20 @@ SparkLearn 通过 AI 多智能体协同，为学习者构建一套可持续优�
 
 详细设计见 `docs/superpowers/specs/2026-07-16-multi-user-demo-auth-design.md`。
 
+### 服务器上线与资源约束
+
+当前部署分支补齐了小内存服务器上线约束，目标是在保留演示账号历史数据的前提下，把无用缓存压缩到最低，并让真实新用户仍然进入空状态。
+
+- 服务器数据必须保留：`/opt/sparklearn/app/data` 和 `/opt/sparklearn/uploads` 属于业务数据与演示数据，部署前必须备份，不得清理。
+- 小内存优化以清理缓存为主：Docker build cache、apt cache、过大日志可以清理；数据库、上传文件、`.env.deploy`、当前 compose 配置不得覆盖。
+- 后端镜像内置 FFmpeg：`Dockerfile.backend` 安装 `ffmpeg`，并设置 `FFMPEG_PATH=/usr/bin/ffmpeg`，用于本地视频合成。
+- 线上环境关闭单用户绕过：`ALLOW_SINGLE_USER_BYPASS=false`，所有学生端数据必须按当前登录用户隔离。
+- 生成失败要显式提示：文档、PPT、视频等生成链路收到模型额度、服务配置、网络或工具错误时，前端弹窗提示联系项目负责人，不再静默失败。
+- 学习伙伴支持直接对话：学习伙伴页面新增“直接对话 / 任务模式”，直接对话调用后端大模型接口；浏览器本机控制只在安装 SparkLearn 桌面端并启用本地服务后可用，线上 Web 版只支持对话、任务建议和资源处理。
+- 接口暴露收紧：部署 nginx 会屏蔽常见敏感路径和扫描路径；AI 相关接口保留限流；跨域来源限制在正式域名和服务器 IP。
+
+上线前推荐顺序：先备份服务器数据与 `.env.deploy`，再上传代码，随后执行 `docker compose -f docker-compose.deploy.yml build` 和 `docker compose -f docker-compose.deploy.yml up -d`，最后验证 `/health`、登录注册、多用户空状态、演示账号数据、容器内 `ffmpeg -version`。
+
 当前主分支以 `feature/webpage-text-ingest-plugin` 为准完成同步。本轮重点是把“外部网页资料采集”和“小程序轻量学习体验”做成可直接使用的产品闭环。
 
 ### 本轮 Tutor A2UI / AG-UI 更新

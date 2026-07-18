@@ -120,6 +120,7 @@ export const api = {
   adoptAgentPet: impl.adoptAgentPet,
   updateAgentPet: impl.updateAgentPet,
   createAgentTask: impl.createAgentTask,
+  chatWithAgentPet: impl.chatWithAgentPet,
   getAgentTask: impl.getAgentTask,
   getAgentTasks: impl.getAgentTasks,
   submitAgentFeedback: impl.submitAgentFeedback,
@@ -145,6 +146,6 @@ export type {
   McpService, McpServicePayload,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult, ResourceQualityDimension,
   AgentPet, AgentTask, AgentTaskList, AgentTaskStep, AgentSearchResult, AgentSummaryResult, AgentCompareResult,
-  AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
+  AdoptPetPayload, CreateAgentTaskPayload, AgentChatResp, BookmarkPayload,
   A2UIEnvelope, A2UISurfaceState, A2UIComponentNode, AGUIEvent,
 } from './types'

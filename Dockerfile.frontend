@@ -1,0 +1,26 @@
+FROM docker.m.daocloud.io/library/node:24-bookworm-slim
+
+WORKDIR /app/frontend
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
+
+COPY frontend/package*.json ./
+RUN npm ci --include=dev --registry=https://registry.npmmirror.com
+
+COPY frontend ./
+
+ARG NEXT_PUBLIC_API_BASE_URL=http://172.17.6.31:8000
+ARG NEXT_PUBLIC_DEMO_MODE=on
+ARG NEXT_PUBLIC_RUNTIME_MODE=real
+ARG NEXT_PUBLIC_USE_MOCK_DATA=false
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL \
+    NEXT_PUBLIC_DEMO_MODE=$NEXT_PUBLIC_DEMO_MODE \
+    NEXT_PUBLIC_RUNTIME_MODE=$NEXT_PUBLIC_RUNTIME_MODE \
+    NEXT_PUBLIC_USE_MOCK_DATA=$NEXT_PUBLIC_USE_MOCK_DATA
+
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start", "--", "-H", "0.0.0.0", "-p", "3000"]

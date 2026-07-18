@@ -9,10 +9,11 @@ import uuid
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel, field_validator
 
 from ..config import settings
+from ..auth import get_current_user
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
 from ..llm import spark_lite
 from ..schemas import fail, ok
@@ -79,12 +80,20 @@ class AdoptPetReq(BaseModel):
 class UpdatePetReq(BaseModel):
     personality: str | None = None
     name: str | None = None
+    avatar: str | None = None
 
     @field_validator("personality")
     @classmethod
     def validate_personality(cls, v: str | None) -> str | None:
         if v is not None and v not in PERSONALITIES:
             raise ValueError(f"Personality must be one of: {', '.join(PERSONALITIES)}")
+        return v
+
+    @field_validator("avatar")
+    @classmethod
+    def validate_avatar(cls, v: str | None) -> str | None:
+        if v is not None and v not in AVATARS:
+            raise ValueError(f"Avatar must be one of: {', '.join(AVATARS)}")
         return v
 
     @field_validator("name")
@@ -116,6 +125,18 @@ class CreateTaskReq(BaseModel):
         v = v.strip()
         if not v or len(v) > 200:
             raise ValueError("Input must be 1-200 characters")
+        return v
+
+
+class PetChatReq(BaseModel):
+    message: str
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, v: str) -> str:
+        v = v.strip()
+        if not v or len(v) > 800:
+            raise ValueError("Message must be 1-800 characters")
         return v
 
 
@@ -182,6 +203,49 @@ def _task_row_to_dict(row: Any) -> dict:
 
 def _get_pet(user_id: str) -> Any:
     return fetch_one("SELECT * FROM agent_pets WHERE user_id = ?", (user_id,))
+
+
+def _load_agent_profile_context(user_id: str) -> str:
+    profile = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    if not profile:
+        return "用户还没有完整学习画像。"
+
+    def field(name: str, default: str = "") -> Any:
+        return profile[name] if name in profile.keys() else default
+
+    def parse_json_list(value: Any) -> list[str]:
+        if isinstance(value, list):
+            return [str(item) for item in value if str(item).strip()]
+        try:
+            parsed = json.loads(value or "[]")
+            return [str(item) for item in parsed if str(item).strip()] if isinstance(parsed, list) else []
+        except Exception:
+            return []
+    goals = "、".join(parse_json_list(profile["goal"])) or "暂无"
+    weak = "、".join(parse_json_list(profile["weak_points"])) or "暂无"
+    preference = "、".join(parse_json_list(profile["learning_preference"])) or "暂无"
+    return (
+        f"姓名：{field('name') or '未填写'}；专业：{field('major') or '未填写'}；"
+        f"年级：{field('grade') or '未填写'}；目标：{goals}；薄弱点：{weak}；"
+        f"偏好：{preference}；阶段：{field('current_stage') or '暂无'}。"
+    )
+
+
+def _local_agent_chat_fallback(message: str, pet_name: str, personality: str) -> str:
+    topic = message.strip()
+    prefix = f"我是{pet_name}，"
+    if personality == "concise":
+        return f"{prefix}现在模型服务暂时不可用，但我可以先帮你拆一下：{topic}。你可以先写下定义、关键特征和一个例子，再继续追问。"
+    if personality == "verbose":
+        return (
+            f"{prefix}模型服务暂时没有连上，我先用本地思路陪你过一遍：{topic}。"
+            "建议先分三步处理：先明确它的定义，再找一个最小例子，最后总结它适合解决什么问题。"
+            "等模型服务恢复后，我可以继续帮你展开讲解或生成练习。"
+        )
+    return (
+        f"{prefix}模型服务暂时没连上，不过我们可以先往前走。关于「{topic}」，"
+        "先抓住定义、例子、常见误区这三块就很好。你可以把你卡住的点发我，我继续帮你拆。"
+    )
 
 
 def _compute_level(xp: int) -> int:
@@ -556,8 +620,8 @@ def _extract_tags(title: str, summary: str) -> list[str]:
 # --- API Routes ---
 
 @router.post("/pet")
-async def adopt_pet(req: AdoptPetReq):
-    user_id = settings.single_user_id
+async def adopt_pet(req: AdoptPetReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     existing = _get_pet(user_id)
     if existing:
         return fail("您已拥有学习伙伴")
@@ -578,8 +642,8 @@ async def adopt_pet(req: AdoptPetReq):
 
 
 @router.get("/pet")
-async def get_pet():
-    user_id = settings.single_user_id
+async def get_pet(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     row = _get_pet(user_id)
     if not row:
         return ok(None)
@@ -587,8 +651,8 @@ async def get_pet():
 
 
 @router.patch("/pet")
-async def update_pet(req: UpdatePetReq):
-    user_id = settings.single_user_id
+async def update_pet(req: UpdatePetReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     row = _get_pet(user_id)
     if not row:
         return fail("您还没有学习伙伴")
@@ -601,6 +665,9 @@ async def update_pet(req: UpdatePetReq):
     if req.name is not None:
         updates.append("name = ?")
         params.append(req.name)
+    if req.avatar is not None:
+        updates.append("avatar = ?")
+        params.append(req.avatar)
     if not updates:
         return ok(_pet_row_to_dict(row))
 
@@ -613,8 +680,8 @@ async def update_pet(req: UpdatePetReq):
 
 
 @router.post("/task")
-async def create_task(req: CreateTaskReq, background_tasks: BackgroundTasks):
-    user_id = settings.single_user_id
+async def create_task(req: CreateTaskReq, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     pet = _get_pet(user_id)
     if not pet:
         return fail("请先认养学习伙伴")
@@ -653,9 +720,43 @@ async def create_task(req: CreateTaskReq, background_tasks: BackgroundTasks):
     return ok({"task_id": task_id, "task_type": req.task_type, "status": "pending", "created_at": ts})
 
 
+@router.post("/chat")
+async def chat_with_pet(req: PetChatReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    pet = _get_pet(user_id)
+    if not pet:
+        return fail("请先认养学习伙伴")
+
+    persona_prompt = PERSONA_PROMPTS.get(pet["personality"], PERSONA_PROMPTS["encouraging"])
+    profile_context = _load_agent_profile_context(user_id)
+    prompt = f"""你是 SparkLearn 的学习伙伴「{pet['name']}」。
+性格要求：{persona_prompt}
+用户画像：{profile_context}
+
+回答要求：
+- 用中文直接回答用户问题；
+- 保持对话式，不要输出 JSON；
+- 不要声称网页端可以控制用户本地浏览器；
+- 如果用户问浏览器控制，说明只有安装本地桌面端后才能控制本地浏览器，线上 Web 版只支持对话、任务建议和学习资源处理；
+- 如果模型、额度或工具不可用，明确建议联系项目负责人处理。
+
+用户：{req.message}
+学习伙伴："""
+
+    chunks: list[str] = []
+    try:
+        async for c in _stream_agent_llm(prompt, mode="general"):
+            chunks.append(c)
+    except Exception as ex:
+        answer = _local_agent_chat_fallback(req.message, pet["name"], pet["personality"])
+        return ok({"answer": answer, "created_at": now_iso(), "fallback": True, "error": str(ex)[:160]})
+    answer = "".join(chunks).strip() or _local_agent_chat_fallback(req.message, pet["name"], pet["personality"])
+    return ok({"answer": answer, "created_at": now_iso()})
+
+
 @router.get("/task/{task_id}")
-async def get_task(task_id: str):
-    user_id = settings.single_user_id
+async def get_task(task_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     row = fetch_one("SELECT * FROM agent_tasks WHERE id = ? AND user_id = ?", (task_id, user_id))
     if not row:
         return fail("任务不存在或无权访问")
@@ -671,8 +772,8 @@ async def get_task(task_id: str):
 
 
 @router.get("/tasks")
-async def list_tasks(page: int = 1, page_size: int = 20):
-    user_id = settings.single_user_id
+async def list_tasks(page: int = 1, page_size: int = 20, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     offset = (page - 1) * page_size
     total_row = fetch_one("SELECT COUNT(1) as cnt FROM agent_tasks WHERE user_id = ?", (user_id,))
     total = int(total_row["cnt"]) if total_row else 0
@@ -685,8 +786,8 @@ async def list_tasks(page: int = 1, page_size: int = 20):
 
 
 @router.post("/task/{task_id}/feedback")
-async def submit_feedback(task_id: str, req: FeedbackReq):
-    user_id = settings.single_user_id
+async def submit_feedback(task_id: str, req: FeedbackReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     row = fetch_one("SELECT * FROM agent_tasks WHERE id = ? AND user_id = ?", (task_id, user_id))
     if not row:
         return fail("任务不存在")
@@ -695,8 +796,8 @@ async def submit_feedback(task_id: str, req: FeedbackReq):
 
 
 @router.post("/bookmark")
-async def bookmark_resource(req: BookmarkReq):
-    user_id = settings.single_user_id
+async def bookmark_resource(req: BookmarkReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     if req.url:
         existing = fetch_one("SELECT id FROM knowledge_files WHERE user_id = ? AND stored_path = ?", (user_id, req.url))
         if existing:
@@ -713,8 +814,8 @@ async def bookmark_resource(req: BookmarkReq):
 
 
 @router.get("/recommendations")
-async def get_recommendations():
-    user_id = settings.single_user_id
+async def get_recommendations(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     pet = _get_pet(user_id)
     if not pet:
         return fail("请先认养学习伙伴")

@@ -1,9 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Activity, Star, Zap } from 'lucide-react'
+import { Activity, Monitor, Star, Zap } from 'lucide-react'
 import { api, AgentPet } from '@/lib/api'
-import { PageHead } from '@/components/proto'
+import { PageHead, ProtoCard } from '@/components/proto'
 import { AdoptionFlow } from '@/components/agent/AdoptionFlow'
 import { AgentPetCard } from '@/components/agent/AgentPetCard'
 import { AgentChat } from '@/components/agent/AgentChat'
@@ -75,7 +75,7 @@ export default function AgentPage() {
         ]}
       />
 
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5 max-[980px]:grid-cols-1">
+      <div className="grid items-stretch grid-cols-[minmax(0,1fr)_320px] gap-5 max-[980px]:grid-cols-1">
         <AgentChat
           pet={pet}
           onXpChange={() => setRefreshKey(k => k + 1)}
@@ -87,6 +87,19 @@ export default function AgentPage() {
 
         <aside className="space-y-4">
           <AgentPetCard pet={pet} petState={petState} statusText={statusText} onUpdate={() => setRefreshKey(k => k + 1)} />
+          <ProtoCard>
+            <div className="flex items-start gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-blue-light text-blue">
+                <Monitor className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-small font-bold text-ink">本地控制能力</h3>
+                <p className="mt-2 text-small leading-6 text-muted">
+                  线上 Web 版只支持对话、任务建议和学习资源处理。需要控制本机浏览器时，必须安装 SparkLearn 桌面端并启用本地服务。
+                </p>
+              </div>
+            </div>
+          </ProtoCard>
           <AgentHistory />
         </aside>
       </div>

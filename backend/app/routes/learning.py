@@ -4,10 +4,11 @@ import json
 from datetime import date
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..config import settings
+from ..auth import get_current_user
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..llm import spark_lite
 from ..schemas import ok
@@ -189,14 +190,16 @@ _STAGE_ORDER = ['基础语法', '函数与模块', '面向对象', '文件处理
 
 
 @router.get('/learning-path')
-async def get_learning_path():
-    graph_data = _build_learning_graph()
+async def get_learning_path(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    graph_data = _build_learning_graph(user_id)
     return ok(graph_data)
 
 
 @router.post('/learning-path/node-advice')
-async def get_node_advice(req: NodeAdviceReq):
-    graph_data = _build_learning_graph()
+async def get_node_advice(req: NodeAdviceReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    graph_data = _build_learning_graph(user_id)
     node = next((n for n in graph_data['knowledge_graph']['nodes'] if n['id'] == req.node_id), None)
     if not node:
         return ok(
@@ -212,12 +215,12 @@ async def get_node_advice(req: NodeAdviceReq):
             }
         )
 
-    profile_row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (settings.single_user_id,))
-    profile = _profile_dict(profile_row)
+    profile_row = fetch_one('SELECT * FROM profiles WHERE user_id = ?', (user_id,))
+    profile = _profile_dict(user_id, profile_row)
 
     suggestion = await _generate_node_advice(node=node, profile=profile)
     append_jsonl(
-        settings.single_user_id,
+        user_id,
         'learning_events.jsonl',
         {'type': 'path_node_advice', 'node_id': req.node_id, 'mastery': node['mastery']},
     )
@@ -225,23 +228,25 @@ async def get_node_advice(req: NodeAdviceReq):
 
 
 @router.post('/learning-path/adjust')
-async def adjust_learning_path(req: PathAdjustReq):
+async def adjust_learning_path(req: PathAdjustReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     execute(
         'UPDATE profiles SET current_stage = ?, updated_at = ? WHERE user_id = ?',
-        ('函数与模块', now_iso(), settings.single_user_id),
+        ('函数与模块', now_iso(), user_id),
     )
-    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'path_adjusted', 'reason': req.reason})
+    append_jsonl(user_id, 'learning_events.jsonl', {'type': 'path_adjusted', 'reason': req.reason})
     return ok({'previous_stage': '面向对象', 'current_stage': '函数与模块'})
 
 
 @router.get('/tasks/today')
-async def get_today_tasks():
-    return ok(_read_tasks())
+async def get_today_tasks(current_user: dict = Depends(get_current_user)):
+    return ok(_read_tasks(current_user["user_id"]))
 
 
 @router.post('/tasks')
-async def create_task(req: TaskCreateReq):
-    tasks = _read_tasks()
+async def create_task(req: TaskCreateReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    tasks = _read_tasks(user_id)
     task = {
         'id': f'task-{date.today().strftime("%Y%m%d")}-{len(tasks) + 1}-{now_iso().replace(":", "").replace(".", "")}',
         'title': req.title.strip() or '新的学习任务',
@@ -250,14 +255,15 @@ async def create_task(req: TaskCreateReq):
         'duration': max(1, min(int(req.duration or 15), 240)),
     }
     tasks.append(task)
-    write_json(settings.single_user_id, 'task_progress.json', tasks)
-    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_created', 'task': task})
+    write_json(user_id, 'task_progress.json', tasks)
+    append_jsonl(user_id, 'learning_events.jsonl', {'type': 'task_created', 'task': task})
     return ok(task)
 
 
 @router.put('/tasks/{task_id}/complete')
-async def complete_task(task_id: str, req: TaskCompleteReq):
-    tasks = _read_tasks()
+async def complete_task(task_id: str, req: TaskCompleteReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    tasks = _read_tasks(user_id)
     updated: dict[str, Any] | None = None
     for task in tasks:
         if task['id'] == task_id:
@@ -266,36 +272,38 @@ async def complete_task(task_id: str, req: TaskCompleteReq):
             break
     if not updated:
         raise HTTPException(status_code=404, detail='task not found')
-    write_json(settings.single_user_id, 'task_progress.json', tasks)
-    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_status_updated', 'task_id': task_id, 'status': req.status})
+    write_json(user_id, 'task_progress.json', tasks)
+    append_jsonl(user_id, 'learning_events.jsonl', {'type': 'task_status_updated', 'task_id': task_id, 'status': req.status})
 
     if updated['status'] == 'completed':
         today = date.today().isoformat()
-        row = fetch_one('SELECT count FROM contribution_days WHERE user_id = ? AND date = ?', (settings.single_user_id, today))
+        row = fetch_one('SELECT count FROM contribution_days WHERE user_id = ? AND date = ?', (user_id, today))
         if row:
             execute(
                 'UPDATE contribution_days SET count = ? WHERE user_id = ? AND date = ?',
-                (int(row['count']) + 1, settings.single_user_id, today),
+                (int(row['count']) + 1, user_id, today),
             )
         else:
             execute(
                 'INSERT INTO contribution_days(user_id, date, count) VALUES (?, ?, ?)',
-                (settings.single_user_id, today, 1),
+                (user_id, today, 1),
             )
     return ok(updated)
 
 
 @router.delete('/tasks/{task_id}')
-async def delete_task(task_id: str):
-    tasks = _read_tasks()
+async def delete_task(task_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    tasks = _read_tasks(user_id)
     next_tasks = [task for task in tasks if str(task.get('id')) != task_id]
-    write_json(settings.single_user_id, 'task_progress.json', next_tasks)
-    append_jsonl(settings.single_user_id, 'learning_events.jsonl', {'type': 'task_deleted', 'task_id': task_id})
+    write_json(user_id, 'task_progress.json', next_tasks)
+    append_jsonl(user_id, 'learning_events.jsonl', {'type': 'task_deleted', 'task_id': task_id})
     return ok({'task_id': task_id, 'removed': len(tasks) - len(next_tasks)})
 
 
 @router.get('/contribution')
-async def get_contribution(year: int | None = None):
+async def get_contribution(year: int | None = None, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     if not year:
         year = date.today().year
     rows = fetch_all(
@@ -304,20 +312,21 @@ async def get_contribution(year: int | None = None):
         WHERE user_id = ? AND substr(date, 1, 4) = ?
         ORDER BY date
         """,
-        (settings.single_user_id, str(year)),
+        (user_id, str(year)),
     )
     return ok([{'date': row['date'], 'count': row['count']} for row in rows])
 
 
 @router.get('/mastery')
-async def get_mastery():
+async def get_mastery(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     rows = fetch_all(
         """
         SELECT knowledge_point_id, knowledge_point_name, score, chapter
         FROM mastery_records WHERE user_id = ?
         ORDER BY score DESC
         """,
-        (settings.single_user_id,),
+        (user_id,),
     )
     return ok(
         [
@@ -333,10 +342,10 @@ async def get_mastery():
 
 
 @router.get('/dashboard/stats')
-async def get_dashboard_stats():
+async def get_dashboard_stats(current_user: dict = Depends(get_current_user)):
     from .report_service import get_evaluation_report
 
-    report = await get_evaluation_report()
+    report = await get_evaluation_report(user_id=current_user["user_id"])
     stats = report.data['stats']
     return ok(stats)
 
@@ -356,14 +365,14 @@ async def get_videos():
     )
 
 
-def _build_learning_graph() -> dict[str, Any]:
+def _build_learning_graph(user_id: str) -> dict[str, Any]:
     mastery_rows = fetch_all(
         """
         SELECT knowledge_point_id, knowledge_point_name, score, chapter
         FROM mastery_records
         WHERE user_id = ?
         """,
-        (settings.single_user_id,),
+        (user_id,),
     )
     score_map = {str(r['knowledge_point_id']): float(r['score']) for r in mastery_rows}
 
@@ -437,15 +446,11 @@ def _build_learning_graph() -> dict[str, Any]:
     }
 
 
-def _read_tasks() -> list[dict[str, Any]]:
+def _read_tasks(user_id: str) -> list[dict[str, Any]]:
     tasks = read_json(
-        settings.single_user_id,
+        user_id,
         'task_progress.json',
-        [
-            {'id': '1', 'title': '回顾函数返回值讲义', 'type': 'reading', 'status': 'pending', 'duration': 12},
-            {'id': '2', 'title': '完成 8 道返回值短练', 'type': 'quiz', 'status': 'pending', 'duration': 8},
-            {'id': '3', 'title': '确认下一路径节点', 'type': 'practice', 'status': 'pending', 'duration': 4},
-        ],
+        [],
     )
     return tasks if isinstance(tasks, list) else []
 
@@ -592,8 +597,8 @@ def _fallback_advice(node: dict[str, Any], profile: dict[str, Any]) -> dict[str,
     }
 
 
-def _profile_dict(row) -> dict[str, Any]:
-    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (settings.single_user_id,))
+def _profile_dict(user_id: str, row) -> dict[str, Any]:
+    student = fetch_one('SELECT major FROM students WHERE user_id = ?', (user_id,))
     major = str(student['major']).strip() if student and student['major'] else ''
     if not row:
         return {

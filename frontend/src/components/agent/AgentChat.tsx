@@ -39,6 +39,14 @@ const TASK_TYPE_OPTIONS = [
   { id: 'compare', label: '概念对比', icon: <GitCompare className="h-3.5 w-3.5" />, placeholder: '例如：对比 Python 生成器和列表推导式，说明适用场景' },
 ]
 
+function formatAgentChatError(error: unknown) {
+  const raw = error instanceof Error ? error.message : ''
+  if (raw.includes('无法连接到服务器') || raw.includes('Failed to fetch')) {
+    return '本地学习服务暂时没有连上。请先确认 SparkLearn 后端服务已经启动，然后再发一次。'
+  }
+  return raw || '我这边暂时没能生成回复，请稍后再试。'
+}
+
 interface ChatMessage {
   id: string
   sender: 'user' | 'agent'
@@ -60,11 +68,12 @@ export function AgentChat({
     {
       id: 'welcome',
       sender: 'agent',
-      content: `我是 ${pet.name}。请给我一个具体学习任务，例如检索资料、总结内容或对比概念。`,
+      content: `我是 ${pet.name}。你可以直接和我对话，也可以切到任务模式让我检索资料、总结内容或对比概念。`,
       timestamp: new Date().toISOString(),
     },
   ])
   const [input, setInput] = useState('')
+  const [mode, setMode] = useState<'chat' | 'task'>('chat')
   const [taskType, setTaskType] = useState('search')
   const [polling, setPolling] = useState(false)
   const [steps, setSteps] = useState<AgentTaskStep[]>([])
@@ -161,6 +170,40 @@ export function AgentChat({
     const text = input.trim()
     if (!text || polling) return
 
+    if (mode === 'chat') {
+      setMessages(prev => [...prev, {
+        id: `user-${++msgCounter.current}`,
+        sender: 'user',
+        content: text,
+        timestamp: new Date().toISOString(),
+      }])
+      setInput('')
+      setPolling(true)
+      setSteps([])
+      onStateChange?.('thinking', '正在调用大模型生成回复。')
+      try {
+        const result = await api.chatWithAgentPet(text)
+        setMessages(prev => [...prev, {
+          id: `agent-${++msgCounter.current}`,
+          sender: 'agent',
+          content: result.answer,
+          timestamp: result.created_at || new Date().toISOString(),
+        }])
+        onStateChange?.('success', '对话回复已生成。')
+      } catch (error: unknown) {
+        setMessages(prev => [...prev, {
+          id: `err-${++msgCounter.current}`,
+          sender: 'agent',
+          content: formatAgentChatError(error),
+          timestamp: new Date().toISOString(),
+        }])
+        onStateChange?.('failed', '本地学习服务未连接。')
+      } finally {
+        setPolling(false)
+      }
+      return
+    }
+
     if (text.length < 6) {
       setMessages(prev => [...prev, {
         id: `guard-${++msgCounter.current}`,
@@ -256,15 +299,27 @@ export function AgentChat({
   }
 
   return (
-    <ProtoCard className="flex h-[calc(100vh-220px)] min-h-[560px] flex-col p-0">
+    <ProtoCard className="flex h-full min-h-[calc(100vh-220px)] flex-col p-0">
       <div className="border-b border-line px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-ink">任务对话</h2>
-            <p className="mt-1 text-small text-muted">一次只处理一个明确任务，结果会沉淀到任务记录。</p>
+            <p className="mt-1 text-small text-muted">{mode === 'chat' ? '直接调用大模型进行学习问答，不写入任务记录。' : '一次只处理一个明确任务，结果会沉淀到任务记录。'}</p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {TASK_TYPE_OPTIONS.map(opt => (
+          <div className="flex flex-wrap justify-end gap-1.5">
+            <button
+              onClick={() => setMode('chat')}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] px-3 text-micro font-bold transition-colors ${mode === 'chat' ? 'bg-blue text-white' : 'bg-[#f2f6fb] text-muted hover:bg-[#e9f0f8]'}`}
+            >
+              直接对话
+            </button>
+            <button
+              onClick={() => setMode('task')}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-[8px] px-3 text-micro font-bold transition-colors ${mode === 'task' ? 'bg-blue text-white' : 'bg-[#f2f6fb] text-muted hover:bg-[#e9f0f8]'}`}
+            >
+              任务模式
+            </button>
+            {mode === 'task' && TASK_TYPE_OPTIONS.map(opt => (
               <button
                 key={opt.id}
                 onClick={() => setTaskType(opt.id)}
@@ -359,7 +414,7 @@ export function AgentChat({
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={TASK_TYPE_OPTIONS.find(o => o.id === taskType)?.placeholder}
+            placeholder={mode === 'chat' ? '直接提问，例如：我今天应该先补哪一块？' : TASK_TYPE_OPTIONS.find(o => o.id === taskType)?.placeholder}
             disabled={polling}
             maxLength={240}
             className="h-11 min-w-0 flex-1 rounded-[10px] border border-line px-4 text-small text-ink outline-none transition focus:border-blue focus:ring-2 focus:ring-[#bfdbfe] disabled:bg-[#f8fafc]"

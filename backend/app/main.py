@@ -12,6 +12,7 @@ from .config import settings
 from .db import init_db
 from .auth import initialize_configured_demo_user, router as auth_router
 from .routes.learning import router as learning_router
+from .routes.graph import router as graph_router
 from .routes.memory import router as memory_router
 from .routes.knowledge import router as knowledge_router
 from .routes.path_planning import router as path_planning_router
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
     app.include_router(profile_router)
     app.include_router(memory_router)
     app.include_router(learning_router)
+    app.include_router(graph_router)
     app.include_router(knowledge_router)
     app.include_router(path_planning_router)
     app.include_router(ppt_router)

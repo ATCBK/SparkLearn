@@ -1,0 +1,15 @@
+{
+  "api": {
+    "baseUrl": "http://121.41.78.3"
+  },
+  "frontend": {
+    "enabled": false,
+    "url": "http://121.41.78.3",
+    "env": {
+      "NEXT_PUBLIC_API_BASE_URL": "http://121.41.78.3"
+    }
+  },
+  "backend": {
+    "enabled": false
+  }
+}

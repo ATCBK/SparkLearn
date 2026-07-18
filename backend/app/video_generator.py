@@ -17,7 +17,7 @@ from typing import Any
 from urllib.parse import urlencode, urlparse
 
 from .config import settings
-from .video_ai import VideoAIScriptError, generate_video_script_with_ai
+from .video_ai import VideoAIScriptError, generate_local_video_script, generate_video_script_with_ai
 
 
 VIDEO_ARTIFACT_ROOT = settings.data_dir / "artifacts" / "video"
@@ -60,7 +60,21 @@ def make_polished_script(
             "style_name": style_config.get("name", style),
         }
     except Exception as ex:
-        raise VideoAIScriptError(f"AI 视频脚本生成失败：{ex}") from ex
+        fallback = generate_local_video_script(clean_prompt, duration_sec, target_level, style)
+        return {
+            "polish_id": polish_id,
+            "title": str(fallback.get("title") or _make_title(clean_prompt)),
+            "polished_prompt": str(fallback.get("polished_prompt") or clean_prompt),
+            "script_outline": fallback.get("script_outline") or [],
+            "estimated_duration_sec": duration_sec,
+            "voice": voice or settings.cosyvoice_default_voice,
+            "content_source": "local_fallback",
+            "ai_provider": str(settings.video_ai_provider),
+            "ai_model": str(settings.video_ai_model),
+            "ai_error": str(ex),
+            "style_id": style,
+            "style_name": style_config.get("name", style),
+        }
 
 
 def _topic_code_sample(topic: str) -> str:
@@ -543,7 +557,9 @@ def _render_slide_frames(root: Path, slide_paths: list[Path]) -> dict[str, Any]:
     frames: list[Path] = []
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch()
+            chromium_path = os.getenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH") or shutil.which("chromium") or shutil.which("chromium-browser")
+            launch_kwargs = {"executable_path": chromium_path} if chromium_path else {}
+            browser = p.chromium.launch(**launch_kwargs)
             page = browser.new_page(viewport={"width": 1920, "height": 1080}, device_scale_factor=1)
             for idx, slide_path in enumerate(slide_paths, start=1):
                 frame_path = frames_dir / f"slide_{idx:03d}.png"

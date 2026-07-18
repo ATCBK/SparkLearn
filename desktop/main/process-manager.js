@@ -129,14 +129,19 @@ class ProcessManager {
     }
 
     this.logManager.info(`Starting ${name}: ${service.command} ${(service.args || []).join(' ')}`);
+    const apiBaseUrl =
+      this.config.api?.baseUrl ||
+      this.config.env?.NEXT_PUBLIC_API_BASE_URL ||
+      process.env.NEXT_PUBLIC_API_BASE_URL ||
+      'http://127.0.0.1:8000';
     const child = spawn(service.command, service.args || [], {
       cwd: service.cwd,
       env: {
         ...process.env,
         ...(this.config.env || {}),
-        ...(service.env || {}),
         BROWSER: 'none',
-        NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:8000',
+        NEXT_PUBLIC_API_BASE_URL: apiBaseUrl,
+        ...(service.env || {}),
       },
       shell: process.platform === 'win32',
       windowsHide: true,

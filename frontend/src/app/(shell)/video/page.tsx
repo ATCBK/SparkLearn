@@ -61,7 +61,7 @@ type KnowledgePoint = {
   takeaway: string
 }
 
-const KNOWLEDGE_TAGS = ['函数返回值', 'return 语句', '函数调用', '程序设计基础']
+const KNOWLEDGE_TAGS = ['待提取知识点', '学习重点', '易错点', '复习建议']
 
 function formatDurationText(seconds: number | undefined) {
   const safeSeconds = Math.max(0, Math.floor(seconds || 0))
@@ -82,7 +82,7 @@ function formatDateText(value: string | undefined) {
 }
 
 function getLessonTitle(video: VideoInfo | null) {
-  return video?.title || '函数返回值：像自动售货机一样'
+  return video?.title || '暂无视频课程'
 }
 
 function getAssistantStatus(memory: MemoryState) {
@@ -103,6 +103,7 @@ function buildOpeningMessages(video: VideoInfo): AssistantMessage[] {
 }
 
 function buildLessonSummary(video: VideoInfo | null) {
+  if (!video) return '还没有生成或学习过视频课程。生成第一条视频资源后，这里会展示真实课程简介。'
   const title = getLessonTitle(video)
 
   if (title.includes('返回') || title.toLowerCase().includes('return')) {
@@ -117,6 +118,7 @@ function buildLessonSummary(video: VideoInfo | null) {
 }
 
 function buildKnowledgePoints(video: VideoInfo | null): KnowledgePoint[] {
+  if (!video) return []
   const title = getLessonTitle(video)
 
   if (title.includes('返回') || title.toLowerCase().includes('return')) {
@@ -147,6 +149,7 @@ function buildKnowledgePoints(video: VideoInfo | null): KnowledgePoint[] {
 }
 
 function buildDefaultNote(video: VideoInfo | null, knowledgePoints: KnowledgePoint[]) {
+  if (!video) return ''
   return [
     `主题：${getLessonTitle(video)}`,
     '',
@@ -156,6 +159,7 @@ function buildDefaultNote(video: VideoInfo | null, knowledgePoints: KnowledgePoi
 }
 
 function buildVideoSuggestions(video: VideoInfo | null) {
+  if (!video) return []
   const title = getLessonTitle(video)
   const lowerTitle = title.toLowerCase()
 
@@ -963,42 +967,6 @@ export default function VideoPage() {
                     )}
                   </div>
                 </Card>
-
-                {false && (
-                <Card className="rounded-[8px] border border-[#dbe7f8] bg-white shadow-[0_14px_44px_rgba(15,23,42,0.06)]">
-                  <div className="flex gap-8 border-b border-[#edf2f8] px-5 pt-4 text-[14px] font-bold text-[#64748b]">
-                    {['课程简介', '知识点', '学习笔记', '相关练习'].map((tab, index) => (
-                      <button key={tab} className={cn('border-b-2 pb-3 transition', index === 0 ? 'border-blue text-blue' : 'border-transparent hover:text-ink')}>
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="p-5">
-                    <p className="text-[14px] leading-7 text-[#334155]">
-                      本节课通过自动售货机的类比，帮助你理解函数返回值的概念和作用。我们将学习如何使用 return 语句将处理结果返回给调用者，以及在不同场景下的应用方式。
-                    </p>
-                    <button className="mt-2 text-[13px] font-bold text-blue hover:text-blue-dark">展开全部</button>
-                    <div className="mt-5 grid grid-cols-4 gap-4 border-t border-[#edf2f8] pt-5 text-[12px] text-[#52627b] max-[760px]:grid-cols-2">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-blue" />
-                        <span>课程时长<br /><b className="font-bold text-ink">{formatDurationText(selected?.duration)}</b></span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Gauge className="h-5 w-5 text-blue" />
-                        <span>难度<br /><b className="font-bold text-ink">中等</b></span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="h-5 w-5 text-blue" />
-                        <span>适合年级<br /><b className="font-bold text-ink">初中及以上</b></span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CalendarDays className="h-5 w-5 text-blue" />
-                        <span>更新时间<br /><b className="font-bold text-ink">{formatDateText(selected?.createdAt)}</b></span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-                )}
               </div>
             )}
           </div>

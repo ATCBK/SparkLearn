@@ -391,7 +391,6 @@ export default function OnboardingPage() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('sparklearn_profile_needs_recapture')
       const collectedAt = new Date().toISOString()
-      localStorage.setItem('sparklearn_profile_collected_at', collectedAt)
       try {
         const rawUser = localStorage.getItem('sparklearn_user')
         const user = rawUser ? JSON.parse(rawUser) : null
@@ -400,7 +399,7 @@ export default function OnboardingPage() {
           localStorage.setItem(`sparklearn_profile_collected_at:${userId}`, collectedAt)
         }
       } catch {
-        // Ignore malformed local user data; the global marker is still enough for local sessions.
+        // Ignore malformed local user data; the server profile remains the source of truth.
       }
     }
     setTimeout(() => router.push('/'), 1500)

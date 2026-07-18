@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation'
 import { Bell, FolderTree, Heart, History, Home, MessageCircle, MessageSquare } from 'lucide-react'
 
 const BOARDS = [
-  { key: 'resource_share', label: '资料共享', count: 24, href: '/plaza/resource-share' },
-  { key: 'qa', label: '学习答疑', count: 38, href: '/plaza/qa' },
-  { key: 'team_study', label: '组队共学', count: 16, href: '/plaza/team-study' },
-  { key: 'experience_share', label: '经验共享', count: 29, href: '/plaza/experience-share' },
+  { key: 'resource_share', label: '资料共享', href: '/plaza/resource-share' },
+  { key: 'qa', label: '学习答疑', href: '/plaza/qa' },
+  { key: 'team_study', label: '组队共学', href: '/plaza/team-study' },
+  { key: 'experience_share', label: '经验共享', href: '/plaza/experience-share' },
 ]
 
 export function PlazaSidebar() {
@@ -40,7 +40,6 @@ export function PlazaSidebar() {
               }`}
             >
               <span>{board.label}</span>
-              <span className="text-xs text-muted">{board.count}</span>
             </Link>
           )})}
         </div>

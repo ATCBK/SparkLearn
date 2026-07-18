@@ -19,7 +19,7 @@ const STATUS_INFO: Record<string, { label: string; tone: 'blue' | 'green' | 'ora
   failed: { label: '失败', tone: 'red' },
 }
 
-export function AgentHistory() {
+export function AgentHistory({ className = '' }: { className?: string }) {
   const [tasks, setTasks] = useState<AgentTask[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -35,7 +35,7 @@ export function AgentHistory() {
   }, [])
 
   return (
-    <ProtoCard>
+    <ProtoCard className={className}>
       <div className="flex items-center gap-2 mb-3">
         <Clock className="h-4 w-4 text-[#6b7280]" />
         <h3 className="text-sm font-bold text-[#111827]">最近任务</h3>
@@ -49,18 +49,18 @@ export function AgentHistory() {
         </div>
       )}
 
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+      <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
         {tasks.map(task => {
           const typeInfo = TASK_TYPE_INFO[task.task_type] || TASK_TYPE_INFO.search
           const statusInfo = STATUS_INFO[task.status] || STATUS_INFO.pending
           return (
-            <div key={task.task_id} className="p-2.5 rounded-lg border border-[#f1f5f9] hover:bg-[#f8fafc] transition-colors">
-              <div className="flex items-center gap-2 mb-1">
+            <div key={task.task_id} className="rounded-lg border border-[#f1f5f9] p-3 transition-colors hover:bg-[#f8fafc]">
+              <div className="flex flex-wrap items-center gap-2">
                 <Pill tone={typeInfo.tone}>{typeInfo.icon} {typeInfo.label}</Pill>
                 <Pill tone={statusInfo.tone}>{statusInfo.label}</Pill>
               </div>
-              <p className="text-xs text-[#374151] truncate">{task.input_text}</p>
-              <div className="text-[10px] text-[#9ca3af] mt-1">
+              <p className="mt-2 truncate text-xs font-medium leading-5 text-[#374151]">{task.input_text}</p>
+              <div className="mt-1 text-[10px] leading-4 text-[#9ca3af]">
                 {new Date(task.created_at).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>

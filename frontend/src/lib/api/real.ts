@@ -16,6 +16,18 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 type ApiResp<T> = { success: boolean; data: T; error?: string; detail?: unknown }
 type SseEvent = { type: string; payload: Record<string, unknown> }
 
+export function buildUrlAccessUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
+  const url = new URL(`${API_BASE}${path}`)
+  const token = getToken()
+  if (token) url.searchParams.set('access_token', token)
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) url.searchParams.set(key, String(value))
+    })
+  }
+  return url.toString()
+}
+
 function applyA2UIEnvelope(surfaces: A2UISurfaceState[], envelope: A2UIEnvelope): A2UISurfaceState[] {
   if ('createSurface' in envelope) {
     const surface = envelope.createSurface
@@ -71,6 +83,11 @@ function _authHeaders(): Record<string, string> {
     headers['Authorization'] = `Bearer ${token}`
   }
   return headers
+}
+
+function _authUploadHeaders(): Record<string, string> {
+  const token = getToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -277,17 +294,17 @@ export async function getProfile(): Promise<StudentProfile> {
   const p = await fetchJson<any>('/api/profile')
   return {
     id: p.user_id,
-    name: String(p.name || '张同学'),
-    email: String(p.email || 'student@sparklearn.ai'),
+    name: String(p.name || ''),
+    email: String(p.email || ''),
     major: String(p.major || ''),
-    grade: String(p.grade || '大二'),
-    goals: p.goal,
-    knowledgeLevel: p.knowledge_level,
-    weakPoints: p.weak_points,
-    learningPreference: p.learning_preference,
-    cognitiveStyle: p.cognitive_style,
-    dailyTime: p.daily_time,
-    practicalAbility: p.practical_ability,
+    grade: String(p.grade || ''),
+    goals: Array.isArray(p.goal) ? p.goal : [],
+    knowledgeLevel: String(p.knowledge_level || ''),
+    weakPoints: Array.isArray(p.weak_points) ? p.weak_points : [],
+    learningPreference: Array.isArray(p.learning_preference) ? p.learning_preference : [],
+    cognitiveStyle: String(p.cognitive_style || ''),
+    dailyTime: Number(p.daily_time || 0),
+    practicalAbility: String(p.practical_ability || ''),
     currentStage: p.current_stage || '',
   }
 }
@@ -344,8 +361,8 @@ export async function getResourcePreview(resourceId: string): Promise<{ url: str
 }
 
 export async function downloadResource(resourceId: string): Promise<void> {
-  const primary = `${API_BASE}/api/resources/${resourceId}/download/pdf?t=${Date.now()}`
-  const fallback = `${API_BASE}/api/resources/${resourceId}/download?t=${Date.now()}`
+  const primary = buildUrlAccessUrl(`/api/resources/${resourceId}/download/pdf`, { t: Date.now() })
+  const fallback = buildUrlAccessUrl(`/api/resources/${resourceId}/download`, { t: Date.now() })
 
   let res = await fetch(primary)
   if (res.status === 404) {
@@ -374,7 +391,7 @@ export async function downloadResource(resourceId: string): Promise<void> {
 }
 
 export async function downloadResourceSource(resourceId: string): Promise<void> {
-  const url = `${API_BASE}/api/resources/${resourceId}/download/source?t=${Date.now()}`
+  const url = buildUrlAccessUrl(`/api/resources/${resourceId}/download/source`, { t: Date.now() })
   const res = await fetch(url)
   if (!res.ok) {
     const raw = await res.text()
@@ -419,6 +436,11 @@ export async function generateResource(
   }
 
   const events = await readSSE('/api/resources/generate', { type, prompt, knowledge_file_ids: knowledgeFileIds })
+  const failed = events.find(evt => evt.type === 'error')
+  if (failed) {
+    const message = String(failed.payload?.message || failed.payload?.error || '生成失败')
+    throw new Error(message)
+  }
   let done: { type: string; payload: Record<string, unknown> } | undefined
   for (let i = events.length - 1; i >= 0; i--) {
     if (events[i].type === 'done') {
@@ -854,7 +876,7 @@ export async function deleteTutorMessage(messageId: string | number): Promise<vo
 export async function uploadTutorFiles(files: File[]): Promise<TutorFile[]> {
   const form = new FormData()
   files.forEach(file => form.append('files', file))
-  const res = await fetch(`${API_BASE}/api/tutor/files`, { method: 'POST', body: form })
+  const res = await fetch(`${API_BASE}/api/tutor/files`, { method: 'POST', headers: _authUploadHeaders(), body: form })
   const json = await res.json() as ApiResp<any[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
   return (json.data || []).map(toTutorFile)
@@ -1036,7 +1058,7 @@ export async function uploadKnowledgeFiles(files: File[], subjectId?: number): P
   const form = new FormData()
   files.forEach(file => form.append('files', file))
   const suffix = subjectId ? `?subject_id=${subjectId}` : ''
-  const res = await fetch(`${API_BASE}/api/knowledge/files${suffix}`, { method: 'POST', body: form })
+  const res = await fetch(`${API_BASE}/api/knowledge/files${suffix}`, { method: 'POST', headers: _authUploadHeaders(), body: form })
   const json = await res.json() as ApiResp<any[]>
   if (!res.ok || !json.success) throw new Error(json.error || `上传失败：${res.status}`)
   return (json.data || []).map(toKnowledgeFile)
@@ -1560,7 +1582,10 @@ export async function generateVideo(
   if (job.events_url) {
     try {
       const eventsUrl = `${API_BASE}${job.events_url}`
-      const res = await fetch(eventsUrl)
+      const res = await fetch(eventsUrl, { headers: _authUploadHeaders() })
+      if (!res.ok) {
+        throw new Error(`视频生成事件流连接失败 [GET ${job.events_url} -> ${res.status}]`)
+      }
       if (res.body) {
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
@@ -1581,7 +1606,9 @@ export async function generateVideo(
           }
         }
       }
-    } catch { /* SSE stream failed, video may still be generating */ }
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('视频生成事件流连接失败')
+    }
   }
 
   // Step 4: Fetch the final resource
@@ -1606,7 +1633,7 @@ export async function getVideoStyles(): Promise<Array<{ id: string; name: string
 // ─── Agent Pet API ─────────────────────────────────────────────────────────────
 
 import type {
-  AgentPet, AgentTask, AgentTaskList, AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload,
+  AgentPet, AgentTask, AgentTaskList, AdoptPetPayload, CreateAgentTaskPayload, BookmarkPayload, AgentChatResp,
 } from './types'
 
 export async function getAgentPet(): Promise<AgentPet | null> {
@@ -1620,7 +1647,7 @@ export async function adoptAgentPet(payload: AdoptPetPayload): Promise<AgentPet>
   })
 }
 
-export async function updateAgentPet(payload: { personality?: string; name?: string }): Promise<AgentPet> {
+export async function updateAgentPet(payload: { personality?: string; name?: string; avatar?: AgentPet['avatar'] }): Promise<AgentPet> {
   return fetchJson('/api/agent/pet', {
     method: 'PATCH',
     body: JSON.stringify(payload),
@@ -1631,6 +1658,13 @@ export async function createAgentTask(payload: CreateAgentTaskPayload): Promise<
   return fetchJson('/api/agent/task', {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+export async function chatWithAgentPet(message: string): Promise<AgentChatResp> {
+  return fetchJson('/api/agent/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
   })
 }
 

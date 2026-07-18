@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { LogOut, PanelLeftClose, Settings } from 'lucide-react'
 import { logout } from '@/lib/auth'
 import { PAGE_META } from '@/components/layout/navigation'
+import { useCurrentUserDisplay } from '@/hooks/useCurrentUserDisplay'
 
 interface TopbarProps {
   sidebarWidth: number
@@ -17,18 +18,7 @@ export function Topbar({ sidebarWidth, sidebarExpanded = true, onToggleSidebar }
   const pathname = usePathname()
   const meta = PAGE_META[pathname] || PAGE_META['/']
   const [userPanelOpen, setUserPanelOpen] = useState(false)
-  const [{ nameChar, avatarUrl }] = useState(() => {
-    if (typeof window === 'undefined') return { nameChar: '李', avatarUrl: '' }
-    try {
-      const raw = localStorage.getItem('sparklearn_user')
-      if (!raw) return { nameChar: '李', avatarUrl: '' }
-      const user = JSON.parse(raw) as { name?: string; avatar?: string }
-      const c = (user?.name || '').trim()
-      return { nameChar: c ? c[0] : '李', avatarUrl: user?.avatar || '' }
-    } catch {
-      return { nameChar: '李', avatarUrl: '' }
-    }
-  })
+  const { nameChar, avatarUrl } = useCurrentUserDisplay()
 
   return (
     <header

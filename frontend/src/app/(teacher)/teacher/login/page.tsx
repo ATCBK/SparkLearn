@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GraduationCap, Lock, User } from 'lucide-react'
+import { Eye, EyeOff, GraduationCap, Lock, User } from 'lucide-react'
 
 export default function TeacherLoginPage() {
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -18,12 +19,12 @@ export default function TeacherLoginPage() {
     await new Promise(r => setTimeout(r, 600))
 
     // 演示用：固定账号密码
-    if (username === 'teacher' && password === '123456') {
+    if (username === 'teacher' && password === 'SparkLearn1') {
       localStorage.setItem('teacher_token', 'demo_teacher_token')
       window.dispatchEvent(new Event('teacher-auth-changed'))
       router.push('/teacher/dashboard')
     } else {
-      setError('账号或密码错误，演示账号：teacher / 123456')
+      setError('账号或密码错误，账号：teacher / SparkLearn1')
     }
     setLoading(false)
   }
@@ -69,13 +70,21 @@ export default function TeacherLoginPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="请输入密码"
-                className="h-11 w-full rounded-[10px] border border-[#e5e7eb] bg-[#f9fafb] pl-10 pr-4 text-sm outline-none transition-colors focus:border-[#2563eb] focus:bg-white"
+                className="h-11 w-full rounded-[10px] border border-[#e5e7eb] bg-[#f9fafb] pl-10 pr-11 text-sm outline-none transition-colors focus:border-[#2563eb] focus:bg-white"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute right-3 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-[#9ca3af] transition-colors hover:bg-[#eef2ff] hover:text-[#2563eb]"
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
 
@@ -95,7 +104,7 @@ export default function TeacherLoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-[#9ca3af]">
-          演示账号：teacher &nbsp;/&nbsp; 密码：123456
+          账号：teacher &nbsp;/&nbsp; 密码：SparkLearn1
         </p>
       </div>
     </div>

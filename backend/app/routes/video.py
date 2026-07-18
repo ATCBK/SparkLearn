@@ -6,11 +6,12 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from ..config import settings
+from ..auth import get_current_user
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
 from ..video_ai import VideoAIScriptError
@@ -77,20 +78,20 @@ class VideoJobReq(BaseModel):
     output: dict[str, Any] = Field(default_factory=dict)
 
 
-def _jobs() -> list[dict[str, Any]]:
-    return read_json(settings.single_user_id, "video_jobs.json", [])
+def _jobs(user_id: str) -> list[dict[str, Any]]:
+    return read_json(user_id, "video_jobs.json", [])
 
 
-def _save_jobs(items: list[dict[str, Any]]) -> None:
-    write_json(settings.single_user_id, "video_jobs.json", items)
+def _save_jobs(user_id: str, items: list[dict[str, Any]]) -> None:
+    write_json(user_id, "video_jobs.json", items)
 
 
-def _resources() -> list[dict[str, Any]]:
-    return read_json(settings.single_user_id, "video_resources.json", [])
+def _resources(user_id: str) -> list[dict[str, Any]]:
+    return read_json(user_id, "video_resources.json", [])
 
 
-def _save_resources(items: list[dict[str, Any]]) -> None:
-    write_json(settings.single_user_id, "video_resources.json", items)
+def _save_resources(user_id: str, items: list[dict[str, Any]]) -> None:
+    write_json(user_id, "video_resources.json", items)
 
 
 def _api_url(path: str) -> str:
@@ -137,8 +138,8 @@ def _resource_payload(resource_id: str, manifest: dict[str, Any], status: str = 
     }
 
 
-def _find_resource(resource_id: str) -> dict[str, Any] | None:
-    return next((item for item in _resources() if str(item.get("id")) == resource_id), None)
+def _find_resource(user_id: str, resource_id: str) -> dict[str, Any] | None:
+    return next((item for item in _resources(user_id) if str(item.get("id")) == resource_id), None)
 
 
 def _video_artifact_path(resource_id: str) -> Path:
@@ -152,7 +153,8 @@ def _video_artifact_path(resource_id: str) -> Path:
 
 
 @router.post("/polish")
-async def polish_video_prompt(req: VideoPolishReq):
+async def polish_video_prompt(req: VideoPolishReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     voice = req.voice.strip() or settings.cosyvoice_default_voice
     result = make_polished_script(
         prompt=req.prompt,
@@ -162,12 +164,13 @@ async def polish_video_prompt(req: VideoPolishReq):
         voice=voice,
     )
     result["voice"] = voice
-    append_jsonl(settings.single_user_id, "video_events.jsonl", {"type": "video_polished", "polish_id": result["polish_id"], "style_id": req.style_id})
+    append_jsonl(user_id, "video_events.jsonl", {"type": "video_polished", "polish_id": result["polish_id"], "style_id": req.style_id})
     return ok(result)
 
 
 @router.post("/jobs")
-async def create_video_job(req: VideoJobReq):
+async def create_video_job(req: VideoJobReq, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
     resource_id = f"video_{uuid.uuid4().hex[:8]}"
     job_id = f"job_{uuid.uuid4().hex[:8]}"
     voice = _default_public_voice_config()
@@ -180,24 +183,26 @@ async def create_video_job(req: VideoJobReq):
         **req.model_dump(),
         "voice": voice,
     }
-    jobs = _jobs()
+    jobs = _jobs(user_id)
     jobs.append(job)
-    _save_jobs(jobs)
-    append_jsonl(settings.single_user_id, "video_events.jsonl", {"type": "video_job_created", "job_id": job_id, "resource_id": resource_id})
+    _save_jobs(user_id, jobs)
+    append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_created", "job_id": job_id, "resource_id": resource_id})
     return ok({"job_id": job_id, "resource_id": resource_id, "status": "queued", "events_url": f"/api/video/jobs/{job_id}/events"})
 
 
 @router.get("/jobs/{job_id}/events")
-async def video_job_events(job_id: str):
+async def video_job_events(job_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+
     async def gen():
-        jobs = _jobs()
+        jobs = _jobs(user_id)
         job = next((item for item in jobs if str(item.get("job_id")) == job_id), None)
         if not job:
             yield ("error", {"code": "VIDEO_JOB_NOT_FOUND", "message": "视频任务不存在", "retryable": False})
             return
 
         resource_id = str(job["resource_id"])
-        existing = _find_resource(resource_id)
+        existing = _find_resource(user_id, resource_id)
         if existing:
             yield ("progress", {"stage": "completed", "progress": 100, "resource_id": resource_id})
             yield ("done", {"resource_id": resource_id, "resource": existing})
@@ -220,17 +225,17 @@ async def video_job_events(job_id: str):
         try:
             manifest = await asyncio.to_thread(build_video_artifacts, resource_id, job)
             resource = _resource_payload(resource_id, manifest)
-            resources = [item for item in _resources() if str(item.get("id")) != resource_id]
+            resources = [item for item in _resources(user_id) if str(item.get("id")) != resource_id]
             resources.insert(0, resource)
-            _save_resources(resources)
+            _save_resources(user_id, resources)
 
             for item in jobs:
                 if str(item.get("job_id")) == job_id:
                     item["status"] = "completed"
                     item["progress"] = 100
                     item["completed_at"] = now_iso()
-            _save_jobs(jobs)
-            append_jsonl(settings.single_user_id, "video_events.jsonl", {"type": "video_job_completed", "job_id": job_id, "resource_id": resource_id})
+            _save_jobs(user_id, jobs)
+            append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_completed", "job_id": job_id, "resource_id": resource_id})
             yield ("artifact", {"kind": "timeline", "url": resource["timeline_url"], "resource_id": resource_id})
             yield ("progress", {"stage": "completed", "progress": 100, "message": "视频创作产物已生成", "resource_id": resource_id})
             yield ("done", {"resource_id": resource_id, "resource": resource})
@@ -243,13 +248,13 @@ async def video_job_events(job_id: str):
 
 
 @router.get("/resources")
-async def list_video_resources():
-    return ok(_resources())
+async def list_video_resources(current_user: dict = Depends(get_current_user)):
+    return ok(_resources(current_user["user_id"]))
 
 
 @router.get("/resources/{resource_id}")
-async def get_video_resource(resource_id: str):
-    item = _find_resource(resource_id)
+async def get_video_resource(resource_id: str, current_user: dict = Depends(get_current_user)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="video resource not found")
     timeline = _read_artifact_json(resource_id, "timeline.json", {})
@@ -257,30 +262,31 @@ async def get_video_resource(resource_id: str):
 
 
 @router.get("/resources/{resource_id}/timeline")
-async def get_video_timeline(resource_id: str):
-    item = _find_resource(resource_id)
+async def get_video_timeline(resource_id: str, current_user: dict = Depends(get_current_user)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="video resource not found")
     return ok(_read_artifact_json(resource_id, "timeline.json", {}))
 
 
 @router.delete("/resources/{resource_id}")
-async def delete_video_resource(resource_id: str):
-    resources = _resources()
+async def delete_video_resource(resource_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    resources = _resources(user_id)
     next_resources = [item for item in resources if str(item.get("id")) != resource_id]
     deleted = len(next_resources) != len(resources)
-    _save_resources(next_resources)
+    _save_resources(user_id, next_resources)
 
-    jobs = _jobs()
+    jobs = _jobs(user_id)
     next_jobs = [item for item in jobs if str(item.get("resource_id")) != resource_id]
-    _save_jobs(next_jobs)
+    _save_jobs(user_id, next_jobs)
 
     artifact_path = _video_artifact_path(resource_id)
     if artifact_path.exists():
         shutil.rmtree(artifact_path)
         deleted = True
 
-    append_jsonl(settings.single_user_id, "video_events.jsonl", {"type": "video_resource_deleted", "resource_id": resource_id, "deleted": deleted})
+    append_jsonl(user_id, "video_events.jsonl", {"type": "video_resource_deleted", "resource_id": resource_id, "deleted": deleted})
     return ok({"resource_id": resource_id, "deleted": deleted})
 
 
@@ -322,8 +328,8 @@ async def download_video_mp4(resource_id: str):
 
 
 @router.post("/resources/{resource_id}/share")
-async def share_video(resource_id: str):
-    item = _find_resource(resource_id)
+async def share_video(resource_id: str, current_user: dict = Depends(get_current_user)):
+    item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="video resource not found")
     return ok({"share_url": item.get("share_url") or f"/share/video/{resource_id}", "expires_in": 7 * 24 * 3600})

@@ -135,6 +135,16 @@ const MOCK_GRAPH_DATA: GraphData = {
   stats: computeStats(MOCK_NODES),
 }
 
+const EMPTY_GRAPH_DATA: GraphData = {
+  nodes: [],
+  edges: [],
+  stats: computeStats([]),
+}
+
+function graphMockEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_GRAPH_MOCK === 'true'
+}
+
 // ─── 工具函数 ──────────────────────────────────────────────────────────────
 
 function _authHeaders(): Record<string, string> {
@@ -222,14 +232,12 @@ export async function fetchGraphData(): Promise<GraphData> {
     const data = await fetchJson<RawGraphData>('/api/graph/data')
     const nodes = (data.nodes || []).map(normalizeNode)
     const edges = (data.edges || []).map(normalizeEdge)
-    // 如果后端返回空节点，回退到 mock 数据
     if (nodes.length === 0) {
-      return MOCK_GRAPH_DATA
+      return EMPTY_GRAPH_DATA
     }
     return { nodes, edges, stats: data.stats || computeStats(nodes) }
   } catch {
-    // 回退到 mock 数据
-    return MOCK_GRAPH_DATA
+    return graphMockEnabled() ? MOCK_GRAPH_DATA : EMPTY_GRAPH_DATA
   }
 }
 
@@ -244,8 +252,7 @@ export async function fetchNodeDetail(nodeId: string, graphData?: GraphData): Pr
       ai_suggestion: String(data.ai_suggestion || ''),
     }
   } catch {
-    // 回退：从已有图谱数据中推导
-    const graph = graphData || MOCK_GRAPH_DATA
+    const graph = graphData || (graphMockEnabled() ? MOCK_GRAPH_DATA : EMPTY_GRAPH_DATA)
     const node = graph.nodes.find((n) => n.id === nodeId)
     if (!node) throw new Error(`未找到节点：${nodeId}`)
     const { prerequisites, successors } = deriveRelations(graph, nodeId)
@@ -272,6 +279,6 @@ export async function generateGraph(subject: string = 'Python'): Promise<GraphDa
       stats: data.stats || computeStats(nodes),
     }
   } catch {
-    return MOCK_GRAPH_DATA
+    return graphMockEnabled() ? MOCK_GRAPH_DATA : EMPTY_GRAPH_DATA
   }
 }
