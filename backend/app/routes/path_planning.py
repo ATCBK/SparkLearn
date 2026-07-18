@@ -68,6 +68,7 @@ async def generate_path_planning(req: PathPlanningReq, current_user: dict = Depe
         mastery_stats=mastery_rows,
         user_id=user_id,
     )
+    suggestions = _normalize_path_suggestions(suggestions)
     resources = _normalize_path_resources(resources)
     
     # 保存路径规划到文件
@@ -204,6 +205,7 @@ async def generate_node_suggestions(req: NodeSuggestionsReq, current_user: dict 
         profile=profile,
         user_id=user_id,
     )
+    suggestions = _normalize_path_suggestions(suggestions)
     resources = _normalize_path_resources(resources)
 
     append_jsonl(
@@ -518,12 +520,54 @@ def _normalize_path_resources(resources: list[dict[str, Any]]) -> list[dict[str,
     normalized: list[dict[str, Any]] = []
     for item in resources:
         current = dict(item)
+        current['title'] = _repair_mojibake_text(str(current.get('title', '学习资源')))[:60] or '学习资源'
+        current['tag'] = _repair_mojibake_text(str(current.get('tag', '资源')))[:20] or '资源'
         current['link'] = _normalize_resource_link(
             current.get('link'),
             str(current.get('resource_id', '')),
         )
         normalized.append(current)
     return normalized
+
+
+def _normalize_path_suggestions(suggestions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for idx, item in enumerate(suggestions):
+        current = dict(item) if isinstance(item, dict) else {}
+        normalized.append({
+            'id': current.get('id') or idx + 1,
+            'text': _repair_mojibake_text(str(current.get('text', ''))),
+            'desc': _repair_mojibake_text(str(current.get('desc', ''))),
+        })
+    return normalized
+
+
+def _repair_mojibake_text(value: str) -> str:
+    """
+    修复历史数据中常见的“UTF-8 文本被 GBK 解码”乱码。
+    例如：鏌ョ湅鍏ㄩ儴璧勬簮 -> 查看全部资源。
+    """
+    text = (value or '').strip()
+    if not text:
+        return ''
+
+    mojibake_markers = set('鏌ョ湅鍏ㄩ儴璧勬簮绋嬫寚寤鸿鐨勮矾径鎺ㄨ妭鐐镌谭绐僚斟')
+    if not any(ch in mojibake_markers for ch in text):
+        return text
+
+    try:
+        repaired = text.encode('gbk').decode('utf-8').strip()
+    except UnicodeError:
+        return text
+
+    if _mojibake_score(repaired) < _mojibake_score(text):
+        return repaired
+    return text
+
+
+def _mojibake_score(value: str) -> int:
+    markers = '鏌ョ湅鍏ㄩ儴璧勬簮绋嬫寚寤鸿鐨勮矾径鎺ㄨ妭鐐緞镌谭绐僚斟'
+    return sum(value.count(ch) for ch in markers) + value.count('�') * 3
 
 
 def _normalize_saved_phases(phases: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -611,7 +655,7 @@ def _pick_resources_for_node(user_id: str, node_goal: str, count: int = 3) -> li
         tag = type_tag_map.get(str(res.get('type', '')), '资源')
         result.append({
             'id': idx + 1,
-            'title': str(res.get('title', '学习资源'))[:30],
+            'title': _repair_mojibake_text(str(res.get('title', '学习资源')))[:30],
             'tag': tag,
             'link': _normalize_resource_link(resource_id=res_id),
             'resource_id': res_id,

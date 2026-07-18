@@ -174,9 +174,9 @@ export default function PathPage() {
         console.error('Failed to get node suggestions:', error)
         if (seq !== requestSeqRef.current) return
         setGeneratedSuggestions([
-          { id: 1, text: `Learn ${node.title} first`, desc: 'Fallback suggestion generated from the current node.' },
-          { id: 2, text: `Practice ${node.title} directly`, desc: 'Fallback suggestion generated from the current node.' },
-          { id: 3, text: `Focus on the core idea of ${node.title}`, desc: 'Fallback suggestion generated from the current node.' },
+          { id: 1, text: `先学习${node.title}`, desc: '根据当前节点生成的兜底建议。' },
+          { id: 2, text: `直接练习${node.title}`, desc: '用练习检验当前理解。' },
+          { id: 3, text: `抓住${node.title}核心`, desc: '先理解关键概念，再继续推进。' },
         ])
       } finally {
         if (seq === requestSeqRef.current) setNodeLoading(false)
@@ -1094,7 +1094,7 @@ function SuggestionPanel({
                 href="/generate?view=library"
                 className="block w-full text-xs font-bold text-[#2563EB] hover:text-[#1d4ed8] transition-colors text-center"
               >
-                鏌ョ湅鍏ㄩ儴璧勬簮
+                查看全部资源
               </a>
             </div>
           </>
