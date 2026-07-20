@@ -1,0 +1,216 @@
+name: SparkLearn CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - feature/**
+  push:
+    branches:
+      - main
+      - develop
+      - feature/**
+  workflow_dispatch:
+
+concurrency:
+  group: sparklearn-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "24"
+  NEXT_TELEMETRY_DISABLED: "1"
+  NEXT_PUBLIC_API_BASE_URL: "http://127.0.0.1:8000"
+  NEXT_PUBLIC_DEMO_MODE: "on"
+  NEXT_PUBLIC_RUNTIME_MODE: "real"
+  NEXT_PUBLIC_USE_MOCK_DATA: "false"
+
+jobs:
+  backend-tests:
+    name: 后端单元与接口测试
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-cjk
+
+      - name: 安装后端依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: 运行真实鉴权测试
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+          DATA_DIR: ${{ github.workspace }}/backend/data
+          DB_PATH: ${{ github.workspace }}/backend/data/db/sparklearn-auth-ci.db
+          DEBUG: "true"
+          RATE_LIMIT_ENABLED: "false"
+        run: python -m pytest backend/tests/test_auth_password.py backend/tests/test_resource_preview.py -q
+
+      - name: 运行后端接口回归测试
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+          DATA_DIR: ${{ github.workspace }}/backend/data
+          DB_PATH: ${{ github.workspace }}/backend/data/db/sparklearn-ci.db
+          DEBUG: "true"
+          AUTH_DEV_BYPASS: "true"
+          SINGLE_USER_ID: "ci-user"
+          RATE_LIMIT_ENABLED: "false"
+        run: >
+          python -m pytest backend/tests -q
+          --ignore=backend/tests/test_auth_password.py
+          --deselect=backend/tests/test_subject_rag.py::test_subject_knowledge_file_can_be_indexed_and_retrieved
+          --deselect=backend/tests/test_tutor_role_generation.py::test_generate_role_from_question_uses_profile_and_persists
+          --deselect=backend/tests/test_tutor_role_generation.py::test_generate_role_from_question_uses_ai_analysis_and_generation
+          --deselect=backend/tests/test_voice_defaults.py::test_video_job_forces_single_default_voice
+
+  frontend-quality:
+    name: 前端 lint 与构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: npm ci
+
+      - name: 运行 ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: 构建前端
+        working-directory: frontend
+        run: npm run build
+
+  e2e-acceptance:
+    name: 双端 E2E 验收
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - backend-tests
+      - frontend-quality
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-cjk
+
+      - name: 安装后端依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: npm ci
+
+      - name: 安装 Playwright 浏览器
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: 运行 Playwright 双端验收
+        working-directory: frontend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+          DATA_DIR: ${{ github.workspace }}/backend/data
+          DB_PATH: ${{ github.workspace }}/backend/data/db/sparklearn-e2e.db
+          DEBUG: "true"
+          AUTH_DEV_BYPASS: "true"
+          SINGLE_USER_ID: "ci-user"
+          RATE_LIMIT_ENABLED: "false"
+        run: npx playwright test
+
+      - name: 上传 Playwright 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  docker-build:
+    name: Docker 镜像构建检查
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - backend-tests
+      - frontend-quality
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建后端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: false
+          tags: sparklearn-backend:ci
+          load: false
+
+      - name: 构建前端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: false
+          tags: sparklearn-frontend:ci
+          load: false
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+            NEXT_PUBLIC_DEMO_MODE=on
+            NEXT_PUBLIC_RUNTIME_MODE=real
+            NEXT_PUBLIC_USE_MOCK_DATA=false

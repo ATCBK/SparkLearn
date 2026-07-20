@@ -1,0 +1,103 @@
+name: SparkLearn CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "要部署的分支、tag 或 commit"
+        required: true
+        default: "main"
+      run_smoke_check:
+        description: "部署后是否执行健康检查"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+concurrency:
+  group: sparklearn-production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: 手动部署到生产服务器
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: 校验部署密钥配置
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_SSH_KEY"
+          test -n "$DEPLOY_PATH"
+
+      - name: 配置 SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/sparklearn_deploy_key
+          chmod 600 ~/.ssh/sparklearn_deploy_key
+          PORT="${DEPLOY_PORT:-22}"
+          ssh-keyscan -p "$PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: 上传部署环境变量
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          ENV_DEPLOY_FILE: ${{ secrets.ENV_DEPLOY_FILE }}
+        run: |
+          PORT="${DEPLOY_PORT:-22}"
+          if [ -z "$ENV_DEPLOY_FILE" ]; then
+            echo "ENV_DEPLOY_FILE 未配置，跳过 .env.deploy 上传。"
+            exit 0
+          fi
+          printf '%s\n' "$ENV_DEPLOY_FILE" | ssh -i ~/.ssh/sparklearn_deploy_key -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" "cat > '$DEPLOY_PATH/.env.deploy'"
+
+      - name: 远程拉取代码并启动服务
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_REF: ${{ inputs.ref }}
+        run: |
+          PORT="${DEPLOY_PORT:-22}"
+          ssh -i ~/.ssh/sparklearn_deploy_key -p "$PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
+            set -e
+            cd '$DEPLOY_PATH'
+            git fetch --all --tags --prune
+            git checkout '$DEPLOY_REF'
+            git pull --ff-only || true
+            docker compose -f docker-compose.deploy.yml build
+            docker compose -f docker-compose.deploy.yml up -d
+            docker compose -f docker-compose.deploy.yml ps
+          "
+
+      - name: 部署后健康检查
+        if: ${{ inputs.run_smoke_check == 'true' }}
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          curl --fail --retry 8 --retry-delay 5 "http://$DEPLOY_HOST/health"
