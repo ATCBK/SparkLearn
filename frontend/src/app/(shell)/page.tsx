@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Plus, Trash2, PieChart, ClipboardList, Flame, CheckCircle2, FileText, Brain, BookOpen, Sparkles, Clock, GitBranch, NotebookPen } from 'lucide-react'
 import { api, Recommendation, Resource, Task } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
+import { NewUserGuidePanel, type NewUserGuidePanelHandle } from '@/components/onboarding/NewUserGuidePanel'
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -12,6 +13,7 @@ export default function HomePage() {
   const [newTitle, setNewTitle] = useState('')
   const [busy, setBusy] = useState('')
   const [loading, setLoading] = useState(true)
+  const guidePanelRef = useRef<NewUserGuidePanelHandle>(null)
 
   async function load() {
     try {
@@ -123,9 +125,18 @@ export default function HomePage() {
           <div className="flex flex-wrap gap-2.5 pt-1">
             <ProtoButton href="/onboarding">完善学习画像</ProtoButton>
             <ProtoButton href={hasLearningData ? '/practice' : '/path'} variant="secondary">{hasLearningData ? '先做练习' : '查看学习路径'}</ProtoButton>
+            <button
+              type="button"
+              onClick={() => guidePanelRef.current?.open()}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[10px] border border-[#bfdbfe] bg-white px-4 py-2 text-small font-bold text-[#2563eb] shadow-sm transition-colors hover:bg-[#eff6ff]"
+            >
+              新手引导
+            </button>
           </div>
         </div>
       </ProtoCard>
+
+      <NewUserGuidePanel ref={guidePanelRef} />
 
       <div className="mt-5 grid grid-cols-4 overflow-hidden rounded-[12px] border border-line bg-white shadow-md max-[760px]:grid-cols-2">
         {[
