@@ -1,5 +1,7 @@
 import json
 import re
+import threading
+import time
 from typing import Any
 
 import httpx
@@ -23,6 +25,25 @@ SLIDE_TYPES_FULL = [
 
 class VideoAIScriptError(RuntimeError):
     pass
+
+
+_video_ai_semaphore: threading.BoundedSemaphore | None = None
+_video_ai_semaphore_limit: int | None = None
+_TRANSIENT_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
+def _get_video_ai_semaphore() -> threading.BoundedSemaphore:
+    global _video_ai_semaphore, _video_ai_semaphore_limit
+    limit = max(1, int(getattr(settings, "video_ai_max_concurrency", 2) or 2))
+    if _video_ai_semaphore is None or _video_ai_semaphore_limit != limit:
+        _video_ai_semaphore = threading.BoundedSemaphore(limit)
+        _video_ai_semaphore_limit = limit
+    return _video_ai_semaphore
+
+
+def _video_ai_retry_delay(attempt: int) -> float:
+    base = max(0.0, float(getattr(settings, "video_ai_retry_backoff_sec", 1.0) or 0.0))
+    return base * (2 ** max(0, attempt - 1))
 
 
 def _resolve_video_ai_api_key() -> str:
@@ -392,12 +413,7 @@ def _call_openai_compatible(prompt: str, duration_sec: int, target_level: str, s
         ],
     }
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    with httpx.Client(timeout=settings.video_ai_timeout_sec) as client:
-        response = client.post(url, headers=headers, json=payload)
-        if response.status_code >= 400:
-            payload.pop("response_format", None)
-            response = client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
+    response = _post_video_ai_json_with_retry(url, headers, payload)
     data = response.json()
     content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
     return _loads_json_object(content)
@@ -419,10 +435,46 @@ def _call_agent_http(prompt: str, duration_sec: int, target_level: str, style: s
         "slide_types": expected_slide_types(duration_sec),
         "schema": _schema_contract(),
     }
-    with httpx.Client(timeout=settings.video_ai_timeout_sec) as client:
-        response = client.post(settings.video_ai_agent_url, headers=headers, json=payload)
-        response.raise_for_status()
+    response = _post_video_ai_json_with_retry(settings.video_ai_agent_url, headers, payload)
     return _loads_json_object(response.text)
+
+
+def _post_video_ai_json_with_retry(url: str, headers: dict[str, str], payload: dict[str, Any]) -> httpx.Response:
+    max_retries = max(1, int(getattr(settings, "video_ai_max_retries", 2) or 2))
+    semaphore = _get_video_ai_semaphore()
+    semaphore.acquire()
+    try:
+        last_error: Exception | None = None
+        with httpx.Client(timeout=settings.video_ai_timeout_sec) as client:
+            for attempt in range(1, max_retries + 1):
+                try:
+                    response = client.post(url, headers=headers, json=dict(payload))
+                    if response.status_code in _TRANSIENT_STATUS_CODES:
+                        last_error = httpx.HTTPStatusError(
+                            f"Video AI transient HTTP {response.status_code}",
+                            request=response.request,
+                            response=response,
+                        )
+                        if attempt < max_retries:
+                            time.sleep(_video_ai_retry_delay(attempt))
+                            continue
+                    elif response.status_code >= 400 and "response_format" in payload:
+                        fallback_payload = dict(payload)
+                        fallback_payload.pop("response_format", None)
+                        response = client.post(url, headers=headers, json=fallback_payload)
+                    response.raise_for_status()
+                    return response
+                except (httpx.TimeoutException, httpx.ConnectError) as ex:
+                    last_error = ex
+                    if attempt < max_retries:
+                        time.sleep(_video_ai_retry_delay(attempt))
+                        continue
+                    raise VideoAIScriptError(f"视频 AI 调用失败：{ex}") from ex
+        if last_error is not None:
+            raise VideoAIScriptError(f"视频 AI 调用失败：{last_error}") from last_error
+        raise VideoAIScriptError("视频 AI 调用失败：未知错误")
+    finally:
+        semaphore.release()
 
 
 def _script_prompt(prompt: str, duration_sec: int, target_level: str, style: str) -> str:

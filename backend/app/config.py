@@ -112,6 +112,9 @@ class Settings(BaseSettings):
     video_ai_agent_url: str = ""
     video_ai_agent_token: str = ""
     video_ai_timeout_sec: int = 45
+    video_ai_max_concurrency: int = 2
+    video_ai_max_retries: int = 2
+    video_ai_retry_backoff_sec: float = 1.0
     video_ai_max_tokens: int = 4096
     video_ai_temperature: float = 0.7
     video_ai_fallback_enabled: bool = True
