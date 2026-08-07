@@ -83,9 +83,8 @@ class CosyVoiceTTSClient:
             import dashscope
             from dashscope.audio.tts_v2 import SpeechSynthesizer
         except ImportError:
-            return False, None, "dashscope 库未安装，请执行: pip install dashscope"
-        finally:
             self._semaphore.release()
+            return False, None, "dashscope 库未安装，请执行: pip install dashscope"
 
         vcn = voice or settings.cosyvoice_default_voice
         sr = speech_rate if speech_rate > 0 else settings.cosyvoice_speech_rate
@@ -124,6 +123,8 @@ class CosyVoiceTTSClient:
             elapsed = time.monotonic() - start
             logger.error("[%s] CosyVoice 调用异常 (%.2fs): %s", self.service_name, elapsed, ex)
             return False, None, f"CosyVoice 调用失败：{ex}"
+        finally:
+            self._semaphore.release()
 
 
 cosyvoice_tts_client = CosyVoiceTTSClient()
