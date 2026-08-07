@@ -213,6 +213,18 @@ export default function OnboardingPage() {
     [subjectOptions],
   )
 
+  function resetOnboardingFlow() {
+    finishingRef.current = false
+    const pendingSubject = localStorage.getItem('sparklearn_pending_subject')
+    const majorIndex = steps.findIndex(item => item.key === 'major')
+    setMessages([])
+    setSelections(pendingSubject && majorIndex >= 0 ? { [majorIndex]: [pendingSubject] } : {})
+    setStep(0)
+    setShowOptions(false)
+    setIsTyping(false)
+    window.setTimeout(() => startStep(0), 50)
+  }
+
   // 初始化第一步的消息
   useEffect(() => {
     if (typeof window !== 'undefined' && !localStorage.getItem('sparklearn_token')) {
@@ -220,17 +232,26 @@ export default function OnboardingPage() {
       return
     }
 
-    // 清空之前的状态，防止重复进入时消息重复
-    const pendingSubject = localStorage.getItem('sparklearn_pending_subject')
-    setMessages([])
-    setSelections(pendingSubject ? { 0: [pendingSubject] } : {})
-    setStep(0)
-    setShowOptions(false)
-    setIsTyping(false)
-
-    // 延迟启动第一步，确保状态已清空
-    const timer = setTimeout(() => startStep(0), 50)
-    return () => clearTimeout(timer)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const profile = await api.getProfile()
+        if (!cancelled && hasMeaningfulProfile(profile) && localStorage.getItem('sparklearn_profile_needs_recapture') !== 'true') {
+          setExistingProfile(profile)
+          setProfileChecking(false)
+          return
+        }
+      } catch {
+        // 没有画像时进入正常采集流程。
+      }
+      if (!cancelled) {
+        setProfileChecking(false)
+        resetOnboardingFlow()
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -244,7 +265,8 @@ export default function OnboardingPage() {
           setSubjectOptions(names)
           const pendingSubject = localStorage.getItem('sparklearn_pending_subject')
           if (pendingSubject && names.includes(pendingSubject)) {
-            setSelections((prev) => ({ ...prev, 0: [pendingSubject] }))
+            const majorIndex = steps.findIndex(item => item.key === 'major')
+            if (majorIndex >= 0) setSelections((prev) => ({ ...prev, [majorIndex]: [pendingSubject] }))
           }
         }
       } catch {
@@ -384,13 +406,18 @@ export default function OnboardingPage() {
 
   async function submitOnboarding() {
     try {
+      const byKey = (key: string) => selections[steps.findIndex(item => item.key === key)] || []
+      const name = byKey('name')[0] || ''
+      const grade = byKey('grade')[0] || ''
       const body = {
-        major: selections[0] || [],
-        goal: selections[1] || [],
-        level: selections[2] || [],
-        weak: selections[3] || [],
-        preference: selections[4] || [],
-        time: selections[5] || [],
+        name,
+        grade,
+        major: byKey('major'),
+        goal: byKey('goal'),
+        level: byKey('level'),
+        weak: byKey('weak'),
+        preference: byKey('preference'),
+        time: byKey('time'),
       }
       await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/profile/onboarding`,
@@ -403,6 +430,13 @@ export default function OnboardingPage() {
           body: JSON.stringify(body),
         }
       )
+      if (name) {
+        const currentUser = getUser()
+        if (currentUser) {
+          setUser({ ...currentUser, name })
+          window.dispatchEvent(new Event('sparklearn:user-updated'))
+        }
+      }
       await syncStudyBuddyProfile('onboarding')
     } catch {
       // 即使提交失败也跳转
@@ -426,6 +460,48 @@ export default function OnboardingPage() {
 
   const selected = selections[step] || []
   const current = steps[step]
+
+  if (profileChecking) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#f8fafc] px-4">
+        <div className="rounded-2xl border border-[#e2e8f0] bg-white px-6 py-5 text-sm font-semibold text-[#475569] shadow-sm">
+          正在检查你的学习画像...
+        </div>
+      </div>
+    )
+  }
+
+  if (existingProfile && !forceRecapture) {
+    return (
+      <>
+        <div className="grid min-h-screen place-items-center bg-[#f8fafc] px-4">
+          <section className="w-full max-w-[520px] rounded-2xl border border-[#e2e8f0] bg-white p-6 shadow-sm">
+            <div className="inline-flex rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-bold text-[#2563eb]">已完成学习画像</div>
+            <h1 className="mt-4 text-2xl font-black text-[#111827]">{existingProfile.name || '同学'}，你的画像已经建立</h1>
+            <p className="mt-3 text-sm leading-7 text-[#52627b]">
+              当前记录：{existingProfile.grade || '未填写年级'} · {existingProfile.major || '未选择方向'}。新手引导不会再要求你重复建档。
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button type="button" onClick={() => router.push('/')} className="rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-bold text-white">返回工作台</button>
+              <button type="button" onClick={() => router.push('/profile')} className="rounded-xl border border-[#cbd5e1] px-4 py-2.5 text-sm font-bold text-[#475569]">查看个人中心</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setExistingProfile(null)
+                  setForceRecapture(true)
+                  resetOnboardingFlow()
+                }}
+                className="rounded-xl px-4 py-2.5 text-sm font-bold text-[#64748b] hover:bg-[#f1f5f9]"
+              >
+                重新采集
+              </button>
+            </div>
+          </section>
+        </div>
+        <NewUserGuidePanel />
+      </>
+    )
+  }
 
   return (
     <>
@@ -646,6 +722,19 @@ export default function OnboardingPage() {
     <NewUserGuidePanel />
     </>
   )
+}
+
+function hasMeaningfulProfile(profile: StudentProfile | null) {
+  if (!profile) return false
+  const hasIdentity = Boolean(profile.name?.trim() && profile.grade?.trim())
+  const hasLearningData = Boolean(
+    profile.major?.trim() ||
+    profile.goals?.some(item => item.trim()) ||
+    profile.knowledgeLevel?.trim() ||
+    profile.weakPoints?.some(item => item.trim()) ||
+    profile.learningPreference?.some(item => item.trim()),
+  )
+  return hasIdentity && hasLearningData
 }
 
 /* ── 精灵头像组件 ─── */
