@@ -611,11 +611,11 @@ export default function OnboardingPage() {
 
               {/* 标签选项 */}
               {current.tags && (
-                <div className={step === 0 ? 'grid grid-cols-5 gap-3 max-[720px]:grid-cols-3 max-[520px]:grid-cols-2' : 'flex flex-wrap gap-2'}>
+                <div className={current.key === 'major' ? 'grid grid-cols-5 gap-3 max-[720px]:grid-cols-3 max-[520px]:grid-cols-2' : 'flex flex-wrap gap-2'}>
                   {current.tags.map((tag) => {
                     const isActive = selected.includes(tag)
                     const tone = subjectTone(tag, current.tags?.indexOf(tag) ?? 0)
-                    if (step === 0) {
+                    if (current.key === 'major') {
                       return (
                         <button
                           key={tag}
@@ -672,7 +672,7 @@ export default function OnboardingPage() {
                   handleSendMessage()
                 }
               }}
-              placeholder="你可以直接输入你的想法..."
+              placeholder={current.key === 'name' ? '输入你的名字，例如：林同学' : '你可以直接输入你的想法...'}
               className="h-11 w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] pl-4 pr-12 text-sm outline-none transition-colors placeholder:text-[#94a3b8] focus:border-[#2563eb] focus:bg-white focus:ring-2 focus:ring-blue-100"
             />
             <button
