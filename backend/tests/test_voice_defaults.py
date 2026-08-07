@@ -1,5 +1,6 @@
 import sys
 import threading
+import time
 import types
 
 import pytest
@@ -153,3 +154,50 @@ def test_cosyvoice_semaphore_covers_synthesis_call(monkeypatch):
 
     assert second == (False, None, "CosyVoice 并发超限，请稍后重试")
     assert first_result["value"] == (True, b"first-audio", "ok")
+
+
+@pytest.mark.asyncio
+async def test_video_job_events_builds_same_job_once_for_concurrent_listeners(client, monkeypatch):
+    import asyncio
+
+    from app.auth import create_access_token
+    from app.config import settings
+    from app.routes import video as video_route
+
+    calls: list[str] = []
+
+    def fake_build_video_artifacts(resource_id: str, job: dict[str, object]) -> dict[str, object]:
+        calls.append(resource_id)
+        time.sleep(0.05)
+        return {
+            "title": job.get("title") or "并发讲解视频",
+            "duration_ms": 90000,
+            "created_at": "2026-08-08T00:00:00",
+            "resolution": "1920x1080",
+            "fps": 30,
+            "provider": "html_ppt",
+            "tts_provider": "local_fallback",
+            "voice": {"provider": "cosyvoice", "voice": "longxiaochun"},
+            "has_mp4": False,
+            "slides": 3,
+        }
+
+    monkeypatch.setattr(video_route, "build_video_artifacts", fake_build_video_artifacts)
+    headers = {"Authorization": f"Bearer {create_access_token(settings.single_user_id)}"}
+    created = await client.post(
+        "/api/video/jobs",
+        headers=headers,
+        json={"prompt": "讲解并发控制", "title": "并发控制"},
+    )
+    job_id = created.json()["data"]["job_id"]
+
+    first, second = await asyncio.gather(
+        client.get(f"/api/video/jobs/{job_id}/events", headers=headers),
+        client.get(f"/api/video/jobs/{job_id}/events", headers=headers),
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert '"type": "done"' in first.text
+    assert '"type": "done"' in second.text
+    assert calls == [created.json()["data"]["resource_id"]]

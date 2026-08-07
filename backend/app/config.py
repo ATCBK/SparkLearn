@@ -116,6 +116,7 @@ class Settings(BaseSettings):
     video_ai_temperature: float = 0.7
     video_ai_fallback_enabled: bool = True
     video_ai_embedding_model: str = ""
+    video_generation_max_concurrency: int = 1
 
     # 视频风格配置
     video_styles: dict = {

@@ -21,6 +21,23 @@ from .common import sse_wrap
 
 router = APIRouter(prefix="/api/video", tags=["video"])
 
+_video_job_tasks: dict[str, asyncio.Task[dict[str, Any]]] = {}
+_video_generation_semaphore: asyncio.Semaphore | None = None
+_video_generation_semaphore_limit: int | None = None
+
+
+def _video_job_task_key(user_id: str, job_id: str) -> str:
+    return f"{user_id}:{job_id}"
+
+
+def _get_video_generation_semaphore() -> asyncio.Semaphore:
+    global _video_generation_semaphore, _video_generation_semaphore_limit
+    limit = max(1, int(getattr(settings, "video_generation_max_concurrency", 1) or 1))
+    if _video_generation_semaphore is None or _video_generation_semaphore_limit != limit:
+        _video_generation_semaphore = asyncio.Semaphore(limit)
+        _video_generation_semaphore_limit = limit
+    return _video_generation_semaphore
+
 
 def _default_public_voice_config() -> dict[str, Any]:
     return {
@@ -142,6 +159,52 @@ def _find_resource(user_id: str, resource_id: str) -> dict[str, Any] | None:
     return next((item for item in _resources(user_id) if str(item.get("id")) == resource_id), None)
 
 
+def _update_job(user_id: str, job_id: str, **updates: Any) -> None:
+    jobs = _jobs(user_id)
+    for item in jobs:
+        if str(item.get("job_id")) == job_id:
+            item.update(updates)
+            break
+    _save_jobs(user_id, jobs)
+
+
+async def _run_video_job_once(user_id: str, job_id: str, job: dict[str, Any]) -> dict[str, Any]:
+    resource_id = str(job["resource_id"])
+    existing = _find_resource(user_id, resource_id)
+    if existing:
+        return existing
+
+    _update_job(user_id, job_id, status="running", progress=18, started_at=now_iso())
+    async with _get_video_generation_semaphore():
+        existing = _find_resource(user_id, resource_id)
+        if existing:
+            return existing
+
+        manifest = await asyncio.to_thread(build_video_artifacts, resource_id, job)
+        resource = _resource_payload(resource_id, manifest)
+        resources = [item for item in _resources(user_id) if str(item.get("id")) != resource_id]
+        resources.insert(0, resource)
+        _save_resources(user_id, resources)
+        _update_job(user_id, job_id, status="completed", progress=100, completed_at=now_iso())
+        append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_completed", "job_id": job_id, "resource_id": resource_id})
+        return resource
+
+
+def _ensure_video_job_task(user_id: str, job_id: str, job: dict[str, Any]) -> asyncio.Task[dict[str, Any]]:
+    key = _video_job_task_key(user_id, job_id)
+    task = _video_job_tasks.get(key)
+    if task is None or task.cancelled() or (task.done() and task.exception() is not None):
+        task = asyncio.create_task(_run_video_job_once(user_id, job_id, dict(job)))
+        _video_job_tasks[key] = task
+
+        def cleanup(done_task: asyncio.Task[dict[str, Any]]) -> None:
+            if not done_task.cancelled() and done_task.exception() is None:
+                _video_job_tasks.pop(key, None)
+
+        task.add_done_callback(cleanup)
+    return task
+
+
 def _video_artifact_path(resource_id: str) -> Path:
     if not re.fullmatch(r"[A-Za-z0-9_-]+", resource_id):
         raise HTTPException(status_code=400, detail="invalid resource id")
@@ -223,25 +286,15 @@ async def video_job_events(job_id: str, current_user: dict = Depends(get_current
             await asyncio.sleep(0.25)
 
         try:
-            manifest = await asyncio.to_thread(build_video_artifacts, resource_id, job)
-            resource = _resource_payload(resource_id, manifest)
-            resources = [item for item in _resources(user_id) if str(item.get("id")) != resource_id]
-            resources.insert(0, resource)
-            _save_resources(user_id, resources)
-
-            for item in jobs:
-                if str(item.get("job_id")) == job_id:
-                    item["status"] = "completed"
-                    item["progress"] = 100
-                    item["completed_at"] = now_iso()
-            _save_jobs(user_id, jobs)
-            append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_completed", "job_id": job_id, "resource_id": resource_id})
+            resource = await asyncio.shield(_ensure_video_job_task(user_id, job_id, job))
             yield ("artifact", {"kind": "timeline", "url": resource["timeline_url"], "resource_id": resource_id})
             yield ("progress", {"stage": "completed", "progress": 100, "message": "视频创作产物已生成", "resource_id": resource_id})
             yield ("done", {"resource_id": resource_id, "resource": resource})
         except VideoAIScriptError as ex:
+            _update_job(user_id, job_id, status="failed", progress=0, failed_at=now_iso(), error=str(ex))
             yield ("error", {"code": "VIDEO_SCRIPT_ERROR", "message": str(ex), "retryable": False})
         except Exception as ex:
+            _update_job(user_id, job_id, status="failed", progress=0, failed_at=now_iso(), error=str(ex))
             yield ("error", {"code": "VIDEO_GENERATION_FAILED", "message": f"视频生成失败：{ex}", "retryable": True})
 
     return StreamingResponse(sse_wrap(gen()), media_type="text/event-stream")
