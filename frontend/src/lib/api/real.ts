@@ -8,8 +8,9 @@ import type {
   ProfileHistoryResp, ProfileAnalysisResp,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
+  AdminAuditList, AdminDashboard, AdminSettingsResp, AdminUser, AdminUserList,
 } from './types'
-import { getToken } from '../auth'
+import { getAdminToken, getToken } from '../auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
@@ -88,6 +89,13 @@ function _authHeaders(): Record<string, string> {
 function _authUploadHeaders(): Record<string, string> {
   const token = getToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+function _adminAuthHeaders(): Record<string, string> {
+  const token = getAdminToken()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -234,6 +242,26 @@ export async function smsLogin(phone: string, code: string): Promise<{ token: st
     method: 'POST',
     body: JSON.stringify({ phone, code }),
   })
+}
+
+async function fetchAdminJson<T>(path: string, init?: RequestInit): Promise<T> {
+  try {
+    const method = (init?.method || 'GET').toUpperCase()
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: { ..._adminAuthHeaders(), ...(init?.headers || {}) },
+    })
+    const json = await res.json() as ApiResp<T>
+    if (!res.ok || !json.success) {
+      throw new Error(formatApiError(json, method, path, res.status))
+    }
+    return json.data
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`无法连接到服务器 (${API_BASE})。请确保后端服务已启动。`)
+    }
+    throw error
+  }
 }
 
 export async function passwordLogin(phone: string, password: string): Promise<{ token: string; user: { id?: string; user_id?: string; name: string; phone: string; is_demo?: boolean } }> {
@@ -1351,7 +1379,7 @@ export async function getAdminForumPosts(params?: {
   if (params?.page) query.set('page', String(params.page))
   if (params?.pageSize) query.set('page_size', String(params.pageSize))
   const suffix = query.toString() ? `?${query.toString()}` : ''
-  return fetchJson(`/api/forum/admin/posts${suffix}`)
+  return fetchAdminJson(`/api/forum/admin/posts${suffix}`)
 }
 
 export async function updateAdminForumPostStatus(
@@ -1359,9 +1387,78 @@ export async function updateAdminForumPostStatus(
   status: ForumPost['status'],
   reason: string = '',
 ): Promise<{ post: ForumPost; reason: string }> {
-  return fetchJson(`/api/forum/admin/posts/${postId}/status`, {
+  return fetchAdminJson(`/api/forum/admin/posts/${postId}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status, reason }),
+  })
+}
+
+export async function loginAdmin(username: string, password: string): Promise<{ token: string; admin: { user_id: string; name: string; admin_role: string } }> {
+  return fetchAdminJson('/api/admin/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  })
+}
+
+export async function getAdminMe(): Promise<{ user_id: string; name: string; admin_role: string }> {
+  return fetchAdminJson('/api/admin/me')
+}
+
+export async function getAdminDashboard(): Promise<AdminDashboard> {
+  return fetchAdminJson('/api/admin/dashboard')
+}
+
+export async function getAdminUsers(params?: { q?: string; role?: string }): Promise<AdminUserList> {
+  const query = new URLSearchParams()
+  if (params?.q) query.set('q', params.q)
+  if (params?.role) query.set('role', params.role)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return fetchAdminJson(`/api/admin/users${suffix}`)
+}
+
+export async function createAdminUser(payload: {
+  name: string
+  phone?: string
+  email?: string
+  major?: string
+  grade?: string
+  admin_role?: string
+  account_status?: 'active' | 'frozen'
+  permission_score?: number
+  password?: string
+}): Promise<AdminUser> {
+  return fetchAdminJson('/api/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateAdminUser(userId: string, payload: Partial<Pick<AdminUser, 'name' | 'admin_role' | 'account_status' | 'permission_score'>>): Promise<AdminUser> {
+  return fetchAdminJson(`/api/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function batchAuthorizeAdminUsers(payload: { user_ids: string[]; admin_role?: string; permission_score?: number }): Promise<{ updated: number }> {
+  return fetchAdminJson('/api/admin/users/batch-authorize', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function getAdminAudit(level: string = 'all'): Promise<AdminAuditList> {
+  return fetchAdminJson(`/api/admin/audit?level=${encodeURIComponent(level)}`)
+}
+
+export async function getAdminSettings(): Promise<AdminSettingsResp> {
+  return fetchAdminJson('/api/admin/settings')
+}
+
+export async function saveAdminSettings(settings: Record<string, string>): Promise<AdminSettingsResp> {
+  return fetchAdminJson('/api/admin/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ settings }),
   })
 }
 

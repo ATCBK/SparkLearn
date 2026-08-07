@@ -12,11 +12,18 @@ from .trust_schemas import EvidenceBundle, EvidenceItem, RoutedQuery, TrustAnswe
 
 async def retrieve_evidence(req: TrustAnswerRequest, routed: RoutedQuery) -> EvidenceBundle:
     bundle = EvidenceBundle()
+    owner_id = (req.user_id or settings.single_user_id).strip() or settings.single_user_id
     if routed.need_knowledge:
         knowledge_ids = [int(x) for x in (req.knowledge_file_ids or []) if int(x) > 0]
         if not knowledge_ids:
             return bundle
-        _ctx, sources = await retrieve_knowledge_context_async(knowledge_ids, query=req.query, max_chars=5000, top_k=8)
+        _ctx, sources = await retrieve_knowledge_context_async(
+            knowledge_ids,
+            query=req.query,
+            max_chars=5000,
+            top_k=8,
+            user_id=owner_id,
+        )
         for s in sources:
             file_name = str(s.get("filename") or "knowledge")
             idx = int(s.get("chunk_index") or 0) + 1
@@ -33,13 +40,13 @@ async def retrieve_evidence(req: TrustAnswerRequest, routed: RoutedQuery) -> Evi
             )
 
     if routed.need_profile and req.use_profile:
-        profile = read_json(settings.single_user_id, "profile_snapshot.json", {})
+        profile = read_json(owner_id, "profile_snapshot.json", {})
         if profile:
             bundle.profile.append(
                 EvidenceItem(
-                    id=f"profile:{settings.single_user_id}",
+                    id=f"profile:{owner_id}",
                     source_type="profile",
-                    source_id=settings.single_user_id,
+                    source_id=owner_id,
                     title="学习画像",
                     snippet=_profile_snippet(profile),
                     score=0.72,
@@ -78,7 +85,8 @@ async def retrieve_evidence(req: TrustAnswerRequest, routed: RoutedQuery) -> Evi
     return bundle
 
 
-def _list_indexed_knowledge_file_ids(limit: int = 20) -> list[int]:
+def _list_indexed_knowledge_file_ids(limit: int = 20, user_id: str | None = None) -> list[int]:
+    owner_id = (user_id or settings.single_user_id).strip() or settings.single_user_id
     rows = fetch_all(
         """
         SELECT id
@@ -87,7 +95,7 @@ def _list_indexed_knowledge_file_ids(limit: int = 20) -> list[int]:
         ORDER BY updated_at DESC
         LIMIT ?
         """,
-        (settings.single_user_id, max(1, limit)),
+        (owner_id, max(1, limit)),
     )
     return [int(r["id"]) for r in rows]
 

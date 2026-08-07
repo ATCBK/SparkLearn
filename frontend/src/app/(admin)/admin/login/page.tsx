@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, ShieldCheck, User } from 'lucide-react'
+import { api } from '@/lib/api'
+import { setAdminToken } from '@/lib/auth'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -16,15 +18,15 @@ export default function AdminLoginPage() {
     event.preventDefault()
     setError('')
     setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    if (username === 'admin' && password === 'SparkLearn1') {
-      localStorage.setItem('admin_token', 'demo_admin_token')
+    try {
+      const result = await api.loginAdmin(username.trim(), password)
+      setAdminToken(result.token)
       router.push('/admin/dashboard')
-    } else {
-      setError('账号或密码错误，请核对后重试')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '账号或密码错误，请核对后重试')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (

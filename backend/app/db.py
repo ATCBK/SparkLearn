@@ -445,6 +445,29 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_info_stream_bookmarks_user
             ON info_stream_bookmarks(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS admin_audit_logs (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              actor_id TEXT NOT NULL,
+              actor_name TEXT DEFAULT '',
+              action TEXT NOT NULL,
+              target_type TEXT DEFAULT '',
+              target_id TEXT DEFAULT '',
+              target_label TEXT DEFAULT '',
+              level TEXT NOT NULL DEFAULT 'info',
+              detail_json TEXT DEFAULT '{}',
+              created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_time
+            ON admin_audit_logs(created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS admin_settings (
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL,
+              updated_by TEXT DEFAULT '',
+              updated_at TEXT NOT NULL
+            );
             """
         )
 
@@ -516,6 +539,12 @@ def _ensure_student_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE students ADD COLUMN is_demo INTEGER DEFAULT 0")
     if 'auth_provider' not in columns:
         conn.execute("ALTER TABLE students ADD COLUMN auth_provider TEXT DEFAULT 'phone'")
+    if 'admin_role' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN admin_role TEXT DEFAULT ''")
+    if 'account_status' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN account_status TEXT DEFAULT 'active'")
+    if 'permission_score' not in columns:
+        conn.execute("ALTER TABLE students ADD COLUMN permission_score INTEGER DEFAULT 60")
 
 
 def _ensure_knowledge_columns(conn: sqlite3.Connection) -> None:

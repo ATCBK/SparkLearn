@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
+import { userScopedStorageKey } from '@/lib/auth'
 
 const SYSTEM_AGENTS = [
   { id: 'profile-agent', name: '画像分析师', desc: '分析学习者基础与薄弱点，给出个性化建议' },
@@ -50,6 +51,10 @@ type TutorQuestionAnalysis = {
 
 const EMPTY_DRAFT: RoleDraft = { name: '', persona: '', background: '', styleGuide: '', rules: '' }
 const PENDING_ROLE_ID_KEY = 'sparklearn_pending_tutor_role_id'
+
+function pendingRoleIdStorageKey() {
+  return userScopedStorageKey(PENDING_ROLE_ID_KEY)
+}
 
 export default function RolesPage() {
   const router = useRouter()
@@ -160,7 +165,7 @@ export default function RolesPage() {
       setIsNew(false)
       setQuickCreateOpen(false)
       setQuickCreateQuestion('')
-      localStorage.setItem(PENDING_ROLE_ID_KEY, String(created.id))
+      localStorage.setItem(pendingRoleIdStorageKey(), String(created.id))
       router.push('/tutor')
     } catch (error) {
       setQuickCreateError(error instanceof Error ? error.message : '生成失败，请重试')

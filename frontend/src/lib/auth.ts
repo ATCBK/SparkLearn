@@ -1,5 +1,6 @@
 const TOKEN_KEY = 'sparklearn_token'
 const USER_KEY = 'sparklearn_user'
+const ADMIN_TOKEN_KEY = 'admin_token'
 
 type DesktopAuthSession = {
   token: string
@@ -39,6 +40,21 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token)
 }
 
+export function getAdminToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(ADMIN_TOKEN_KEY)
+}
+
+export function setAdminToken(token: string): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(ADMIN_TOKEN_KEY, token)
+}
+
+export function removeAdminToken(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(ADMIN_TOKEN_KEY)
+}
+
 export function removeToken(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(TOKEN_KEY)
@@ -59,6 +75,16 @@ export function getUser(): AuthUser | null {
 export function setUser(user: AuthUser): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(USER_KEY, JSON.stringify(user))
+}
+
+export function getCurrentUserId(): string {
+  const user = getUser()
+  return String(user?.user_id || user?.phone || user?.email || 'anonymous')
+}
+
+export function userScopedStorageKey(baseKey: string, userId: string = getCurrentUserId()): string {
+  const normalized = String(userId || 'anonymous').trim() || 'anonymous'
+  return `${baseKey}:${normalized}`
 }
 
 export function getDesktopBridge(): SparklearnDesktopBridge | null {

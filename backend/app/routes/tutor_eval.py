@@ -118,6 +118,7 @@ def _should_use_a2ui_ui_only(req: TutorReq, mode: str) -> bool:
 def _build_agui_process_events(
     conversation_id: int,
     *,
+    user_id: str,
     profile: dict[str, Any] | None = None,
     include_a2ui_sync: bool = False,
     include_run_finished: bool = True,
@@ -157,7 +158,7 @@ def _build_agui_process_events(
             'runId': run_id,
             'stepId': 'profile',
             'toolCallId': f'{run_id}-profile',
-            'args': {'userId': settings.single_user_id, 'fields': ['stage', 'weak_points', 'preference', 'daily_time']},
+            'args': {'userId': user_id, 'fields': ['stage', 'weak_points', 'preference', 'daily_time']},
             'timestamp': now_iso(),
         },
         {
@@ -1534,6 +1535,7 @@ async def tutor_chat(req: TutorReq, current_user: dict = Depends(get_current_use
         should_emit_a2ui = a2ui_ui_only or _should_emit_a2ui_task_cards(req.message, effective_mode)
         agui_events = _build_agui_process_events(
             conversation_id,
+            user_id=user_id,
             profile=profile_for_process,
             include_run_finished=False,
         ) if effective_mode == 'knowledge_qa' else []
@@ -1901,19 +1903,20 @@ async def tutor_chat(req: TutorReq, current_user: dict = Depends(get_current_use
                         yield ('text', {'content': answer})
             else:
                 trust_plan = await trust_answer_controller.plan(
-                TrustAnswerRequest(
-                    scene='tutor',
-                    query=req.message,
-                    mode=effective_mode,
-                    role_prompt=role_prompt,
-                    page_prompt=page_prompt,
-                    memory_prompt=memory_prompt,
-                    mcp_prompt=mcp_context,
-                    conversation_id=conversation_id,
-                    file_ids=effective_file_ids,
-                    knowledge_file_ids=_resolve_subject_knowledge_file_ids_for_tutor(user_id, req.knowledge_file_ids or []),
-                    user_file_sources=file_sources,
-                    web_search_results=search_results,
+                    TrustAnswerRequest(
+                        scene='tutor',
+                        query=req.message,
+                        user_id=user_id,
+                        mode=effective_mode,
+                        role_prompt=role_prompt,
+                        page_prompt=page_prompt,
+                        memory_prompt=memory_prompt,
+                        mcp_prompt=mcp_context,
+                        conversation_id=conversation_id,
+                        file_ids=effective_file_ids,
+                        knowledge_file_ids=_resolve_subject_knowledge_file_ids_for_tutor(user_id, req.knowledge_file_ids or []),
+                        user_file_sources=file_sources,
+                        web_search_results=search_results,
                         use_profile=True,
                     )
                 )

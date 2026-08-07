@@ -17,6 +17,8 @@ import {
   SlidersHorizontal,
   UsersRound,
 } from 'lucide-react'
+import { api } from '@/lib/api'
+import { getAdminToken, removeAdminToken } from '@/lib/auth'
 
 const NAV = [
   { label: '平台总览', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -30,11 +32,12 @@ type AdminAuthState = {
   mounted: boolean
   hasToken: boolean
   authResolved: boolean
+  adminName: string
 }
 
 type AdminAuthAction =
   | { type: 'mounted' }
-  | { type: 'sync-auth'; hasToken: boolean }
+  | { type: 'sync-auth'; hasToken: boolean; adminName?: string }
   | { type: 'logout' }
 
 function adminAuthReducer(state: AdminAuthState, action: AdminAuthAction): AdminAuthState {
@@ -42,9 +45,9 @@ function adminAuthReducer(state: AdminAuthState, action: AdminAuthAction): Admin
     case 'mounted':
       return state.mounted ? state : { ...state, mounted: true }
     case 'sync-auth':
-      return { ...state, hasToken: action.hasToken, authResolved: true }
+      return { ...state, hasToken: action.hasToken, authResolved: true, adminName: action.adminName || '' }
     case 'logout':
-      return { mounted: state.mounted, hasToken: false, authResolved: true }
+      return { mounted: state.mounted, hasToken: false, authResolved: true, adminName: '' }
     default:
       return state
   }
@@ -57,6 +60,7 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
     mounted: false,
     hasToken: false,
     authResolved: false,
+    adminName: '',
   })
 
   useEffect(() => {
@@ -66,8 +70,23 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
   useEffect(() => {
     if (!authState.mounted) return
 
-    const token = !!window.localStorage.getItem('admin_token')
-    dispatch({ type: 'sync-auth', hasToken: token })
+    const token = getAdminToken()
+    if (!token) {
+      dispatch({ type: 'sync-auth', hasToken: false })
+      return
+    }
+    let cancelled = false
+    api.getAdminMe()
+      .then((admin) => {
+        if (!cancelled) dispatch({ type: 'sync-auth', hasToken: true, adminName: admin.name })
+      })
+      .catch(() => {
+        removeAdminToken()
+        if (!cancelled) dispatch({ type: 'sync-auth', hasToken: false })
+      })
+    return () => {
+      cancelled = true
+    }
   }, [authState.mounted, pathname])
 
   useEffect(() => {
@@ -83,7 +102,7 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
   if (!authState.hasToken) return null
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token')
+    removeAdminToken()
     dispatch({ type: 'logout' })
     router.push('/admin/login')
   }
@@ -174,7 +193,7 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
               <MonitorCog className="h-4 w-4" />
             </Link>
             <div className="ml-1 grid h-8 w-8 place-items-center rounded-full bg-[#eaf2ff] text-xs font-bold text-[#2563eb]">A</div>
-            <span className="hidden text-sm font-semibold text-ink min-[520px]:inline">管理员</span>
+            <span className="hidden text-sm font-semibold text-ink min-[520px]:inline">{authState.adminName || '管理员'}</span>
           </div>
         </header>
         <div className="min-h-[calc(100vh-56px)] px-4 py-5 min-[900px]:px-8 min-[900px]:py-7">

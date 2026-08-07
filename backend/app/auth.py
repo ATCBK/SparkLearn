@@ -206,7 +206,15 @@ def _user_payload(row, phone: str | None = None) -> dict:
         "name": row["name"],
         "phone": phone if phone is not None else row["phone"],
         "is_demo": is_demo,
+        "admin_role": row["admin_role"] if row and "admin_role" in row.keys() else "",
+        "account_status": row["account_status"] if row and "account_status" in row.keys() else "active",
     }
+
+
+def _ensure_account_active(row) -> None:
+    status_value = row["account_status"] if row and "account_status" in row.keys() else "active"
+    if status_value == "frozen":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="账号已被冻结，请联系管理员")
 
 
 def create_access_token(user_id: str, expires_delta: timedelta | None = None) -> str:
@@ -264,12 +272,13 @@ async def get_current_user(
         )
 
     # 验证用户是否存在
-    user = fetch_one("SELECT user_id, name, phone, avatar, is_demo FROM students WHERE user_id = ?", (user_id,))
+    user = fetch_one("SELECT user_id, name, phone, avatar, is_demo, admin_role, account_status FROM students WHERE user_id = ?", (user_id,))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户不存在",
         )
+    _ensure_account_active(user)
 
     return _user_payload(user)
 
@@ -303,9 +312,10 @@ async def get_optional_user(
     if not user_id:
         return None
 
-    user = fetch_one("SELECT user_id, name, phone, is_demo FROM students WHERE user_id = ?", (user_id,))
+    user = fetch_one("SELECT user_id, name, phone, is_demo, admin_role, account_status FROM students WHERE user_id = ?", (user_id,))
     if not user:
         return None
+    _ensure_account_active(user)
 
     return _user_payload(user)
 
@@ -416,9 +426,10 @@ async def sms_login(req: SmsLoginReq):
     execute("UPDATE sms_codes SET used = ? WHERE id = ?", (True, record["id"]))
 
     # 查找用户（不再自动创建）
-    user = fetch_one("SELECT user_id, name, phone, is_demo FROM students WHERE phone = ?", (req.phone,))
+    user = fetch_one("SELECT user_id, name, phone, is_demo, admin_role, account_status FROM students WHERE phone = ?", (req.phone,))
     if not user:
         raise HTTPException(status_code=404, detail="该手机号未注册，请先注册")
+    _ensure_account_active(user)
 
     # 更新最后登录时间
     execute("UPDATE students SET last_login_at = ? WHERE user_id = ?", (now_iso(), user["user_id"]))
@@ -436,11 +447,12 @@ async def sms_login(req: SmsLoginReq):
 async def password_login(req: PasswordLoginReq):
     """手机号 + 密码登录"""
     user = fetch_one(
-        "SELECT user_id, name, phone, password_hash, is_demo FROM students WHERE phone = ?",
+        "SELECT user_id, name, phone, password_hash, is_demo, admin_role, account_status FROM students WHERE phone = ?",
         (req.phone,),
     )
     if not user or not verify_password(req.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="手机号或密码错误")
+    _ensure_account_active(user)
 
     execute("UPDATE students SET last_login_at = ? WHERE user_id = ?", (now_iso(), user["user_id"]))
     token = create_access_token(user["user_id"])

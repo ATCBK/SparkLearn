@@ -1,5 +1,7 @@
 'use client'
 
+import { userScopedStorageKey } from './auth'
+
 export type NoteSourceType = 'resource' | 'task' | 'question' | 'course' | 'space' | 'knowledge' | 'practice' | 'manual'
 
 export interface NoteSource {
@@ -28,6 +30,10 @@ export interface MatchedLearningNote {
 
 export const LEARNING_NOTES_STORAGE_KEY = 'sparklearn_learning_notes'
 
+export function learningNotesStorageKey(userId?: string): string {
+  return userScopedStorageKey(LEARNING_NOTES_STORAGE_KEY, userId)
+}
+
 export const noteSourceTypeLabel: Record<NoteSourceType, string> = {
   resource: '资源',
   task: '任务',
@@ -42,7 +48,7 @@ export const noteSourceTypeLabel: Record<NoteSourceType, string> = {
 export function readLearningNotes(): LearningNote[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = window.localStorage.getItem(LEARNING_NOTES_STORAGE_KEY)
+    const raw = window.localStorage.getItem(learningNotesStorageKey())
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -57,7 +63,7 @@ export function readLearningNotes(): LearningNote[] {
 }
 
 export function writeLearningNotes(notes: LearningNote[]) {
-  window.localStorage.setItem(LEARNING_NOTES_STORAGE_KEY, JSON.stringify(notes))
+  window.localStorage.setItem(learningNotesStorageKey(), JSON.stringify(notes))
   window.dispatchEvent(new CustomEvent('learning-notes-updated', { detail: { count: notes.length } }))
 }
 

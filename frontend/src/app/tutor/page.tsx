@@ -38,8 +38,8 @@ import {
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { getToken } from '@/lib/auth'
-import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, SKILL_STORAGE_KEY, type LearningSkill } from '@/lib/skills'
+import { getToken, userScopedStorageKey } from '@/lib/auth'
+import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, selectedSkillStorageKey, type LearningSkill } from '@/lib/skills'
 import { matchPersonalizedNotes, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
 import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
 import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
@@ -63,6 +63,10 @@ const EMPTY_ROLE_DRAFT: RoleDraft = {
 }
 const PENDING_ROLE_ID_KEY = 'sparklearn_pending_tutor_role_id'
 const A2UI_AUTH_GUARDED_HREFS = ['/knowledge', '/practice', '/video', '/generate', '/path', '/report']
+
+function pendingRoleIdStorageKey() {
+  return userScopedStorageKey(PENDING_ROLE_ID_KEY)
+}
 
 type RoleModalMode = 'create' | 'edit'
 
@@ -833,7 +837,7 @@ export default function TutorPage() {
   }, [isMessagesNearBottom])
 
   useEffect(() => {
-    setSelectedSkillId(localStorage.getItem(SKILL_STORAGE_KEY) || '')
+    setSelectedSkillId(localStorage.getItem(selectedSkillStorageKey()) || '')
     setCustomSkills(readCustomSkills())
   }, [])
 
@@ -912,9 +916,9 @@ export default function TutorPage() {
     setSelectedSkillId(nextId)
     setSkillPickerOpen(false)
     if (nextId) {
-      localStorage.setItem(SKILL_STORAGE_KEY, nextId)
+      localStorage.setItem(selectedSkillStorageKey(), nextId)
     } else {
-      localStorage.removeItem(SKILL_STORAGE_KEY)
+      localStorage.removeItem(selectedSkillStorageKey())
     }
   }
 
@@ -1029,9 +1033,9 @@ export default function TutorPage() {
         }
       }
 
-      const pendingRoleId = Number(globalThis.localStorage?.getItem(PENDING_ROLE_ID_KEY) || 0)
+      const pendingRoleId = Number(globalThis.localStorage?.getItem(pendingRoleIdStorageKey()) || 0)
       if (pendingRoleId > 0) {
-        globalThis.localStorage?.removeItem(PENDING_ROLE_ID_KEY)
+        globalThis.localStorage?.removeItem(pendingRoleIdStorageKey())
         const pendingRole = roleData.find((role) => role.id === pendingRoleId) || null
         if (pendingRole) {
           if (selectedConversation) {

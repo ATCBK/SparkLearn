@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -11,6 +11,7 @@ from ..config import settings
 from ..db import fetch_all, fetch_one, get_conn, now_iso
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
+from .admin import _write_audit, require_admin_user
 
 router = APIRouter(prefix="/api/forum", tags=["forum"])
 
@@ -179,7 +180,13 @@ def _forum_attachment_resource(post_row, attachment_row) -> dict[str, Any]:
 
 
 @router.get("/admin/posts")
-async def admin_list_posts(status: str = "pending", q: str = "", page: int = 1, page_size: int = 20):
+async def admin_list_posts(
+    status: str = "pending",
+    q: str = "",
+    page: int = 1,
+    page_size: int = 20,
+    actor: dict[str, Any] = Depends(require_admin_user),
+):
     page = max(1, page)
     page_size = min(100, max(1, page_size))
     normalized_status = status.strip().lower()
@@ -222,7 +229,11 @@ async def admin_list_posts(status: str = "pending", q: str = "", page: int = 1, 
 
 
 @router.patch("/admin/posts/{post_id}/status")
-async def admin_update_post_status(post_id: int, req: ForumModerationReq):
+async def admin_update_post_status(
+    post_id: int,
+    req: ForumModerationReq,
+    actor: dict[str, Any] = Depends(require_admin_user),
+):
     status = req.status.strip().lower()
     if status not in {"pending", "published", "rejected", "deleted", "hidden"}:
         raise HTTPException(status_code=400, detail="invalid status")
@@ -234,6 +245,15 @@ async def admin_update_post_status(post_id: int, req: ForumModerationReq):
         conn.execute("UPDATE forum_posts SET status = ?, updated_at = ? WHERE id = ?", (status, now_iso(), post_id))
         updated = conn.execute("SELECT * FROM forum_posts WHERE id = ?", (post_id,)).fetchone()
 
+    _write_audit(
+        actor,
+        f"帖子审核：{status}",
+        target_type="forum_post",
+        target_id=str(post_id),
+        target_label=str(updated["title"] or post_id),
+        level="warning" if status in {"rejected", "deleted", "hidden"} else "success",
+        detail={"reason": req.reason.strip()},
+    )
     return ok({"post": _post_row_to_dict(updated), "reason": req.reason.strip()})
 
 

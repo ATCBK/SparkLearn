@@ -718,6 +718,60 @@ export interface ForumModerationList {
   page_size: number
 }
 
+export interface AdminUser {
+  user_id: string
+  name: string
+  phone: string
+  email: string
+  major: string
+  grade: string
+  admin_role: string
+  role_label: string
+  account_status: 'active' | 'frozen'
+  status_label: string
+  permission_score: number
+  last_login_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AdminUserList {
+  items: AdminUser[]
+  stats: {
+    total: number
+    admins: number
+    frozen: number
+    students: number
+  }
+}
+
+export interface AdminDashboard {
+  cards: Record<string, number>
+  tenants: Array<{ name: string; students: number; teachers: number; health: number }>
+  risks: Array<{ label: string; type: string; level: 'info' | 'warning' | 'danger' | 'success' }>
+  services: Array<{ name: string; status: string; health: number }>
+}
+
+export interface AdminAuditLog {
+  id: number
+  actor: string
+  action: string
+  target: string
+  target_label: string
+  level: 'info' | 'warning' | 'danger' | 'success'
+  created_at: string
+  detail: Record<string, unknown>
+}
+
+export interface AdminAuditList {
+  items: AdminAuditLog[]
+  stats: Record<'info' | 'warning' | 'danger' | 'success', number>
+}
+
+export interface AdminSettingsResp {
+  settings: Record<string, string>
+}
+
 export interface AgentTaskStep {
   step: number
   action: string

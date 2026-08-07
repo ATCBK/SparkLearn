@@ -15,7 +15,7 @@ import {
   UserCog,
   Users,
 } from 'lucide-react'
-import { addCustomSkill, LEARNING_SKILLS, markdownToSkill, readCustomSkills, SKILL_STORAGE_KEY, type LearningSkill } from '@/lib/skills'
+import { addCustomSkill, LEARNING_SKILLS, markdownToSkill, readCustomSkills, selectedSkillStorageKey, type LearningSkill } from '@/lib/skills'
 import { cn } from '@/lib/utils/cn'
 import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
 
@@ -35,7 +35,7 @@ export default function TutorSkillsPage() {
   const router = useRouter()
   const importInputRef = useRef<HTMLInputElement>(null)
   const [customSkills, setCustomSkills] = useState<LearningSkill[]>(() => (typeof window === 'undefined' ? [] : readCustomSkills()))
-  const [selectedSkillId, setSelectedSkillId] = useState(() => (typeof window === 'undefined' ? '' : localStorage.getItem(SKILL_STORAGE_KEY) || ''))
+  const [selectedSkillId, setSelectedSkillId] = useState(() => (typeof window === 'undefined' ? '' : localStorage.getItem(selectedSkillStorageKey()) || ''))
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -50,8 +50,8 @@ export default function TutorSkillsPage() {
   function chooseSkill(skillId: string) {
     const nextId = selectedSkillId === skillId ? '' : skillId
     setSelectedSkillId(nextId)
-    if (nextId) localStorage.setItem(SKILL_STORAGE_KEY, nextId)
-    else localStorage.removeItem(SKILL_STORAGE_KEY)
+    if (nextId) localStorage.setItem(selectedSkillStorageKey(), nextId)
+    else localStorage.removeItem(selectedSkillStorageKey())
   }
 
   async function importSkills(files: FileList | null) {

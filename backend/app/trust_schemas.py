@@ -8,6 +8,7 @@ from pydantic import BaseModel
 class TrustAnswerRequest(BaseModel):
     scene: str
     query: str
+    user_id: str = ""
     mode: str = "knowledge_qa"
     role_prompt: str = ""
     page_prompt: str = ""

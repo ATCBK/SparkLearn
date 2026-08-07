@@ -1,3 +1,5 @@
+import { userScopedStorageKey } from './auth'
+
 export type LearningSkill = {
   id: string
   title: string
@@ -12,6 +14,14 @@ export type LearningSkill = {
 
 export const SKILL_STORAGE_KEY = 'sparklearn_selected_skill'
 export const CUSTOM_SKILLS_STORAGE_KEY = 'sparklearn_custom_skills'
+
+export function selectedSkillStorageKey(userId?: string): string {
+  return userScopedStorageKey(SKILL_STORAGE_KEY, userId)
+}
+
+export function customSkillsStorageKey(userId?: string): string {
+  return userScopedStorageKey(CUSTOM_SKILLS_STORAGE_KEY, userId)
+}
 
 export const LEARNING_SKILLS: LearningSkill[] = [
   {
@@ -111,7 +121,7 @@ export function getSkillById(id?: string | null, skills: LearningSkill[] = LEARN
 export function readCustomSkills(): LearningSkill[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = window.localStorage.getItem(CUSTOM_SKILLS_STORAGE_KEY)
+    const raw = window.localStorage.getItem(customSkillsStorageKey())
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -123,7 +133,7 @@ export function readCustomSkills(): LearningSkill[] {
 
 export function writeCustomSkills(skills: LearningSkill[]) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(CUSTOM_SKILLS_STORAGE_KEY, JSON.stringify(skills))
+  window.localStorage.setItem(customSkillsStorageKey(), JSON.stringify(skills))
   window.dispatchEvent(new Event('sparklearn-custom-skills-updated'))
 }
 
