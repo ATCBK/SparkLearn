@@ -194,8 +194,35 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
             </Link>
             <div className="ml-1 grid h-8 w-8 place-items-center rounded-full bg-[#eaf2ff] text-xs font-bold text-[#2563eb]">A</div>
             <span className="hidden text-sm font-semibold text-ink min-[520px]:inline">{authState.adminName || '管理员'}</span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="退出登录"
+              title="退出登录"
+              className="grid h-8 w-8 place-items-center rounded-lg text-[#52627b] hover:bg-[#fef2f2] hover:text-[#dc2626] min-[900px]:hidden"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </header>
+        <nav className="sticky top-[57px] z-10 flex gap-2 overflow-x-auto border-b border-[#e8edf5] bg-white/96 px-4 py-2 backdrop-blur min-[900px]:hidden">
+          {NAV.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(item.href + '/')
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-bold transition-colors ${
+                  active ? 'bg-[#EEF5FF] text-[#2563EB]' : 'text-[#52627B] hover:bg-[#F3F4F6]'
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
         <div className="min-h-[calc(100vh-56px)] px-4 py-5 min-[900px]:px-8 min-[900px]:py-7">
           <div className="mx-auto w-full max-w-[1360px] min-w-0">{children}</div>
         </div>
