@@ -16,6 +16,7 @@ export const NEW_USER_GUIDE_STEP_IDS = [
   'report',
   'info-stream',
   'plaza',
+  'plaza-return',
   'ai-sprite',
   'ai-learning-space',
   'tutor-role',

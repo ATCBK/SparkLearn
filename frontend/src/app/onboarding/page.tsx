@@ -132,6 +132,8 @@ const STEPS: StepData[] = [
   },
 ]
 
+const MAJOR_STEP_INDEX = STEPS.findIndex(item => item.key === 'major')
+
 /* ── 消息类型 ─────────────────────────────────────── */
 
 interface ChatMessage {
@@ -216,9 +218,8 @@ export default function OnboardingPage() {
   function resetOnboardingFlow() {
     finishingRef.current = false
     const pendingSubject = localStorage.getItem('sparklearn_pending_subject')
-    const majorIndex = steps.findIndex(item => item.key === 'major')
     setMessages([])
-    setSelections(pendingSubject && majorIndex >= 0 ? { [majorIndex]: [pendingSubject] } : {})
+    setSelections(pendingSubject && MAJOR_STEP_INDEX >= 0 ? { [MAJOR_STEP_INDEX]: [pendingSubject] } : {})
     setStep(0)
     setShowOptions(false)
     setIsTyping(false)
@@ -236,7 +237,7 @@ export default function OnboardingPage() {
     ;(async () => {
       try {
         const profile = await api.getProfile()
-        if (!cancelled && hasMeaningfulProfile(profile) && localStorage.getItem('sparklearn_profile_needs_recapture') !== 'true') {
+        if (!cancelled && hasCompleteProfile(profile) && localStorage.getItem('sparklearn_profile_needs_recapture') !== 'true') {
           setExistingProfile(profile)
           setProfileChecking(false)
           return
@@ -265,8 +266,7 @@ export default function OnboardingPage() {
           setSubjectOptions(names)
           const pendingSubject = localStorage.getItem('sparklearn_pending_subject')
           if (pendingSubject && names.includes(pendingSubject)) {
-            const majorIndex = steps.findIndex(item => item.key === 'major')
-            if (majorIndex >= 0) setSelections((prev) => ({ ...prev, [majorIndex]: [pendingSubject] }))
+            if (MAJOR_STEP_INDEX >= 0) setSelections((prev) => ({ ...prev, [MAJOR_STEP_INDEX]: [pendingSubject] }))
           }
         }
       } catch {
@@ -279,7 +279,7 @@ export default function OnboardingPage() {
   }, [])
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    chatEndRef.current?.scrollIntoView({ behavior: 'auto' })
   }, [messages, showOptions])
 
   function startStep(stepIndex: number) {
@@ -724,17 +724,19 @@ export default function OnboardingPage() {
   )
 }
 
-function hasMeaningfulProfile(profile: StudentProfile | null) {
+function hasLearningProfile(profile: StudentProfile | null) {
   if (!profile) return false
-  const hasIdentity = Boolean(profile.name?.trim() && profile.grade?.trim())
-  const hasLearningData = Boolean(
+  return Boolean(
     profile.major?.trim() ||
     profile.goals?.some(item => item.trim()) ||
     profile.knowledgeLevel?.trim() ||
     profile.weakPoints?.some(item => item.trim()) ||
     profile.learningPreference?.some(item => item.trim()),
   )
-  return hasIdentity && hasLearningData
+}
+
+function hasCompleteProfile(profile: StudentProfile | null) {
+  return Boolean(profile?.name?.trim() && profile?.grade?.trim() && hasLearningProfile(profile))
 }
 
 /* ── 精灵头像组件 ─── */

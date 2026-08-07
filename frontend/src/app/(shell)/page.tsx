@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Plus, Trash2, PieChart, ClipboardList, Flame, CheckCircle2, FileText, Brain, BookOpen, Sparkles, Clock, GitBranch, NotebookPen } from 'lucide-react'
-import { api, Recommendation, Resource, Task } from '@/lib/api'
+import { api, Recommendation, Resource, StudentProfile, Task } from '@/lib/api'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
 export default function HomePage() {
@@ -12,17 +12,20 @@ export default function HomePage() {
   const [newTitle, setNewTitle] = useState('')
   const [busy, setBusy] = useState('')
   const [loading, setLoading] = useState(true)
+  const [profileReady, setProfileReady] = useState(false)
 
   async function load() {
     try {
-      const [taskData, resourceData, recData] = await Promise.all([
+      const [taskData, resourceData, recData, profileData] = await Promise.all([
         api.getTodayTasks(),
         api.getRecentResources(),
         api.getRecommendations(),
+        api.getProfile().catch(() => null),
       ])
       setTasks(taskData)
       setResources(resourceData)
       setRecs(recData)
+      setProfileReady(hasLearningProfile(profileData))
     } catch {
       // ignore
     } finally {
@@ -121,7 +124,9 @@ export default function HomePage() {
             <Pill tone="green">{tasks.length ? `预计 ${totalMinutes} 分钟` : '预计暂无'}</Pill>
           </div>
           <div className="flex flex-wrap gap-2.5 pt-1">
-            <ProtoButton href="/onboarding" data-guide-target="profile-entry">完善学习画像</ProtoButton>
+            <ProtoButton href={profileReady ? '/profile' : '/onboarding'} data-guide-target="profile-entry">
+              {profileReady ? '查看学习画像' : '完善学习画像'}
+            </ProtoButton>
             <ProtoButton href={hasLearningData ? '/practice' : '/path'} variant="secondary" data-guide-target="path-entry">{hasLearningData ? '先做练习' : '查看学习路径'}</ProtoButton>
             <button
               type="button"
@@ -228,6 +233,17 @@ export default function HomePage() {
       </div>
       )}
     </div>
+  )
+}
+
+function hasLearningProfile(profile: StudentProfile | null) {
+  if (!profile) return false
+  return Boolean(
+    profile.major?.trim() ||
+    profile.goals?.some(item => item.trim()) ||
+    profile.knowledgeLevel?.trim() ||
+    profile.weakPoints?.some(item => item.trim()) ||
+    profile.learningPreference?.some(item => item.trim()),
   )
 }
 

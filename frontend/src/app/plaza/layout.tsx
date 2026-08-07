@@ -1,4 +1,5 @@
 ﻿import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { MessageSquare } from 'lucide-react'
 import { PlazaSidebar } from '@/components/plaza/PlazaSidebar'
 import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
@@ -13,7 +14,16 @@ export default function PlazaLayout({ children }: { children: ReactNode }) {
             <span className="text-lg font-extrabold">学习广场</span>
             <span className="text-sm text-white/80">使用交流</span>
           </div>
-          <div className="text-sm font-bold text-white/90">登录</div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              data-guide-target="plaza-back-home"
+              className="rounded-lg border border-white/25 px-3 py-1.5 text-sm font-bold text-white/90 transition-colors hover:bg-white/10"
+            >
+              返回主平台
+            </Link>
+            <div className="text-sm font-bold text-white/90">登录</div>
+          </div>
         </div>
       </header>
 

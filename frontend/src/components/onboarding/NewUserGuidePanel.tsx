@@ -1,7 +1,7 @@
 'use client'
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   ArrowRight,
   BookOpen,
@@ -29,7 +29,6 @@ import {
   getGuideUserId,
   hasSeenNewUserGuide,
   markNewUserGuideSeen,
-  NEW_USER_GUIDE_STEP_IDS,
   readNewUserGuideProgress,
   writeNewUserGuideProgress,
 } from './newUserGuideStorage'
@@ -225,6 +224,16 @@ const GUIDE_STEPS: GuideStep[] = [
     accent: 'from-[#9333ea] to-[#ec4899]',
   },
   {
+    id: 'plaza-return',
+    route: '/plaza',
+    title: '从学习广场回到主平台',
+    description: '广场是独立社区空间。看完资源和讨论后，点击这里回到主平台，继续使用 AI 精灵和学习空间。',
+    target: 'plaza-back-home',
+    actionLabel: '返回主平台',
+    icon: <ArrowRight className="h-4 w-4" />,
+    accent: 'from-[#475569] to-[#0f172a]',
+  },
+  {
     id: 'ai-sprite',
     route: '/',
     title: '让 AI 精灵展示本机能力',
@@ -334,17 +343,15 @@ function storeStepIndex(userId: string, index: number, maxLength = GUIDE_STEPS.l
   window.localStorage.setItem(guideStepKey(userId), String(Math.max(0, Math.min(maxLength - 1, index))))
 }
 
-function hasMeaningfulProfile(profile: StudentProfile | null) {
+function hasLearningProfile(profile: StudentProfile | null) {
   if (!profile) return false
-  const hasIdentity = Boolean(profile.name?.trim() && profile.grade?.trim())
-  const hasLearningData = Boolean(
+  return Boolean(
     profile.major?.trim() ||
     profile.goals?.some(item => item.trim()) ||
     profile.knowledgeLevel?.trim() ||
     profile.weakPoints?.some(item => item.trim()) ||
     profile.learningPreference?.some(item => item.trim()),
   )
-  return hasIdentity && hasLearningData
 }
 
 function findGuideTarget(step: GuideStep) {
@@ -366,7 +373,7 @@ function getRectForStep(step: GuideStep): SpotlightRect {
     }
   }
 
-  target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' })
+  target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' })
   const rect = target.getBoundingClientRect()
   const pad = 10
   return {
@@ -391,7 +398,6 @@ function getTooltipPosition(rect: SpotlightRect): TooltipPosition {
 }
 
 export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function NewUserGuidePanel(_, ref) {
-  const router = useRouter()
   const pathname = usePathname()
   const [welcomeVisible, setWelcomeVisible] = useState(false)
   const [tourVisible, setTourVisible] = useState(false)
@@ -420,7 +426,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     const nextUserId = getGuideUserId()
     let nextProfileReady = false
     try {
-      nextProfileReady = hasMeaningfulProfile(await api.getProfile())
+      nextProfileReady = hasLearningProfile(await api.getProfile())
     } catch {
       nextProfileReady = false
     }
@@ -510,7 +516,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     closeGuide(false)
   }, [closeGuide, guideSteps, persistProgress, userId])
 
-  const advanceStep = useCallback((fromRealAction = false) => {
+  const advanceStep = useCallback(() => {
     if (!currentStep) return
     persistProgress(Array.from(new Set([...completedIds, currentStep.id])))
     if (currentIndex >= guideSteps.length - 1) {
@@ -528,7 +534,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       const matched = target?.closest(`[data-guide-target="${currentStep.target}"]`)
       const fallbackMatched = currentStep.fallbackTarget ? target?.closest(`[data-guide-target="${currentStep.fallbackTarget}"]`) : null
       if (matched || fallbackMatched) {
-        window.setTimeout(() => advanceStep(true), 180)
+        window.setTimeout(() => advanceStep(), 180)
       }
     }
 
@@ -537,7 +543,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       const target = event.target as HTMLInputElement | HTMLTextAreaElement | null
       const matched = target?.closest(`[data-guide-target="${currentStep.target}"]`)
       if (matched && target && 'value' in target && target.value.trim().length >= 6) {
-        window.setTimeout(() => advanceStep(false), 500)
+        window.setTimeout(() => advanceStep(), 500)
       }
     }
 
@@ -552,7 +558,6 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   function goToStepAction() {
     if (!currentStep) return
     if (!routeMatches(pathname, currentStep.route)) {
-      router.push(currentStep.route)
       return
     }
     if (currentStep.id === 'ai-sprite') {
@@ -655,13 +660,11 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
           {onExpectedRoute && spotlightRect && tooltipPosition ? (
             <>
               <div
-                className="absolute rounded-[16px] border-[3px] border-[#60a5fa] shadow-[0_0_0_9999px_rgba(15,23,42,.66),0_0_0_8px_rgba(96,165,250,.20),0_22px_70px_rgba(37,99,235,.42)] transition-all duration-300"
+                className="absolute rounded-[16px] border-[3px] border-[#60a5fa] shadow-[0_0_0_9999px_rgba(15,23,42,.66),0_0_0_8px_rgba(96,165,250,.16),0_18px_48px_rgba(37,99,235,.30)]"
                 style={spotlightRect}
-              >
-                <div className="absolute -inset-2 rounded-[20px] border border-[#bfdbfe] opacity-80 animate-ping" />
-              </div>
+              />
               <svg
-                className="absolute text-[#60a5fa] drop-shadow-[0_10px_18px_rgba(15,23,42,.28)] transition-all duration-300"
+                className="absolute text-[#60a5fa] drop-shadow-[0_10px_18px_rgba(15,23,42,.28)]"
                 width="86"
                 height="86"
                 viewBox="0 0 86 86"
@@ -682,7 +685,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
 
           <section
             className={cn(
-              'absolute w-[min(430px,calc(100vw-32px))] rounded-[18px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto transition-all duration-300',
+              'absolute w-[min(430px,calc(100vw-32px))] rounded-[18px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto',
               onExpectedRoute && tooltipPosition && "before:absolute before:left-8 before:h-5 before:w-5 before:rotate-45 before:bg-white before:content-['']",
               onExpectedRoute && tooltipPosition?.placement === 'below' && 'before:-top-2',
               onExpectedRoute && tooltipPosition?.placement === 'above' && 'before:-bottom-2',
@@ -697,7 +700,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                   <span className={cn('grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br text-white', currentStep.accent)}>
                     {currentStep.icon}
                   </span>
-                  第 {currentIndex + 1} / {GUIDE_STEPS.length} 步
+                  第 {currentIndex + 1} / {guideSteps.length} 步
                 </div>
                 <button
                   type="button"
@@ -717,7 +720,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                 </div>
               ) : null}
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e2e8f0]">
-                <div className={cn('h-full rounded-full bg-gradient-to-r transition-all duration-300', currentStep.accent)} style={{ width: `${progress}%` }} />
+                <div className={cn('h-full rounded-full bg-gradient-to-r', currentStep.accent)} style={{ width: `${progress}%` }} />
               </div>
               <div className="mt-5 flex flex-wrap items-center justify-between gap-2.5">
                 <button
@@ -739,10 +742,10 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                   </button>
                   <button
                     type="button"
-                    onClick={() => advanceStep(true)}
+                    onClick={() => advanceStep()}
                     className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[#111827] px-4 text-sm font-black text-white transition-colors hover:bg-[#020617]"
                   >
-                    {currentIndex >= GUIDE_STEPS.length - 1 ? '完成引导' : '下一步'}
+                    {currentIndex >= guideSteps.length - 1 ? '完成引导' : '下一步'}
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -752,7 +755,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                 onClick={goToStepAction}
                 className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#eff6ff] px-4 text-sm font-black text-[#2563eb] transition-colors hover:bg-[#dbeafe]"
               >
-                {onExpectedRoute ? currentStep.actionLabel : `前往${currentStep.route}`}
+                {onExpectedRoute ? currentStep.actionLabel : '请点击页面上的对应入口'}
                 <Compass className="h-4 w-4" />
               </button>
             </div>
