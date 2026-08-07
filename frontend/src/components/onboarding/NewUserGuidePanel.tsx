@@ -24,6 +24,7 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { api, type StudentProfile } from '@/lib/api'
 import {
   getGuideUserId,
   hasSeenNewUserGuide,
@@ -321,16 +322,29 @@ function routeMatches(pathname: string, route: string) {
   return current === expected
 }
 
-function getStoredStepIndex(userId: string) {
+function getStoredStepIndex(userId: string, maxLength = GUIDE_STEPS.length) {
   if (typeof window === 'undefined') return 0
   const raw = window.localStorage.getItem(guideStepKey(userId))
   const parsed = raw ? Number(raw) : 0
-  return Number.isFinite(parsed) ? Math.max(0, Math.min(GUIDE_STEPS.length - 1, parsed)) : 0
+  return Number.isFinite(parsed) ? Math.max(0, Math.min(maxLength - 1, parsed)) : 0
 }
 
-function storeStepIndex(userId: string, index: number) {
+function storeStepIndex(userId: string, index: number, maxLength = GUIDE_STEPS.length) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(guideStepKey(userId), String(Math.max(0, Math.min(GUIDE_STEPS.length - 1, index))))
+  window.localStorage.setItem(guideStepKey(userId), String(Math.max(0, Math.min(maxLength - 1, index))))
+}
+
+function hasMeaningfulProfile(profile: StudentProfile | null) {
+  if (!profile) return false
+  const hasIdentity = Boolean(profile.name?.trim() && profile.grade?.trim())
+  const hasLearningData = Boolean(
+    profile.major?.trim() ||
+    profile.goals?.some(item => item.trim()) ||
+    profile.knowledgeLevel?.trim() ||
+    profile.weakPoints?.some(item => item.trim()) ||
+    profile.learningPreference?.some(item => item.trim()),
+  )
+  return hasIdentity && hasLearningData
 }
 
 function findGuideTarget(step: GuideStep) {
@@ -384,14 +398,19 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   const [currentIndex, setCurrentIndex] = useState(0)
   const [completedIds, setCompletedIds] = useState<string[]>([])
   const [userId, setUserId] = useState('anonymous')
+  const [profileReady, setProfileReady] = useState(false)
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null)
 
-  const currentStep = GUIDE_STEPS[currentIndex]
+  const guideSteps = useMemo(
+    () => (profileReady ? GUIDE_STEPS.filter(step => step.id !== 'profile') : GUIDE_STEPS),
+    [profileReady],
+  )
+  const currentStep = guideSteps[currentIndex]
   const onExpectedRoute = currentStep ? routeMatches(pathname, currentStep.route) : false
-  const progress = Math.round(((currentIndex + 1) / GUIDE_STEPS.length) * 100)
+  const progress = Math.round(((currentIndex + 1) / guideSteps.length) * 100)
 
-  const syncUserGuideState = useCallback((forceOpen = false) => {
+  const syncUserGuideState = useCallback(async (forceOpen = false) => {
     if (!hasLoginSession()) {
       setWelcomeVisible(false)
       setTourVisible(false)
@@ -399,7 +418,15 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     }
 
     const nextUserId = getGuideUserId()
-    const storedIndex = getStoredStepIndex(nextUserId)
+    let nextProfileReady = false
+    try {
+      nextProfileReady = hasMeaningfulProfile(await api.getProfile())
+    } catch {
+      nextProfileReady = false
+    }
+    const nextGuideSteps = nextProfileReady ? GUIDE_STEPS.filter(step => step.id !== 'profile') : GUIDE_STEPS
+    const storedIndex = getStoredStepIndex(nextUserId, nextGuideSteps.length)
+    setProfileReady(nextProfileReady)
     setUserId(nextUserId)
     setCompletedIds(readNewUserGuideProgress(nextUserId))
     setCurrentIndex(storedIndex)
@@ -460,15 +487,15 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   }, [userId])
 
   const setStep = useCallback((index: number) => {
-    const next = Math.max(0, Math.min(GUIDE_STEPS.length - 1, index))
+    const next = Math.max(0, Math.min(guideSteps.length - 1, index))
     setCurrentIndex(next)
-    storeStepIndex(userId, next)
-  }, [userId])
+    storeStepIndex(userId, next, guideSteps.length)
+  }, [guideSteps.length, userId])
 
   function startTour() {
     setWelcomeVisible(false)
     setTourVisible(true)
-    setStep(getStoredStepIndex(userId))
+    setStep(getStoredStepIndex(userId, guideSteps.length))
   }
 
   const closeGuide = useCallback((markSeen = false) => {
@@ -478,28 +505,20 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   }, [userId])
 
   const completeGuide = useCallback(() => {
-    persistProgress(NEW_USER_GUIDE_STEP_IDS)
+    persistProgress(guideSteps.map(step => step.id))
     markNewUserGuideSeen(userId)
     closeGuide(false)
-  }, [closeGuide, persistProgress, userId])
+  }, [closeGuide, guideSteps, persistProgress, userId])
 
   const advanceStep = useCallback((fromRealAction = false) => {
     if (!currentStep) return
     persistProgress(Array.from(new Set([...completedIds, currentStep.id])))
-    if (currentIndex >= GUIDE_STEPS.length - 1) {
+    if (currentIndex >= guideSteps.length - 1) {
       completeGuide()
       return
     }
     setStep(currentIndex + 1)
-    if (fromRealAction) {
-      window.setTimeout(() => {
-        const next = GUIDE_STEPS[currentIndex + 1]
-        if (next && !routeMatches(window.location.pathname, next.route)) {
-          router.push(next.route)
-        }
-      }, 120)
-    }
-  }, [completedIds, completeGuide, currentIndex, currentStep, persistProgress, router, setStep])
+  }, [completedIds, completeGuide, currentIndex, currentStep, guideSteps.length, persistProgress, setStep])
 
   useEffect(() => {
     if (!tourVisible || !currentStep || !onExpectedRoute) return
