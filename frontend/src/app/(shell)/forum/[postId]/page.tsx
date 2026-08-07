@@ -8,6 +8,7 @@ import { api, ForumAttachment, ForumComment, ForumPost } from '@/lib/api'
 export default function ForumPostDetailPage() {
   const params = useParams<{ postId: string }>()
   const postId = Number(params.postId)
+  const invalidPostId = !Number.isInteger(postId) || postId <= 0
 
   const [post, setPost] = useState<ForumPost | null>(null)
   const [attachments, setAttachments] = useState<ForumAttachment[]>([])
@@ -29,12 +30,22 @@ export default function ForumPostDetailPage() {
   }, [postId])
 
   useEffect(() => {
-    if (Number.isNaN(postId)) return
+    if (invalidPostId) return
     const timer = window.setTimeout(() => {
       void loadAll()
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [loadAll, postId])
+  }, [invalidPostId, loadAll])
+
+  if (invalidPostId) {
+    return (
+      <div className="rounded-xl bg-white p-5 text-sm text-muted ring-1 ring-line">
+        <p className="font-bold text-ink">帖子地址无效</p>
+        <p className="mt-2">请从论坛列表重新选择一个帖子。</p>
+        <Link href="/forum" className="mt-4 inline-flex rounded-lg bg-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-dark">返回论坛</Link>
+      </div>
+    )
+  }
 
   if (error) {
     return <div className="rounded-lg bg-red-light p-3 text-sm text-red">{error}</div>

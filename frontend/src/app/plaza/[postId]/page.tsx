@@ -10,6 +10,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 export default function PlazaPostDetailPage() {
   const params = useParams<{ postId: string }>()
   const postId = Number(params.postId)
+  const invalidPostId = !Number.isInteger(postId) || postId <= 0
 
   const [post, setPost] = useState<ForumPost | null>(null)
   const [attachments, setAttachments] = useState<ForumAttachment[]>([])
@@ -33,9 +34,9 @@ export default function PlazaPostDetailPage() {
   }
 
   useEffect(() => {
-    if (!Number.isNaN(postId)) void loadAll()
+    if (!invalidPostId) void loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId])
+  }, [invalidPostId, postId])
 
   async function importPostToResources() {
     if (!post) return
@@ -63,6 +64,16 @@ export default function PlazaPostDetailPage() {
     } finally {
       setImportingAttachmentId(null)
     }
+  }
+
+  if (invalidPostId) {
+    return (
+      <div className="rounded-xl bg-white p-5 text-sm text-muted ring-1 ring-line">
+        <p className="font-bold text-ink">帖子地址无效</p>
+        <p className="mt-2">请从学习广场重新选择一个帖子。</p>
+        <Link href="/plaza" className="mt-4 inline-flex rounded-lg bg-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-dark">返回学习广场</Link>
+      </div>
+    )
   }
 
   if (error) {

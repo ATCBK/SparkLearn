@@ -1,7 +1,7 @@
 'use client'
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   ArrowRight,
   BookOpen,
@@ -315,6 +315,10 @@ function hasLoginSession() {
   }
 }
 
+function isStableGuideUserId(userId: string) {
+  return userId.trim().length > 0 && userId !== 'anonymous'
+}
+
 function guideStepKey(userId: string) {
   return `sparklearn_new_user_guide_step:${userId || 'anonymous'}`
 }
@@ -331,27 +335,33 @@ function routeMatches(pathname: string, route: string) {
   return current === expected
 }
 
-function getStoredStepIndex(userId: string, maxLength = GUIDE_STEPS.length) {
+function getStoredStepIndex(userId: string, steps: GuideStep[] = GUIDE_STEPS) {
   if (typeof window === 'undefined') return 0
   const raw = window.localStorage.getItem(guideStepKey(userId))
-  const parsed = raw ? Number(raw) : 0
-  return Number.isFinite(parsed) ? Math.max(0, Math.min(maxLength - 1, parsed)) : 0
+  if (!raw) return 0
+
+  const legacyIndex = Number(raw)
+  const storedStepId = Number.isFinite(legacyIndex) ? GUIDE_STEPS[legacyIndex]?.id : raw
+  const nextIndex = steps.findIndex(step => step.id === storedStepId)
+  return nextIndex >= 0 ? nextIndex : 0
 }
 
-function storeStepIndex(userId: string, index: number, maxLength = GUIDE_STEPS.length) {
+function storeStepId(userId: string, stepId: string) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(guideStepKey(userId), String(Math.max(0, Math.min(maxLength - 1, index))))
+  if (!isStableGuideUserId(userId)) return
+  window.localStorage.setItem(guideStepKey(userId), stepId)
 }
 
-function hasLearningProfile(profile: StudentProfile | null) {
+function hasCompleteProfile(profile: StudentProfile | null) {
   if (!profile) return false
-  return Boolean(
+  const hasLearningProfile = Boolean(
     profile.major?.trim() ||
     profile.goals?.some(item => item.trim()) ||
     profile.knowledgeLevel?.trim() ||
     profile.weakPoints?.some(item => item.trim()) ||
     profile.learningPreference?.some(item => item.trim()),
   )
+  return Boolean(profile.name?.trim() && profile.grade?.trim() && hasLearningProfile)
 }
 
 function findGuideTarget(step: GuideStep) {
@@ -398,6 +408,7 @@ function getTooltipPosition(rect: SpotlightRect): TooltipPosition {
 }
 
 export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function NewUserGuidePanel(_, ref) {
+  const router = useRouter()
   const pathname = usePathname()
   const [welcomeVisible, setWelcomeVisible] = useState(false)
   const [tourVisible, setTourVisible] = useState(false)
@@ -424,14 +435,29 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     }
 
     const nextUserId = getGuideUserId()
+    if (!isStableGuideUserId(nextUserId)) {
+      if (forceOpen) {
+        setUserId(nextUserId)
+        setProfileReady(false)
+        setCompletedIds([])
+        setCurrentIndex(0)
+        setWelcomeVisible(true)
+        setTourVisible(false)
+        return
+      }
+      setWelcomeVisible(false)
+      setTourVisible(false)
+      return
+    }
+
     let nextProfileReady = false
     try {
-      nextProfileReady = hasLearningProfile(await api.getProfile())
+      nextProfileReady = hasCompleteProfile(await api.getProfile())
     } catch {
       nextProfileReady = false
     }
     const nextGuideSteps = nextProfileReady ? GUIDE_STEPS.filter(step => step.id !== 'profile') : GUIDE_STEPS
-    const storedIndex = getStoredStepIndex(nextUserId, nextGuideSteps.length)
+    const storedIndex = getStoredStepIndex(nextUserId, nextGuideSteps)
     setProfileReady(nextProfileReady)
     setUserId(nextUserId)
     setCompletedIds(readNewUserGuideProgress(nextUserId))
@@ -495,13 +521,14 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   const setStep = useCallback((index: number) => {
     const next = Math.max(0, Math.min(guideSteps.length - 1, index))
     setCurrentIndex(next)
-    storeStepIndex(userId, next, guideSteps.length)
-  }, [guideSteps.length, userId])
+    const nextStep = guideSteps[next]
+    if (nextStep) storeStepId(userId, nextStep.id)
+  }, [guideSteps, userId])
 
   function startTour() {
     setWelcomeVisible(false)
     setTourVisible(true)
-    setStep(getStoredStepIndex(userId, guideSteps.length))
+    setStep(0)
   }
 
   const closeGuide = useCallback((markSeen = false) => {
@@ -558,6 +585,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   function goToStepAction() {
     if (!currentStep) return
     if (!routeMatches(pathname, currentStep.route)) {
+      router.push(currentStep.route)
       return
     }
     if (currentStep.id === 'ai-sprite') {
@@ -651,12 +679,6 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
           className="fixed inset-0 z-[90] pointer-events-none"
           aria-label="平台级步骤引导"
         >
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default bg-transparent pointer-events-auto"
-            aria-label="引导遮罩"
-            onClick={() => undefined}
-          />
           {onExpectedRoute && spotlightRect && tooltipPosition ? (
             <>
               <div
@@ -685,7 +707,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
 
           <section
             className={cn(
-              'absolute w-[min(430px,calc(100vw-32px))] rounded-[18px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto',
+              'absolute max-h-[calc(100dvh-32px)] w-[min(430px,calc(100vw-32px))] overflow-y-auto rounded-[18px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto',
               onExpectedRoute && tooltipPosition && "before:absolute before:left-8 before:h-5 before:w-5 before:rotate-45 before:bg-white before:content-['']",
               onExpectedRoute && tooltipPosition?.placement === 'below' && 'before:-top-2',
               onExpectedRoute && tooltipPosition?.placement === 'above' && 'before:-bottom-2',
@@ -755,7 +777,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                 onClick={goToStepAction}
                 className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#eff6ff] px-4 text-sm font-black text-[#2563eb] transition-colors hover:bg-[#dbeafe]"
               >
-                {onExpectedRoute ? currentStep.actionLabel : '请点击页面上的对应入口'}
+                {onExpectedRoute ? currentStep.actionLabel : `前往${currentStep.route}`}
                 <Compass className="h-4 w-4" />
               </button>
             </div>

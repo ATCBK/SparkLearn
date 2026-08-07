@@ -97,7 +97,7 @@ export default function ShareAccessPage() {
           <h2 className="text-lg font-semibold text-[#111827] mb-2">资源已解锁</h2>
           <p className="text-sm text-[#6b7280] mb-4">{info?.title || '正在跳转...'}</p>
           <button
-            onClick={() => router.push(`/resources/${resourceId}`)}
+            onClick={() => router.push(`/generate?view=library&id=${resourceId}`)}
             className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#075ff0] to-[#5aa2ff] text-white text-sm font-semibold"
           >
             查看资源

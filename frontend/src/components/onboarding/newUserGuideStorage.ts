@@ -34,16 +34,33 @@ function safeLocalStorage() {
   }
 }
 
+function getUserIdFromToken(token: string | null) {
+  if (!token) return ''
+  const payloadPart = token.split('.')[1]
+  if (!payloadPart) return ''
+  try {
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
+    const payload = JSON.parse(atob(padded)) as { sub?: string; user_id?: string; id?: string; email?: string }
+    return String(payload.sub || payload.user_id || payload.id || payload.email || '')
+  } catch {
+    return ''
+  }
+}
+
 export function getGuideUserId() {
   const storage = safeLocalStorage()
   if (!storage) return 'anonymous'
   try {
+    const tokenUserId = getUserIdFromToken(storage.getItem('sparklearn_token'))
     const raw = storage.getItem('sparklearn_user')
-    if (!raw) return 'anonymous'
+    if (!raw) return tokenUserId || (storage.getItem('sparklearn_token') ? '' : 'anonymous')
     const user = JSON.parse(raw) as { user_id?: string; id?: string; email?: string; name?: string }
-    return String(user.user_id || user.id || user.email || user.name || 'anonymous')
+    const userId = String(user.user_id || user.id || user.email || user.name || '')
+    return userId || tokenUserId || (storage.getItem('sparklearn_token') ? '' : 'anonymous')
   } catch {
-    return 'anonymous'
+    const tokenUserId = getUserIdFromToken(storage.getItem('sparklearn_token'))
+    return tokenUserId || (storage.getItem('sparklearn_token') ? '' : 'anonymous')
   }
 }
 
