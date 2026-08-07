@@ -365,6 +365,7 @@ export function AIAssistant() {
       >
       <div
         ref={cardRef}
+        data-guide-target={!open ? 'ai-assistant-trigger' : undefined}
         className="widget-root"
         onPointerDown={!open ? handlePointerDown : undefined}
         onPointerMove={!open ? handlePointerMove : undefined}
@@ -439,6 +440,7 @@ export function AIAssistant() {
                 <div className="chat-header-actions">
                   <button
                     onClick={goToLearningSpace}
+                    data-guide-target="ai-learning-space-button"
                     className="header-btn learning-space-btn"
                     title="进入学习空间"
                     aria-label="进入学习空间"
@@ -566,6 +568,7 @@ export function AIAssistant() {
                 <div className="chat-input-box">
                   <textarea
                     ref={textareaRef}
+                    data-guide-target="ai-assistant-input"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {

@@ -143,7 +143,7 @@ export default function InfoStreamPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-guide-target="info-stream-workspace">
       <section className="rounded-[14px] border border-line bg-white p-5 shadow-md">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

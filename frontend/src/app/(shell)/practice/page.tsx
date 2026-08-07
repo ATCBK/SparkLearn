@@ -243,7 +243,7 @@ export default function PracticePage() {
                   <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${colors.bg} ${colors.text}`}>
                     {chip.icon}
                   </div>
-                  <div>
+    <div data-guide-target="practice-workspace">
                     <b className="block whitespace-nowrap text-[16px] leading-tight text-ink">{chip.value}</b>
                     <span className="mt-0.5 block whitespace-nowrap text-micro text-muted">{chip.label}</span>
                   </div>

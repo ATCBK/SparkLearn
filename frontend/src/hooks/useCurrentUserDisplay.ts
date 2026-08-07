@@ -27,11 +27,11 @@ function readStoredUser() {
 }
 
 export function useCurrentUserDisplay(): CurrentUserDisplay {
-  const [display, setDisplay] = useState<CurrentUserDisplay>(() => (
-    typeof window === 'undefined'
-      ? { name: FALLBACK_USER_NAME, nameChar: FALLBACK_NAME_CHAR, avatarUrl: '' }
-      : readStoredUser()
-  ))
+  const [display, setDisplay] = useState<CurrentUserDisplay>(() => ({
+    name: FALLBACK_USER_NAME,
+    nameChar: FALLBACK_NAME_CHAR,
+    avatarUrl: '',
+  }))
 
   useEffect(() => {
     let cancelled = false

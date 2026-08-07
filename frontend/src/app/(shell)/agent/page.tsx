@@ -33,7 +33,7 @@ export default function AgentPage() {
 
   if (pet === undefined) {
     return (
-      <div>
+      <div data-guide-target="agent-workspace">
         <PageHead
           eyebrow="学习中心 / AI 伙伴"
           title="AI 伙伴空间"
@@ -63,7 +63,7 @@ export default function AgentPage() {
   }
 
   return (
-    <div>
+    <div data-guide-target="agent-workspace">
       <PageHead
         eyebrow="学习中心 / AI 伙伴"
         title={`${pet.name} 的学习工作台`}

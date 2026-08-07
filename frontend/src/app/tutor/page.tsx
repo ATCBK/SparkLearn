@@ -42,6 +42,7 @@ import { getToken } from '@/lib/auth'
 import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, SKILL_STORAGE_KEY, type LearningSkill } from '@/lib/skills'
 import { matchPersonalizedNotes, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
 import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
+import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -1688,7 +1689,12 @@ export default function TutorPage() {
   }
 
   if (error) {
-    return <ErrorState type="server" onRetry={loadWorkspace} />
+    return (
+      <>
+        <ErrorState type="server" onRetry={loadWorkspace} />
+        <NewUserGuidePanel />
+      </>
+    )
   }
 
 
@@ -1711,7 +1717,7 @@ export default function TutorPage() {
             <button onClick={() => setSkillStoreOpen(false)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors', !skillStoreOpen ? 'bg-[#2563eb] text-white font-medium shadow-sm' : 'text-[#475569] hover:bg-white hover:text-[#1e293b]')}>
               <Sparkles className="w-4 h-4" /> 学习空间
             </button>
-            <button onClick={() => router.push('/tutor/roles')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
+            <button data-guide-target="tutor-role-create" onClick={() => router.push('/tutor/roles')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
               <UserCog className="w-4 h-4" /> 角色工坊
             </button>
             <button onClick={() => router.push('/tutor/workshop')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-[#475569] hover:bg-white hover:text-[#1e293b] transition-colors">
@@ -2372,6 +2378,7 @@ export default function TutorPage() {
                         el.style.height = `${Math.min(el.scrollHeight, 120)}px`
                       }
                     }}
+                    data-guide-target="tutor-input"
                     value={input} onChange={(e) => { setInput(e.target.value) }} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }} placeholder={multimodalMode === 'video' ? '输入你要生成的视频主题、知识点或讲解要求...' : multimodalMode === 'image' ? '输入你要生成的图片描述、风格或内容要求...' : '和 AI 对话，提任何学习问题...'} rows={1} className="flex-1 resize-none border-0 bg-transparent text-[15px] text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none min-h-[24px] max-h-[120px]" />
                   <button onClick={() => fileInputRef.current?.click()} className="w-8 h-8 rounded-full bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0] hover:text-[#1e293b] flex items-center justify-center transition-colors flex-shrink-0 relative" title="上传文档">
                     <Plus className="w-4 h-4" />
@@ -2662,6 +2669,7 @@ export default function TutorPage() {
           </div>
         </div>
       )}
+      <NewUserGuidePanel />
     </>
   )
 }

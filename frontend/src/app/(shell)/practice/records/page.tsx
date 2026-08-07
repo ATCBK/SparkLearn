@@ -64,7 +64,7 @@ export default function PracticeRecordsPage() {
   }
 
   return (
-    <div>
+    <div data-guide-target="practice-records-workspace">
       <PageHead
         eyebrow="练习评测 / 答题记录"
         title="答题记录"

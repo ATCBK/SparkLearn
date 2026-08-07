@@ -28,6 +28,17 @@ const NAV_ITEMS: NavItem[] = [
   { label: '学习报告', href: '/report', icon: <BarChart3 className="h-5 w-5" />, group: '分析与反馈' },
 ]
 
+const GUIDE_TARGET_BY_HREF: Record<string, string> = {
+  '/profile': 'profile-nav',
+  '/path': 'path-nav',
+  '/generate': 'resource-nav',
+  '/knowledge': 'knowledge-nav',
+  '/practice': 'practice-nav',
+  '/agent': 'tutor-nav',
+  '/info-stream': 'info-stream-nav',
+  '/report': 'report-nav',
+}
+
 interface SidebarProps {
   state: 'expanded' | 'icons' | 'collapsed'
   onStateChange: (state: 'expanded' | 'icons' | 'collapsed') => void
@@ -115,6 +126,7 @@ export function Sidebar({ state }: SidebarProps) {
                     href={item.href}
                     target={item.newTab ? '_blank' : undefined}
                     rel={item.newTab ? 'noopener noreferrer' : undefined}
+                    data-guide-target={GUIDE_TARGET_BY_HREF[item.href]}
                     title={isIcons ? item.label : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${
                       isIcons ? 'justify-center' : ''
@@ -161,6 +173,7 @@ export function Sidebar({ state }: SidebarProps) {
               href="/plaza"
               target="_blank"
               rel="noopener noreferrer"
+              data-guide-target="plaza-entry"
               className="flex items-center gap-3 rounded-[12px] border border-line bg-white p-3 transition-colors hover:bg-bg-hover"
             >
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#EEF5FF] text-[#2563EB]">

@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
 import { useCurrentUserDisplay } from '@/hooks/useCurrentUserDisplay'
+import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
 
 export default function WorkshopPage() {
   const router = useRouter()
@@ -107,7 +108,7 @@ export default function WorkshopPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#f5f7fa] max-[760px]:block max-[760px]:h-auto max-[760px]:min-h-screen" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+    <div data-guide-target="workshop-workspace" className="flex h-screen bg-[#f5f7fa] max-[760px]:block max-[760px]:h-auto max-[760px]:min-h-screen" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       {/* ═══ 左侧导航栏 ═══ */}
       <nav className="flex w-[200px] shrink-0 flex-col border-r border-[#e2e8f0] bg-[#f0f4ff] max-[760px]:hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -279,6 +280,7 @@ export default function WorkshopPage() {
           <div className="rounded-2xl border border-[#e2e8f0] bg-white shadow-sm px-4 py-3">
             <div className="flex items-center gap-3">
               <textarea
+                data-guide-target="workshop-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void startDiscussion() } }}
@@ -375,6 +377,7 @@ export default function WorkshopPage() {
           </div>
         )}
       </aside>
+      <NewUserGuidePanel />
     </div>
   )
 }

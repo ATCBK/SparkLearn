@@ -224,6 +224,7 @@ export function LearningNotesPanel() {
       <button
         onClick={() => setOpen(true)}
         data-testid="learning-notes-open"
+        data-guide-target="learning-notes-open"
         className={cn(
           'fixed right-0 top-1/2 z-40 flex -translate-y-1/2 items-center overflow-hidden rounded-l-[14px] border border-r-0 border-[#bfdbfe] bg-white text-blue shadow-lg transition-all duration-300 hover:w-[78px] hover:bg-blue-light',
           open ? 'w-0 translate-x-full opacity-0 pointer-events-none' : 'w-[42px] translate-x-0 opacity-100',

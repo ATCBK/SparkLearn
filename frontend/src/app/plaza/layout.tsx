@@ -1,6 +1,7 @@
 ﻿import type { ReactNode } from 'react'
 import { MessageSquare } from 'lucide-react'
 import { PlazaSidebar } from '@/components/plaza/PlazaSidebar'
+import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
 
 export default function PlazaLayout({ children }: { children: ReactNode }) {
   return (
@@ -21,6 +22,7 @@ export default function PlazaLayout({ children }: { children: ReactNode }) {
       <main className="ml-[260px] min-h-screen pt-16 max-[760px]:ml-0 max-[760px]:pt-14">
         <div className="mx-auto max-w-[1180px] px-6 py-6 max-[760px]:px-3 max-[760px]:py-4">{children}</div>
       </main>
+      <NewUserGuidePanel />
     </div>
   )
 }

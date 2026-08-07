@@ -2,13 +2,26 @@ const GUIDE_SEEN_PREFIX = 'sparklearn_new_user_guide_seen:'
 const GUIDE_PROGRESS_PREFIX = 'sparklearn_new_user_guide_progress:'
 
 export const NEW_USER_GUIDE_STEP_IDS = [
+  'home',
   'profile',
+  'profile-view',
   'path',
+  'path-node',
   'resource',
-  'tutor',
+  'resource-note',
+  'knowledge',
+  'agent',
   'practice',
+  'practice-records',
   'report',
-  'profile-update',
+  'info-stream',
+  'plaza',
+  'ai-sprite',
+  'ai-learning-space',
+  'tutor-role',
+  'tutor-chat',
+  'workshop',
+  'finish',
 ]
 
 function safeLocalStorage() {

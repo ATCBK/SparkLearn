@@ -2857,7 +2857,35 @@ def _extract_text_for_tutor(path: Path, mime_type: str, filename: str) -> str:
             doc.close()
     if suffix in {'.txt', '.md'} or mime_type.startswith('text/'):
         return path.read_text(encoding='utf-8', errors='ignore').strip()
+    if suffix == '.docx' or 'wordprocessingml.document' in mime_type:
+        return _extract_docx_text_for_tutor(path)
     raise RuntimeError(f'unsupported format: {suffix or mime_type}')
+
+
+def _extract_docx_text_for_tutor(path: Path) -> str:
+    try:
+        from docx import Document
+    except Exception as ex:
+        raise RuntimeError('python-docx is required for DOCX parsing') from ex
+
+    try:
+        doc = Document(str(path))
+    except Exception as ex:
+        raise RuntimeError('failed to parse DOCX file') from ex
+
+    parts: list[str] = []
+    for paragraph in doc.paragraphs:
+        text = paragraph.text.strip()
+        if text:
+            parts.append(text)
+
+    for table in doc.tables:
+        for row in table.rows:
+            cells = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+            if cells:
+                parts.append(' | '.join(cells))
+
+    return '\n'.join(parts).strip()
 
 
 def _clean_web_material_text(text: str) -> str:

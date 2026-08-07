@@ -66,7 +66,7 @@ export default function ProfilePage() {
   const latestProfileDate = formatProfileDate(profileHistory?.items?.[0]?.captured_at)
 
   return (
-    <div>
+    <div data-guide-target="profile-overview">
       <PageHead
         eyebrow="学习画像 / 你现在更适合怎么学"
         title="学习画像"

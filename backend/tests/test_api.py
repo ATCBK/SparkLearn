@@ -1,6 +1,11 @@
 ﻿import pytest
 
 
+from io import BytesIO
+
+from docx import Document
+
+
 @pytest.mark.asyncio
 async def test_profile_onboarding_and_get(client):
     payload = {
@@ -206,6 +211,48 @@ async def test_tutor_workspace_closed_loop(client):
     after = next((c for c in convs_after.json()["data"] if int(c["id"]) == conv_id), None)
     assert after is not None
     assert int(after["message_count"]) == before_count - 1
+
+
+@pytest.mark.asyncio
+async def test_tutor_docx_upload_is_indexed(client):
+    from app.auth import create_access_token
+    from app.config import settings
+
+    doc = Document()
+    doc.add_heading("Tutor DOCX 解析测试", level=1)
+    doc.add_paragraph("闭包可以保存外层函数变量，并在内部函数中继续访问。")
+    doc.add_paragraph("这个句子必须进入 tutor_file_chunks，供 Tutor 检索引用。")
+    buffer = BytesIO()
+    doc.save(buffer)
+    payload = buffer.getvalue()
+
+    upload = await client.post(
+        "/api/tutor/files",
+        headers={"Authorization": f"Bearer {create_access_token(settings.single_user_id)}"},
+        files=[
+            (
+                "files",
+                (
+                    "closure-note.docx",
+                    payload,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ),
+            )
+        ],
+    )
+
+    assert upload.status_code == 200
+    file_id = int(upload.json()["data"][0]["id"])
+
+    from app.db import fetch_all
+
+    chunks = fetch_all(
+        "SELECT content FROM tutor_file_chunks WHERE file_id = ? ORDER BY chunk_index ASC",
+        (file_id,),
+    )
+    joined = "\n".join(str(row["content"]) for row in chunks)
+    assert "闭包可以保存外层函数变量" in joined
+    assert "供 Tutor 检索引用" in joined
 
 
 @pytest.mark.asyncio

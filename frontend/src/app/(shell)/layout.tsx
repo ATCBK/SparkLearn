@@ -9,6 +9,7 @@ import { Topbar } from '@/components/layout/Topbar'
 import { AIAssistant } from '@/components/layout/AIAssistant'
 import { LearningNotesPanel } from '@/components/layout/LearningNotesPanel'
 import { MOBILE_TABS, PAGE_META } from '@/components/layout/navigation'
+import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
 import { GenerationTaskProvider } from '@/components/providers/GenerationTaskProvider'
 import { useBreakpoint } from '@/lib/hooks/useMediaQuery'
 import { clearDesktopAuthSession, isAuthenticated, restoreDesktopAuthSession, syncStudyBuddyProfile } from '@/lib/auth'
@@ -59,6 +60,14 @@ function MobileTopbar() {
 
 function BottomTabBar() {
   const pathname = usePathname()
+  const guideTargetByHref: Record<string, string> = {
+    '/profile': 'profile-nav',
+    '/path': 'path-nav',
+    '/generate': 'resource-nav',
+    '/practice': 'practice-nav',
+    '/report': 'report-nav',
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[70] border-t border-line bg-white/95 backdrop-blur pb-[calc(env(safe-area-inset-bottom)+4px)]">
       <div className="grid h-16" style={{ gridTemplateColumns: `repeat(${MOBILE_TABS.length}, minmax(0, 1fr))` }}>
@@ -69,6 +78,7 @@ function BottomTabBar() {
             <Link
               key={item.href}
               href={item.href}
+              data-guide-target={guideTargetByHref[item.href]}
               className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${
                 active ? 'text-[#2563EB]' : 'text-[#6B7280]'
               }`}
@@ -137,6 +147,7 @@ export default function ShellLayout({
             <div className="mx-auto max-w-[560px] px-3 py-4">{children}</div>
           </main>
           <BottomTabBar />
+          <NewUserGuidePanel />
         </div>
       </GenerationTaskProvider>
     )
@@ -167,6 +178,7 @@ export default function ShellLayout({
           <LearningNotesPanel />
         </Suspense>
         <AIAssistant />
+        <NewUserGuidePanel />
         {sidebarState === 'collapsed' && (
           <button
             onClick={() => setSidebarState('expanded')}

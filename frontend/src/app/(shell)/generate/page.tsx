@@ -1021,7 +1021,7 @@ function GeneratePageContent() {
 
             <label className="grid gap-2">
               <span className="text-small font-bold text-ink">生成要求</span>
-              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={type === 'video' ? 4 : 7} placeholder="填写你这次真正想生成的学习内容。新用户没有画像数据时，系统不会自动带入演示薄弱点。" className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
+              <textarea data-guide-target="resource-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={type === 'video' ? 4 : 7} placeholder="填写你这次真正想生成的学习内容。新用户没有画像数据时，系统不会自动带入演示薄弱点。" className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
             </label>
 
             {/* 视频：润色按钮 + 结果 */}

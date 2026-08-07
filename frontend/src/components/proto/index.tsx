@@ -63,7 +63,10 @@ export function ProtoButton({
   }
   const cls = cn('inline-flex h-9 items-center justify-center gap-2 rounded-[8px] px-3.5 text-small font-bold transition-colors disabled:opacity-50', variants[variant], className)
   if (href) {
-    return <Link href={href} className={cls}>{children}</Link>
+    const linkProps = { ...props } as React.AnchorHTMLAttributes<HTMLAnchorElement> & { disabled?: boolean; type?: string }
+    delete linkProps.disabled
+    delete linkProps.type
+    return <Link href={href} className={cls} {...linkProps}>{children}</Link>
   }
   return <button className={cls} {...props}>{children}</button>
 }

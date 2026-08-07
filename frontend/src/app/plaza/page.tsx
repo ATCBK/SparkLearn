@@ -11,7 +11,7 @@ const MODULES = [
 export default function PlazaHomePage() {
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-line bg-white p-6">
+      <section data-guide-target="plaza-workspace" className="rounded-xl border border-line bg-white p-6">
         <h1 className="text-3xl font-extrabold text-ink">学习空间</h1>
         <p className="mt-2 text-sm text-muted">选择一个子模块进入，模块之间职责清晰独立。</p>
       </section>

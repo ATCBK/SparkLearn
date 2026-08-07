@@ -256,7 +256,7 @@ export default function PathPage() {
       {/* 椤甸潰鏍囬鍖?*/}
       <PageHeader />
 
-      <div>
+      <div data-guide-target="path-workspace">
         {/* 鎽樿鏉?+ 瑙嗗浘鍒囨崲 */}
         <div className="mb-4">
           <SummaryBar viewMode={viewMode} onChangeViewMode={setViewMode} />
@@ -265,7 +265,7 @@ export default function PathPage() {
         {/* 涓讳綋鍖哄煙 */}
         {viewMode === 'path' ? (
           /* 鍘熸湁鍗＄墖瑙嗗浘 */
-          <div className="mt-6 grid grid-cols-[minmax(0,1fr)_320px] gap-2 max-[980px]:grid-cols-1">
+          <div className="mt-6 grid grid-cols-[minmax(0,1fr)_320px] gap-2 max-[980px]:grid-cols-1" data-guide-target="path-node-list">
             {/* 宸︿晶锛氶樁娈佃矾寰勫洖璺?*/}
             <div className="min-w-0">
               <PathCircuitCard

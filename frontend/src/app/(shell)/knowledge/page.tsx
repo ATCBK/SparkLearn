@@ -95,7 +95,7 @@ export default function KnowledgePage() {
   const filtered = files.filter(file => !query || file.filename.includes(query) || file.tags.join(' ').includes(query))
 
   return (
-    <div>
+    <div data-guide-target="knowledge-workspace">
       <PageHead
         eyebrow="知识库"
         title="知识库"

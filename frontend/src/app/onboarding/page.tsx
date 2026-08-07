@@ -26,8 +26,10 @@ import {
   Languages,
   TerminalSquare,
 } from 'lucide-react'
-import { getToken, syncStudyBuddyProfile } from '@/lib/auth'
+import { getToken, getUser, setUser, syncStudyBuddyProfile } from '@/lib/auth'
+import { api, type StudentProfile } from '@/lib/api'
 import { getTeacherSubjects } from '@/lib/api/real'
+import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
 
 /* ── 类型 ─────────────────────────────────────────── */
 
@@ -53,6 +55,20 @@ interface StepData {
 const DEFAULT_SUBJECTS = ['Python', 'Java', 'C/C++', 'JavaScript', 'Go', '数据结构与算法', '人工智能']
 
 const STEPS: StepData[] = [
+  {
+    key: 'name',
+    title: '你的名字',
+    greeting: '欢迎来到 SparkLearn。\n先告诉我怎么称呼你，这个名字会同步到个人中心和学习空间。',
+    question: '你叫什么名字？',
+  },
+  {
+    key: 'grade',
+    title: '当前年级',
+    greeting: '收到。接下来确认一下你现在的学习阶段，这会影响推荐节奏和任务难度。',
+    question: '你现在是大几？',
+    tags: ['大一', '大二', '大三', '大四', '研究生', '其他'],
+    multiSelect: false,
+  },
   {
     key: 'major',
     title: '学科方向',
@@ -186,11 +202,14 @@ export default function OnboardingPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
   const [subjectOptions, setSubjectOptions] = useState<string[]>(DEFAULT_SUBJECTS)
+  const [profileChecking, setProfileChecking] = useState(true)
+  const [existingProfile, setExistingProfile] = useState<StudentProfile | null>(null)
+  const [forceRecapture, setForceRecapture] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const finishingRef = useRef(false)
 
   const steps = useMemo(
-    () => STEPS.map((item, index) => (index === 0 ? { ...item, tags: subjectOptions } : item)),
+    () => STEPS.map((item) => (item.key === 'major' ? { ...item, tags: subjectOptions } : item)),
     [subjectOptions],
   )
 
@@ -409,6 +428,7 @@ export default function OnboardingPage() {
   const current = steps[step]
 
   return (
+    <>
     <div className="flex min-h-screen flex-col items-center px-4 py-8" style={{ backgroundImage: 'url(/ui-images/onboarding-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       {/* ═══ 顶部步骤指示器 ═══ */}
       <div className="mb-6 flex items-center justify-center gap-0">
@@ -608,6 +628,7 @@ export default function OnboardingPage() {
 
             <button
               onClick={confirmSelection}
+              data-guide-target="onboarding-primary-action"
               disabled={selected.length === 0}
               className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
                 selected.length > 0
@@ -622,6 +643,8 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+    <NewUserGuidePanel />
+    </>
   )
 }
 

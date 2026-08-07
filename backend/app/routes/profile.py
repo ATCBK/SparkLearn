@@ -30,6 +30,8 @@ class ProfileChatReq(BaseModel):
 
 
 class ProfileOnboardingReq(BaseModel):
+    name: str | None = None
+    grade: str | None = None
     major: list[str] = []
     goal: list[str] = []
     level: list[str] = []
@@ -58,8 +60,8 @@ async def onboarding(req: ProfileOnboardingReq, current_user: dict = Depends(get
     user_id = current_user["user_id"]
     profile = _build_profile_from_onboarding(req)
     major = _first_nonempty(req.major)
+    _upsert_student_identity(user_id, name=req.name, grade=req.grade, major=major)
     if major:
-        _upsert_student_major(user_id, major)
         profile["major"] = major
     _upsert_profile(user_id, profile)
     _write_profile_snapshot(user_id, profile)
@@ -256,11 +258,19 @@ def _upsert_profile(user_id: str, profile: dict[str, Any]) -> None:
 
 
 def _upsert_student_major(user_id: str, major: str) -> None:
+    _upsert_student_identity(user_id, major=major)
+    return
+
+
+def _upsert_student_identity(user_id: str, name: str | None = None, grade: str | None = None, major: str | None = None) -> None:
     current_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     if current_student:
+        next_name = str(name).strip() if name is not None and str(name).strip() else current_student["name"]
+        next_major = str(major).strip() if major is not None and str(major).strip() else current_student["major"]
+        next_grade = str(grade).strip() if grade is not None and str(grade).strip() else current_student["grade"]
         execute(
-            "UPDATE students SET major = ?, updated_at = ? WHERE user_id = ?",
-            (major.strip(), now_iso(), user_id),
+            "UPDATE students SET name = ?, major = ?, grade = ?, updated_at = ? WHERE user_id = ?",
+            (next_name, next_major, next_grade, now_iso(), user_id),
         )
         return
 
@@ -269,7 +279,15 @@ def _upsert_student_major(user_id: str, major: str) -> None:
         INSERT INTO students(user_id, name, email, major, grade, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (user_id, "", "", major.strip(), "", now_iso(), now_iso()),
+        (
+            user_id,
+            str(name or "").strip(),
+            "",
+            str(major or "").strip(),
+            str(grade or "").strip(),
+            now_iso(),
+            now_iso(),
+        ),
     )
 
 

@@ -117,7 +117,7 @@ export default function ReportPage() {
   const modeLabels: Record<ViewMode, string> = { day: '日报', week: '周报', month: '月报' }
 
   return (
-    <div>
+    <div data-guide-target="report-workspace">
       <PageHead
         eyebrow="学习报告 / 数据驱动的学习复盘"
         title="学习报告"

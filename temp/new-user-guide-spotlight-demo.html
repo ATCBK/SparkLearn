@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SparkLearn 新用户聚焦式引导原型</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      color: #111827;
+      background: #eef4ff;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 236px 1fr;
+    }
+
+    .sidebar {
+      background: #0f172a;
+      color: #dbeafe;
+      padding: 22px 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 42px;
+      padding: 0 12px;
+      border-radius: 10px;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .nav a.active,
+    .nav a:hover {
+      background: rgba(37, 99, 235, .22);
+      color: #fff;
+    }
+
+    .main {
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .title p {
+      margin: 8px 0 0;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .btn {
+      border: 0;
+      height: 42px;
+      border-radius: 10px;
+      padding: 0 16px;
+      font-weight: 800;
+      cursor: pointer;
+      color: #fff;
+      background: #2563eb;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, .2);
+    }
+
+    .btn.secondary {
+      color: #2563eb;
+      background: #fff;
+      border: 1px solid #bfdbfe;
+      box-shadow: none;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 14px;
+      min-height: 220px;
+      padding: 28px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.96), rgba(255,255,255,.72)),
+        radial-gradient(circle at 86% 18%, #93c5fd 0, transparent 34%),
+        linear-gradient(135deg, #e0f2fe, #f8fafc);
+      border: 1px solid #dbeafe;
+    }
+
+    .hero h2 {
+      max-width: 560px;
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.35;
+    }
+
+    .hero p {
+      max-width: 580px;
+      color: #52627b;
+      line-height: 1.8;
+      margin: 12px 0 20px;
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .metric,
+    .panel {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .06);
+    }
+
+    .metric b {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    .metric span,
+    .panel p {
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .panel h3 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .task {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f8fafc;
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .guide-root {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+      display: none;
+    }
+
+    .guide-root.show {
+      display: block;
+    }
+
+    .guide-dim {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, .64);
+      pointer-events: auto;
+    }
+
+    .spotlight {
+      position: absolute;
+      border: 3px solid #60a5fa;
+      border-radius: 14px;
+      box-shadow:
+        0 0 0 9999px rgba(15, 23, 42, .64),
+        0 0 0 8px rgba(96, 165, 250, .2),
+        0 18px 60px rgba(37, 99, 235, .45);
+      pointer-events: none;
+      transition: left .28s ease, top .28s ease, width .28s ease, height .28s ease;
+    }
+
+    .spotlight::after {
+      content: "";
+      position: absolute;
+      inset: -9px;
+      border-radius: 18px;
+      border: 1px solid rgba(147, 197, 253, .85);
+      animation: pulse 1.4s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      from {
+        transform: scale(.98);
+        opacity: .9;
+      }
+      to {
+        transform: scale(1.08);
+        opacity: 0;
+      }
+    }
+
+    .tooltip {
+      position: absolute;
+      width: min(360px, calc(100vw - 32px));
+      border-radius: 14px;
+      background: #fff;
+      padding: 18px;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .34);
+      pointer-events: auto;
+      transition: left .28s ease, top .28s ease;
+    }
+
+    .tooltip::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      transform: rotate(45deg);
+      left: 30px;
+      top: -9px;
+    }
+
+    .tooltip.above::before {
+      top: auto;
+      bottom: -9px;
+    }
+
+    .tooltip h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .tooltip p {
+      margin: 9px 0 0;
+      color: #52627b;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .step-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .tooltip-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .ghost {
+      border: 0;
+      background: transparent;
+      color: #64748b;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .arrow {
+      position: absolute;
+      color: #60a5fa;
+      pointer-events: none;
+      filter: drop-shadow(0 8px 14px rgba(15, 23, 42, .28));
+      transition: left .28s ease, top .28s ease, transform .28s ease;
+    }
+
+    .welcome {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      background: rgba(15, 23, 42, .66);
+    }
+
+    .welcome-card {
+      width: min(520px, calc(100vw - 36px));
+      border-radius: 18px;
+      background: #fff;
+      padding: 28px;
+      box-shadow: 0 28px 90px rgba(15, 23, 42, .38);
+    }
+
+    .welcome-card h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.3;
+    }
+
+    .welcome-card p {
+      margin: 12px 0 0;
+      color: #52627b;
+      line-height: 1.8;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin: 18px 0 22px;
+    }
+
+    .flow span {
+      min-height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .hide {
+      display: none;
+    }
+
+    @media (max-width: 840px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 18px;
+      }
+
+      .metrics,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">S</span> SparkLearn</div>
+      <nav class="nav">
+        <a class="active" href="#">学习工作台</a>
+        <a id="target-path" href="#">学习路径</a>
+        <a id="target-tutor" href="#">AI Tutor</a>
+        <a id="target-practice" href="#">练习评测</a>
+        <a id="target-report" href="#">学习报告</a>
+        <a href="#">个人画像</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="title">
+          <h1>今日学习工作台</h1>
+          <p>第一次进入时，不跳出真实工作台，而是在这里完成首次用户体验引导。</p>
+        </div>
+        <button class="btn secondary" id="restart">新手引导</button>
+      </div>
+
+      <section class="hero">
+        <h2>还没有形成个人学习数据</h2>
+        <p>完成画像采集后，系统会开始为你生成路径、任务、资源和学习报告。</p>
+        <div class="actions">
+          <button class="btn" id="target-profile">完善学习画像</button>
+          <button class="btn secondary">查看学习路径</button>
+          <button class="btn secondary" id="target-resource">根据当前卡点生成新资源</button>
+        </div>
+      </section>
+
+      <section class="metrics">
+        <div class="metric"><b>暂无</b><span>今日预计</span></div>
+        <div class="metric"><b>0 项</b><span>待完成任务</span></div>
+        <div class="metric"><b>0 天</b><span>连续学习</span></div>
+        <div class="metric"><b>0%</b><span>掌握度变化</span></div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <h3>今日任务</h3>
+          <p>新用户不会默认出现演示任务。创建学习路径或生成资源后，这里会出现真实待办。</p>
+          <div class="task">添加今天要完成的学习任务 <button class="btn secondary">添加</button></div>
+        </div>
+        <div class="panel">
+          <h3>今日新资源推荐</h3>
+          <p>完成画像采集、上传知识文件或生成资源后，系统会在这里推荐下一步内容。</p>
+          <button class="btn secondary">查看全部资源</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="welcome" id="welcome">
+    <div class="welcome-card">
+      <h1>欢迎来到 SparkLearn</h1>
+      <p>我们会带你完成第一轮个性化学习闭环。页面不会跳走，系统会直接在真实工作台上告诉你先点哪里。</p>
+      <div class="flow">
+        <span>画像</span>
+        <span>路径</span>
+        <span>资源</span>
+        <span>导师</span>
+        <span>报告</span>
+      </div>
+      <div class="actions">
+        <button class="btn" id="start">开始体验</button>
+        <button class="btn secondary" id="later">稍后再说</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-root" id="guide">
+    <div class="guide-dim"></div>
+    <div class="spotlight" id="spotlight"></div>
+    <svg class="arrow" id="arrow" width="86" height="86" viewBox="0 0 86 86" aria-hidden="true">
+      <path d="M14 20 C36 26 50 38 60 62" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+      <path d="M48 58 L62 66 L66 50" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <article class="tooltip" id="tooltip">
+      <div class="step-line"><span id="stepIndex">第 1 步</span><span>Product Tour</span></div>
+      <h2 id="tipTitle"></h2>
+      <p id="tipText"></p>
+      <div class="tooltip-actions">
+        <button class="ghost" id="skip">跳过引导</button>
+        <div>
+          <button class="btn secondary" id="prev">上一步</button>
+          <button class="btn" id="next">下一步</button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <script>
+    const steps = [
+      {
+        target: "target-profile",
+        title: "先创建学习画像",
+        text: "告诉 AI 你的目标、基础和偏好。后面的路径、资源和练习都从这里开始变得个性化。"
+      },
+      {
+        target: "target-path",
+        title: "再生成个性化学习路径",
+        text: "学习路径会把大目标拆成阶段、知识点和任务，让新用户知道第一步从哪里开始。"
+      },
+      {
+        target: "target-resource",
+        title: "围绕当前卡点生成资源",
+        text: "不要让用户自己在资料里迷路。系统应该根据当前阶段生成文档、练习、课件或视频。"
+      },
+      {
+        target: "target-tutor",
+        title: "遇到问题就问 AI Tutor",
+        text: "AI Tutor 是学习互动入口。用户可以提问、上传材料，也可以让导师一步步拆解问题。"
+      },
+      {
+        target: "target-report",
+        title: "最后查看报告并更新画像",
+        text: "报告不是终点，它会把练习表现和薄弱点回写到画像里，形成下一轮学习闭环。"
+      }
+    ];
+
+    let current = 0;
+    const welcome = document.getElementById("welcome");
+    const guide = document.getElementById("guide");
+    const spotlight = document.getElementById("spotlight");
+    const tooltip = document.getElementById("tooltip");
+    const arrow = document.getElementById("arrow");
+    const tipTitle = document.getElementById("tipTitle");
+    const tipText = document.getElementById("tipText");
+    const stepIndex = document.getElementById("stepIndex");
+    const prev = document.getElementById("prev");
+    const next = document.getElementById("next");
+
+    function startGuide() {
+      welcome.classList.add("hide");
+      guide.classList.add("show");
+      current = 0;
+      renderStep();
+    }
+
+    function endGuide() {
+      guide.classList.remove("show");
+      welcome.classList.add("hide");
+    }
+
+    function renderStep() {
+      const step = steps[current];
+      const target = document.getElementById(step.target);
+      const rect = target.getBoundingClientRect();
+      const pad = 8;
+
+      spotlight.style.left = `${rect.left - pad}px`;
+      spotlight.style.top = `${rect.top - pad}px`;
+      spotlight.style.width = `${rect.width + pad * 2}px`;
+      spotlight.style.height = `${rect.height + pad * 2}px`;
+
+      const preferBelow = rect.bottom + 210 < window.innerHeight;
+      const tipTop = preferBelow ? rect.bottom + 38 : Math.max(18, rect.top - 228);
+      const tipLeft = Math.min(Math.max(18, rect.left), window.innerWidth - 378);
+
+      tooltip.classList.toggle("above", !preferBelow);
+      tooltip.style.left = `${tipLeft}px`;
+      tooltip.style.top = `${tipTop}px`;
+
+      arrow.style.left = `${Math.min(rect.left + rect.width / 2 - 20, window.innerWidth - 100)}px`;
+      arrow.style.top = preferBelow ? `${rect.bottom + 2}px` : `${rect.top - 88}px`;
+      arrow.style.transform = preferBelow ? "rotate(0deg)" : "rotate(180deg)";
+
+      stepIndex.textContent = `第 ${current + 1} / ${steps.length} 步`;
+      tipTitle.textContent = step.title;
+      tipText.textContent = step.text;
+      prev.style.visibility = current === 0 ? "hidden" : "visible";
+      next.textContent = current === steps.length - 1 ? "完成引导" : "下一步";
+    }
+
+    document.getElementById("start").addEventListener("click", startGuide);
+    document.getElementById("later").addEventListener("click", () => welcome.classList.add("hide"));
+    document.getElementById("restart").addEventListener("click", () => {
+      welcome.classList.remove("hide");
+      guide.classList.remove("show");
+    });
+    document.getElementById("skip").addEventListener("click", endGuide);
+    prev.addEventListener("click", () => {
+      current = Math.max(0, current - 1);
+      renderStep();
+    });
+    next.addEventListener("click", () => {
+      if (current >= steps.length - 1) {
+        endGuide();
+        return;
+      }
+      current += 1;
+      renderStep();
+    });
+    window.addEventListener("resize", () => {
+      if (guide.classList.contains("show")) renderStep();
+    });
+  </script>
+</body>
+</html>
