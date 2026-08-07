@@ -120,16 +120,30 @@ function formatApiError<T>(json: ApiResp<T>, method: string, path: string, statu
   return `${baseMessage} [${method} ${path} -> ${status}]`
 }
 
+async function readApiErrorMessage(res: Response, method: string, path: string): Promise<string> {
+  try {
+    const json = await res.json() as ApiResp<unknown>
+    return formatApiError(json, method, path, res.status)
+  } catch {
+    const text = await res.text().catch(() => '')
+    return `${text || `请求失败：${res.status}`} [${method} ${path} -> ${res.status}]`
+  }
+}
+
 async function readSSE(
   path: string,
   body: Record<string, unknown>,
   onEvent?: (evt: SseEvent) => void,
 ) {
+  const method = 'POST'
   const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
+    method,
     headers: _authHeaders(),
     body: JSON.stringify(body),
   })
+  if (!res.ok) {
+    throw new Error(await readApiErrorMessage(res, method, path))
+  }
   if (!res.body) throw new Error('流式响应体为空')
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
@@ -1579,12 +1593,13 @@ export async function generateVideo(
   const resourceId = job.resource_id
 
   // Step 3: Stream job events
+  const hadEventStream = Boolean(job.events_url)
   if (job.events_url) {
     try {
       const eventsUrl = `${API_BASE}${job.events_url}`
       const res = await fetch(eventsUrl, { headers: _authUploadHeaders() })
       if (!res.ok) {
-        throw new Error(`视频生成事件流连接失败 [GET ${job.events_url} -> ${res.status}]`)
+        throw new Error(await readApiErrorMessage(res, 'GET', job.events_url))
       }
       if (res.body) {
         const reader = res.body.getReader()
@@ -1599,10 +1614,17 @@ export async function generateVideo(
           for (const c of chunks) {
             const line = c.split('\n').find(l => l.startsWith('data: '))
             if (!line) continue
+            let evt: SseEvent | null = null
             try {
-              const evt = JSON.parse(line.slice(6))
-              onEvent?.(evt)
-            } catch { /* skip malformed */ }
+              evt = JSON.parse(line.slice(6)) as SseEvent
+            } catch {
+              continue
+            }
+            onEvent?.(evt)
+            if (evt?.type === 'error') {
+              const payload = evt.payload && typeof evt.payload === 'object' ? evt.payload as Record<string, unknown> : {}
+              throw new Error(String(payload.message || payload.error || '视频生成失败'))
+            }
           }
         }
       }
@@ -1615,7 +1637,10 @@ export async function generateVideo(
   try {
     const resource = await fetchJson<any>(`/api/video/resources/${resourceId}`)
     return toResource({ ...resource, type: 'video' })
-  } catch {
+  } catch (error) {
+    if (hadEventStream) {
+      throw error instanceof Error ? error : new Error('视频生成结果拉取失败')
+    }
     return {
       id: resourceId || `video-${Date.now()}`,
       title: polish.title || prompt.slice(0, 20),
