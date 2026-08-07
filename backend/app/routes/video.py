@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from ..config import settings
 from ..auth import get_current_user
 from ..schemas import ok
-from ..storage import append_jsonl, read_json, write_json
+from ..storage import append_jsonl, read_json, update_json, write_json
 from ..video_ai import VideoAIScriptError
 from ..video_generator import artifact_dir, build_video_artifacts, make_polished_script, now_iso
 from .common import sse_wrap
@@ -160,12 +160,14 @@ def _find_resource(user_id: str, resource_id: str) -> dict[str, Any] | None:
 
 
 def _update_job(user_id: str, job_id: str, **updates: Any) -> None:
-    jobs = _jobs(user_id)
-    for item in jobs:
-        if str(item.get("job_id")) == job_id:
-            item.update(updates)
-            break
-    _save_jobs(user_id, jobs)
+    def mutate(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for item in jobs:
+            if str(item.get("job_id")) == job_id:
+                item.update(updates)
+                break
+        return jobs
+
+    update_json(user_id, "video_jobs.json", [], mutate)
 
 
 async def _run_video_job_once(user_id: str, job_id: str, job: dict[str, Any]) -> dict[str, Any]:
@@ -182,9 +184,12 @@ async def _run_video_job_once(user_id: str, job_id: str, job: dict[str, Any]) ->
 
         manifest = await asyncio.to_thread(build_video_artifacts, resource_id, job)
         resource = _resource_payload(resource_id, manifest)
-        resources = [item for item in _resources(user_id) if str(item.get("id")) != resource_id]
-        resources.insert(0, resource)
-        _save_resources(user_id, resources)
+        def upsert_resource(resources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            next_resources = [item for item in resources if str(item.get("id")) != resource_id]
+            next_resources.insert(0, resource)
+            return next_resources
+
+        update_json(user_id, "video_resources.json", [], upsert_resource)
         _update_job(user_id, job_id, status="completed", progress=100, completed_at=now_iso())
         append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_completed", "job_id": job_id, "resource_id": resource_id})
         return resource
@@ -246,9 +251,11 @@ async def create_video_job(req: VideoJobReq, current_user: dict = Depends(get_cu
         **req.model_dump(),
         "voice": voice,
     }
-    jobs = _jobs(user_id)
-    jobs.append(job)
-    _save_jobs(user_id, jobs)
+    def append_job(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        jobs.append(job)
+        return jobs
+
+    update_json(user_id, "video_jobs.json", [], append_job)
     append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_created", "job_id": job_id, "resource_id": resource_id})
     return ok({"job_id": job_id, "resource_id": resource_id, "status": "queued", "events_url": f"/api/video/jobs/{job_id}/events"})
 
