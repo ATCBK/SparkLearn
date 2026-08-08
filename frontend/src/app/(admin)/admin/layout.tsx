@@ -75,6 +75,7 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
       dispatch({ type: 'sync-auth', hasToken: false })
       return
     }
+    dispatch({ type: 'sync-auth', hasToken: true })
     let cancelled = false
     api.getAdminMe()
       .then((admin) => {

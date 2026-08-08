@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, ShieldCheck, User } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -13,6 +13,10 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    router.prefetch('/admin/dashboard')
+  }, [router])
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault()

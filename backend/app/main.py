@@ -143,6 +143,7 @@ def create_app() -> FastAPI:
     app.include_router(quiz_router)
     app.include_router(tutor_eval_router)
     app.include_router(video_router)
+    app.include_router(admin_router)
     app.include_router(voice_admin_router)
     app.include_router(agent_router)
     app.include_router(teacher_router)
@@ -152,7 +153,6 @@ def create_app() -> FastAPI:
     app.include_router(info_stream_router)
     app.include_router(num_person_router)
     app.include_router(code_runner_router)
-    app.include_router(admin_router)
     return app
 
 

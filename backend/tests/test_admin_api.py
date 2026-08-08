@@ -44,6 +44,22 @@ async def test_admin_login_and_normal_user_is_forbidden(client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_admin_dashboard_uses_real_admin_contract(client) -> None:
+    _insert_student("user_dashboard_contract", "16610000006")
+    headers = await _admin_headers(client)
+
+    resp = await client.get("/api/admin/dashboard", headers=headers)
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert "cards" in data
+    assert "tenants" in data
+    assert "services" in data
+    assert "total_users" in data["cards"]
+    assert "student_count" not in data
+
+
+@pytest.mark.asyncio
 async def test_admin_rejects_invalid_token_and_forum_admin_bypass(client) -> None:
     _insert_student("user_forum_bypass", "16610000005")
     user_token = create_access_token("user_forum_bypass")

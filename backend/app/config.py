@@ -234,7 +234,7 @@ class Settings(BaseSettings):
     auth_password_require_letter: bool = True
     auth_password_require_digit: bool = True
     admin_username: str = "admin"
-    admin_password: str = "change-me-admin-password"
+    admin_password: str = "SparkLearn1"
     use_mock_data: bool = True
     cors_origin: str = "http://localhost:3000"
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
