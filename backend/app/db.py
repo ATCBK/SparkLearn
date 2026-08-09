@@ -344,6 +344,25 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_teacher_subjects_user_enabled
             ON teacher_subjects(user_id, enabled, sort_order);
 
+            CREATE TABLE IF NOT EXISTS teacher_knowledge_graphs (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              title TEXT NOT NULL,
+              description TEXT DEFAULT '',
+              status TEXT NOT NULL DEFAULT 'draft',
+              target_classes TEXT DEFAULT '[]',
+              source_files TEXT DEFAULT '[]',
+              source_summary TEXT DEFAULT '',
+              nodes_json TEXT DEFAULT '[]',
+              edges_json TEXT DEFAULT '[]',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              published_at TEXT DEFAULT ''
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_knowledge_graphs_user_time
+            ON teacher_knowledge_graphs(user_id, updated_at DESC);
+
             CREATE TABLE IF NOT EXISTS mcp_services (
               id TEXT PRIMARY KEY,
               owner_id TEXT NOT NULL,

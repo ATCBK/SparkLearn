@@ -148,6 +148,49 @@ export interface TeacherSubject {
   updated_at: string
 }
 
+export interface TeacherKnowledgeGraphNode {
+  id: string
+  label: string
+  type: '知识点' | '概念' | '方法' | '公式' | '案例' | '能力' | string
+  description: string
+  difficulty: number
+  x: number
+  y: number
+  color: string
+  source: 'ai' | 'custom' | string
+}
+
+export interface TeacherKnowledgeGraphEdge {
+  id: string
+  source: string
+  target: string
+  type: '前置知识' | '包含' | '相关' | '应用' | '易混淆' | string
+  label: string
+}
+
+export interface TeacherKnowledgeGraphSourceFile {
+  filename: string
+  mime_type: string
+  size_bytes: number
+}
+
+export interface TeacherKnowledgeGraph {
+  id: number
+  title: string
+  description: string
+  status: 'draft' | 'published' | string
+  target_classes: string[]
+  source_files: TeacherKnowledgeGraphSourceFile[]
+  source_summary: string
+  node_count: number
+  edge_count: number
+  nodes?: TeacherKnowledgeGraphNode[]
+  edges?: TeacherKnowledgeGraphEdge[]
+  created_at: string
+  updated_at: string
+  published_at: string
+}
+
 export interface McpService {
   id: string
   name: string

@@ -4,7 +4,7 @@ import type {
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherSubject, McpService, McpServicePayload,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherSubject, TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledgeGraphNode, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
@@ -1579,6 +1579,67 @@ export async function importTeacherSubjects(items: Array<{
     method: 'POST',
     body: JSON.stringify({ items }),
   })
+}
+
+export async function getTeacherKnowledgeGraphs(): Promise<TeacherKnowledgeGraph[]> {
+  return fetchJson('/api/teacher/knowledge-graphs')
+}
+
+export async function getTeacherKnowledgeGraph(graphId: number): Promise<TeacherKnowledgeGraph> {
+  return fetchJson(`/api/teacher/knowledge-graphs/${graphId}`)
+}
+
+export async function createTeacherKnowledgeGraphFromFiles(payload: {
+  title: string
+  description?: string
+  targetClasses?: string[]
+  files: File[]
+}): Promise<TeacherKnowledgeGraph> {
+  const form = new FormData()
+  payload.files.forEach(file => form.append('files', file))
+  form.append('title', payload.title)
+  form.append('description', payload.description || '')
+  form.append('target_classes', (payload.targetClasses || []).join(','))
+  const path = '/api/teacher/knowledge-graphs/from-files'
+  const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: _authUploadHeaders(), body: form })
+  const json = await res.json() as ApiResp<TeacherKnowledgeGraph>
+  if (!res.ok || !json.success) throw new Error(formatApiError(json, 'POST', path, res.status))
+  return json.data
+}
+
+export async function createTeacherKnowledgeGraph(payload: {
+  title: string
+  description?: string
+  target_classes?: string[]
+  nodes?: TeacherKnowledgeGraphNode[]
+  edges?: TeacherKnowledgeGraphEdge[]
+}): Promise<TeacherKnowledgeGraph> {
+  return fetchJson('/api/teacher/knowledge-graphs', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateTeacherKnowledgeGraph(graphId: number, payload: {
+  title: string
+  description?: string
+  target_classes?: string[]
+  status?: string
+  nodes: TeacherKnowledgeGraphNode[]
+  edges: TeacherKnowledgeGraphEdge[]
+}): Promise<TeacherKnowledgeGraph> {
+  return fetchJson(`/api/teacher/knowledge-graphs/${graphId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function publishTeacherKnowledgeGraph(graphId: number): Promise<TeacherKnowledgeGraph> {
+  return fetchJson(`/api/teacher/knowledge-graphs/${graphId}/publish`, { method: 'POST' })
+}
+
+export async function deleteTeacherKnowledgeGraph(graphId: number): Promise<void> {
+  await fetchJson(`/api/teacher/knowledge-graphs/${graphId}`, { method: 'DELETE' })
 }
 
 

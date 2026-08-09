@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BarChart3, BookOpen, Bot, CheckCircle2, Clock3, Flame, Monitor, TrendingUp, Users } from 'lucide-react'
+import { AlertTriangle, BarChart3, BookOpen, Bot, CheckCircle2, Clock3, Flame, Monitor, Network, TrendingUp, Users } from 'lucide-react'
 import { PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 
 const API = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
@@ -98,9 +98,10 @@ export default function TeacherDashboardPage() {
         <div className="space-y-5">
           <div className="px-1">
             <h2 className="mb-4 text-[18px] font-bold text-[#0f172a]">教师端快捷跳转</h2>
-            <div className="grid grid-cols-6 gap-3 max-[1080px]:grid-cols-3 max-[760px]:grid-cols-2">
+            <div className="grid grid-cols-7 gap-3 max-[1180px]:grid-cols-4 max-[900px]:grid-cols-3 max-[760px]:grid-cols-2">
               {[
                 { label: '学科管理', desc: '配置学生可选学科', href: '/teacher/subjects', icon: <BookOpen className="h-5 w-5" />, tone: 'bg-[#eff6ff] text-[#2563eb]' },
+                { label: '知识图谱', desc: '资料生成与编辑', href: '/teacher/knowledge-graph', icon: <Network className="h-5 w-5" />, tone: 'bg-[#ecfeff] text-[#0891b2]' },
                 { label: '学生管理', desc: '查看学生详情', href: '/teacher/students', icon: <Users className="h-5 w-5" />, tone: 'bg-[#eaf2ff] text-[#2563eb]' },
                 { label: '学习报告', desc: '查看全班报告', href: '/teacher/reports', icon: <BarChart3 className="h-5 w-5" />, tone: 'bg-[#ecfdf5] text-[#059669]' },
                 { label: '干预中心', desc: '处理风险预警', href: '/teacher/interventions', icon: <AlertTriangle className="h-5 w-5" />, tone: 'bg-[#fff7ed] text-[#d97706]' },
