@@ -1,0 +1,1227 @@
+[
+  {
+    "file": "agent.py",
+    "line": 558,
+    "method": "POST",
+    "path": "/pet",
+    "func": "adopt_pet"
+  },
+  {
+    "file": "agent.py",
+    "line": 580,
+    "method": "GET",
+    "path": "/pet",
+    "func": "get_pet"
+  },
+  {
+    "file": "agent.py",
+    "line": 589,
+    "method": "PATCH",
+    "path": "/pet",
+    "func": "update_pet"
+  },
+  {
+    "file": "agent.py",
+    "line": 615,
+    "method": "POST",
+    "path": "/task",
+    "func": "create_task"
+  },
+  {
+    "file": "agent.py",
+    "line": 656,
+    "method": "GET",
+    "path": "/task/{task_id}",
+    "func": "get_task"
+  },
+  {
+    "file": "agent.py",
+    "line": 673,
+    "method": "GET",
+    "path": "/tasks",
+    "func": "list_tasks"
+  },
+  {
+    "file": "agent.py",
+    "line": 687,
+    "method": "POST",
+    "path": "/task/{task_id}/feedback",
+    "func": "submit_feedback"
+  },
+  {
+    "file": "agent.py",
+    "line": 697,
+    "method": "POST",
+    "path": "/bookmark",
+    "func": "bookmark_resource"
+  },
+  {
+    "file": "agent.py",
+    "line": 715,
+    "method": "GET",
+    "path": "/recommendations",
+    "func": "get_recommendations"
+  },
+  {
+    "file": "code_runner.py",
+    "line": 71,
+    "method": "POST",
+    "path": "/api/code/run",
+    "func": "run_code"
+  },
+  {
+    "file": "code_runner.py",
+    "line": 85,
+    "method": "POST",
+    "path": "/api/code/run-tests",
+    "func": "run_tests"
+  },
+  {
+    "file": "forum.py",
+    "line": 167,
+    "method": "GET",
+    "path": "/admin/posts",
+    "func": "admin_list_posts"
+  },
+  {
+    "file": "forum.py",
+    "line": 210,
+    "method": "PATCH",
+    "path": "/admin/posts/{post_id}/status",
+    "func": "admin_update_post_status"
+  },
+  {
+    "file": "forum.py",
+    "line": 226,
+    "method": "GET",
+    "path": "/posts",
+    "func": "list_posts"
+  },
+  {
+    "file": "forum.py",
+    "line": 265,
+    "method": "POST",
+    "path": "/posts",
+    "func": "create_post"
+  },
+  {
+    "file": "forum.py",
+    "line": 295,
+    "method": "GET",
+    "path": "/posts/{post_id}",
+    "func": "get_post_detail"
+  },
+  {
+    "file": "forum.py",
+    "line": 325,
+    "method": "POST",
+    "path": "/posts/{post_id}/import-resource",
+    "func": "import_post_resource"
+  },
+  {
+    "file": "forum.py",
+    "line": 366,
+    "method": "DELETE",
+    "path": "/posts/{post_id}",
+    "func": "delete_post"
+  },
+  {
+    "file": "forum.py",
+    "line": 376,
+    "method": "GET",
+    "path": "/posts/{post_id}/comments",
+    "func": "list_comments"
+  },
+  {
+    "file": "forum.py",
+    "line": 397,
+    "method": "POST",
+    "path": "/posts/{post_id}/comments",
+    "func": "create_comment"
+  },
+  {
+    "file": "forum.py",
+    "line": 435,
+    "method": "DELETE",
+    "path": "/comments/{comment_id}",
+    "func": "delete_comment"
+  },
+  {
+    "file": "forum.py",
+    "line": 455,
+    "method": "POST",
+    "path": "/posts/{post_id}/like",
+    "func": "toggle_like"
+  },
+  {
+    "file": "forum.py",
+    "line": 481,
+    "method": "POST",
+    "path": "/posts/{post_id}/favorite",
+    "func": "toggle_favorite"
+  },
+  {
+    "file": "forum.py",
+    "line": 507,
+    "method": "POST",
+    "path": "/posts/{post_id}/attachments",
+    "func": "upload_attachments"
+  },
+  {
+    "file": "forum.py",
+    "line": 553,
+    "method": "GET",
+    "path": "/posts/{post_id}/attachments",
+    "func": "list_attachments"
+  },
+  {
+    "file": "forum.py",
+    "line": 559,
+    "method": "GET",
+    "path": "/attachments/{attachment_id}/download",
+    "func": "download_attachment"
+  },
+  {
+    "file": "forum.py",
+    "line": 572,
+    "method": "GET",
+    "path": "/my/posts",
+    "func": "get_my_posts"
+  },
+  {
+    "file": "forum.py",
+    "line": 588,
+    "method": "GET",
+    "path": "/my/favorites",
+    "func": "get_my_favorites"
+  },
+  {
+    "file": "forum.py",
+    "line": 608,
+    "method": "GET",
+    "path": "/my/likes",
+    "func": "get_my_likes"
+  },
+  {
+    "file": "forum.py",
+    "line": 628,
+    "method": "GET",
+    "path": "/my/comments",
+    "func": "get_my_comments"
+  },
+  {
+    "file": "forum.py",
+    "line": 656,
+    "method": "GET",
+    "path": "/my/history",
+    "func": "get_my_history"
+  },
+  {
+    "file": "info_stream.py",
+    "line": 23,
+    "method": "GET",
+    "path": "/sources",
+    "func": "get_sources"
+  },
+  {
+    "file": "info_stream.py",
+    "line": 35,
+    "method": "GET",
+    "path": "/search",
+    "func": "search"
+  },
+  {
+    "file": "info_stream.py",
+    "line": 47,
+    "method": "GET",
+    "path": "/recommendations",
+    "func": "get_recommendations"
+  },
+  {
+    "file": "info_stream.py",
+    "line": 164,
+    "method": "POST",
+    "path": "/bookmark",
+    "func": "bookmark"
+  },
+  {
+    "file": "info_stream.py",
+    "line": 214,
+    "method": "POST",
+    "path": "/import-resource",
+    "func": "import_resource"
+  },
+  {
+    "file": "info_stream.py",
+    "line": 238,
+    "method": "GET",
+    "path": "/bookmarks",
+    "func": "get_bookmarks"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 19,
+    "method": "GET",
+    "path": "/files",
+    "func": "list_knowledge_files"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 45,
+    "method": "POST",
+    "path": "/files",
+    "func": "upload_knowledge_file"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 85,
+    "method": "PUT",
+    "path": "/files/{file_id}/index",
+    "func": "index_knowledge_file"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 133,
+    "method": "GET",
+    "path": "/files/{file_id}",
+    "func": "get_knowledge_file"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 141,
+    "method": "DELETE",
+    "path": "/files/{file_id}",
+    "func": "delete_knowledge_file"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 154,
+    "method": "GET",
+    "path": "/stats",
+    "func": "knowledge_stats"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 178,
+    "method": "GET",
+    "path": "/chunks",
+    "func": "knowledge_chunks"
+  },
+  {
+    "file": "knowledge.py",
+    "line": 195,
+    "method": "GET",
+    "path": "/retrieve",
+    "func": "retrieve_knowledge"
+  },
+  {
+    "file": "learning.py",
+    "line": 191,
+    "method": "GET",
+    "path": "/learning-path",
+    "func": "get_learning_path"
+  },
+  {
+    "file": "learning.py",
+    "line": 197,
+    "method": "POST",
+    "path": "/learning-path/node-advice",
+    "func": "get_node_advice"
+  },
+  {
+    "file": "learning.py",
+    "line": 227,
+    "method": "POST",
+    "path": "/learning-path/adjust",
+    "func": "adjust_learning_path"
+  },
+  {
+    "file": "learning.py",
+    "line": 237,
+    "method": "GET",
+    "path": "/tasks/today",
+    "func": "get_today_tasks"
+  },
+  {
+    "file": "learning.py",
+    "line": 242,
+    "method": "POST",
+    "path": "/tasks",
+    "func": "create_task"
+  },
+  {
+    "file": "learning.py",
+    "line": 258,
+    "method": "PUT",
+    "path": "/tasks/{task_id}/complete",
+    "func": "complete_task"
+  },
+  {
+    "file": "learning.py",
+    "line": 288,
+    "method": "DELETE",
+    "path": "/tasks/{task_id}",
+    "func": "delete_task"
+  },
+  {
+    "file": "learning.py",
+    "line": 297,
+    "method": "GET",
+    "path": "/contribution",
+    "func": "get_contribution"
+  },
+  {
+    "file": "learning.py",
+    "line": 312,
+    "method": "GET",
+    "path": "/mastery",
+    "func": "get_mastery"
+  },
+  {
+    "file": "learning.py",
+    "line": 335,
+    "method": "GET",
+    "path": "/dashboard/stats",
+    "func": "get_dashboard_stats"
+  },
+  {
+    "file": "learning.py",
+    "line": 344,
+    "method": "GET",
+    "path": "/daily-quote",
+    "func": "get_daily_quote"
+  },
+  {
+    "file": "learning.py",
+    "line": 349,
+    "method": "GET",
+    "path": "/videos",
+    "func": "get_videos"
+  },
+  {
+    "file": "mcp.py",
+    "line": 430,
+    "method": "GET",
+    "path": "/services",
+    "func": "list_services"
+  },
+  {
+    "file": "mcp.py",
+    "line": 447,
+    "method": "POST",
+    "path": "/services",
+    "func": "create_service"
+  },
+  {
+    "file": "mcp.py",
+    "line": 533,
+    "method": "PUT",
+    "path": "/services/{service_id}",
+    "func": "update_service"
+  },
+  {
+    "file": "mcp.py",
+    "line": 538,
+    "method": "POST",
+    "path": "/services/{service_id}",
+    "func": "update_service_compat"
+  },
+  {
+    "file": "mcp.py",
+    "line": 544,
+    "method": "DELETE",
+    "path": "/services/{service_id}",
+    "func": "delete_service"
+  },
+  {
+    "file": "mcp.py",
+    "line": 555,
+    "method": "POST",
+    "path": "/services/{service_id}/test",
+    "func": "test_service"
+  },
+  {
+    "file": "mcp.py",
+    "line": 586,
+    "method": "POST",
+    "path": "/services/{service_id}/toggle",
+    "func": "toggle_service"
+  },
+  {
+    "file": "mcp.py",
+    "line": 623,
+    "method": "GET",
+    "path": "/services/{service_id}/tools",
+    "func": "get_tools"
+  },
+  {
+    "file": "mcp.py",
+    "line": 660,
+    "method": "POST",
+    "path": "/services/{service_id}/call",
+    "func": "call_tool"
+  },
+  {
+    "file": "memory.py",
+    "line": 65,
+    "method": "GET",
+    "path": "",
+    "func": "get_memory"
+  },
+  {
+    "file": "memory.py",
+    "line": 70,
+    "method": "GET",
+    "path": "/profile/{user_id}",
+    "func": "get_profile"
+  },
+  {
+    "file": "memory.py",
+    "line": 77,
+    "method": "POST",
+    "path": "/add",
+    "func": "add_memory"
+  },
+  {
+    "file": "memory.py",
+    "line": 96,
+    "method": "POST",
+    "path": "/search",
+    "func": "search"
+  },
+  {
+    "file": "memory.py",
+    "line": 102,
+    "method": "POST",
+    "path": "/inject-context",
+    "func": "inject_context"
+  },
+  {
+    "file": "memory.py",
+    "line": 108,
+    "method": "POST",
+    "path": "/consolidate",
+    "func": "consolidate"
+  },
+  {
+    "file": "memory.py",
+    "line": 114,
+    "method": "POST",
+    "path": "/forget",
+    "func": "forget"
+  },
+  {
+    "file": "memory.py",
+    "line": 125,
+    "method": "PUT",
+    "path": "/profile",
+    "func": "patch_profile"
+  },
+  {
+    "file": "num_person.py",
+    "line": 13,
+    "method": "POST",
+    "path": "/memory/load",
+    "func": "memory_load"
+  },
+  {
+    "file": "num_person.py",
+    "line": 26,
+    "method": "POST",
+    "path": "/chat",
+    "func": "chat"
+  },
+  {
+    "file": "num_person.py",
+    "line": 35,
+    "method": "GET",
+    "path": "/memory/{memory_id}",
+    "func": "memory_get"
+  },
+  {
+    "file": "num_person.py",
+    "line": 43,
+    "method": "DELETE",
+    "path": "/memory/{memory_id}",
+    "func": "memory_delete"
+  },
+  {
+    "file": "path_planning.py",
+    "line": 46,
+    "method": "POST",
+    "path": "/path-planning/generate",
+    "func": "generate_path_planning"
+  },
+  {
+    "file": "path_planning.py",
+    "line": 105,
+    "method": "GET",
+    "path": "/path-planning/history",
+    "func": "get_path_planning_history"
+  },
+  {
+    "file": "path_planning.py",
+    "line": 118,
+    "method": "POST",
+    "path": "/path-planning/save",
+    "func": "save_path_planning"
+  },
+  {
+    "file": "path_planning.py",
+    "line": 163,
+    "method": "POST",
+    "path": "/path-planning/node-suggestions",
+    "func": "generate_node_suggestions"
+  },
+  {
+    "file": "path_planning.py",
+    "line": 212,
+    "method": "GET",
+    "path": "/path-planning/{path_id}",
+    "func": "get_path_planning"
+  },
+  {
+    "file": "ppt.py",
+    "line": 26,
+    "method": "POST",
+    "path": "/generate-schema",
+    "func": "generate_schema"
+  },
+  {
+    "file": "profile.py",
+    "line": 55,
+    "method": "POST",
+    "path": "/onboarding",
+    "func": "onboarding"
+  },
+  {
+    "file": "profile.py",
+    "line": 69,
+    "method": "POST",
+    "path": "/initiate",
+    "func": "initiate"
+  },
+  {
+    "file": "profile.py",
+    "line": 83,
+    "method": "POST",
+    "path": "/chat",
+    "func": "chat"
+  },
+  {
+    "file": "profile.py",
+    "line": 120,
+    "method": "GET",
+    "path": "",
+    "func": "get_profile"
+  },
+  {
+    "file": "profile.py",
+    "line": 129,
+    "method": "PUT",
+    "path": "",
+    "func": "update_profile"
+  },
+  {
+    "file": "profile.py",
+    "line": 182,
+    "method": "GET",
+    "path": "/history",
+    "func": "get_profile_history"
+  },
+  {
+    "file": "profile.py",
+    "line": 202,
+    "method": "POST",
+    "path": "/history/analyze",
+    "func": "analyze_profile_history"
+  },
+  {
+    "file": "quiz.py",
+    "line": 134,
+    "method": "GET",
+    "path": "",
+    "func": "get_quiz"
+  },
+  {
+    "file": "quiz.py",
+    "line": 180,
+    "method": "POST",
+    "path": "/submit",
+    "func": "submit_quiz"
+  },
+  {
+    "file": "quiz.py",
+    "line": 264,
+    "method": "GET",
+    "path": "/records",
+    "func": "get_quiz_records"
+  },
+  {
+    "file": "quiz.py",
+    "line": 279,
+    "method": "GET",
+    "path": "/records/stats",
+    "func": "get_quiz_records_stats"
+  },
+  {
+    "file": "quiz.py",
+    "line": 301,
+    "method": "DELETE",
+    "path": "/records/{quiz_id}",
+    "func": "delete_quiz_record"
+  },
+  {
+    "file": "quiz.py",
+    "line": 320,
+    "method": "GET",
+    "path": "/wrong",
+    "func": "get_wrong_quiz"
+  },
+  {
+    "file": "quiz.py",
+    "line": 346,
+    "method": "DELETE",
+    "path": "/wrong/{quiz_id}",
+    "func": "delete_wrong_quiz"
+  },
+  {
+    "file": "quiz.py",
+    "line": 366,
+    "method": "GET",
+    "path": "/favorites",
+    "func": "get_favorites"
+  },
+  {
+    "file": "quiz.py",
+    "line": 374,
+    "method": "POST",
+    "path": "/favorites",
+    "func": "set_favorite"
+  },
+  {
+    "file": "resources.py",
+    "line": 62,
+    "method": "GET",
+    "path": "",
+    "func": "get_resources"
+  },
+  {
+    "file": "resources.py",
+    "line": 82,
+    "method": "POST",
+    "path": "/generate",
+    "func": "generate_resource"
+  },
+  {
+    "file": "resources.py",
+    "line": 244,
+    "method": "POST",
+    "path": "/code/evaluate/{resource_id}",
+    "func": "evaluate_code_resource"
+  },
+  {
+    "file": "resources.py",
+    "line": 273,
+    "method": "POST",
+    "path": "/{resource_id}/quality-evaluate",
+    "func": "evaluate_resource_quality"
+  },
+  {
+    "file": "resources.py",
+    "line": 284,
+    "method": "GET",
+    "path": "/{resource_id}",
+    "func": "get_resource_detail"
+  },
+  {
+    "file": "resources.py",
+    "line": 290,
+    "method": "GET",
+    "path": "/{resource_id}/preview",
+    "func": "get_resource_preview"
+  },
+  {
+    "file": "resources.py",
+    "line": 299,
+    "method": "GET",
+    "path": "/{resource_id}/preview/html",
+    "func": "get_resource_preview_html"
+  },
+  {
+    "file": "resources.py",
+    "line": 329,
+    "method": "GET",
+    "path": "/{resource_id}/download",
+    "func": "download_resource"
+  },
+  {
+    "file": "resources.py",
+    "line": 334,
+    "method": "GET",
+    "path": "/{resource_id}/download/html",
+    "func": "download_resource_html"
+  },
+  {
+    "file": "resources.py",
+    "line": 359,
+    "method": "GET",
+    "path": "/{resource_id}/download/pdf",
+    "func": "download_resource_pdf"
+  },
+  {
+    "file": "resources.py",
+    "line": 374,
+    "method": "GET",
+    "path": "/{resource_id}/download/source",
+    "func": "download_resource_source"
+  },
+  {
+    "file": "resources.py",
+    "line": 394,
+    "method": "DELETE",
+    "path": "/{resource_id}",
+    "func": "delete_resource"
+  },
+  {
+    "file": "resources.py",
+    "line": 418,
+    "method": "GET",
+    "path": "/recommendations/list",
+    "func": "get_recommendations"
+  },
+  {
+    "file": "sharing.py",
+    "line": 43,
+    "method": "POST",
+    "path": "/links",
+    "func": "create_share_link"
+  },
+  {
+    "file": "sharing.py",
+    "line": 92,
+    "method": "GET",
+    "path": "/links",
+    "func": "list_my_share_links"
+  },
+  {
+    "file": "sharing.py",
+    "line": 112,
+    "method": "DELETE",
+    "path": "/links/{link_id}",
+    "func": "delete_share_link"
+  },
+  {
+    "file": "sharing.py",
+    "line": 132,
+    "method": "GET",
+    "path": "/{share_code}",
+    "func": "get_share_info"
+  },
+  {
+    "file": "sharing.py",
+    "line": 179,
+    "method": "POST",
+    "path": "/{share_code}/access",
+    "func": "access_share"
+  },
+  {
+    "file": "teacher.py",
+    "line": 465,
+    "method": "GET",
+    "path": "/dashboard",
+    "func": "get_dashboard"
+  },
+  {
+    "file": "teacher.py",
+    "line": 558,
+    "method": "GET",
+    "path": "/students",
+    "func": "get_students"
+  },
+  {
+    "file": "teacher.py",
+    "line": 563,
+    "method": "GET",
+    "path": "/students/{student_id}",
+    "func": "get_student"
+  },
+  {
+    "file": "teacher.py",
+    "line": 576,
+    "method": "POST",
+    "path": "/ai/diagnose",
+    "func": "ai_diagnose"
+  },
+  {
+    "file": "teacher.py",
+    "line": 614,
+    "method": "POST",
+    "path": "/ai/daily-report",
+    "func": "ai_daily_report"
+  },
+  {
+    "file": "teacher.py",
+    "line": 690,
+    "method": "GET",
+    "path": "/subjects",
+    "func": "list_teacher_subjects"
+  },
+  {
+    "file": "teacher.py",
+    "line": 713,
+    "method": "POST",
+    "path": "/subjects",
+    "func": "create_teacher_subject"
+  },
+  {
+    "file": "teacher.py",
+    "line": 774,
+    "method": "PUT",
+    "path": "/subjects/{subject_id}",
+    "func": "update_teacher_subject"
+  },
+  {
+    "file": "teacher.py",
+    "line": 819,
+    "method": "DELETE",
+    "path": "/subjects/{subject_id}",
+    "func": "delete_teacher_subject"
+  },
+  {
+    "file": "teacher.py",
+    "line": 838,
+    "method": "POST",
+    "path": "/subjects/import",
+    "func": "import_teacher_subjects"
+  },
+  {
+    "file": "teacher.py",
+    "line": 894,
+    "method": "GET",
+    "path": "/broadcast/recipients",
+    "func": "list_broadcast_recipients"
+  },
+  {
+    "file": "teacher.py",
+    "line": 900,
+    "method": "POST",
+    "path": "/broadcast/materials",
+    "func": "upload_broadcast_materials"
+  },
+  {
+    "file": "teacher.py",
+    "line": 944,
+    "method": "GET",
+    "path": "/broadcast/materials",
+    "func": "list_broadcast_materials"
+  },
+  {
+    "file": "teacher.py",
+    "line": 964,
+    "method": "GET",
+    "path": "/broadcast/materials/{file_id}/download",
+    "func": "download_broadcast_material"
+  },
+  {
+    "file": "teacher.py",
+    "line": 978,
+    "method": "POST",
+    "path": "/broadcasts",
+    "func": "create_broadcast"
+  },
+  {
+    "file": "teacher.py",
+    "line": 1032,
+    "method": "GET",
+    "path": "/broadcasts",
+    "func": "list_broadcasts"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 884,
+    "method": "GET",
+    "path": "/tutor/roles",
+    "func": "list_roles"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 898,
+    "method": "POST",
+    "path": "/tutor/roles",
+    "func": "create_role"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 924,
+    "method": "PUT",
+    "path": "/tutor/roles/{role_id}",
+    "func": "update_role"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 958,
+    "method": "DELETE",
+    "path": "/tutor/roles/{role_id}",
+    "func": "delete_role"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1004,
+    "method": "POST",
+    "path": "/tutor/roles/optimize-prompt",
+    "func": "optimize_prompt"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1144,
+    "method": "POST",
+    "path": "/tutor/roles/generate-from-question",
+    "func": "generate_role_from_question"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1171,
+    "method": "GET",
+    "path": "/tutor/conversations",
+    "func": "list_conversations"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1192,
+    "method": "POST",
+    "path": "/tutor/conversations",
+    "func": "create_conversation"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1210,
+    "method": "PUT",
+    "path": "/tutor/conversations/{conversation_id}",
+    "func": "update_conversation"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1254,
+    "method": "DELETE",
+    "path": "/tutor/conversations/{conversation_id}",
+    "func": "delete_conversation"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1261,
+    "method": "GET",
+    "path": "/tutor/messages",
+    "func": "tutor_messages"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1276,
+    "method": "DELETE",
+    "path": "/tutor/messages/{message_id}",
+    "func": "delete_tutor_message"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1294,
+    "method": "POST",
+    "path": "/tutor/files",
+    "func": "upload_tutor_file"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1342,
+    "method": "POST",
+    "path": "/tutor/files/web-capture",
+    "func": "import_web_capture"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1386,
+    "method": "GET",
+    "path": "/tutor/files",
+    "func": "list_tutor_files"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1396,
+    "method": "GET",
+    "path": "/tutor/files/{file_id}",
+    "func": "get_tutor_file"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1404,
+    "method": "DELETE",
+    "path": "/tutor/files/{file_id}",
+    "func": "delete_tutor_file"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 1418,
+    "method": "POST",
+    "path": "/tutor/chat",
+    "func": "tutor_chat"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 2048,
+    "method": "GET",
+    "path": "/tutor/history",
+    "func": "tutor_history"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 2094,
+    "method": "GET",
+    "path": "/evaluation/report",
+    "func": "get_evaluation_report"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 2101,
+    "method": "POST",
+    "path": "/evaluation/refresh",
+    "func": "refresh_evaluation"
+  },
+  {
+    "file": "tutor_eval.py",
+    "line": 2118,
+    "method": "POST",
+    "path": "/report/ai-summary",
+    "func": "generate_report_ai_summary"
+  },
+  {
+    "file": "video.py",
+    "line": 34,
+    "method": "GET",
+    "path": "/styles",
+    "func": "list_video_styles"
+  },
+  {
+    "file": "video.py",
+    "line": 154,
+    "method": "POST",
+    "path": "/polish",
+    "func": "polish_video_prompt"
+  },
+  {
+    "file": "video.py",
+    "line": 169,
+    "method": "POST",
+    "path": "/jobs",
+    "func": "create_video_job"
+  },
+  {
+    "file": "video.py",
+    "line": 190,
+    "method": "GET",
+    "path": "/jobs/{job_id}/events",
+    "func": "video_job_events"
+  },
+  {
+    "file": "video.py",
+    "line": 245,
+    "method": "GET",
+    "path": "/resources",
+    "func": "list_video_resources"
+  },
+  {
+    "file": "video.py",
+    "line": 250,
+    "method": "GET",
+    "path": "/resources/{resource_id}",
+    "func": "get_video_resource"
+  },
+  {
+    "file": "video.py",
+    "line": 259,
+    "method": "GET",
+    "path": "/resources/{resource_id}/timeline",
+    "func": "get_video_timeline"
+  },
+  {
+    "file": "video.py",
+    "line": 267,
+    "method": "DELETE",
+    "path": "/resources/{resource_id}",
+    "func": "delete_video_resource"
+  },
+  {
+    "file": "video.py",
+    "line": 287,
+    "method": "GET",
+    "path": "/resources/{resource_id}/scene",
+    "func": "get_video_scene"
+  },
+  {
+    "file": "video.py",
+    "line": 295,
+    "method": "GET",
+    "path": "/resources/{resource_id}/download/audio",
+    "func": "download_video_audio"
+  },
+  {
+    "file": "video.py",
+    "line": 300,
+    "method": "GET",
+    "path": "/resources/{resource_id}/download/srt",
+    "func": "download_video_srt"
+  },
+  {
+    "file": "video.py",
+    "line": 305,
+    "method": "GET",
+    "path": "/resources/{resource_id}/download/mp4",
+    "func": "download_video_mp4"
+  },
+  {
+    "file": "video.py",
+    "line": 324,
+    "method": "POST",
+    "path": "/resources/{resource_id}/share",
+    "func": "share_video"
+  },
+  {
+    "file": "voice_admin.py",
+    "line": 44,
+    "method": "POST",
+    "path": "/voice/asr",
+    "func": "asr"
+  },
+  {
+    "file": "voice_admin.py",
+    "line": 50,
+    "method": "POST",
+    "path": "/voice/tts",
+    "func": "tts"
+  },
+  {
+    "file": "voice_admin.py",
+    "line": 75,
+    "method": "GET",
+    "path": "/voice/tts/status",
+    "func": "tts_status"
+  },
+  {
+    "file": "voice_admin.py",
+    "line": 86,
+    "method": "GET",
+    "path": "/admin/students",
+    "func": "admin_students"
+  },
+  {
+    "file": "voice_admin.py",
+    "line": 103,
+    "method": "GET",
+    "path": "/admin/resources",
+    "func": "admin_resources"
+  },
+  {
+    "file": "voice_admin.py",
+    "line": 109,
+    "method": "GET",
+    "path": "/admin/dashboard",
+    "func": "admin_dashboard"
+  }
+]

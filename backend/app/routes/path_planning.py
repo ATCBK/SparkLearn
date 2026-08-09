@@ -29,10 +29,17 @@ class NodeSuggestionsReq(BaseModel):
     target: str = ''           # 整体路径目标，用于上下文
 
 
+<<<<<<< HEAD
 class PathPlanningSaveReq(BaseModel):
     path_id: str = ''
     target: str = ''
     phases: list[dict[str, Any]] = Field(default_factory=list)
+=======
+class SavePathPlanningReq(BaseModel):
+    path_id: str = ''
+    target: str = ''
+    phases: list[dict[str, Any]] = []
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
 
 
 class PathPlanningResp(BaseModel):
@@ -116,6 +123,7 @@ async def get_path_planning_history():
 
 
 @router.post('/path-planning/save')
+<<<<<<< HEAD
 async def save_path_planning(req: PathPlanningSaveReq):
     """
     保存用户编辑后的路径阶段与节点。
@@ -126,11 +134,15 @@ async def save_path_planning(req: PathPlanningSaveReq):
     target = req.target.strip() or '提升编程能力'
     phases = _normalize_saved_phases(req.phases)
 
+=======
+async def save_path_planning(req: SavePathPlanningReq):
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
     history = read_json(
         settings.single_user_id,
         'path_planning_history.json',
         []
     )
+<<<<<<< HEAD
     if not isinstance(history, list):
         history = []
 
@@ -159,18 +171,52 @@ async def save_path_planning(req: PathPlanningSaveReq):
 
     write_json(settings.single_user_id, 'path_planning_history.json', history)
 
+=======
+
+    path_id = req.path_id.strip() or f"path-{now_iso().replace(':', '').replace('-', '').replace('Z', '')}"
+    now = now_iso()
+    existing = None
+    for planning in history:
+        if planning.get('path_id') == path_id:
+            existing = planning
+            break
+
+    if existing is None:
+        history.append({
+            'path_id': path_id,
+            'target': req.target.strip(),
+            'suggestions': [],
+            'resources': [],
+            'phases': req.phases,
+            'created_at': now,
+            'updated_at': now,
+        })
+    else:
+        existing['target'] = req.target.strip() or existing.get('target', '')
+        existing['phases'] = req.phases
+        existing['updated_at'] = now
+
+    write_json(settings.single_user_id, 'path_planning_history.json', history)
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
     append_jsonl(
         settings.single_user_id,
         'learning_events.jsonl',
         {
             'type': 'path_planning_saved',
             'path_id': path_id,
+<<<<<<< HEAD
             'target': target,
+=======
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
             'timestamp': now,
         }
     )
 
+<<<<<<< HEAD
     return ok({'saved': True, 'path_id': path_id})
+=======
+    return ok({'saved': True, 'pathId': path_id})
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
 
 
 @router.post('/path-planning/node-suggestions')

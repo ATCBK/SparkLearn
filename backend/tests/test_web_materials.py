@@ -1,3 +1,6 @@
+import asyncio
+import time
+
 import pytest
 
 from app.routes import tutor_eval
@@ -83,3 +86,37 @@ async def test_import_web_material_rejects_empty_text(client):
     body = resp.json()
     assert body["success"] is False
     assert "网页正文为空" in body["error"]
+
+
+@pytest.mark.asyncio
+async def test_import_web_material_falls_back_when_ai_analysis_times_out(client, monkeypatch):
+    async def slow_analyze(_title: str, _url: str, _text: str):
+        await asyncio.sleep(0.2)
+        return {
+            "summary": "不应该等待到这里",
+            "key_points": ["慢响应"],
+            "audience": "",
+            "learning_method": "",
+            "lecture_script": "",
+        }
+
+    monkeypatch.setattr(tutor_eval, "WEB_CAPTURE_ANALYSIS_TIMEOUT_SEC", 0.01, raising=False)
+    monkeypatch.setattr(tutor_eval, "_analyze_web_material", slow_analyze)
+
+    started = time.perf_counter()
+    resp = await client.post(
+        "/api/tutor/files/web-capture",
+        json={
+            "title": "超时网页资料",
+            "url": "https://example.com/slow",
+            "text": "这是一段用于测试网页资料采集超时降级的正文。它应该先被保存，而不是一直等待 AI 讲解稿生成完成。",
+        },
+    )
+    elapsed = time.perf_counter() - started
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["success"] is True
+    assert elapsed < 0.15
+    assert body["data"]["analysis"]["summary"].startswith("超时网页资料 已保存为网页资料")
+    assert body["data"]["analysis"]["summary"] != "不应该等待到这里"

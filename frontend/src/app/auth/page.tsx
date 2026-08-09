@@ -22,6 +22,10 @@ const SLOGANS = [
   '随着学习行为积累，StudyBuddy 会越来越理解你的节奏。',
 ] as const
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
 type AuthResultUser = {
   id?: string
   user_id?: string
@@ -118,6 +122,10 @@ export default function AuthPage() {
     return () => clearTimeout(timer)
   }, [countdown])
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
   const showToast = useCallback((text: string) => {
     setToast(text)
     setTimeout(() => setToast(null), 2200)
@@ -358,6 +366,10 @@ export default function AuthPage() {
               </button>
             </div>
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
             <div className="form-row">
               <label className="check-label">
                 <input type="checkbox" defaultChecked />

@@ -54,11 +54,25 @@ async def test_path_node_suggestions_endpoint_returns_generate_library_links(cli
 
 
 @pytest.mark.asyncio
+<<<<<<< HEAD
 async def test_save_path_planning_endpoint_creates_history_entry(client):
+=======
+async def test_save_path_planning_endpoint_updates_history(client):
+    phases = [
+        {
+            "id": 1,
+            "title": "基础阶段",
+            "description": "补齐基础",
+            "nodes": [{"id": "node-1", "title": "函数返回值", "source": "user"}],
+        }
+    ]
+
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
     response = await client.post(
         "/api/path-planning/save",
         json={
             "path_id": "path-test",
+<<<<<<< HEAD
             "target": "学习 FastAPI",
             "phases": [
                 {
@@ -70,12 +84,17 @@ async def test_save_path_planning_endpoint_creates_history_entry(client):
                     ],
                 },
             ],
+=======
+            "target": "修复函数基础",
+            "phases": phases,
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
         },
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True
+<<<<<<< HEAD
     assert body["data"] == {"saved": True, "path_id": "path-test"}
 
     history_response = await client.get("/api/path-planning/history")
@@ -108,3 +127,13 @@ async def test_save_path_planning_endpoint_updates_existing_history_entry(client
     history = history_response.json()["data"]
     assert len(history) == 1
     assert history[0]["phases"][0]["nodes"][0]["title"] == "新节点"
+=======
+    assert body["data"] == {"saved": True, "pathId": "path-test"}
+
+    history_response = await client.get("/api/path-planning/history")
+    assert history_response.status_code == 200
+    history_body = history_response.json()
+    assert history_body["data"][0]["path_id"] == "path-test"
+    assert history_body["data"][0]["target"] == "修复函数基础"
+    assert history_body["data"][0]["phases"] == phases
+>>>>>>> 04da7d704e5bd015542a61107308a98fae4ea4b1
