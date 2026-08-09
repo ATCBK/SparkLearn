@@ -18,6 +18,7 @@ _JSON_TEXT_COLUMNS = {
     'analysis_json',
     'tags',
     'target_student_ids',
+    'target_class_ids',
     'material_file_ids',
     'args_json',
     'env_json',
@@ -500,12 +501,51 @@ def init_db() -> None:
                 content TEXT NOT NULL,
                 target_type VARCHAR(20) NOT NULL DEFAULT 'all',
                 target_student_ids JSONB DEFAULT '[]',
+                target_class_ids JSONB DEFAULT '[]',
                 material_file_ids JSONB DEFAULT '[]',
                 created_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
 
             CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
             ON teacher_broadcasts(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS teacher_classes (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(50) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                subject_id INTEGER DEFAULT 0,
+                subject_name VARCHAR(100) DEFAULT '',
+                grade VARCHAR(50) DEFAULT '',
+                description TEXT DEFAULT '',
+                invite_code VARCHAR(20) NOT NULL UNIQUE,
+                status VARCHAR(20) NOT NULL DEFAULT 'active',
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_classes_user_status
+            ON teacher_classes(user_id, status, updated_at DESC);
+
+            CREATE TABLE IF NOT EXISTS teacher_class_members (
+                id SERIAL PRIMARY KEY,
+                class_id INTEGER NOT NULL,
+                student_id VARCHAR(50) NOT NULL,
+                display_name VARCHAR(100) DEFAULT '',
+                phone VARCHAR(20) DEFAULT '',
+                source VARCHAR(20) DEFAULT 'invite',
+                status VARCHAR(20) NOT NULL DEFAULT 'active',
+                joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_class_members_unique
+            ON teacher_class_members(class_id, student_id);
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_class_members_class_status
+            ON teacher_class_members(class_id, status);
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_class_members_student_status
+            ON teacher_class_members(student_id, status);
 
             CREATE TABLE IF NOT EXISTS teacher_subjects (
                 id SERIAL PRIMARY KEY,
@@ -635,6 +675,7 @@ def init_db() -> None:
         _ensure_tutor_message_columns(cursor)
         _ensure_tutor_file_columns(cursor)
         _ensure_teacher_subject_columns(cursor)
+        _ensure_teacher_broadcast_columns(cursor)
 
         timestamp = now_iso()
         cursor.execute(
@@ -739,6 +780,11 @@ def _ensure_tutor_file_columns(cursor) -> None:
 def _ensure_teacher_subject_columns(cursor) -> None:
     if not _column_exists(cursor, 'teacher_subjects', 'deleted'):
         cursor.execute("ALTER TABLE teacher_subjects ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+
+
+def _ensure_teacher_broadcast_columns(cursor) -> None:
+    if not _column_exists(cursor, 'teacher_broadcasts', 'target_class_ids'):
+        cursor.execute("ALTER TABLE teacher_broadcasts ADD COLUMN target_class_ids JSONB DEFAULT '[]'")
 
 
 def _seed_mastery(cursor) -> None:

@@ -4,21 +4,29 @@
 """
 from __future__ import annotations
 
+import csv
+import io
 import json
+import uuid
+import zipfile
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from ..auth import get_current_user
 from ..config import settings
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
 from ..llm import spark_lite
 from ..schemas import fail, ok
+from ..storage import read_json
 
 router = APIRouter(prefix="/api/teacher", tags=["teacher"])
+student_class_router = APIRouter(prefix="/api/classes", tags=["classes"])
 
 
 # ─── 工具函数 ─────────────────────────────────────────────────────────────────
@@ -658,8 +666,9 @@ def _teacher_material_dir() -> Path:
 class TeacherBroadcastCreateReq(BaseModel):
     title: str
     content: str
-    target_type: str = "all"  # all | specific
+    target_type: str = "all"  # all | specific | class
     student_ids: list[str] = []
+    class_ids: list[int] = []
     material_file_ids: list[int] = []
 
 
@@ -672,6 +681,343 @@ class TeacherSubjectReq(BaseModel):
 
 class TeacherSubjectImportReq(BaseModel):
     items: list[TeacherSubjectReq]
+
+
+class TeacherClassReq(BaseModel):
+    name: str
+    subject_id: int = 0
+    subject_name: str = ""
+    grade: str = ""
+    description: str = ""
+    status: str = "active"
+
+
+class TeacherClassMemberImportReq(BaseModel):
+    student_ids: list[str] = []
+    phones: list[str] = []
+
+
+class StudentJoinClassReq(BaseModel):
+    invite_code: str
+
+
+def _safe_json(value: Any, default: Any) -> Any:
+    if value in (None, ""):
+        return default
+    if isinstance(value, (list, dict)):
+        return value
+    try:
+        return json.loads(str(value))
+    except Exception:
+        return default
+
+
+def _class_row(row: Any, member_count: int | None = None) -> dict[str, Any]:
+    class_id = int(row["id"])
+    if member_count is None:
+        count_row = fetch_one(
+            "SELECT COUNT(1) AS cnt FROM teacher_class_members WHERE class_id = ? AND status = 'active'",
+            (class_id,),
+        )
+        member_count = int(count_row["cnt"] if count_row else 0)
+    return {
+        "id": class_id,
+        "user_id": str(row["user_id"]),
+        "name": str(row["name"] or ""),
+        "subject_id": int(row["subject_id"] or 0),
+        "subject_name": str(row["subject_name"] or ""),
+        "grade": str(row["grade"] or ""),
+        "description": str(row["description"] or ""),
+        "invite_code": str(row["invite_code"] or ""),
+        "status": str(row["status"] or "active"),
+        "member_count": member_count,
+        "active_member_count": member_count,
+        "created_at": str(row["created_at"]),
+        "updated_at": str(row["updated_at"]),
+    }
+
+
+def _generate_invite_code() -> str:
+    for _ in range(20):
+        code = uuid.uuid4().hex[:8].upper()
+        if not fetch_one("SELECT id FROM teacher_classes WHERE invite_code = ?", (code,)):
+            return code
+    raise HTTPException(status_code=500, detail="failed to generate invite code")
+
+
+def _get_owned_class(class_id: int) -> Any:
+    row = fetch_one(
+        "SELECT * FROM teacher_classes WHERE id = ? AND user_id = ? AND status != 'archived'",
+        (class_id, settings.single_user_id),
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="class not found")
+    return row
+
+
+def _student_identity(user_id: str) -> dict[str, str]:
+    row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
+    if not row:
+        return {"id": user_id, "name": user_id, "phone": "", "major": "", "grade": "", "avatar": user_id[:1].upper()}
+    name = str(row["name"] or user_id)
+    return {
+        "id": user_id,
+        "name": name,
+        "phone": str(row["phone"] if "phone" in row.keys() and row["phone"] else ""),
+        "major": str(row["major"] or ""),
+        "grade": str(row["grade"] or ""),
+        "avatar": str(row["avatar"] if "avatar" in row.keys() and row["avatar"] else name[:1]),
+    }
+
+
+def _student_learning_summary(user_id: str) -> dict[str, Any]:
+    identity = _student_identity(user_id)
+    profile = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    mastery_rows = fetch_all(
+        "SELECT knowledge_point_id, knowledge_point_name, score FROM mastery_records WHERE user_id = ?",
+        (user_id,),
+    )
+    contrib_rows = fetch_all(
+        "SELECT date, count FROM contribution_days WHERE user_id = ? ORDER BY date DESC LIMIT 30",
+        (user_id,),
+    )
+    quiz_records = read_json(user_id, "quiz_records.json", [])
+    tasks = read_json(user_id, "task_progress.json", [])
+
+    total_tasks = len(tasks) if isinstance(tasks, list) else 0
+    done_tasks = len([item for item in tasks if isinstance(item, dict) and item.get("done")]) if isinstance(tasks, list) else 0
+    task_completion = round(done_tasks / total_tasks, 2) if total_tasks else 0.0
+
+    quiz_accuracy = 0.0
+    if isinstance(quiz_records, list) and quiz_records:
+        ratios: list[float] = []
+        for item in quiz_records:
+            if not isinstance(item, dict):
+                continue
+            total = int(item.get("total") or len(item.get("questions", []) or []) or 0)
+            correct = int(item.get("correct") or item.get("correct_count") or 0)
+            if total > 0:
+                ratios.append(correct / total)
+        if ratios:
+            quiz_accuracy = round(sum(ratios) / len(ratios), 2)
+
+    mastery = {
+        str(row["knowledge_point_id"]): float(row["score"])
+        for row in mastery_rows
+    }
+    weak_points = []
+    if profile:
+        weak_points = _safe_json(profile["weak_points"], [])
+    if not weak_points and mastery_rows:
+        weak_points = [
+            str(row["knowledge_point_name"])
+            for row in sorted(mastery_rows, key=lambda item: float(item["score"]))[:3]
+        ]
+
+    last_active = str(contrib_rows[0]["date"]) if contrib_rows else ""
+    streak = 0
+    for row in contrib_rows:
+        if int(row["count"] or 0) > 0:
+            streak += 1
+        else:
+            break
+
+    risk_level = "normal"
+    if task_completion and task_completion < 0.45 or quiz_accuracy and quiz_accuracy < 0.5 or streak == 0:
+        risk_level = "danger"
+    elif task_completion and task_completion < 0.7 or quiz_accuracy and quiz_accuracy < 0.7 or streak < 3:
+        risk_level = "warning"
+
+    return {
+        **identity,
+        "current_stage": str(profile["current_stage"] or "") if profile else "",
+        "knowledge_level": str(profile["knowledge_level"] or "") if profile else "",
+        "weak_points": weak_points,
+        "learning_preference": _safe_json(profile["learning_preference"], []) if profile else [],
+        "daily_time": int(profile["daily_time"] or 60) if profile else 60,
+        "streak_days": streak,
+        "risk_level": risk_level,
+        "last_active": last_active,
+        "mastery": mastery,
+        "quiz_accuracy": quiz_accuracy,
+        "total_hours": round(sum(int(row["count"] or 0) for row in contrib_rows) * 0.5, 1),
+        "task_completion": task_completion,
+    }
+
+
+def _upsert_class_member(conn: Any, class_id: int, student_id: str, source: str) -> bool:
+    identity = _student_identity(student_id)
+    existing = conn.execute(
+        "SELECT id, status FROM teacher_class_members WHERE class_id = ? AND student_id = ?",
+        (class_id, student_id),
+    ).fetchone()
+    ts = now_iso()
+    if existing:
+        conn.execute(
+            """
+            UPDATE teacher_class_members
+            SET display_name = ?, phone = ?, source = ?, status = 'active', updated_at = ?
+            WHERE id = ?
+            """,
+            (identity["name"], identity["phone"], source, ts, int(existing["id"])),
+        )
+        return str(existing["status"]) != "active"
+    conn.execute(
+        """
+        INSERT INTO teacher_class_members(class_id, student_id, display_name, phone, source, status, joined_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
+        """,
+        (class_id, student_id, identity["name"], identity["phone"], source, ts, ts),
+    )
+    return True
+
+
+def _decode_text_payload(payload: bytes) -> str:
+    for encoding in ("utf-8-sig", "utf-8", "gb18030", "gbk"):
+        try:
+            return payload.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return payload.decode("utf-8", errors="ignore")
+
+
+def _flatten_json_values(value: Any) -> list[str]:
+    if isinstance(value, dict):
+        items: list[str] = []
+        for child in value.values():
+            items.extend(_flatten_json_values(child))
+        return items
+    if isinstance(value, list):
+        items = []
+        for child in value:
+            items.extend(_flatten_json_values(child))
+        return items
+    if value is None:
+        return []
+    return [str(value)]
+
+
+def _split_identifier_text(text: str) -> list[str]:
+    raw = text.replace("\ufeff", " ")
+    for sep in ["，", "；", ";", "\t", "\r", "\n", ",", "|"]:
+        raw = raw.replace(sep, " ")
+    return [item.strip() for item in raw.split() if item.strip()]
+
+
+def _extract_xlsx_values(payload: bytes) -> list[str]:
+    values: list[str] = []
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        shared_strings: list[str] = []
+        if "xl/sharedStrings.xml" in archive.namelist():
+            root = ElementTree.fromstring(archive.read("xl/sharedStrings.xml"))
+            for item in root.iter():
+                if item.tag.endswith("}t") and item.text:
+                    shared_strings.append(item.text)
+
+        sheet_names = [
+            name
+            for name in archive.namelist()
+            if name.startswith("xl/worksheets/") and name.endswith(".xml")
+        ]
+        for sheet_name in sheet_names:
+            root = ElementTree.fromstring(archive.read(sheet_name))
+            for cell in root.iter():
+                if not cell.tag.endswith("}c"):
+                    continue
+                cell_type = cell.attrib.get("t")
+                text = ""
+                if cell_type == "inlineStr":
+                    text = " ".join(node.text or "" for node in cell.iter() if node.tag.endswith("}t")).strip()
+                else:
+                    value_node = next((node for node in cell if node.tag.endswith("}v")), None)
+                    if value_node is not None and value_node.text is not None:
+                        text = value_node.text.strip()
+                        if cell_type == "s":
+                            try:
+                                text = shared_strings[int(text)]
+                            except Exception:
+                                pass
+                if text:
+                    values.append(text)
+    return values
+
+
+def _extract_identifiers_from_file(filename: str, payload: bytes) -> list[str]:
+    suffix = Path(filename or "").suffix.lower()
+    if suffix in {".xlsx", ".xlsm"}:
+        return _extract_xlsx_values(payload)
+    text = _decode_text_payload(payload)
+    if suffix == ".json":
+        try:
+            return _flatten_json_values(json.loads(text))
+        except Exception:
+            return _split_identifier_text(text)
+    if suffix in {".csv", ".tsv"}:
+        delimiter = "\t" if suffix == ".tsv" else ","
+        values: list[str] = []
+        reader = csv.reader(io.StringIO(text), delimiter=delimiter)
+        for row in reader:
+            values.extend(row)
+        return values
+    return _split_identifier_text(text)
+
+
+def _import_class_members_by_identifiers(class_id: int, identifiers: list[str], source: str) -> dict[str, Any]:
+    normalized = list(dict.fromkeys(item.strip() for item in identifiers if item and item.strip()))
+    if not normalized:
+        return {"added_count": 0, "skipped_count": 0, "added": [], "skipped": []}
+
+    added: list[str] = []
+    skipped: list[str] = []
+    with get_conn() as conn:
+        for token in normalized:
+            rows = conn.execute(
+                """
+                SELECT user_id FROM students
+                WHERE user_id = ? OR phone = ? OR email = ?
+                ORDER BY user_id ASC
+                """,
+                (token, token, token),
+            ).fetchall()
+            if not rows:
+                skipped.append(token)
+                continue
+            for row in rows:
+                student_id = str(row["user_id"])
+                changed = _upsert_class_member(conn, class_id, student_id, source)
+                if changed:
+                    added.append(student_id)
+                else:
+                    skipped.append(token)
+
+    added_unique = list(dict.fromkeys(added))
+    skipped_unique = list(dict.fromkeys(skipped))
+    return {
+        "added_count": len(added_unique),
+        "skipped_count": len(skipped_unique),
+        "added": added_unique,
+        "skipped": skipped_unique,
+    }
+
+
+def _material_rows(material_ids: list[int]) -> list[dict[str, Any]]:
+    if not material_ids:
+        return []
+    placeholders = ",".join(["?"] * len(material_ids))
+    rows = fetch_all(
+        f"SELECT id, filename, mime_type, size_bytes, created_at FROM teacher_material_files WHERE id IN ({placeholders})",
+        tuple(material_ids),
+    )
+    return [
+        {
+            "id": int(row["id"]),
+            "filename": row["filename"],
+            "mime_type": row["mime_type"],
+            "size_bytes": int(row["size_bytes"]),
+            "created_at": row["created_at"],
+        }
+        for row in rows
+    ]
 
 
 def _subject_row(row: Any) -> dict[str, Any]:
@@ -891,8 +1237,320 @@ async def import_teacher_subjects(req: TeacherSubjectImportReq):
     )
 
 
+@router.get("/classes")
+async def list_teacher_classes(include_archived: bool = False):
+    if include_archived:
+        rows = fetch_all(
+            """
+            SELECT c.*, COUNT(CASE WHEN m.status = 'active' THEN 1 END) AS member_count
+            FROM teacher_classes c
+            LEFT JOIN teacher_class_members m ON m.class_id = c.id
+            WHERE c.user_id = ?
+            GROUP BY c.id
+            ORDER BY c.status ASC, c.updated_at DESC
+            """,
+            (settings.single_user_id,),
+        )
+    else:
+        rows = fetch_all(
+            """
+            SELECT c.*, COUNT(CASE WHEN m.status = 'active' THEN 1 END) AS member_count
+            FROM teacher_classes c
+            LEFT JOIN teacher_class_members m ON m.class_id = c.id
+            WHERE c.user_id = ? AND c.status != 'archived'
+            GROUP BY c.id
+            ORDER BY c.updated_at DESC
+            """,
+            (settings.single_user_id,),
+        )
+    return ok([_class_row(row, int(row["member_count"] or 0)) for row in rows])
+
+
+@router.post("/classes")
+async def create_teacher_class(req: TeacherClassReq):
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+    status = req.status if req.status in {"active", "paused"} else "active"
+    ts = now_iso()
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO teacher_classes(
+              user_id, name, subject_id, subject_name, grade, description, invite_code, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                settings.single_user_id,
+                name,
+                int(req.subject_id or 0),
+                req.subject_name.strip(),
+                req.grade.strip(),
+                req.description.strip(),
+                _generate_invite_code(),
+                status,
+                ts,
+                ts,
+            ),
+        )
+        row = conn.execute("SELECT * FROM teacher_classes WHERE id = last_insert_rowid()").fetchone()
+    return ok(_class_row(row, 0))
+
+
+@router.put("/classes/{class_id}")
+async def update_teacher_class(class_id: int, req: TeacherClassReq):
+    _get_owned_class(class_id)
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+    status = req.status if req.status in {"active", "paused", "archived"} else "active"
+    execute(
+        """
+        UPDATE teacher_classes
+        SET name = ?, subject_id = ?, subject_name = ?, grade = ?, description = ?, status = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+        """,
+        (
+            name,
+            int(req.subject_id or 0),
+            req.subject_name.strip(),
+            req.grade.strip(),
+            req.description.strip(),
+            status,
+            now_iso(),
+            class_id,
+            settings.single_user_id,
+        ),
+    )
+    row = fetch_one("SELECT * FROM teacher_classes WHERE id = ? AND user_id = ?", (class_id, settings.single_user_id))
+    return ok(_class_row(row))
+
+
+@router.delete("/classes/{class_id}")
+async def archive_teacher_class(class_id: int):
+    _get_owned_class(class_id)
+    execute(
+        "UPDATE teacher_classes SET status = 'archived', updated_at = ? WHERE id = ? AND user_id = ?",
+        (now_iso(), class_id, settings.single_user_id),
+    )
+    return ok({"archived": True, "id": class_id})
+
+
+@router.post("/classes/{class_id}/invite-code")
+async def regenerate_teacher_class_invite_code(class_id: int):
+    _get_owned_class(class_id)
+    code = _generate_invite_code()
+    execute(
+        "UPDATE teacher_classes SET invite_code = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+        (code, now_iso(), class_id, settings.single_user_id),
+    )
+    row = fetch_one("SELECT * FROM teacher_classes WHERE id = ? AND user_id = ?", (class_id, settings.single_user_id))
+    return ok(_class_row(row))
+
+
+@router.get("/classes/{class_id}/members")
+async def list_teacher_class_members(class_id: int):
+    _get_owned_class(class_id)
+    rows = fetch_all(
+        """
+        SELECT * FROM teacher_class_members
+        WHERE class_id = ? AND status = 'active'
+        ORDER BY joined_at DESC
+        """,
+        (class_id,),
+    )
+    items = []
+    for row in rows:
+        summary = _student_learning_summary(str(row["student_id"]))
+        items.append(
+            {
+                **summary,
+                "member_id": int(row["id"]),
+                "class_id": class_id,
+                "source": str(row["source"] or "invite"),
+                "joined_at": str(row["joined_at"]),
+            }
+        )
+    return ok(items)
+
+
+@router.post("/classes/{class_id}/members/import")
+async def import_teacher_class_members(class_id: int, req: TeacherClassMemberImportReq):
+    _get_owned_class(class_id)
+    identifiers = [item.strip() for item in [*req.student_ids, *req.phones] if item.strip()]
+    return ok(_import_class_members_by_identifiers(class_id, identifiers, "teacher"))
+
+
+@router.post("/classes/{class_id}/members/import-file")
+async def import_teacher_class_members_file(class_id: int, files: list[UploadFile] = File(...)):
+    _get_owned_class(class_id)
+    if not files:
+        raise HTTPException(status_code=400, detail="files are required")
+
+    supported = {".xlsx", ".xlsm", ".csv", ".tsv", ".txt", ".json", ".md", ".log"}
+    identifiers: list[str] = []
+    skipped_files: list[str] = []
+    for file in files:
+        filename = file.filename or "students.txt"
+        suffix = Path(filename).suffix.lower()
+        payload = await file.read()
+        if suffix not in supported:
+            skipped_files.append(filename)
+            continue
+        try:
+            identifiers.extend(_extract_identifiers_from_file(filename, payload))
+        except Exception:
+            skipped_files.append(filename)
+
+    result = _import_class_members_by_identifiers(class_id, identifiers, "file")
+    return ok(
+        {
+            **result,
+            "file_count": len(files),
+            "parsed_count": len(list(dict.fromkeys(item.strip() for item in identifiers if item and item.strip()))),
+            "skipped_files": skipped_files,
+            "supported_extensions": sorted(supported),
+        }
+    )
+
+
+@router.delete("/classes/{class_id}/members/{student_id}")
+async def remove_teacher_class_member(class_id: int, student_id: str):
+    _get_owned_class(class_id)
+    execute(
+        """
+        UPDATE teacher_class_members
+        SET status = 'removed', updated_at = ?
+        WHERE class_id = ? AND student_id = ?
+        """,
+        (now_iso(), class_id, student_id),
+    )
+    return ok({"removed": True, "student_id": student_id})
+
+
+@student_class_router.get("/my")
+async def list_my_classes(current_user: dict = Depends(get_current_user)):
+    rows = fetch_all(
+        """
+        SELECT c.*, m.joined_at
+        FROM teacher_class_members m
+        JOIN teacher_classes c ON c.id = m.class_id
+        WHERE m.student_id = ? AND m.status = 'active' AND c.status = 'active'
+        ORDER BY m.joined_at DESC
+        """,
+        (current_user["user_id"],),
+    )
+    return ok([{**_class_row(row), "joined_at": str(row["joined_at"])} for row in rows])
+
+
+@student_class_router.post("/join")
+async def join_class(req: StudentJoinClassReq, current_user: dict = Depends(get_current_user)):
+    code = req.invite_code.strip().upper()
+    if not code:
+        raise HTTPException(status_code=400, detail="invite_code is required")
+    class_row = fetch_one(
+        "SELECT * FROM teacher_classes WHERE invite_code = ? AND status = 'active'",
+        (code,),
+    )
+    if not class_row:
+        raise HTTPException(status_code=404, detail="class not found")
+    class_id = int(class_row["id"])
+    with get_conn() as conn:
+        _upsert_class_member(conn, class_id, current_user["user_id"], "invite")
+    row = fetch_one("SELECT * FROM teacher_classes WHERE id = ?", (class_id,))
+    return ok(_class_row(row))
+
+
+@student_class_router.delete("/my/{class_id}")
+async def leave_class(class_id: int, current_user: dict = Depends(get_current_user)):
+    execute(
+        """
+        UPDATE teacher_class_members
+        SET status = 'removed', updated_at = ?
+        WHERE class_id = ? AND student_id = ?
+        """,
+        (now_iso(), class_id, current_user["user_id"]),
+    )
+    return ok({"left": True, "id": class_id})
+
+
+@student_class_router.get("/broadcasts")
+async def list_my_class_broadcasts(class_id: int | None = None, current_user: dict = Depends(get_current_user)):
+    params: list[Any] = [current_user["user_id"]]
+    class_join = ""
+    if class_id is not None:
+        class_join = """
+        JOIN teacher_class_members m ON m.student_id = d.student_id
+          AND m.class_id = ?
+          AND m.status = 'active'
+        """
+        params = [class_id, current_user["user_id"]]
+
+    rows = fetch_all(
+        f"""
+        SELECT b.*, d.read_at, d.delivered_at
+        FROM broadcast_deliveries d
+        JOIN teacher_broadcasts b ON b.id = d.broadcast_id
+        {class_join}
+        WHERE d.student_id = ?
+        ORDER BY b.created_at DESC
+        """,
+        tuple(params),
+    )
+    items = []
+    for row in rows:
+        material_ids = _safe_json(row["material_file_ids"], [])
+        target_class_ids = _safe_json(row["target_class_ids"], [])
+        if class_id is not None and (row["target_type"] != "class" or class_id not in target_class_ids):
+            continue
+        items.append(
+            {
+                "id": int(row["id"]),
+                "title": row["title"],
+                "content": row["content"],
+                "target_type": row["target_type"],
+                "target_student_ids": _safe_json(row["target_student_ids"], []),
+                "target_class_ids": target_class_ids,
+                "material_file_ids": material_ids,
+                "materials": _material_rows(material_ids),
+                "created_at": row["created_at"],
+                "delivered_at": row["delivered_at"],
+                "read_at": row["read_at"],
+            }
+        )
+    return ok(items)
+
+
+@student_class_router.post("/broadcasts/{broadcast_id}/read")
+async def mark_my_class_broadcast_read(broadcast_id: int, current_user: dict = Depends(get_current_user)):
+    execute(
+        """
+        UPDATE broadcast_deliveries
+        SET read_at = COALESCE(read_at, ?)
+        WHERE broadcast_id = ? AND student_id = ?
+        """,
+        (now_iso(), broadcast_id, current_user["user_id"]),
+    )
+    return ok({"read": True, "id": broadcast_id})
+
+
 @router.get("/broadcast/recipients")
-async def list_broadcast_recipients():
+async def list_broadcast_recipients(class_id: int | None = None):
+    if class_id is not None:
+        _get_owned_class(class_id)
+        rows = fetch_all(
+            "SELECT student_id FROM teacher_class_members WHERE class_id = ? AND status = 'active' ORDER BY joined_at DESC",
+            (class_id,),
+        )
+        return ok([
+            {
+                "id": summary["id"],
+                "name": summary["name"],
+                "grade": summary["grade"],
+                "major": summary["major"],
+            }
+            for summary in (_student_learning_summary(str(row["student_id"])) for row in rows)
+        ])
     students = _build_students()
     return ok([{"id": s["id"], "name": s["name"], "grade": s["grade"], "major": s["major"]} for s in students])
 
@@ -985,36 +1643,78 @@ async def create_broadcast(req: TeacherBroadcastCreateReq):
         raise HTTPException(status_code=400, detail="title is required")
     if not content:
         raise HTTPException(status_code=400, detail="content is required")
-    if target_type not in {"all", "specific"}:
+    if target_type not in {"all", "specific", "class"}:
         raise HTTPException(status_code=400, detail="invalid target_type")
     if target_type == "specific" and not req.student_ids:
         raise HTTPException(status_code=400, detail="student_ids required when target_type is specific")
+    if target_type == "class" and not req.class_ids:
+        raise HTTPException(status_code=400, detail="class_ids required when target_type is class")
 
     all_student_ids = {s["id"] for s in _build_students()}
     if target_type == "specific":
         invalid = [sid for sid in req.student_ids if sid not in all_student_ids]
         if invalid:
             raise HTTPException(status_code=400, detail=f"invalid student_ids: {', '.join(invalid)}")
+        target_student_ids = list(dict.fromkeys(req.student_ids))
+    elif target_type == "class":
+        placeholders = ",".join(["?"] * len(req.class_ids))
+        rows = fetch_all(
+            f"""
+            SELECT id FROM teacher_classes
+            WHERE id IN ({placeholders}) AND user_id = ? AND status = 'active'
+            """,
+            tuple(req.class_ids + [settings.single_user_id]),
+        )
+        found_ids = {int(row["id"]) for row in rows}
+        invalid_classes = [str(cid) for cid in req.class_ids if cid not in found_ids]
+        if invalid_classes:
+            raise HTTPException(status_code=400, detail=f"invalid class_ids: {', '.join(invalid_classes)}")
+        member_rows = fetch_all(
+            f"""
+            SELECT DISTINCT student_id FROM teacher_class_members
+            WHERE class_id IN ({placeholders}) AND status = 'active'
+            """,
+            tuple(req.class_ids),
+        )
+        target_student_ids = [str(row["student_id"]) for row in member_rows]
+        if not target_student_ids:
+            raise HTTPException(status_code=400, detail="selected classes have no members")
+    else:
+        target_student_ids = list(all_student_ids)
 
     ts = now_iso()
     with get_conn() as conn:
         conn.execute(
             """
             INSERT INTO teacher_broadcasts(
-                user_id, title, content, target_type, target_student_ids, material_file_ids, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                user_id, title, content, target_type, target_student_ids, target_class_ids, material_file_ids, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 settings.single_user_id,
                 title,
                 content,
                 target_type,
-                json.dumps(req.student_ids, ensure_ascii=False),
+                json.dumps(target_student_ids if target_type != "all" else [], ensure_ascii=False),
+                json.dumps(req.class_ids if target_type == "class" else [], ensure_ascii=False),
                 json.dumps(req.material_file_ids, ensure_ascii=False),
                 ts,
             ),
         )
         row = conn.execute("SELECT * FROM teacher_broadcasts WHERE id = last_insert_rowid()").fetchone()
+        for student_id in target_student_ids:
+            existing = conn.execute(
+                "SELECT id FROM broadcast_deliveries WHERE broadcast_id = ? AND student_id = ?",
+                (int(row["id"]), student_id),
+            ).fetchone()
+            if not existing:
+                conn.execute(
+                    """
+                    INSERT INTO broadcast_deliveries(broadcast_id, student_id, delivered_at)
+                    VALUES (?, ?, ?)
+                    """,
+                    (int(row["id"]), student_id, ts),
+                )
 
     return ok(
         {
@@ -1023,7 +1723,9 @@ async def create_broadcast(req: TeacherBroadcastCreateReq):
             "content": row["content"],
             "target_type": row["target_type"],
             "target_student_ids": json.loads(row["target_student_ids"] or "[]"),
+            "target_class_ids": json.loads(row["target_class_ids"] or "[]"),
             "material_file_ids": json.loads(row["material_file_ids"] or "[]"),
+            "materials": _material_rows(json.loads(row["material_file_ids"] or "[]")),
             "created_at": row["created_at"],
         }
     )
@@ -1038,23 +1740,7 @@ async def list_broadcasts():
     items = []
     for row in rows:
         mids = json.loads(row["material_file_ids"] or "[]")
-        materials = []
-        if mids:
-            placeholders = ",".join(["?"] * len(mids))
-            m_rows = fetch_all(
-                f"SELECT id, filename, mime_type, size_bytes, created_at FROM teacher_material_files WHERE id IN ({placeholders})",
-                tuple(mids),
-            )
-            materials = [
-                {
-                    "id": int(m["id"]),
-                    "filename": m["filename"],
-                    "mime_type": m["mime_type"],
-                    "size_bytes": int(m["size_bytes"]),
-                    "created_at": m["created_at"],
-                }
-                for m in m_rows
-            ]
+        materials = _material_rows(mids)
         items.append(
             {
                 "id": int(row["id"]),
@@ -1062,6 +1748,7 @@ async def list_broadcasts():
                 "content": row["content"],
                 "target_type": row["target_type"],
                 "target_student_ids": json.loads(row["target_student_ids"] or "[]"),
+                "target_class_ids": json.loads(row["target_class_ids"] or "[]"),
                 "material_file_ids": mids,
                 "materials": materials,
                 "created_at": row["created_at"],

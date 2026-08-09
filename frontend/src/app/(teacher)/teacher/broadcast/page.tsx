@@ -2,15 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { PageHead, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
-import { api, TeacherBroadcast, TeacherMaterialFile, TeacherRecipient } from '@/lib/api'
+import { api, TeacherBroadcast, TeacherClass, TeacherMaterialFile, TeacherRecipient } from '@/lib/api'
 
 export default function TeacherBroadcastPage() {
   const [recipients, setRecipients] = useState<TeacherRecipient[]>([])
+  const [classes, setClasses] = useState<TeacherClass[]>([])
   const [materials, setMaterials] = useState<TeacherMaterialFile[]>([])
   const [broadcasts, setBroadcasts] = useState<TeacherBroadcast[]>([])
 
-  const [targetType, setTargetType] = useState<'all' | 'specific'>('all')
+  const [targetType, setTargetType] = useState<'all' | 'specific' | 'class'>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedClassIds, setSelectedClassIds] = useState<number[]>([])
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([])
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -25,13 +27,22 @@ export default function TeacherBroadcastPage() {
     return targetType === 'all' ? recipients.length : selectedIds.length
   }, [targetType, recipients.length, selectedIds.length])
 
+  const selectedClassCount = useMemo(() => {
+    if (targetType !== 'class') return 0
+    return classes
+      .filter((item) => selectedClassIds.includes(item.id))
+      .reduce((total, item) => total + item.member_count, 0)
+  }, [classes, selectedClassIds, targetType])
+
   async function refreshAll() {
-    const [r, m, b] = await Promise.all([
+    const [r, c, m, b] = await Promise.all([
       api.getTeacherRecipients(),
+      api.getTeacherClasses(),
       api.getTeacherMaterials(),
       api.getTeacherBroadcasts(),
     ])
     setRecipients(r)
+    setClasses(c)
     setMaterials(m)
     setBroadcasts(b)
   }
@@ -90,12 +101,14 @@ export default function TeacherBroadcastPage() {
         title,
         content,
         target_type: targetType,
-        student_ids: targetType === 'all' ? [] : selectedIds,
+        student_ids: targetType === 'specific' ? selectedIds : [],
+        class_ids: targetType === 'class' ? selectedClassIds : [],
         material_file_ids: selectedMaterialIds,
       })
       setTitle('')
       setContent('')
       setSelectedIds([])
+      setSelectedClassIds([])
       setSelectedMaterialIds([])
       await refreshAll()
     } catch (ex) {
@@ -128,6 +141,7 @@ export default function TeacherBroadcastPage() {
             <div className="flex gap-2">
               <button onClick={() => setTargetType('all')} className={`rounded-md px-3 py-1.5 text-xs font-bold ${targetType === 'all' ? 'bg-[#2563eb] text-white' : 'bg-[#f3f4f6] text-[#52627B]'}`}>全体学生</button>
               <button onClick={() => setTargetType('specific')} className={`rounded-md px-3 py-1.5 text-xs font-bold ${targetType === 'specific' ? 'bg-[#2563eb] text-white' : 'bg-[#f3f4f6] text-[#52627B]'}`}>指定学生</button>
+              <button onClick={() => setTargetType('class')} className={`rounded-md px-3 py-1.5 text-xs font-bold ${targetType === 'class' ? 'bg-[#2563eb] text-white' : 'bg-[#f3f4f6] text-[#52627B]'}`}>指定班级</button>
             </div>
 
             {targetType === 'specific' && (
@@ -144,6 +158,28 @@ export default function TeacherBroadcastPage() {
                       <span>{stu.name}</span>
                     </label>
                   ))}
+                </div>
+              </SoftCard>
+            )}
+
+            {targetType === 'class' && (
+              <SoftCard>
+                <div className="mb-2 text-xs font-semibold text-[#64748b]">选择接收班级</div>
+                <div className="grid max-h-[180px] grid-cols-2 gap-2 overflow-auto max-[760px]:grid-cols-1">
+                  {classes.map((item) => (
+                    <label key={item.id} className="flex items-center justify-between gap-2 rounded-md bg-white p-2 text-sm">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedClassIds.includes(item.id)}
+                          onChange={(e) => setSelectedClassIds((prev) => e.target.checked ? [...prev, item.id] : prev.filter((x) => x !== item.id))}
+                        />
+                        <span className="truncate">{item.name}</span>
+                      </span>
+                      <span className="shrink-0 text-[10px] font-bold text-[#64748b]">{item.member_count} 人</span>
+                    </label>
+                  ))}
+                  {!classes.length && <div className="text-xs text-[#94a3b8]">暂无班级，可先到班级管理创建</div>}
                 </div>
               </SoftCard>
             )}
@@ -182,7 +218,7 @@ export default function TeacherBroadcastPage() {
             {error && <div className="rounded-md bg-[#fff1f2] px-3 py-2 text-xs text-[#be123c]">{error}</div>}
 
             <div className="flex items-center justify-between">
-              <div className="text-xs text-[#64748b]">本次接收人数：{selectedCount}</div>
+              <div className="text-xs text-[#64748b]">本次接收范围：{targetType === 'class' ? `${selectedClassIds.length} 个班级，约 ${selectedClassCount} 人` : `${selectedCount} 人`}</div>
               <ProtoButton onClick={sendBroadcast} disabled={sending}>{sending ? '发送中...' : '发送通知'}</ProtoButton>
             </div>
           </div>
@@ -196,7 +232,7 @@ export default function TeacherBroadcastPage() {
                 <div className="flex items-center justify-between gap-2">
                   <b className="text-sm text-[#0f172a]">{b.title}</b>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-[#64748b]">{b.target_type === 'all' ? '全体学生' : `指定 ${b.target_student_ids.length} 人`}</span>
+                    <span className="text-[10px] text-[#64748b]">{b.target_type === 'all' ? '全体学生' : b.target_type === 'class' ? `班级 ${b.target_class_ids?.length || 0} 个` : `指定 ${b.target_student_ids.length} 人`}</span>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${viewedMap[b.id] ? 'bg-[#ecfdf5] text-[#059669]' : 'bg-[#fff7ed] text-[#d97706]'}`}>
                       {viewedMap[b.id] ? '已查看' : '未查看'}
                     </span>

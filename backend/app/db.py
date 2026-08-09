@@ -318,12 +318,54 @@ def init_db() -> None:
               content TEXT NOT NULL,
               target_type TEXT NOT NULL DEFAULT 'all',
               target_student_ids TEXT DEFAULT '[]',
+              target_class_ids TEXT DEFAULT '[]',
               material_file_ids TEXT DEFAULT '[]',
               created_at TEXT NOT NULL
             );
 
             CREATE INDEX IF NOT EXISTS idx_teacher_broadcasts_user_time
             ON teacher_broadcasts(user_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS teacher_classes (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id TEXT NOT NULL,
+              name TEXT NOT NULL,
+              subject_id INTEGER DEFAULT 0,
+              subject_name TEXT DEFAULT '',
+              grade TEXT DEFAULT '',
+              description TEXT DEFAULT '',
+              invite_code TEXT NOT NULL,
+              status TEXT NOT NULL DEFAULT 'active',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_classes_invite_code
+            ON teacher_classes(invite_code);
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_classes_user_status
+            ON teacher_classes(user_id, status, updated_at DESC);
+
+            CREATE TABLE IF NOT EXISTS teacher_class_members (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              class_id INTEGER NOT NULL,
+              student_id TEXT NOT NULL,
+              display_name TEXT DEFAULT '',
+              phone TEXT DEFAULT '',
+              source TEXT DEFAULT 'invite',
+              status TEXT NOT NULL DEFAULT 'active',
+              joined_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_teacher_class_members_unique
+            ON teacher_class_members(class_id, student_id);
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_class_members_class_status
+            ON teacher_class_members(class_id, status);
+
+            CREATE INDEX IF NOT EXISTS idx_teacher_class_members_student_status
+            ON teacher_class_members(student_id, status);
 
             CREATE TABLE IF NOT EXISTS teacher_subjects (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -495,6 +537,7 @@ def init_db() -> None:
         _ensure_tutor_message_columns(conn)
         _ensure_tutor_file_columns(conn)
         _ensure_teacher_subject_columns(conn)
+        _ensure_teacher_broadcast_columns(conn)
 
         timestamp = now_iso()
         conn.execute(
@@ -602,6 +645,12 @@ def _ensure_teacher_subject_columns(conn: sqlite3.Connection) -> None:
     columns = {row['name'] for row in conn.execute('PRAGMA table_info(teacher_subjects)').fetchall()}
     if 'deleted' not in columns:
         conn.execute("ALTER TABLE teacher_subjects ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0")
+
+
+def _ensure_teacher_broadcast_columns(conn: sqlite3.Connection) -> None:
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(teacher_broadcasts)').fetchall()}
+    if 'target_class_ids' not in columns:
+        conn.execute("ALTER TABLE teacher_broadcasts ADD COLUMN target_class_ids TEXT DEFAULT '[]'")
 
 
 def _seed_mastery(conn: sqlite3.Connection) -> None:

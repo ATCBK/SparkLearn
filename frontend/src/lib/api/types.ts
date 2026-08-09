@@ -130,11 +130,59 @@ export interface TeacherBroadcast {
   id: number
   title: string
   content: string
-  target_type: 'all' | 'specific'
+  target_type: 'all' | 'specific' | 'class'
   target_student_ids: string[]
+  target_class_ids: number[]
   material_file_ids: number[]
   materials: TeacherMaterialFile[]
   created_at: string
+}
+
+export interface TeacherClass {
+  id: number
+  user_id: string
+  name: string
+  subject_id: number
+  subject_name: string
+  grade: string
+  description: string
+  invite_code: string
+  status: 'active' | 'paused' | 'archived' | string
+  member_count: number
+  active_member_count: number
+  created_at: string
+  updated_at: string
+  joined_at?: string
+}
+
+export interface TeacherClassMember {
+  id: string
+  member_id: number
+  class_id: number
+  name: string
+  phone: string
+  major: string
+  grade: string
+  avatar: string
+  current_stage: string
+  knowledge_level: string
+  weak_points: string[]
+  learning_preference: string[]
+  daily_time: number
+  streak_days: number
+  risk_level: 'normal' | 'warning' | 'danger' | string
+  last_active: string
+  mastery: Record<string, number>
+  quiz_accuracy: number
+  total_hours: number
+  task_completion: number
+  source: string
+  joined_at: string
+}
+
+export interface ClassBroadcast extends TeacherBroadcast {
+  delivered_at: string
+  read_at: string | null
 }
 
 export interface TeacherSubject {

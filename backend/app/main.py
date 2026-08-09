@@ -24,7 +24,7 @@ from .routes.tutor_eval import router as tutor_eval_router
 from .routes.video import router as video_router
 from .routes.voice_admin import router as voice_admin_router
 from .routes.agent import router as agent_router
-from .routes.teacher import router as teacher_router
+from .routes.teacher import router as teacher_router, student_class_router
 from .routes.teacher_graph import router as teacher_graph_router
 from .routes.forum import router as forum_router
 from .routes.mcp import router as mcp_router
@@ -148,6 +148,7 @@ def create_app() -> FastAPI:
     app.include_router(voice_admin_router)
     app.include_router(agent_router)
     app.include_router(teacher_router)
+    app.include_router(student_class_router)
     app.include_router(teacher_graph_router)
     app.include_router(forum_router)
     app.include_router(mcp_router)

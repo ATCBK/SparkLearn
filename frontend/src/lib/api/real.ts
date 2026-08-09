@@ -4,7 +4,7 @@ import type {
   DashboardStats, MasteryRecord, ReportData, Recommendation,
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
-  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherSubject, TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledgeGraphNode, McpService, McpServicePayload,
+  PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherClass, TeacherClassMember, ClassBroadcast, TeacherSubject, TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledgeGraphNode, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysisResp,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
@@ -1503,8 +1503,8 @@ export async function getMyForumComments(page: number = 1, pageSize: number = 20
   return fetchJson(`/api/forum/my/comments?page=${page}&page_size=${pageSize}`)
 }
 
-export async function getTeacherRecipients(): Promise<TeacherRecipient[]> {
-  return fetchJson('/api/teacher/broadcast/recipients')
+export async function getTeacherRecipients(classId?: number): Promise<TeacherRecipient[]> {
+  return fetchJson(`/api/teacher/broadcast/recipients${classId ? `?class_id=${classId}` : ''}`)
 }
 
 export async function uploadTeacherMaterials(files: File[]): Promise<TeacherMaterialFile[]> {
@@ -1523,8 +1523,9 @@ export async function getTeacherMaterials(): Promise<TeacherMaterialFile[]> {
 export async function createTeacherBroadcast(payload: {
   title: string
   content: string
-  target_type: 'all' | 'specific'
+  target_type: 'all' | 'specific' | 'class'
   student_ids: string[]
+  class_ids?: number[]
   material_file_ids: number[]
 }): Promise<TeacherBroadcast> {
   return fetchJson('/api/teacher/broadcasts', {
@@ -1535,6 +1536,119 @@ export async function createTeacherBroadcast(payload: {
 
 export async function getTeacherBroadcasts(): Promise<TeacherBroadcast[]> {
   return fetchJson('/api/teacher/broadcasts')
+}
+
+export async function getTeacherClasses(): Promise<TeacherClass[]> {
+  return fetchJson('/api/teacher/classes')
+}
+
+export async function createTeacherClass(payload: {
+  name: string
+  subject_id?: number
+  subject_name?: string
+  grade?: string
+  description?: string
+  status?: string
+}): Promise<TeacherClass> {
+  return fetchJson('/api/teacher/classes', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateTeacherClass(classId: number, payload: {
+  name: string
+  subject_id?: number
+  subject_name?: string
+  grade?: string
+  description?: string
+  status?: string
+}): Promise<TeacherClass> {
+  return fetchJson(`/api/teacher/classes/${classId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function archiveTeacherClass(classId: number): Promise<void> {
+  await fetchJson(`/api/teacher/classes/${classId}`, { method: 'DELETE' })
+}
+
+export async function resetTeacherClassInviteCode(classId: number): Promise<TeacherClass> {
+  return fetchJson(`/api/teacher/classes/${classId}/invite-code`, { method: 'POST' })
+}
+
+export async function getTeacherClassMembers(classId: number): Promise<TeacherClassMember[]> {
+  return fetchJson(`/api/teacher/classes/${classId}/members`)
+}
+
+export async function importTeacherClassMembers(classId: number, payload: {
+  student_ids?: string[]
+  phones?: string[]
+}): Promise<{ added_count: number; skipped_count: number; added: string[]; skipped: string[] }> {
+  return fetchJson(`/api/teacher/classes/${classId}/members/import`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function importTeacherClassMembersFromFiles(classId: number, files: File[]): Promise<{
+  added_count: number
+  skipped_count: number
+  added: string[]
+  skipped: string[]
+  file_count: number
+  parsed_count: number
+  skipped_files: string[]
+  supported_extensions: string[]
+}> {
+  const form = new FormData()
+  files.forEach((file) => form.append('files', file))
+  const path = `/api/teacher/classes/${classId}/members/import-file`
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: _authUploadHeaders(),
+    body: form,
+  })
+  const json = await res.json() as ApiResp<{
+    added_count: number
+    skipped_count: number
+    added: string[]
+    skipped: string[]
+    file_count: number
+    parsed_count: number
+    skipped_files: string[]
+    supported_extensions: string[]
+  }>
+  if (!res.ok || !json.success) throw new Error(formatApiError(json, 'POST', path, res.status))
+  return json.data
+}
+
+export async function removeTeacherClassMember(classId: number, studentId: string): Promise<void> {
+  await fetchJson(`/api/teacher/classes/${classId}/members/${encodeURIComponent(studentId)}`, { method: 'DELETE' })
+}
+
+export async function getMyClasses(): Promise<TeacherClass[]> {
+  return fetchJson('/api/classes/my')
+}
+
+export async function joinClassByInviteCode(inviteCode: string): Promise<TeacherClass> {
+  return fetchJson('/api/classes/join', {
+    method: 'POST',
+    body: JSON.stringify({ invite_code: inviteCode }),
+  })
+}
+
+export async function leaveMyClass(classId: number): Promise<void> {
+  await fetchJson(`/api/classes/my/${classId}`, { method: 'DELETE' })
+}
+
+export async function getClassBroadcasts(classId?: number): Promise<ClassBroadcast[]> {
+  return fetchJson(`/api/classes/broadcasts${classId ? `?class_id=${classId}` : ''}`)
+}
+
+export async function markClassBroadcastRead(broadcastId: number): Promise<void> {
+  await fetchJson(`/api/classes/broadcasts/${broadcastId}/read`, { method: 'POST' })
 }
 
 export async function getTeacherSubjects(enabledOnly = false): Promise<TeacherSubject[]> {

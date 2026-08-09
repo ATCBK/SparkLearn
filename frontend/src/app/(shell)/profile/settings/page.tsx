@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { Camera, Mail, GraduationCap, BookOpen, Clock, Target, ArrowLeft } from 'lucide-react'
-import { api, ProfileUpdatePayload, StudentProfile } from '@/lib/api'
+import { BellRing, Camera, Mail, GraduationCap, BookOpen, Clock, Target, ArrowLeft, LogOut, School } from 'lucide-react'
+import { api, ClassBroadcast, ProfileUpdatePayload, StudentProfile, TeacherClass } from '@/lib/api'
 import { getUser, setUser, syncStudyBuddyProfile } from '@/lib/auth'
 import { PageHead, ProtoButton, ProtoCard } from '@/components/proto'
 
@@ -13,8 +13,14 @@ export default function ProfileSettingsPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [myClasses, setMyClasses] = useState<TeacherClass[]>([])
+  const [classBroadcasts, setClassBroadcasts] = useState<ClassBroadcast[]>([])
+  const [inviteCode, setInviteCode] = useState('')
+  const [classMessage, setClassMessage] = useState('')
+  const [classLoading, setClassLoading] = useState(false)
 
   useEffect(() => {
+    void loadClassInfo()
     api.getProfile().then(setForm).catch((ex) => setError(ex instanceof Error ? ex.message : '信息读取失败'))
   }, [])
 
@@ -66,6 +72,62 @@ export default function ProfileSettingsPage() {
       setError(ex instanceof Error ? ex.message : '保存失败')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function loadClassInfo() {
+    setClassLoading(true)
+    try {
+      const [classes, broadcasts] = await Promise.all([
+        api.getMyClasses(),
+        api.getClassBroadcasts(),
+      ])
+      setMyClasses(classes)
+      setClassBroadcasts(broadcasts)
+    } catch (ex) {
+      setClassMessage(ex instanceof Error ? ex.message : '班级信息读取失败')
+    } finally {
+      setClassLoading(false)
+    }
+  }
+
+  async function joinClass() {
+    if (!inviteCode.trim()) return
+    setClassLoading(true)
+    setClassMessage('')
+    try {
+      await api.joinClassByInviteCode(inviteCode.trim())
+      setInviteCode('')
+      setClassMessage('已加入班级')
+      await loadClassInfo()
+    } catch (ex) {
+      setClassMessage(ex instanceof Error ? ex.message : '加入班级失败')
+    } finally {
+      setClassLoading(false)
+    }
+  }
+
+  async function leaveClass(classId: number) {
+    if (!window.confirm('确定退出这个班级吗？退出后将不再接收该班级通知。')) return
+    setClassLoading(true)
+    setClassMessage('')
+    try {
+      await api.leaveMyClass(classId)
+      setClassMessage('已退出班级')
+      await loadClassInfo()
+    } catch (ex) {
+      setClassMessage(ex instanceof Error ? ex.message : '退出班级失败')
+    } finally {
+      setClassLoading(false)
+    }
+  }
+
+  async function markBroadcastRead(broadcastId: number) {
+    try {
+      await api.markClassBroadcastRead(broadcastId)
+      await loadClassInfo()
+    } catch (ex) {
+      setClassMessage(ex instanceof Error ? ex.message : '标记已读失败')
     }
   }
 
@@ -154,6 +216,93 @@ export default function ProfileSettingsPage() {
             <div className="mt-4 grid grid-cols-2 gap-4 max-[640px]:grid-cols-1">
               <FormField label="专业" value={form.major} onChange={v => update('major', v)} placeholder="如：计算机科学" />
               <FormField label="年级" value={form.grade} onChange={v => update('grade', v)} placeholder="如：大二" />
+            </div>
+          </ProtoCard>
+
+          <ProtoCard>
+            <SectionTitle icon={<School className="h-4 w-4" />} title="我的班级" />
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-[1fr_auto] gap-3 max-[640px]:grid-cols-1">
+                <input
+                  value={inviteCode}
+                  onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
+                  placeholder="输入教师提供的邀请码"
+                  className="h-11 w-full rounded-lg border border-[#dbe7f5] bg-white px-3 text-sm font-semibold tracking-normal outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-blue-100"
+                />
+                <ProtoButton onClick={() => void joinClass()} disabled={classLoading || !inviteCode.trim()}>
+                  <School className="h-4 w-4" />
+                  加入班级
+                </ProtoButton>
+              </div>
+
+              {classMessage && (
+                <div className="rounded-lg border border-[#bfdbfe] bg-[#eff6ff] px-3 py-2 text-xs font-bold text-[#1d4ed8]">
+                  {classMessage}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {myClasses.map((item) => (
+                  <div key={item.id} className="rounded-[10px] border border-[#eef2f7] bg-[#f8fafc] p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <b className="block truncate text-sm text-[#0f172a]">{item.name}</b>
+                        <span className="mt-1 block text-xs text-[#64748b]">{item.subject_name || '未关联学科'} · {item.grade || '未设置年级'}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void leaveClass(item.id)}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white px-2.5 text-xs font-bold text-[#dc2626] ring-1 ring-[#fecaca] hover:bg-[#fef2f2]"
+                      >
+                        <LogOut className="h-3.5 w-3.5" />
+                        退出
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {!classLoading && !myClasses.length && (
+                  <div className="rounded-[10px] border border-dashed border-[#cbd5e1] bg-[#f8fafc] p-4 text-center text-sm font-semibold text-[#64748b]">
+                    暂未加入班级
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[#eef2f7] pt-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <BellRing className="h-4 w-4 text-blue" />
+                  <h4 className="text-sm font-bold text-ink">班级通知</h4>
+                </div>
+                <div className="space-y-2">
+                  {classBroadcasts.slice(0, 4).map((item) => (
+                    <div key={item.id} className="rounded-[10px] border border-[#eef2f7] bg-white p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <b className="text-sm text-[#0f172a]">{item.title}</b>
+                        <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${item.read_at ? 'bg-[#ecfdf5] text-[#059669]' : 'bg-[#fff7ed] text-[#d97706]'}`}>
+                          {item.read_at ? '已读' : '未读'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-[#475569]">{item.content}</p>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10px] text-[#94a3b8]">{item.created_at}</span>
+                        {!item.read_at && (
+                          <button
+                            type="button"
+                            onClick={() => void markBroadcastRead(item.id)}
+                            className="rounded-md bg-[#eff6ff] px-2 py-1 text-[10px] font-bold text-[#2563eb] hover:bg-[#dbeafe]"
+                          >
+                            标记已读
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {!classLoading && !classBroadcasts.length && (
+                    <div className="rounded-[10px] bg-[#f8fafc] p-3 text-center text-xs font-semibold text-[#64748b]">
+                      暂无班级通知
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </ProtoCard>
 
