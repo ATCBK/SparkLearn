@@ -34,7 +34,7 @@ import type { TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledge
 import { cn } from '@/lib/utils/cn'
 
 const NODE_TYPES = ['知识点', '概念', '方法', '公式', '案例', '能力']
-const EDGE_TYPES = ['前置知识', '包含', '相关', '应用', '易混淆']
+const EDGE_TYPES = ['前驱', '后继', '相关']
 const TYPE_COLORS: Record<string, string> = {
   知识点: '#2563eb',
   概念: '#2563eb',
@@ -83,6 +83,11 @@ function readableType(type: string) {
   return NODE_TYPES.includes(type) ? type : '知识点'
 }
 
+function readableEdgeType(type: string) {
+  if (type === '前置知识') return '前驱'
+  return EDGE_TYPES.includes(type) ? type : '相关'
+}
+
 function hasChartItemId(data: unknown): data is { id: string } {
   return Boolean(data && typeof data === 'object' && 'id' in data && typeof data.id === 'string')
 }
@@ -102,6 +107,7 @@ export default function TeacherKnowledgeGraphPage() {
   const [selection, setSelection] = useState<Selection>(null)
   const [connectionMode, setConnectionMode] = useState(false)
   const [connectSourceId, setConnectSourceId] = useState<string | null>(null)
+  const [connectionType, setConnectionType] = useState('相关')
   const [isEchartsReady, setIsEchartsReady] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -111,6 +117,22 @@ export default function TeacherKnowledgeGraphPage() {
   const selectedNode = selection?.kind === 'node' ? nodes.find((node) => node.id === selection.id) || null : null
   const selectedEdge = selection?.kind === 'edge' ? edges.find((edge) => edge.id === selection.id) || null : null
   const publishedCount = useMemo(() => graphs.filter((item) => item.status === 'published').length, [graphs])
+  const selectedNodeRelations = useMemo(() => {
+    if (!selectedNode) return []
+    return edges
+      .filter((edge) => edge.source === selectedNode.id || edge.target === selectedNode.id)
+      .map((edge) => {
+        const isOutgoing = edge.source === selectedNode.id
+        const otherNodeId = isOutgoing ? edge.target : edge.source
+        return {
+          edge,
+          isOutgoing,
+          relation: readableEdgeType(edge.type),
+          node: nodeMap.get(otherNodeId) || null,
+        }
+      })
+      .filter((item) => item.node)
+  }, [edges, nodeMap, selectedNode])
 
   const hydrateGraph = useCallback((graph: TeacherKnowledgeGraph) => {
     setCurrentGraph(graph)
@@ -118,7 +140,7 @@ export default function TeacherKnowledgeGraphPage() {
     setDescription(graph.description || '')
     setTargetClasses(joinClasses(graph.target_classes || []))
     setNodes(graph.nodes || [])
-    setEdges(graph.edges || [])
+    setEdges((graph.edges || []).map((edge) => ({ ...edge, type: readableEdgeType(edge.type), label: readableEdgeType(edge.type) })))
     setSelection(null)
     setConnectSourceId(null)
     setConnectionMode(false)
@@ -210,6 +232,10 @@ export default function TeacherKnowledgeGraphPage() {
   async function handleSave(status = currentGraph?.status || 'draft') {
     setSaving(true)
     try {
+      const normalizedEdges = edges.map((edge) => {
+        const edgeType = readableEdgeType(edge.type)
+        return { ...edge, type: edgeType, label: edgeType }
+      })
       const graph = currentGraph
         ? await updateTeacherKnowledgeGraph(currentGraph.id, {
             title,
@@ -217,14 +243,14 @@ export default function TeacherKnowledgeGraphPage() {
             target_classes: splitClasses(targetClasses),
             status,
             nodes,
-            edges,
+            edges: normalizedEdges,
           })
         : await createTeacherKnowledgeGraph({
             title,
             description,
             target_classes: splitClasses(targetClasses),
             nodes,
-            edges,
+            edges: normalizedEdges,
           })
       hydrateGraph(graph)
       const list = await getTeacherKnowledgeGraphs()
@@ -305,12 +331,13 @@ export default function TeacherKnowledgeGraphPage() {
 
   const addEdgeBetween = useCallback((source: string, target: string, type = '相关') => {
     if (source === target) return
-    const exists = edges.some((edge) => edge.source === source && edge.target === target && edge.type === type)
+    const edgeType = readableEdgeType(type)
+    const exists = edges.some((edge) => edge.source === source && edge.target === target && readableEdgeType(edge.type) === edgeType)
     if (exists) {
       setToast('这两个节点之间已经有相同关系')
       return
     }
-    const edge: TeacherKnowledgeGraphEdge = { id: newId('edge'), source, target, type, label: type }
+    const edge: TeacherKnowledgeGraphEdge = { id: newId('edge'), source, target, type: edgeType, label: edgeType }
     setEdges((items) => [...items, edge])
     setSelection({ kind: 'edge', id: edge.id })
   }, [edges])
@@ -325,9 +352,9 @@ export default function TeacherKnowledgeGraphPage() {
       setSelection({ kind: 'node', id: node.id })
       return
     }
-    addEdgeBetween(connectSourceId, node.id, '相关')
+    addEdgeBetween(connectSourceId, node.id, connectionType)
     setConnectSourceId(null)
-  }, [addEdgeBetween, connectionMode, connectSourceId])
+  }, [addEdgeBetween, connectionMode, connectSourceId, connectionType])
 
   function autoLayout() {
     const total = Math.max(1, nodes.length)
@@ -357,7 +384,13 @@ export default function TeacherKnowledgeGraphPage() {
 
   function updateSelectedEdge(patch: Partial<TeacherKnowledgeGraphEdge>) {
     if (!selectedEdge) return
-    setEdges((items) => items.map((edge) => edge.id === selectedEdge.id ? { ...edge, ...patch, label: patch.type || patch.label || edge.label } : edge))
+    setEdges((items) =>
+      items.map((edge) => {
+        if (edge.id !== selectedEdge.id) return edge
+        const nextType = readableEdgeType(String(patch.type || edge.type))
+        return { ...edge, ...patch, type: nextType, label: nextType }
+      }),
+    )
   }
 
   function deleteSelection() {
@@ -458,24 +491,26 @@ export default function TeacherKnowledgeGraphPage() {
       .filter((edge) => nodeMap.has(edge.source) && nodeMap.has(edge.target))
       .map((edge) => {
         const selected = selection?.kind === 'edge' && selection.id === edge.id
-        const isPrerequisite = edge.type === '前置知识'
-        const isRelated = edge.type === '相关'
+        const edgeType = readableEdgeType(edge.type)
+        const isPrerequisite = edgeType === '前驱'
+        const isSuccessor = edgeType === '后继'
+        const isRelated = edgeType === '相关'
         return {
           id: edge.id,
           source: edge.source,
           target: edge.target,
-          name: edge.label || edge.type,
-          type: edge.type,
+          name: edgeType,
+          type: edgeType,
           lineStyle: {
-            color: selected ? '#2563eb' : isPrerequisite ? '#CBD5E1' : '#93C5FD',
+            color: selected ? '#2563eb' : isPrerequisite ? '#CBD5E1' : isSuccessor ? '#67E8F9' : '#93C5FD',
             width: selected ? 2.8 : isPrerequisite ? 1.5 : 1.2,
             type: isRelated ? ([5, 5] as number[]) : 'solid',
             curveness: 0.15,
             opacity: selected ? 0.96 : 0.78,
           },
           label: {
-            show: selected,
-            formatter: edge.label || edge.type,
+            show: false,
+            formatter: '',
             color: '#2563eb',
             fontSize: 11,
             fontWeight: 700,
@@ -502,7 +537,7 @@ export default function TeacherKnowledgeGraphPage() {
             if (params.dataType === 'edge') {
               const edge = edges.find((item) => item.id === params.data?.id)
               if (!edge) return ''
-              return `<b>${edge.label || edge.type}</b>`
+              return `<b>${readableEdgeType(edge.type)}</b>`
             }
             const node = nodes.find((item) => item.id === params.data?.id)
             if (!node) return params.data?.name || ''
@@ -745,6 +780,16 @@ export default function TeacherKnowledgeGraphPage() {
                   <Link2 className="h-4 w-4" />
                   连接
                 </button>
+                <label className="flex h-9 items-center gap-2 rounded-lg border border-[#dbe7f5] bg-white px-2 text-xs font-bold text-[#475569]">
+                  <span className="shrink-0">关系</span>
+                  <select
+                    value={connectionType}
+                    onChange={(event) => setConnectionType(event.target.value)}
+                    className="h-7 rounded-md border-0 bg-transparent px-1 text-xs font-bold text-[#0f172a] outline-none"
+                  >
+                    {EDGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
+                </label>
                 <button type="button" onClick={addNode} className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#f1f5f9] px-3 text-xs font-bold text-[#475569] hover:bg-[#e2e8f0]">
                   <Plus className="h-4 w-4" />
                   节点
@@ -760,7 +805,7 @@ export default function TeacherKnowledgeGraphPage() {
               </div>
               <div className="flex items-center gap-2 text-xs font-semibold text-[#64748b]">
                 {connectionMode ? (
-                  <span>{connectSourceId ? '请选择目标节点' : '请选择起始节点'}</span>
+                  <span>{connectSourceId ? `请选择目标节点，将建立“${connectionType}”关系` : '请选择起始节点'}</span>
                 ) : (
                   <>
                     <Move className="h-4 w-4" />
@@ -821,12 +866,40 @@ export default function TeacherKnowledgeGraphPage() {
                   <span className="mb-1 block text-xs font-bold text-[#64748b]">说明</span>
                   <textarea value={selectedNode.description} onChange={(event) => updateSelectedNode({ description: event.target.value })} rows={5} className="w-full resize-none rounded-lg border border-[#dbe7f5] px-3 py-2 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-blue-100" />
                 </label>
+                <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#64748b]">关联节点</span>
+                    <span className="rounded-md bg-white px-2 py-0.5 text-[11px] font-bold text-[#2563eb]">{selectedNodeRelations.length} 个</span>
+                  </div>
+                  {selectedNodeRelations.length ? (
+                    <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                      {selectedNodeRelations.map((item) => (
+                        <button
+                          key={item.edge.id}
+                          type="button"
+                          onClick={() => setSelection({ kind: 'edge', id: item.edge.id })}
+                          className="w-full rounded-lg border border-[#e5e7eb] bg-white p-2 text-left hover:border-[#bfdbfe] hover:bg-[#eff6ff]"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="line-clamp-1 text-sm font-bold text-[#0f172a]">{item.node?.label}</span>
+                            <span className="shrink-0 rounded-md bg-[#eef2ff] px-2 py-0.5 text-[11px] font-bold text-[#2563eb]">{item.relation}</span>
+                          </div>
+                          <div className="mt-1 text-[11px] font-semibold text-[#94a3b8]">
+                            {item.isOutgoing ? '本节点指向该节点' : '该节点指向本节点'}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-white p-3 text-xs leading-5 text-[#94a3b8]">当前节点暂时没有关联节点。</div>
+                  )}
+                </div>
               </div>
             ) : selectedEdge ? (
               <div className="space-y-3">
                 <label className="block">
                   <span className="mb-1 block text-xs font-bold text-[#64748b]">关系类型</span>
-                  <select value={selectedEdge.type} onChange={(event) => updateSelectedEdge({ type: event.target.value, label: event.target.value })} className="h-10 w-full rounded-lg border border-[#dbe7f5] bg-white px-3 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-blue-100">
+                  <select value={readableEdgeType(selectedEdge.type)} onChange={(event) => updateSelectedEdge({ type: event.target.value, label: event.target.value })} className="h-10 w-full rounded-lg border border-[#dbe7f5] bg-white px-3 text-sm outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-blue-100">
                     {EDGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
                   </select>
                 </label>

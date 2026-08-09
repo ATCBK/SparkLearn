@@ -35,8 +35,8 @@ class GraphEdge(BaseModel):
     id: str
     source: str
     target: str
-    type: str = "前置知识"
-    label: str = "前置知识"
+    type: str = "相关"
+    label: str = "相关"
 
 
 class KnowledgeGraphUpdateReq(BaseModel):
@@ -84,7 +84,7 @@ async def create_teacher_knowledge_graph(req: KnowledgeGraphCreateReq):
     if not title:
         raise HTTPException(status_code=400, detail="title is required")
     nodes = [node.model_dump() for node in req.nodes] or _default_seed_nodes()
-    edges = [edge.model_dump() for edge in req.edges]
+    edges = [_clean_edge(edge.model_dump()) for edge in req.edges]
     row = _insert_graph(
         title=title,
         description=req.description.strip(),
@@ -176,7 +176,7 @@ async def update_teacher_knowledge_graph(graph_id: int, req: KnowledgeGraphUpdat
             json.dumps(_clean_classes(req.target_classes), ensure_ascii=False),
             status,
             json.dumps([node.model_dump() for node in req.nodes], ensure_ascii=False),
-            json.dumps([edge.model_dump() for edge in req.edges], ensure_ascii=False),
+            json.dumps([_clean_edge(edge.model_dump()) for edge in req.edges], ensure_ascii=False),
             ts,
             status,
             ts,
@@ -290,7 +290,7 @@ async def _generate_graph_from_text(title: str, text: str) -> dict[str, Any]:
         "只输出 JSON，不要 Markdown。JSON 结构："
         '{"description":"一句话概括","nodes":[{"label":"知识点","type":"概念|方法|公式|案例|能力",'
         '"description":"不超过40字","difficulty":1}],"edges":[{"source":"节点名","target":"节点名",'
-        '"type":"前置知识|包含|相关|应用|易混淆"}]}。'
+        '"type":"前驱|后继|相关"}]}。关系类型只能从“前驱、后继、相关”中选择。'
         f"\n图谱标题：{title}\n资料内容：\n{sample}"
     )
     try:
@@ -439,7 +439,7 @@ def _layout_position(index: int, total: int) -> tuple[float, float]:
 def _sequential_edges(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     edges: list[dict[str, Any]] = []
     for idx in range(max(0, len(nodes) - 1)):
-        edge_type = "前置知识" if idx < max(2, len(nodes) // 2) else "相关"
+        edge_type = "前驱" if idx < max(2, len(nodes) // 2) else "相关"
         edges.append(
             {
                 "id": f"edge-{uuid.uuid4().hex[:8]}",
@@ -511,7 +511,18 @@ def _safe_node_type(value: str) -> str:
 
 def _safe_edge_type(value: str) -> str:
     normalized = value.strip()
-    return normalized if normalized in {"前置知识", "包含", "相关", "应用", "易混淆"} else "相关"
+    if normalized == "前置知识":
+        return "前驱"
+    return normalized if normalized in {"前驱", "后继", "相关"} else "相关"
+
+
+def _clean_edge(edge: dict[str, Any]) -> dict[str, Any]:
+    edge_type = _safe_edge_type(str(edge.get("type") or edge.get("label") or "相关"))
+    return {
+        **edge,
+        "type": edge_type,
+        "label": edge_type,
+    }
 
 
 def _infer_node_type(label: str) -> str:
