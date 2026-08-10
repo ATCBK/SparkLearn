@@ -311,6 +311,7 @@ function Reco({ title, meta, action, resourceId }: { title: string; meta: string
       <button
         onClick={() => openLearningNotes({ type: 'resource', id: resourceId, title, href })}
         data-testid="resource-note-button"
+        data-guide-target="resource-note-button"
         className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-blue-light hover:text-blue"
         aria-label="为资源记笔记"
         title="记笔记"
