@@ -5,26 +5,18 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   ArrowRight,
   BookOpen,
-  Bot,
   ChevronLeft,
   ChevronRight,
-  Compass,
   FileText,
-  Library,
   Map,
   MessageCircle,
-  NotebookPen,
   PenTool,
-  Route,
   Sparkles,
   Target,
   UserRound,
-  Users,
-  Wand2,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import { api, type StudentProfile } from '@/lib/api'
 import {
   clearNewUserGuideActive,
   getGuideUserId,
@@ -42,11 +34,18 @@ export type NewUserGuidePanelHandle = {
 
 type CompletionMode = 'click' | 'input'
 
+type GuideInsight = {
+  scene: string
+  problem: string
+  method: string
+}
+
 type GuideStep = {
   id: string
   route: string
   title: string
   description: string
+  insight: GuideInsight
   target: string
   fallbackTarget?: string
   actionLabel: string
@@ -73,120 +72,61 @@ const GUIDE_STEPS: GuideStep[] = [
   {
     id: 'home',
     route: '/',
-    title: '从工作台开始你的学习闭环',
-    description: '这里汇总今日任务、资源推荐和学习状态。引导会带你真实走完整个平台，不只是在这里看介绍。',
-    target: 'guide-replay',
-    fallbackTarget: 'profile-entry',
-    actionLabel: '认识工作台',
+    title: '先知道今天从哪开始',
+    description: '小星同学想学 Python，却总是在“找资料、看一半、又换资料”之间打转。工作台先把今天该做的事收拢到一个入口。',
+    insight: {
+      scene: '学生知道自己想提升，却很难判断今天先做哪一步。',
+      problem: '如果一上来只是给资料，学生仍然要自己判断方向、难度和顺序。',
+      method: '工作台先组织学习动作，再把画像、路径、资源、练习和报告连成一条线。',
+    },
+    target: 'home-workspace',
+    fallbackTarget: 'path-entry',
+    actionLabel: '查看当前任务',
     icon: <Sparkles className="h-4 w-4" />,
     accent: 'from-[#2563eb] to-[#38bdf8]',
   },
   {
     id: 'profile',
-    route: '/onboarding',
-    title: '先完成学习画像',
-    description: '填写目标、基础、薄弱点和学习偏好。后面的路径、资源、练习都会基于画像个性化生成。',
-    target: 'onboarding-primary-action',
+    route: '/profile',
+    title: '把“我是谁”变成学习依据',
+    description: '在继续学习前，小星同学先把目标、基础、薄弱点和偏好交代清楚。平台先理解人，再安排内容。',
+    insight: {
+      scene: '同样学习 Python，有人刚入门，有人只卡在函数进阶。',
+      problem: '没有画像，AI 只能给通用建议，很难说明“为什么适合这个学生”。',
+      method: '把目标、薄弱点、偏好和学习记录沉淀为画像，作为后续推荐和生成的依据。',
+    },
+    target: 'profile-overview',
     fallbackTarget: 'profile-entry',
-    actionLabel: '去完善画像',
+    actionLabel: '查看画像',
     icon: <UserRound className="h-4 w-4" />,
     accent: 'from-[#2563eb] to-[#60a5fa]',
   },
   {
-    id: 'profile-view',
-    route: '/profile',
-    title: '查看画像如何沉淀',
-    description: '这里展示你的目标、偏好、薄弱点和学习历史。后续练习和报告会继续反哺这里。',
-    target: 'profile-overview',
-    fallbackTarget: 'profile-nav',
-    actionLabel: '查看画像',
-    icon: <UserRound className="h-4 w-4" />,
-    accent: 'from-[#0f766e] to-[#2dd4bf]',
-  },
-  {
     id: 'path',
     route: '/path',
-    title: '查看个性化学习路径',
-    description: '路径会把大目标拆成阶段、知识点和任务。你可以点击节点看下一步该做什么。',
+    title: '把大目标拆成能走的节点',
+    description: '平台把“学会 Python 函数进阶”拆成几个节点。小星同学不再面对一个大而空的目标。',
+    insight: {
+      scene: '学生有学习目标，却不知道合理顺序。',
+      problem: '只给资源不能解决方向问题，学生看完一份材料仍然不知道下一步。',
+      method: '根据画像生成阶段、知识点和任务节点，让资源、Tutor 和练习都围绕当前节点展开。',
+    },
     target: 'path-workspace',
     fallbackTarget: 'path-nav',
-    actionLabel: '进入路径',
+    actionLabel: '查看路径',
     icon: <Map className="h-4 w-4" />,
     accent: 'from-[#059669] to-[#34d399]',
   },
   {
-    id: 'path-node',
-    route: '/path',
-    title: '点开一个路径节点',
-    description: '节点详情会说明学习目标、预计时间和后续动作。真实点击节点后，这一步就算完成。',
-    target: 'path-node-list',
-    fallbackTarget: 'path-workspace',
-    actionLabel: '查看节点',
-    icon: <Route className="h-4 w-4" />,
-    accent: 'from-[#16a34a] to-[#86efac]',
-  },
-  {
-    id: 'resource',
-    route: '/generate',
-    title: '根据当前卡点生成资源',
-    description: '资源中心可以生成文档、课件、测验、阅读、代码练习或视频。输入一个主题也可以推进这一步。',
-    target: 'resource-prompt',
-    fallbackTarget: 'resource-nav',
-    actionLabel: '生成资源',
-    completionMode: 'input',
-    sampleInput: '生成一份 Python 闭包入门讲义',
-    icon: <FileText className="h-4 w-4" />,
-    accent: 'from-[#ea580c] to-[#fbbf24]',
-  },
-  {
-    id: 'resource-note',
-    route: '/generate',
-    title: '资源中心里可以随手记笔记',
-    description: '看资源时不要只浏览。点击记笔记，把关键概念沉淀下来，后续 Tutor 也能参考你的个性化笔记。',
-    target: 'resource-note-button',
-    fallbackTarget: 'learning-notes-open',
-    actionLabel: '试试记笔记',
-    icon: <NotebookPen className="h-4 w-4" />,
-    accent: 'from-[#7c3aed] to-[#c084fc]',
-  },
-  {
-    id: 'knowledge',
-    route: '/knowledge',
-    title: '把资料沉淀到知识库',
-    description: '知识库用来管理上传资料和知识文件。资源生成、问答和学习伙伴都可以围绕这些资料继续工作。',
-    target: 'knowledge-workspace',
-    fallbackTarget: 'knowledge-nav',
-    actionLabel: '进入知识库',
-    icon: <Library className="h-4 w-4" />,
-    accent: 'from-[#0891b2] to-[#22d3ee]',
-  },
-  {
-    id: 'agent',
-    route: '/agent',
-    title: '体验 AI 学习伙伴',
-    description: '学习伙伴会长期陪伴你的目标，帮助做资料检索、内容摘要、概念对比和任务建议。',
-    target: 'agent-workspace',
-    fallbackTarget: 'tutor-nav',
-    actionLabel: '进入学习伙伴',
-    icon: <Bot className="h-4 w-4" />,
-    accent: 'from-[#7c3aed] to-[#a78bfa]',
-  },
-  {
-    id: 'practice',
-    route: '/practice',
-    title: '用练习验证是否掌握',
-    description: '练习评测把“看过了”变成可评估、可复盘的数据。进入练习区后可以继续下一步。',
-    target: 'practice-workspace',
-    fallbackTarget: 'practice-nav',
-    actionLabel: '开始练习',
-    icon: <BookOpen className="h-4 w-4" />,
-    accent: 'from-[#2563eb] to-[#818cf8]',
-  },
-  {
-    id: 'practice-records',
+    id: 'records',
     route: '/practice/records',
-    title: '练习记录会沉淀学习证据',
-    description: '错题和练习记录会进入后续报告，帮助系统知道你真正掌握了什么。',
+    title: '让学习过程有迹可循',
+    description: '小星同学能回看自己学过什么、问过什么、哪里仍然薄弱。学习过程不再散落在不同工具里。',
+    insight: {
+      scene: '学生在视频、笔记、AI 对话和练习之间来回切换。',
+      problem: '过程一旦断掉，下一次推荐就只能重新开始猜。',
+      method: '把学习行为、问答、练习和节点状态沉淀为连续证据，支撑后续推荐。',
+    },
     target: 'practice-records-workspace',
     fallbackTarget: 'practice-nav',
     actionLabel: '查看记录',
@@ -194,118 +134,72 @@ const GUIDE_STEPS: GuideStep[] = [
     accent: 'from-[#475569] to-[#94a3b8]',
   },
   {
+    id: 'resource',
+    route: '/generate',
+    title: '围绕当前卡点生成材料',
+    description: '资源不是泛泛生成，而是围绕当前节点生成。难度、例子和练习方式都贴合小星同学的画像。',
+    insight: {
+      scene: '网上资料很多，但难度、风格和例子未必适合当前学生。',
+      problem: '学生花时间筛资料，却仍不确定哪一份能解决眼前问题。',
+      method: '用画像、路径节点和学习记录约束生成内容，让资源服务这一轮学习。',
+    },
+    target: 'resource-prompt',
+    fallbackTarget: 'resource-entry',
+    actionLabel: '生成资源',
+    completionMode: 'input',
+    sampleInput: '生成一份适合高一学生的 Python 闭包讲义，解释为什么内部函数能记住外层变量，并给 2 道小练习。',
+    icon: <FileText className="h-4 w-4" />,
+    accent: 'from-[#ea580c] to-[#fbbf24]',
+  },
+  {
+    id: 'tutor',
+    route: '/tutor',
+    title: '追问能接上前面的学习',
+    description: '小星同学看完资源后继续追问。Tutor 带着画像、路径和资料上下文解释，不需要从头介绍背景。',
+    insight: {
+      scene: '学生向 AI 提问时，经常要重新说明自己是谁、学到哪一步。',
+      problem: '孤立问答很难延续学习过程，也难以给出真正贴合学生的解释。',
+      method: 'Tutor 读取画像、路径、资源和记录，让对话成为学习闭环的一部分。',
+    },
+    target: 'tutor-input',
+    fallbackTarget: 'tutor-nav',
+    actionLabel: '问 Tutor',
+    completionMode: 'input',
+    sampleInput: '我还是不理解闭包为什么能记住外层变量，请用生活例子和代码解释。',
+    icon: <MessageCircle className="h-4 w-4" />,
+    accent: 'from-[#1d4ed8] to-[#60a5fa]',
+  },
+  {
+    id: 'practice',
+    route: '/practice',
+    title: '看懂之后，要验证会不会做',
+    description: '小星同学通过练习验证自己是否真的掌握闭包，而不是停留在“好像听懂了”。',
+    insight: {
+      scene: '学生听讲时觉得懂了，真正写代码时才发现不会。',
+      problem: '没有评测，平台无法判断学生是否掌握，也无法给出有效反馈。',
+      method: '把练习结果、错因和节点状态沉淀为学习证据，驱动下一步建议。',
+    },
+    target: 'practice-workspace',
+    fallbackTarget: 'practice-nav',
+    actionLabel: '进入练习',
+    icon: <BookOpen className="h-4 w-4" />,
+    accent: 'from-[#2563eb] to-[#818cf8]',
+  },
+  {
     id: 'report',
     route: '/report',
-    title: '看报告并反推下一步',
-    description: '学习报告会总结薄弱点、任务状态和下一步建议。它会把结果反向写回学习画像。',
+    title: '学完以后，知道下一步怎么改',
+    description: '报告总结小星同学这一轮学习效果，并把薄弱点回流到画像，生成下一步建议。',
+    insight: {
+      scene: '很多学习产品学完就结束，学生仍然不知道下一步怎么调整。',
+      problem: '反馈不回流，下一次推荐仍然像从零开始。',
+      method: '报告把评测结果、错因和建议写回画像，让下一轮路径和资源更准确。',
+    },
     target: 'report-workspace',
     fallbackTarget: 'report-nav',
     actionLabel: '查看报告',
     icon: <Target className="h-4 w-4" />,
     accent: 'from-[#dc2626] to-[#fb7185]',
-  },
-  {
-    id: 'info-stream',
-    route: '/info-stream',
-    title: '学习发现提供外部视野',
-    description: '这里展示推荐内容、信息流和拓展材料，让学习不只停留在当前任务。',
-    target: 'info-stream-workspace',
-    fallbackTarget: 'info-stream-nav',
-    actionLabel: '进入学习发现',
-    icon: <Compass className="h-4 w-4" />,
-    accent: 'from-[#0f766e] to-[#14b8a6]',
-  },
-  {
-    id: 'plaza',
-    route: '/plaza',
-    title: '最后看学习广场',
-    description: '广场是社区资源、经验分享和问答区。先完成个人学习闭环，再来这里看他人的学习经验。',
-    target: 'plaza-workspace',
-    fallbackTarget: 'plaza-entry',
-    actionLabel: '进入广场',
-    icon: <Users className="h-4 w-4" />,
-    accent: 'from-[#9333ea] to-[#ec4899]',
-  },
-  {
-    id: 'plaza-return',
-    route: '/plaza',
-    title: '从学习广场回到主平台',
-    description: '广场是独立社区空间。看完资源和讨论后，点击这里回到主平台，继续使用 AI 精灵和学习空间。',
-    target: 'plaza-back-home',
-    actionLabel: '返回主平台',
-    icon: <ArrowRight className="h-4 w-4" />,
-    accent: 'from-[#475569] to-[#0f172a]',
-  },
-  {
-    id: 'ai-sprite',
-    route: '/',
-    title: '让 AI 精灵展示本机能力',
-    description: 'AI 精灵不只是聊天入口。你可以让它看看本机有哪些 Python 学习与运行能力，再进入学习空间。',
-    target: 'ai-assistant-trigger',
-    actionLabel: '打开 AI 精灵',
-    completionMode: 'click',
-    sampleInput: '帮我看看本机有哪些 Python 学习/运行能力，并告诉我可以怎么开始练习。',
-    icon: <MessageCircle className="h-4 w-4" />,
-    accent: 'from-[#06b6d4] to-[#8b5cf6]',
-  },
-  {
-    id: 'ai-learning-space',
-    route: '/',
-    title: '从 AI 精灵进入学习空间',
-    description: '打开精灵后，点击“学习空间”。它会用过场动画把你带到 Tutor 的深度学习空间。',
-    target: 'ai-learning-space-button',
-    actionLabel: '进入学习空间',
-    icon: <Sparkles className="h-4 w-4" />,
-    accent: 'from-[#7c3aed] to-[#ec4899]',
-  },
-  {
-    id: 'tutor-role',
-    route: '/tutor',
-    title: '一句话创建一个智能体',
-    description: '在学习空间里，你可以用一句话创建自己的学习智能体，例如 Python 闭包学习教练。',
-    target: 'tutor-role-create',
-    fallbackTarget: 'tutor-input',
-    actionLabel: '创建智能体',
-    completionMode: 'input',
-    sampleInput: '创建一个 Python 闭包学习教练，帮我用例子和练习掌握闭包。',
-    icon: <Wand2 className="h-4 w-4" />,
-    accent: 'from-[#2563eb] to-[#7c3aed]',
-  },
-  {
-    id: 'tutor-chat',
-    route: '/tutor',
-    title: '体验 Tutor 的深度辅导',
-    description: '向 Tutor 输入一个真实学习问题，体验对话、追问、解释代码、出题和多工具辅助。',
-    target: 'tutor-input',
-    actionLabel: '问 Tutor',
-    completionMode: 'input',
-    sampleInput: '我正在学习 Python 闭包，请用生活例子解释，并给我一道练习题。',
-    icon: <MessageCircle className="h-4 w-4" />,
-    accent: 'from-[#1d4ed8] to-[#60a5fa]',
-  },
-  {
-    id: 'workshop',
-    route: '/tutor/workshop',
-    title: '多智能体研讨会展示',
-    description: '研讨会会让多个 AI 导师围绕同一问题协同讨论，并实时汇总结论。你可以输入一个主题体验。',
-    target: 'workshop-input',
-    fallbackTarget: 'workshop-workspace',
-    actionLabel: '发起研讨',
-    completionMode: 'input',
-    sampleInput: 'Python 闭包为什么适合做装饰器？请多位导师从原理、代码和练习角度讨论。',
-    icon: <Users className="h-4 w-4" />,
-    accent: 'from-[#4f46e5] to-[#a855f7]',
-  },
-  {
-    id: 'finish',
-    route: '/',
-    title: '完成 SparkLearn 平台导览',
-    description: '你已经走过画像、路径、资源、笔记、知识库、学习伙伴、练习、报告、广场、AI 精灵、智能体、Tutor 和研讨会。',
-    target: 'guide-replay',
-    fallbackTarget: 'profile-entry',
-    actionLabel: '完成导览',
-    icon: <Sparkles className="h-4 w-4" />,
-    accent: 'from-[#111827] to-[#475569]',
   },
 ]
 
@@ -353,18 +247,6 @@ function storeStepId(userId: string, stepId: string) {
   if (typeof window === 'undefined') return
   if (!isStableGuideUserId(userId)) return
   window.localStorage.setItem(guideStepKey(userId), stepId)
-}
-
-function hasCompleteProfile(profile: StudentProfile | null) {
-  if (!profile) return false
-  const hasLearningProfile = Boolean(
-    profile.major?.trim() ||
-    profile.goals?.some(item => item.trim()) ||
-    profile.knowledgeLevel?.trim() ||
-    profile.weakPoints?.some(item => item.trim()) ||
-    profile.learningPreference?.some(item => item.trim()),
-  )
-  return Boolean(profile.name?.trim() && profile.grade?.trim() && hasLearningProfile)
 }
 
 function findGuideTarget(step: GuideStep) {
@@ -416,14 +298,11 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   const [currentIndex, setCurrentIndex] = useState(0)
   const [completedIds, setCompletedIds] = useState<string[]>([])
   const [userId, setUserId] = useState('anonymous')
-  const [profileReady, setProfileReady] = useState(false)
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null)
+  const [showInsight, setShowInsight] = useState(false)
 
-  const guideSteps = useMemo(
-    () => (profileReady ? GUIDE_STEPS.filter(step => step.id !== 'profile') : GUIDE_STEPS),
-    [profileReady],
-  )
+  const guideSteps = useMemo(() => GUIDE_STEPS, [])
   const currentStep = guideSteps[currentIndex]
   const onExpectedRoute = currentStep ? routeMatches(pathname, currentStep.route) : false
   const progress = Math.round(((currentIndex + 1) / guideSteps.length) * 100)
@@ -439,7 +318,6 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     if (!isStableGuideUserId(nextUserId)) {
       if (forceOpen) {
         setUserId(nextUserId)
-        setProfileReady(false)
         setCompletedIds([])
         setCurrentIndex(0)
         setWelcomeVisible(true)
@@ -451,15 +329,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       return
     }
 
-    let nextProfileReady = false
-    try {
-      nextProfileReady = hasCompleteProfile(await api.getProfile())
-    } catch {
-      nextProfileReady = false
-    }
-    const nextGuideSteps = nextProfileReady ? GUIDE_STEPS.filter(step => step.id !== 'profile') : GUIDE_STEPS
-    const storedIndex = getStoredStepIndex(nextUserId, nextGuideSteps)
-    setProfileReady(nextProfileReady)
+    const storedIndex = getStoredStepIndex(nextUserId, GUIDE_STEPS)
     setUserId(nextUserId)
     setCompletedIds(readNewUserGuideProgress(nextUserId))
     setCurrentIndex(storedIndex)
@@ -516,7 +386,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     if (!tourVisible || !currentStep || onExpectedRoute) return
     const timer = window.setTimeout(() => {
       router.push(currentStep.route)
-    }, 120)
+    }, 60)
     return () => window.clearTimeout(timer)
   }, [currentStep, onExpectedRoute, router, tourVisible])
 
@@ -542,6 +412,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   const setStep = useCallback((index: number) => {
     const next = Math.max(0, Math.min(guideSteps.length - 1, index))
     setCurrentIndex(next)
+    setShowInsight(false)
     const nextStep = guideSteps[next]
     if (nextStep) storeStepId(userId, nextStep.id)
   }, [guideSteps, userId])
@@ -558,6 +429,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     clearNewUserGuideActive(userId)
     setWelcomeVisible(false)
     setTourVisible(false)
+    setShowInsight(false)
   }, [userId])
 
   const completeGuide = useCallback(() => {
@@ -585,7 +457,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       const matched = target?.closest(`[data-guide-target="${currentStep.target}"]`)
       const fallbackMatched = currentStep.fallbackTarget ? target?.closest(`[data-guide-target="${currentStep.fallbackTarget}"]`) : null
       if (matched || fallbackMatched) {
-        window.setTimeout(() => advanceStep(), 180)
+        window.setTimeout(() => advanceStep(), 120)
       }
     }
 
@@ -594,7 +466,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       const target = event.target as HTMLInputElement | HTMLTextAreaElement | null
       const matched = target?.closest(`[data-guide-target="${currentStep.target}"]`)
       if (matched && target && 'value' in target && target.value.trim().length >= 6) {
-        window.setTimeout(() => advanceStep(), 500)
+        window.setTimeout(() => advanceStep(), 260)
       }
     }
 
@@ -630,7 +502,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     }
   }
 
-  const welcomeFlow = useMemo(() => ['画像', '路径', '资源', '笔记', '练习', '报告', '广场', '精灵', '智能体', '研讨会'], [])
+  const welcomeFlow = useMemo(() => ['工作台', '画像', '路径', '记录', '资源', 'Tutor', '练习', '报告'], [])
 
   return (
     <>
@@ -655,13 +527,13 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
               </button>
               <div className="inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-white px-3 py-1.5 text-xs font-extrabold text-[#2563eb] shadow-sm">
                 <Sparkles className="h-3.5 w-3.5" />
-                平台级新手任务流
+                8 步案例式引导
               </div>
               <h2 className="mt-4 max-w-[520px] text-[27px] font-black leading-tight text-[#111827] max-[560px]:text-[23px]">
-                跟着 SparkLearn 跑完整个平台
+                跟着小星同学完成一次学习闭环
               </h2>
               <p className="mt-3 max-w-[540px] text-sm leading-7 text-[#52627b]">
-                这不是功能介绍页。我们会带你跨页面体验画像、路径、资源、笔记、知识库、学习伙伴、练习、报告、广场、AI 精灵、智能体、Tutor 和多智能体研讨会。
+                这不是逐个按钮的功能介绍。我们会以小星同学学习 Python 闭包为线索，走过方向不清、资源筛选、追问辅导、练习验证和报告回流。
               </p>
               <div className="mt-5 grid grid-cols-5 gap-2 max-[560px]:grid-cols-2">
                 {welcomeFlow.map((item, index) => (
@@ -731,7 +603,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
 
           <section
             className={cn(
-              'absolute max-h-[calc(100dvh-32px)] w-[min(430px,calc(100vw-32px))] overflow-y-auto rounded-[18px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto',
+              'absolute max-h-[calc(100dvh-32px)] w-[min(450px,calc(100vw-32px))] overflow-y-auto rounded-[18px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto',
               onExpectedRoute && tooltipPosition && "before:absolute before:left-8 before:h-5 before:w-5 before:rotate-45 before:bg-white before:content-['']",
               onExpectedRoute && tooltipPosition?.placement === 'below' && 'before:-top-2',
               onExpectedRoute && tooltipPosition?.placement === 'above' && 'before:-bottom-2',
@@ -746,20 +618,52 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                   <span className={cn('grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br text-white', currentStep.accent)}>
                     {currentStep.icon}
                   </span>
-                  第 {currentIndex + 1} / {guideSteps.length} 步
+                  第 {currentIndex + 1} / {guideSteps.length} 步 · {showInsight ? '背后的思路' : '当前任务'}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => closeGuide(true)}
-                  className="grid h-8 w-8 place-items-center rounded-full text-[#94a3b8] transition-colors hover:bg-[#f1f5f9] hover:text-[#111827]"
-                  aria-label="关闭引导"
-                  title="关闭引导"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowInsight(value => !value)}
+                    aria-pressed={showInsight}
+                    className={cn(
+                      'inline-flex h-8 items-center justify-center rounded-full border px-3 text-xs font-black transition-colors',
+                      showInsight
+                        ? 'border-[#111827] bg-[#111827] text-white hover:bg-[#020617]'
+                        : 'border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb] hover:bg-[#dbeafe]',
+                    )}
+                  >
+                    {showInsight ? '回到任务' : '背后的思路'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => closeGuide(true)}
+                    className="grid h-8 w-8 place-items-center rounded-full text-[#94a3b8] transition-colors hover:bg-[#f1f5f9] hover:text-[#111827]"
+                    aria-label="关闭引导"
+                    title="关闭引导"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               <h2 className="text-[20px] font-black leading-7 text-[#111827]">{currentStep.title}</h2>
-              <p className="mt-2 text-sm leading-7 text-[#52627b]">{currentStep.description}</p>
+              {showInsight ? (
+                <div className="mt-3 grid gap-2.5">
+                  {[
+                    ['情境', currentStep.insight.scene],
+                    ['卡点', currentStep.insight.problem],
+                    ['处理', currentStep.insight.method],
+                  ].map(([label, text], index) => (
+                    <div key={label} className="rounded-[14px] border border-[#dbeafe] bg-[linear-gradient(135deg,#f8fbff,#eef6ff)] p-3">
+                      <div className="mb-1.5 inline-flex rounded-full bg-white px-2 py-1 text-[11px] font-black text-[#2563eb] shadow-sm">
+                        {index + 1}. {label}
+                      </div>
+                      <p className="text-sm leading-6 text-[#334155]">{text}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm leading-7 text-[#52627b]">{currentStep.description}</p>
+              )}
               {currentStep.sampleInput ? (
                 <div className="mt-3 rounded-xl bg-[#f8fafc] px-3 py-2 text-xs leading-5 text-[#475569]">
                   示例输入：{currentStep.sampleInput}
@@ -796,14 +700,16 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                   </button>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={goToStepAction}
-                className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#eff6ff] px-4 text-sm font-black text-[#2563eb] transition-colors hover:bg-[#dbeafe]"
-              >
-                {onExpectedRoute ? currentStep.actionLabel : `前往${currentStep.route}`}
-                <Compass className="h-4 w-4" />
-              </button>
+              {!onExpectedRoute ? (
+                <button
+                  type="button"
+                  onClick={goToStepAction}
+                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#eff6ff] px-4 text-sm font-black text-[#2563eb] transition-colors hover:bg-[#dbeafe]"
+                >
+                  前往当前页面
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ) : null}
             </div>
           </section>
         </div>

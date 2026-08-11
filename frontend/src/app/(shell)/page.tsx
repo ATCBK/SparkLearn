@@ -103,7 +103,7 @@ export default function HomePage() {
         ]}
       />
 
-      <ProtoCard className="relative overflow-hidden p-[22px] border-0">
+      <ProtoCard className="relative overflow-hidden p-[22px] border-0" data-guide-target="home-workspace">
         {/* 背景图 - 铺满整个卡片 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
