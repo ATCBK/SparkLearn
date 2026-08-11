@@ -1,5 +1,6 @@
 const GUIDE_SEEN_PREFIX = 'sparklearn_new_user_guide_seen:'
 const GUIDE_PROGRESS_PREFIX = 'sparklearn_new_user_guide_progress:'
+const GUIDE_ACTIVE_PREFIX = 'sparklearn_new_user_guide_active:'
 
 export const NEW_USER_GUIDE_STEP_IDS = [
   'home',
@@ -72,6 +73,10 @@ function progressKey(userId = getGuideUserId()) {
   return `${GUIDE_PROGRESS_PREFIX}${userId || 'anonymous'}`
 }
 
+function activeKey(userId = getGuideUserId()) {
+  return `${GUIDE_ACTIVE_PREFIX}${userId || 'anonymous'}`
+}
+
 export function hasSeenNewUserGuide(userId = getGuideUserId()) {
   const storage = safeLocalStorage()
   return storage?.getItem(seenKey(userId)) === 'true'
@@ -79,6 +84,19 @@ export function hasSeenNewUserGuide(userId = getGuideUserId()) {
 
 export function markNewUserGuideSeen(userId = getGuideUserId()) {
   safeLocalStorage()?.setItem(seenKey(userId), 'true')
+}
+
+export function isNewUserGuideActive(userId = getGuideUserId()) {
+  const storage = safeLocalStorage()
+  return storage?.getItem(activeKey(userId)) === 'true'
+}
+
+export function markNewUserGuideActive(userId = getGuideUserId()) {
+  safeLocalStorage()?.setItem(activeKey(userId), 'true')
+}
+
+export function clearNewUserGuideActive(userId = getGuideUserId()) {
+  safeLocalStorage()?.removeItem(activeKey(userId))
 }
 
 export function readNewUserGuideProgress(userId = getGuideUserId()) {
@@ -103,4 +121,5 @@ export function clearNewUserGuideSession(userId = getGuideUserId()) {
   const storage = safeLocalStorage()
   storage?.removeItem(seenKey(userId))
   storage?.removeItem(progressKey(userId))
+  storage?.removeItem(activeKey(userId))
 }

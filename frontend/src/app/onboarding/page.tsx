@@ -29,7 +29,6 @@ import {
 import { getToken, getUser, setUser, syncStudyBuddyProfile } from '@/lib/auth'
 import { api, type StudentProfile } from '@/lib/api'
 import { getTeacherSubjects } from '@/lib/api/real'
-import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
 
 /* ── 类型 ─────────────────────────────────────────── */
 
@@ -498,7 +497,6 @@ export default function OnboardingPage() {
             </div>
           </section>
         </div>
-        <NewUserGuidePanel />
       </>
     )
   }
@@ -719,7 +717,6 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
-    <NewUserGuidePanel />
     </>
   )
 }

@@ -26,8 +26,11 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { api, type StudentProfile } from '@/lib/api'
 import {
+  clearNewUserGuideActive,
   getGuideUserId,
   hasSeenNewUserGuide,
+  isNewUserGuideActive,
+  markNewUserGuideActive,
   markNewUserGuideSeen,
   readNewUserGuideProgress,
   writeNewUserGuideProgress,
@@ -372,19 +375,17 @@ function findGuideTarget(step: GuideStep) {
   )
 }
 
-function getRectForStep(step: GuideStep): SpotlightRect {
+function getRectForStep(step: GuideStep): SpotlightRect | null {
   const target = findGuideTarget(step)
   if (!target) {
-    return {
-      left: Math.max(16, window.innerWidth / 2 - 205),
-      top: Math.max(96, window.innerHeight / 2 - 84),
-      width: Math.min(410, window.innerWidth - 32),
-      height: 92,
-    }
+    return null
   }
 
   target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'auto' })
   const rect = target.getBoundingClientRect()
+  if (!target.getClientRects().length || rect.width <= 0 || rect.height <= 0) {
+    return null
+  }
   const pad = 10
   return {
     left: Math.max(10, rect.left - pad),
@@ -462,14 +463,21 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     setUserId(nextUserId)
     setCompletedIds(readNewUserGuideProgress(nextUserId))
     setCurrentIndex(storedIndex)
+    const guideActive = isNewUserGuideActive(nextUserId)
     if (forceOpen) {
       setWelcomeVisible(true)
       setTourVisible(false)
       return
     }
+    if (guideActive) {
+      setWelcomeVisible(false)
+      setTourVisible(true)
+      return
+    }
     if (!hasSeenNewUserGuide(nextUserId)) {
       setWelcomeVisible(storedIndex === 0)
       setTourVisible(storedIndex > 0)
+      if (storedIndex > 0) markNewUserGuideActive(nextUserId)
     }
   }, [])
 
@@ -495,9 +503,22 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       return
     }
     const rect = getRectForStep(currentStep)
+    if (!rect) {
+      setSpotlightRect(null)
+      setTooltipPosition(null)
+      return
+    }
     setSpotlightRect(rect)
     setTooltipPosition(getTooltipPosition(rect))
   }, [currentStep, onExpectedRoute, tourVisible])
+
+  useEffect(() => {
+    if (!tourVisible || !currentStep || onExpectedRoute) return
+    const timer = window.setTimeout(() => {
+      router.push(currentStep.route)
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [currentStep, onExpectedRoute, router, tourVisible])
 
   useEffect(() => {
     if (!tourVisible) return
@@ -526,6 +547,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
   }, [guideSteps, userId])
 
   function startTour() {
+    markNewUserGuideActive(userId)
     setWelcomeVisible(false)
     setTourVisible(true)
     setStep(0)
@@ -533,6 +555,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
 
   const closeGuide = useCallback((markSeen = false) => {
     if (markSeen) markNewUserGuideSeen(userId)
+    clearNewUserGuideActive(userId)
     setWelcomeVisible(false)
     setTourVisible(false)
   }, [userId])
@@ -545,13 +568,14 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
 
   const advanceStep = useCallback(() => {
     if (!currentStep) return
+    markNewUserGuideActive(userId)
     persistProgress(Array.from(new Set([...completedIds, currentStep.id])))
     if (currentIndex >= guideSteps.length - 1) {
       completeGuide()
       return
     }
     setStep(currentIndex + 1)
-  }, [completedIds, completeGuide, currentIndex, currentStep, guideSteps.length, persistProgress, setStep])
+  }, [completedIds, completeGuide, currentIndex, currentStep, guideSteps.length, persistProgress, setStep, userId])
 
   useEffect(() => {
     if (!tourVisible || !currentStep || !onExpectedRoute) return
