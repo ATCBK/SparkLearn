@@ -40,6 +40,7 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { readLearningNotes, writeLearningNotes, type LearningNote } from '@/lib/learningNotes'
 import { cn } from '@/lib/utils/cn'
+import XfyunDigitalHumanLive from '@/components/digital-human/XfyunDigitalHumanLive'
 
 type AssistantMessage = {
   role: 'user' | 'assistant'
@@ -521,12 +522,7 @@ export default function VideoPage() {
         <div className="absolute bottom-11 left-8 z-10 grid h-8 w-8 place-items-center rounded-[8px] border border-white bg-white/80 text-blue shadow-sm">
           <Layers className="h-4 w-4" />
         </div>
-        <iframe
-          src="/dh-live/index.html"
-          title="数字人陪学"
-          allow="autoplay"
-          className="relative z-0 h-full w-full border-0 bg-transparent"
-        />
+        <XfyunDigitalHumanLive className="relative z-0" />
       </div>
 
       <div ref={chatScrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">

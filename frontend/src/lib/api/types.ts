@@ -782,6 +782,44 @@ export interface VideoGenerateEvent {
   payload: Record<string, unknown>
 }
 
+export interface DigitalHumanConfig {
+  enabled: boolean
+  configured: boolean
+  provider: 'xfyun' | string
+  sdk_url: string
+  server_url: string
+  app_id: string
+  api_key: string
+  api_secret: string
+  avatar_id: string
+  scene_id?: string
+  scene_version?: string
+  stage: {
+    width: number
+    height: number
+    scale: number
+    move_h: number
+    move_v: number
+    mask_region: {
+      top: number
+      right: number
+      bottom: number
+      left: number
+    }
+    transparent: boolean
+  }
+  tts?: {
+    vcn: string
+    speed: number
+    pitch: number
+    volume: number
+  }
+  stream?: {
+    protocol: 'xrtc' | 'webrtc' | 'rtmp' | string
+    alpha?: number
+  }
+}
+
 export interface ContributionDay {
   date: string // YYYY-MM-DD
   count: number // learning sessions

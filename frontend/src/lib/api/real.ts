@@ -9,6 +9,7 @@ import type {
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
   AdminAuditList, AdminDashboard, AdminSettingsResp, AdminUser, AdminUserList,
+  DigitalHumanConfig,
 } from './types'
 import { getAdminToken, getToken } from '../auth'
 
@@ -2095,6 +2096,10 @@ export async function loadMemory(videoId: string): Promise<{
 
 export async function deleteMemory(memoryId: string): Promise<void> {
   await fetchJson(`/api/num-person/memory/${memoryId}`, { method: 'DELETE' })
+}
+
+export async function getDigitalHumanConfig(): Promise<DigitalHumanConfig> {
+  return fetchJson<DigitalHumanConfig>('/api/num-person/digital-human/config')
 }
 
 export async function chatWithDigitalHuman(

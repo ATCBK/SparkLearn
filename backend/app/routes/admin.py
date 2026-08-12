@@ -193,7 +193,7 @@ async def admin_dashboard(actor: dict[str, Any] = Depends(require_admin_user)):
     total_users = _row_int(fetch_one("SELECT COUNT(1) AS cnt FROM students"), "cnt")
     admin_count = _row_int(fetch_one("SELECT COUNT(1) AS cnt FROM students WHERE admin_role <> ''"), "cnt")
     frozen_count = _row_int(fetch_one("SELECT COUNT(1) AS cnt FROM students WHERE account_status = 'frozen'"), "cnt")
-    teacher_count = _row_int(fetch_one("SELECT COUNT(DISTINCT user_id) AS cnt FROM teacher_subjects WHERE deleted = 0"), "cnt")
+    teacher_count = _row_int(fetch_one("SELECT COUNT(1) AS cnt FROM students WHERE admin_role = 'teacher_admin'"), "cnt")
     knowledge_count = _row_int(fetch_one("SELECT COUNT(1) AS cnt FROM knowledge_files"), "cnt")
     indexed_count = _row_int(fetch_one("SELECT COUNT(1) AS cnt FROM knowledge_files WHERE status = 'indexed'"), "cnt")
     tutor_conversations = _row_int(fetch_one("SELECT COUNT(1) AS cnt FROM tutor_conversations"), "cnt")

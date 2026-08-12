@@ -158,6 +158,7 @@ export const api = {
   // Digital Human
   loadMemory: impl.loadMemory,
   deleteMemory: impl.deleteMemory,
+  getDigitalHumanConfig: impl.getDigitalHumanConfig,
   chatWithDigitalHuman: impl.chatWithDigitalHuman,
 }
 
@@ -173,4 +174,5 @@ export type {
   AdoptPetPayload, CreateAgentTaskPayload, AgentChatResp, BookmarkPayload,
   A2UIEnvelope, A2UISurfaceState, A2UIComponentNode, AGUIEvent,
   AdminUser, AdminUserList, AdminDashboard, AdminAuditLog, AdminAuditList, AdminSettingsResp,
+  DigitalHumanConfig,
 } from './types'

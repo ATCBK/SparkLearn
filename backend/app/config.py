@@ -80,6 +80,32 @@ class Settings(BaseSettings):
     xf_tts_timeout_ms: int = 15000
     xf_tts_text_limit: int = 1000
 
+    # iFlytek Digital Human (avatar-sdk-web)
+    xf_dh_enabled: bool = True
+    xf_dh_app_id: str = ""
+    xf_dh_api_key: str = ""
+    xf_dh_api_secret: str = ""
+    xf_dh_avatar_id: str = ""
+    xf_dh_server_url: str = "/vmss"
+    xf_dh_sdk_url: str = "/libs/avatar-sdk-web_3.2.3.1002/esm/index.js"
+    xf_dh_width: int = 720
+    xf_dh_height: int = 405
+    xf_dh_scale: float = 1.15
+    xf_dh_move_h: int = 0
+    xf_dh_move_v: int = -95
+    xf_dh_mask_top: int = 0
+    xf_dh_mask_right: int = 0
+    xf_dh_mask_bottom: int = 0
+    xf_dh_mask_left: int = 0
+    xf_dh_transparent: bool = True
+    xf_dh_tts_voice: str = "x4_lingxiaoxuan_oral"
+    xf_dh_tts_speed: int = 50
+    xf_dh_tts_pitch: int = 50
+    xf_dh_tts_volume: int = 100
+    xf_dh_stream_protocol: str = "webrtc"
+    xf_dh_scene_id: str = ""
+    xf_dh_scene_version: str = ""
+
     # Aliyun CosyVoice TTS (DashScope)
     cosyvoice_api_key: str = ""
     cosyvoice_model: str = "cosyvoice-v1"
