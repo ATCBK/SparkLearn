@@ -252,7 +252,7 @@ class Settings(BaseSettings):
     aliyun_oss_cdn_domain: str = ""
 
     single_user_id: str = "single_user"
-    auth_dev_bypass: bool = False
+    auth_dev_bypass: bool = True
     demo_user_phone: str = ""
     demo_user_id: str = "demo_user"
     demo_user_password: str = ""

@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 test.describe('新手任务式引导', () => {
   test.beforeEach(async ({ page }) => {
@@ -12,13 +14,17 @@ test.describe('新手任务式引导', () => {
     })
   })
 
-  test('首次进入工作台自动展示新手学习链路', async ({ page }) => {
+  test('首次进入工作台自动展示小星同学案例链路', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByTestId('new-user-guide-panel')).toBeVisible()
-    await expect(page.getByText('跟着 SparkLearn 跑完整个平台')).toBeVisible()
-    await expect(page.getByText('平台级新手任务流')).toBeVisible()
+    await expect(page.getByText('跟着小星同学完成一次学习闭环')).toBeVisible()
+    await expect(page.getByText('8 步案例式引导')).toBeVisible()
     await page.getByRole('button', { name: /开始体验/ }).click()
-    await expect(page.getByText('从工作台开始你的学习闭环')).toBeVisible()
+    await expect(page.getByText('先知道今天从哪开始')).toBeVisible()
+    await expect(page.getByRole('button', { name: '背后的思路' })).toBeVisible()
+    await page.getByRole('button', { name: '背后的思路' }).click()
+    await expect(page.getByText('工作台先组织学习动作')).toBeVisible()
+    await expect(page.getByRole('button', { name: '回到任务' })).toBeVisible()
     await expect(page.getByRole('button', { name: /下一步/ })).toBeVisible()
   })
 
@@ -39,15 +45,23 @@ test.describe('新手任务式引导', () => {
     await expect(page.getByTestId('new-user-guide-panel')).toBeVisible()
   })
 
-  test('跨到学习广场后继续恢复正在进行的新手引导', async ({ page }) => {
+  test('跨页面后继续恢复正在进行的小星同学引导', async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem('sparklearn_new_user_guide_seen:new_user_guide_test', 'true')
       window.localStorage.setItem('sparklearn_new_user_guide_active:new_user_guide_test', 'true')
-      window.localStorage.setItem('sparklearn_new_user_guide_step:new_user_guide_test', 'plaza')
+      window.localStorage.setItem('sparklearn_new_user_guide_step:new_user_guide_test', 'resource')
     })
 
-    await page.goto('/plaza')
+    await page.goto('/generate')
     await expect(page.getByTestId('new-user-guide-panel')).toBeVisible()
-    await expect(page.getByText('最后看学习广场')).toBeVisible()
+    await expect(page.getByText('围绕当前卡点生成材料')).toBeVisible()
+  })
+
+  test('引导定位不依赖长固定等待', async () => {
+    const source = readFileSync(resolve(__dirname, '../src/components/onboarding/NewUserGuidePanel.tsx'), 'utf8')
+
+    expect(source).toContain('MutationObserver')
+    expect(source).toContain('router.prefetch')
+    expect(source).not.toContain('420')
   })
 })

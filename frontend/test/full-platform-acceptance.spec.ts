@@ -142,7 +142,7 @@ test.describe('全平台页面健康扫描', () => {
   test('管理端页面在当前视口下无乱码、无横向溢出、无明显文字裁切', async ({ page }) => {
     await page.goto('/admin/login')
     await page.locator('form input').nth(0).fill('admin')
-    await page.locator('form input[type="password"]').fill('123456')
+    await page.locator('form input[type="password"]').fill(process.env.ADMIN_PASSWORD || 'SparkLearn1')
     await Promise.all([
       page.waitForURL(/\/admin\/dashboard/, { timeout: 12000 }),
       page.getByRole('button', { name: /登录/ }).click(),

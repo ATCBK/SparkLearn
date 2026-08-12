@@ -94,6 +94,11 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
     if (!authState.mounted || !authState.authResolved) return
 
     if (!authState.hasToken && pathname !== '/admin/login') {
+      const latestToken = getAdminToken()
+      if (latestToken) {
+        dispatch({ type: 'sync-auth', hasToken: true })
+        return
+      }
       router.replace('/admin/login')
     }
   }, [authState.authResolved, authState.hasToken, authState.mounted, pathname, router])

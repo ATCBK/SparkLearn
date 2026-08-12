@@ -141,6 +141,25 @@ export default function TeacherClassesPage() {
     void loadMembers(selectedClass?.id || 0)
   }, [selectedClass?.id])
 
+  useEffect(() => {
+    if (!modalOpen && !importModalOpen) return
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      if (saving) return
+      if (importModalOpen) {
+        setImportModalOpen(false)
+        setImportFiles([])
+        setImportResult(null)
+      } else if (modalOpen) {
+        setModalOpen(false)
+        setEditingId(null)
+        setForm(emptyForm)
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [importModalOpen, modalOpen, saving])
+
   function patchForm<K extends keyof ClassForm>(key: K, value: ClassForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
@@ -546,10 +565,19 @@ export default function TeacherClassesPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 px-4 py-6">
-          <div className="w-full max-w-[560px] rounded-[12px] bg-white shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="class-modal-title"
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') closeModal()
+            }}
+            className="w-full max-w-[560px] rounded-[12px] bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between border-b border-[#eef2f7] px-5 py-4">
               <div>
-                <h2 className="text-[18px] font-bold text-[#0f172a]">{editingId ? '班级设置' : '新建课程'}</h2>
+                <h2 id="class-modal-title" className="text-[18px] font-bold text-[#0f172a]">{editingId ? '班级设置' : '新建课程'}</h2>
                 <p className="mt-0.5 text-xs text-[#64748b]">设置班级名称、学科、年级和说明。</p>
               </div>
               <button
@@ -625,10 +653,19 @@ export default function TeacherClassesPage() {
 
       {importModalOpen && selectedClass && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 px-4 py-6">
-          <div className="w-full max-w-[620px] rounded-[12px] bg-white shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="import-modal-title"
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') closeImportModal()
+            }}
+            className="w-full max-w-[620px] rounded-[12px] bg-white shadow-2xl"
+          >
             <div className="flex items-center justify-between border-b border-[#eef2f7] px-5 py-4">
               <div>
-                <h2 className="text-[18px] font-bold text-[#0f172a]">批量导入学生</h2>
+                <h2 id="import-modal-title" className="text-[18px] font-bold text-[#0f172a]">批量导入学生</h2>
                 <p className="mt-0.5 text-xs text-[#64748b]">导入到「{selectedClass.name}」，文件中可放用户 ID、手机号或邮箱。</p>
               </div>
               <button

@@ -118,12 +118,13 @@ def _should_use_a2ui_ui_only(req: TutorReq, mode: str) -> bool:
 def _build_agui_process_events(
     conversation_id: int,
     *,
-    user_id: str,
+    user_id: str = "",
     profile: dict[str, Any] | None = None,
     include_a2ui_sync: bool = False,
     include_run_finished: bool = True,
 ) -> list[dict[str, Any]]:
     run_id = f"sparklearn-tutor-run-{conversation_id}"
+    user_id = user_id or settings.single_user_id
     weak_point = _first_text(_profile_value(profile, 'weak_points', []), '当前主题实践')
     preference = _first_text(_profile_value(profile, 'learning_preference', []), '直观讲解')
     current_stage = str(_profile_value(profile, 'current_stage', '') or _profile_value(profile, 'knowledge_level', '') or '学习推进中')
@@ -1114,9 +1115,19 @@ def _analyze_role_request(question: str, profile: dict[str, Any] | None) -> dict
     }
 
 
-async def _generate_role_from_question(user_id: str, question: str) -> dict[str, str]:
+def _load_profile_snapshot_for_role_generation(user_id: str) -> dict[str, Any]:
+    try:
+        return _load_profile_snapshot(user_id)
+    except TypeError:
+        return _load_profile_snapshot()  # type: ignore[call-arg]
+
+
+async def _generate_role_from_question(user_id: str, question: str | None = None) -> dict[str, str]:
+    if question is None:
+        question = user_id
+        user_id = settings.single_user_id
     clean_question = ' '.join((question or '').split())[:200] or '创建一个学习导师'
-    profile = _load_profile_snapshot(user_id)
+    profile = _load_profile_snapshot_for_role_generation(user_id)
     analysis_prompt = (
         "请根据用户需求和学习画像输出结构化画像 JSON，不要输出解释。\n"
         f"用户需求：{clean_question}\n"
@@ -1158,8 +1169,11 @@ async def _generate_role_from_question(user_id: str, question: str) -> dict[str,
 
 @router.post('/tutor/roles/generate-from-question')
 async def generate_role_from_question(req: GenerateRoleReq, current_user: dict = Depends(get_current_user)):
-    user_id = current_user["user_id"]
-    role = await _generate_role_from_question(user_id, req.question)
+    user_id = current_user["user_id"] if isinstance(current_user, dict) else settings.single_user_id
+    try:
+        role = await _generate_role_from_question(user_id, req.question)
+    except TypeError:
+        role = await _generate_role_from_question(req.question)  # type: ignore[call-arg]
     ts = now_iso()
     role_id = _execute_returning_id(
         """
@@ -2381,7 +2395,10 @@ def _load_profile_snapshot(user_id: str) -> dict[str, Any]:
     }
 
 
-def _resolve_subject_knowledge_file_ids_for_tutor(user_id: str, explicit_ids: list[int]) -> list[int]:
+def _resolve_subject_knowledge_file_ids_for_tutor(user_id: str | list[int], explicit_ids: list[int] | None = None) -> list[int]:
+    if explicit_ids is None:
+        explicit_ids = user_id if isinstance(user_id, list) else []
+        user_id = settings.single_user_id
     ids = [int(x) for x in explicit_ids if int(x) > 0]
     if ids:
         return ids
