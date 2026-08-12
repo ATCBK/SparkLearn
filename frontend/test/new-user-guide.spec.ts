@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 test.describe('新手任务式引导', () => {
   test.beforeEach(async ({ page }) => {
@@ -53,5 +55,13 @@ test.describe('新手任务式引导', () => {
     await page.goto('/generate')
     await expect(page.getByTestId('new-user-guide-panel')).toBeVisible()
     await expect(page.getByText('围绕当前卡点生成材料')).toBeVisible()
+  })
+
+  test('引导定位不依赖长固定等待', async () => {
+    const source = readFileSync(resolve(__dirname, '../src/components/onboarding/NewUserGuidePanel.tsx'), 'utf8')
+
+    expect(source).toContain('MutationObserver')
+    expect(source).toContain('router.prefetch')
+    expect(source).not.toContain('420')
   })
 })

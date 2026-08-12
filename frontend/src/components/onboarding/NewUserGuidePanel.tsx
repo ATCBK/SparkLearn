@@ -277,6 +277,42 @@ function getRectForStep(step: GuideStep): SpotlightRect | null {
   }
 }
 
+function waitForGuideTarget(step: GuideStep, onReady: () => void) {
+  if (typeof document === 'undefined') return () => {}
+  let done = false
+  let frame = 0
+  let fallbackTimer = 0
+
+  const complete = () => {
+    if (done) return
+    if (!findGuideTarget(step)) return
+    done = true
+    observer.disconnect()
+    window.clearTimeout(fallbackTimer)
+    onReady()
+  }
+
+  const observer = new MutationObserver(() => {
+    frame = window.requestAnimationFrame(complete)
+  })
+
+  frame = window.requestAnimationFrame(complete)
+  observer.observe(document.body, { childList: true, subtree: true, attributes: true })
+  fallbackTimer = window.setTimeout(() => {
+    if (done) return
+    done = true
+    observer.disconnect()
+    onReady()
+  }, 650)
+
+  return () => {
+    done = true
+    observer.disconnect()
+    window.cancelAnimationFrame(frame)
+    window.clearTimeout(fallbackTimer)
+  }
+}
+
 function getTooltipPosition(rect: SpotlightRect): TooltipPosition {
   const tooltipWidth = Math.min(430, window.innerWidth - 32)
   const tooltipHeight = window.innerWidth < 560 ? 390 : 350
@@ -366,6 +402,13 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
     return () => window.removeEventListener('open-new-user-guide', openGuide)
   }, [syncUserGuideState])
 
+  useEffect(() => {
+    const routes = Array.from(new Set(GUIDE_STEPS.map(step => step.route).filter(route => route !== pathname)))
+    routes.forEach(route => {
+      router.prefetch(route)
+    })
+  }, [pathname, router])
+
   const updateSpotlight = useCallback(() => {
     if (!tourVisible || !currentStep || !onExpectedRoute) {
       setSpotlightRect(null)
@@ -392,17 +435,17 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
 
   useEffect(() => {
     if (!tourVisible) return
-    const firstPass = window.setTimeout(updateSpotlight, 80)
-    const secondPass = window.setTimeout(updateSpotlight, 420)
+    const frame = window.requestAnimationFrame(updateSpotlight)
+    const disconnect = currentStep && onExpectedRoute ? waitForGuideTarget(currentStep, updateSpotlight) : () => {}
     window.addEventListener('resize', updateSpotlight)
     window.addEventListener('scroll', updateSpotlight, true)
     return () => {
-      window.clearTimeout(firstPass)
-      window.clearTimeout(secondPass)
+      window.cancelAnimationFrame(frame)
+      disconnect()
       window.removeEventListener('resize', updateSpotlight)
       window.removeEventListener('scroll', updateSpotlight, true)
     }
-  }, [pathname, tourVisible, updateSpotlight])
+  }, [currentStep, onExpectedRoute, pathname, tourVisible, updateSpotlight])
 
   const persistProgress = useCallback((nextIds: string[]) => {
     setCompletedIds(nextIds)
