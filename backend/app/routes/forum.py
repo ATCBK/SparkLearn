@@ -5,10 +5,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from ..config import settings
 from ..db import fetch_all, fetch_one, get_conn, now_iso
+from ..auth import bearer_scheme
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, write_json
 from .admin import _write_audit, require_admin_user
@@ -232,11 +234,12 @@ async def admin_list_posts(
 async def admin_update_post_status(
     post_id: int,
     req: ForumModerationReq,
-    actor: dict[str, Any] = Depends(require_admin_user),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ):
     status = req.status.strip().lower()
     if status not in {"pending", "published", "rejected", "deleted", "hidden"}:
         raise HTTPException(status_code=400, detail="invalid status")
+    actor = await require_admin_user(credentials)
 
     with get_conn() as conn:
         row = conn.execute("SELECT * FROM forum_posts WHERE id = ?", (post_id,)).fetchone()

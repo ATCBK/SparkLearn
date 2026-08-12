@@ -244,8 +244,8 @@ async def get_current_user(
 
     兼容模式：如果 single_user_id 不为空，直接返回该用户（用于本地开发）。
     """
-    # 兼容模式：本地开发跳过认证
-    if settings.auth_dev_bypass and settings.single_user_id:
+    # 单用户兼容只在未显式传入凭证时生效；带 Token 的请求必须按真实用户校验。
+    if credentials is None and settings.auth_dev_bypass and settings.single_user_id:
         return {"user_id": settings.single_user_id, "phone": "", "name": "张同学"}
 
     # 正式模式：验证 JWT
@@ -298,7 +298,7 @@ async def get_optional_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict | None:
     """获取当前用户（可选，不强制登录）"""
-    if settings.auth_dev_bypass and settings.single_user_id:
+    if credentials is None and settings.auth_dev_bypass and settings.single_user_id:
         return {"user_id": settings.single_user_id, "phone": "", "name": "张同学"}
 
     if credentials is None:

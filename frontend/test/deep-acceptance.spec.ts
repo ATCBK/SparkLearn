@@ -121,10 +121,11 @@ test.describe('端到端验收：教师与管理链路', () => {
     await expect(page.getByText(/错误|账号|密码/).first()).toBeVisible()
 
     await page.getByPlaceholder(/账号|用户名/).fill('admin')
-    await page.getByPlaceholder(/密码/).fill('123456')
+    await page.getByPlaceholder(/密码/).fill(process.env.ADMIN_PASSWORD || 'SparkLearn1')
     await page.getByRole('button', { name: /登录/ }).click()
     await expect(page).toHaveURL(/\/admin\/dashboard/)
     await page.goto('/admin/forum')
     await expectInteractivePageHealthy(page)
   })
 })
+

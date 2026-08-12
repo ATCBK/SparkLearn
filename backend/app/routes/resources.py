@@ -498,7 +498,12 @@ def _build_resource_prompt(resource_type: str, user_prompt: str, user_id: str) -
     return base
 
 
-async def _build_resource_prompt_with_rag(user_id: str, resource_type: str, user_prompt: str, knowledge_file_ids: list[int] | None = None) -> str:
+async def _build_resource_prompt_with_rag(user_id: str, resource_type: str, user_prompt: str | list[int], knowledge_file_ids: list[int] | None = None) -> str:
+    if isinstance(user_prompt, list):
+        knowledge_file_ids = user_prompt
+        user_prompt = resource_type
+        resource_type = user_id
+        user_id = settings.single_user_id
     base = _build_resource_prompt(resource_type, user_prompt, user_id)
 
     file_ids = _resolve_generation_knowledge_file_ids(user_id, knowledge_file_ids or [])

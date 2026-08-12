@@ -23,6 +23,7 @@ services:
       DB_PATH: /app/backend/data/db/sparklearn.db
       FFMPEG_PATH: /usr/bin/ffmpeg
       DEBUG: "false"
+      AUTH_DEV_BYPASS: "false"
       ALLOW_SINGLE_USER_BYPASS: "false"
       RATE_LIMIT_ENABLED: "true"
       RATE_LIMIT_DEFAULT_PER_WINDOW: "120"

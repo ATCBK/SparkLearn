@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, BarChart3, BellRing, BookOpen, Bot, GraduationCap, LayoutDashboard, LogOut, MessageSquare, Monitor, Network, School, Users } from 'lucide-react'
 
 const NAV = [
@@ -19,33 +19,35 @@ const NAV = [
 
 const AUTH_EVENT = 'teacher-auth-changed'
 
-function subscribeTeacherToken(onStoreChange: () => void) {
-  window.addEventListener('storage', onStoreChange)
-  window.addEventListener(AUTH_EVENT, onStoreChange)
-  return () => {
-    window.removeEventListener('storage', onStoreChange)
-    window.removeEventListener(AUTH_EVENT, onStoreChange)
-  }
-}
-
-function getTeacherTokenSnapshot() {
-  if (typeof window === 'undefined') return false
-  return !!window.localStorage.getItem('teacher_token')
-}
-
 export default function TeacherShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const hasToken = useSyncExternalStore(subscribeTeacherToken, getTeacherTokenSnapshot, () => false)
+  const [authReady, setAuthReady] = useState(false)
+  const [hasToken, setHasToken] = useState(false)
 
   useEffect(() => {
-    if (!hasToken && pathname !== '/teacher/login') {
+    const syncTeacherToken = () => {
+      setHasToken(Boolean(window.localStorage.getItem('teacher_token')))
+      setAuthReady(true)
+    }
+
+    syncTeacherToken()
+    window.addEventListener('storage', syncTeacherToken)
+    window.addEventListener(AUTH_EVENT, syncTeacherToken)
+    return () => {
+      window.removeEventListener('storage', syncTeacherToken)
+      window.removeEventListener(AUTH_EVENT, syncTeacherToken)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (authReady && !hasToken && pathname !== '/teacher/login') {
       router.replace('/teacher/login')
     }
-  }, [hasToken, pathname, router])
+  }, [authReady, hasToken, pathname, router])
 
   if (pathname === '/teacher/login') return <>{children}</>
-  if (!hasToken) return null
+  if (!authReady || !hasToken) return null
 
   const handleLogout = () => {
     localStorage.removeItem('teacher_token')
