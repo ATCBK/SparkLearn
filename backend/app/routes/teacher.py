@@ -415,56 +415,91 @@ def _mock_students() -> list[dict[str, Any]]:
 
 
 def _build_students() -> list[dict[str, Any]]:
-    """合并真实用户 + 模拟学生"""
+    """从数据库聚合教师端大屏学情数据。"""
+    rows = fetch_all(
+        """
+        SELECT s.*, p.goal, p.knowledge_level, p.weak_points, p.learning_preference,
+               p.cognitive_style, p.daily_time, p.practical_ability, p.current_stage
+        FROM students s
+        LEFT JOIN profiles p ON p.user_id = s.user_id
+        WHERE COALESCE(s.account_status, 'active') = 'active'
+          AND COALESCE(s.admin_role, '') = ''
+          AND (s.user_id LIKE 'demo_stu_%' OR s.user_id = ?)
+        ORDER BY s.user_id
+        """,
+        (settings.single_user_id,),
+    )
     students: list[dict[str, Any]] = []
+    today = date.today().isoformat()
 
-    # 真实用户
-    real_profile = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,))
-    real_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (settings.single_user_id,))
-    real_mastery_rows = fetch_all(
-        "SELECT knowledge_point_id, score FROM mastery_records WHERE user_id = ?",
-        (settings.single_user_id,),
-    )
-    real_mastery = {str(r["knowledge_point_id"]): float(r["score"]) for r in real_mastery_rows}
-    real_contrib = fetch_all(
-        "SELECT count FROM contribution_days WHERE user_id = ? ORDER BY date DESC LIMIT 30",
-        (settings.single_user_id,),
-    )
-    streak = 0
-    for row in real_contrib:
-        if row["count"] > 0:
-            streak += 1
-        else:
-            break
+    for row in rows:
+        user_id = str(row["user_id"])
+        mastery_rows = fetch_all(
+            "SELECT knowledge_point_id, score FROM mastery_records WHERE user_id = ?",
+            (user_id,),
+        )
+        mastery = {str(r["knowledge_point_id"]): float(r["score"]) for r in mastery_rows}
+        contrib_rows = fetch_all(
+            "SELECT date, count FROM contribution_days WHERE user_id = ? ORDER BY date DESC LIMIT 30",
+            (user_id,),
+        )
+        streak = 0
+        last_active = ""
+        total_activity = 0
+        streak_open = True
+        for contrib in contrib_rows:
+            count = int(contrib["count"] or 0)
+            total_activity += count
+            if count > 0 and not last_active:
+                last_active = str(contrib["date"])
+            if streak_open and count > 0:
+                streak += 1
+            elif streak_open and count == 0 and last_active:
+                streak_open = False
 
-    if real_student and real_profile:
-        weak = json.loads(real_profile["weak_points"] or "[]")
-        pref = json.loads(real_profile["learning_preference"] or "[]")
-        risk = "normal"
-        if streak == 0:
+        if not last_active:
+            last_active = _days_ago(12)
+        inactive_days = max(0, (date.fromisoformat(today) - date.fromisoformat(last_active)).days)
+        weak = _safe_json(row["weak_points"], [])
+        pref = _safe_json(row["learning_preference"], [])
+        avg_mastery = sum(mastery.values()) / len(mastery) if mastery else 0.45
+        recent_density = min(1.0, total_activity / 90)
+        quiz_accuracy = max(0.28, min(0.97, round(avg_mastery * 0.72 + recent_density * 0.18 + 0.08, 2)))
+        task_completion = max(
+            0.22,
+            min(0.98, round(quiz_accuracy * 0.68 + recent_density * 0.25 - inactive_days * 0.015 + 0.08, 2)),
+        )
+        if inactive_days >= 7 or (quiz_accuracy < 0.52 and task_completion < 0.58):
+            risk = "danger"
+        elif inactive_days >= 3 or quiz_accuracy < 0.66 or task_completion < 0.68 or len(weak) >= 3:
             risk = "warning"
-        name = real_student["name"] or "张同学"
-        students.append({
-            "id": settings.single_user_id,
-            "name": name,
-            "avatar": name[0],
-            "major": real_student["major"] or "Python",
-            "grade": real_student["grade"] or "大二",
-            "current_stage": real_profile["current_stage"] or "函数与模块",
-            "knowledge_level": real_profile["knowledge_level"] or "有一定基础",
-            "weak_points": weak,
-            "learning_preference": pref,
-            "daily_time": real_profile["daily_time"] or 60,
-            "streak_days": streak,
-            "risk_level": risk,
-            "last_active": _days_ago(0) if streak > 0 else _days_ago(3),
-            "mastery": real_mastery,
-            "quiz_accuracy": 0.75,
-            "total_hours": round(sum(r["count"] for r in real_contrib) * 0.5, 1),
-            "task_completion": 0.72,
-        })
+        else:
+            risk = "normal"
 
-    students.extend(_mock_students())
+        name = row["name"] or user_id
+        students.append(
+            {
+                "id": user_id,
+                "name": name,
+                "avatar": (row["avatar"] if "avatar" in row.keys() and row["avatar"] else name[:1]),
+                "major": row["major"] or "Python",
+                "grade": row["grade"] or "未填写",
+                "current_stage": row["current_stage"] or "函数与模块",
+                "knowledge_level": row["knowledge_level"] or "有一定基础",
+                "weak_points": weak,
+                "learning_preference": pref,
+                "daily_time": int(row["daily_time"] or 60),
+                "streak_days": streak,
+                "risk_level": risk,
+                "last_active": last_active,
+                "mastery": mastery,
+                "quiz_accuracy": quiz_accuracy,
+                "total_hours": round(total_activity * 0.42 + int(row["daily_time"] or 60) / 60 * 3.5, 1),
+                "task_completion": task_completion,
+                "source": "database",
+            }
+        )
+
     return students
 
 

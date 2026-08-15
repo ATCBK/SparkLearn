@@ -1,10 +1,14 @@
 ﻿import json
 import sqlite3
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable
 
+from passlib.context import CryptContext
+
 from .config import settings
+
+_demo_password_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 def _ensure_dirs() -> None:
@@ -583,6 +587,7 @@ def init_db() -> None:
         _seed_mcp_services(conn)
         _seed_teacher_subjects(conn)
         _seed_forum_posts(conn)
+        _seed_demo_learning_dataset(conn)
 
 
 def _ensure_student_columns(conn: sqlite3.Connection) -> None:
@@ -920,6 +925,360 @@ def _seed_forum_posts(conn: sqlite3.Connection) -> None:
             """,
             rows,
         )
+
+
+def _date_days_ago(days: int) -> str:
+    return (datetime.now(UTC).date() - timedelta(days=days)).isoformat()
+
+
+def _demo_hash_password(password: str = "SparkLearn1") -> str:
+    return _demo_password_context.hash(password)
+
+
+def _seed_demo_learning_dataset(conn: sqlite3.Connection) -> None:
+    ts = now_iso()
+    password_hash = _demo_hash_password()
+    teacher_id = "demo_teacher_python"
+
+    conn.execute(
+        """
+        INSERT INTO students(
+          user_id, name, phone, email, major, grade, password_hash, is_demo,
+          auth_provider, admin_role, account_status, permission_score, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'phone_password', 'teacher_admin', 'active', 92, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+          name=excluded.name,
+          phone=excluded.phone,
+          email=excluded.email,
+          major=excluded.major,
+          grade=excluded.grade,
+          password_hash=excluded.password_hash,
+          is_demo=1,
+          auth_provider='phone_password',
+          admin_role='teacher_admin',
+          account_status='active',
+          permission_score=92,
+          updated_at=excluded.updated_at
+        """,
+        (
+            teacher_id,
+            "周老师",
+            "16600009001",
+            "teacher.python@sparklearn.cn",
+            "Python 程序设计",
+            "教师",
+            password_hash,
+            ts,
+            ts,
+        ),
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO profiles(user_id, knowledge_level, current_stage, updated_at) VALUES (?, ?, ?, ?)",
+        (teacher_id, "教师账号", "班级教学管理", ts),
+    )
+
+    conn.execute(
+        """
+        INSERT INTO teacher_subjects(user_id, name, code, description, enabled, deleted, sort_order, created_at, updated_at)
+        VALUES (?, 'Python 程序设计', 'python-demo', '答辩演示班级使用的 Python 学情数据源', 1, 0, 1, ?, ?)
+        ON CONFLICT(user_id, name) DO UPDATE SET
+          code=excluded.code,
+          description=excluded.description,
+          enabled=1,
+          deleted=0,
+          updated_at=excluded.updated_at
+        """,
+        (teacher_id, ts, ts),
+    )
+    subject_row = conn.execute(
+        "SELECT id FROM teacher_subjects WHERE user_id = ? AND name = 'Python 程序设计'",
+        (teacher_id,),
+    ).fetchone()
+    subject_id = int(subject_row["id"]) if subject_row else 0
+
+    conn.execute(
+        """
+        INSERT INTO teacher_classes(
+          user_id, name, subject_id, subject_name, grade, description, invite_code, status, created_at, updated_at
+        ) VALUES (?, 'Python 智能学习演示班', ?, 'Python 程序设计', '大一-大三混合班',
+                  '用于教师大屏、学生学情、管理员端联动演示的真实种子班级。', 'PYDEMO26', 'active', ?, ?)
+        ON CONFLICT(invite_code) DO UPDATE SET
+          user_id=excluded.user_id,
+          name=excluded.name,
+          subject_id=excluded.subject_id,
+          subject_name=excluded.subject_name,
+          grade=excluded.grade,
+          description=excluded.description,
+          status='active',
+          updated_at=excluded.updated_at
+        """,
+        (teacher_id, subject_id, ts, ts),
+    )
+    class_row = conn.execute("SELECT id FROM teacher_classes WHERE invite_code = 'PYDEMO26'").fetchone()
+    class_id = int(class_row["id"]) if class_row else 0
+
+    students = _demo_student_blueprints()
+    kp_defs = [
+        ("1.1", "变量与数据类型", "基础语法"),
+        ("1.2", "表达式与运算符", "基础语法"),
+        ("1.3", "条件分支", "基础语法"),
+        ("1.4", "循环与控制", "基础语法"),
+        ("1.5", "列表与字典", "基础语法"),
+        ("2.1", "函数定义与调用", "函数与模块"),
+        ("2.2", "作用域与闭包", "函数与模块"),
+        ("2.3", "模块与包", "函数与模块"),
+        ("2.4", "常用标准库", "函数与模块"),
+        ("3.1", "类与对象", "面向对象"),
+        ("3.2", "封装与属性", "面向对象"),
+        ("3.3", "继承与多态", "面向对象"),
+        ("3.4", "OOP 建模实战", "面向对象"),
+        ("4.1", "文件读写", "文件处理"),
+        ("4.2", "异常处理", "文件处理"),
+        ("4.3", "JSON 与持久化", "文件处理"),
+        ("4.4", "日志与调试", "文件处理"),
+        ("5.1", "装饰器", "高级特性"),
+        ("5.2", "生成器与迭代器", "高级特性"),
+        ("5.3", "列表推导式", "高级特性"),
+        ("5.4", "异步编程入门", "高级特性"),
+    ]
+
+    for idx, item in enumerate(students, start=1):
+        user_id = item["user_id"]
+        phone = item["phone"]
+        conn.execute(
+            """
+            INSERT INTO students(
+              user_id, name, phone, email, major, grade, avatar, password_hash,
+              is_demo, auth_provider, admin_role, account_status, permission_score, last_login_at,
+              created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'phone_password', '', 'active', ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+              name=excluded.name,
+              phone=excluded.phone,
+              email=excluded.email,
+              major=excluded.major,
+              grade=excluded.grade,
+              avatar=excluded.avatar,
+              password_hash=excluded.password_hash,
+              is_demo=1,
+              auth_provider='phone_password',
+              admin_role='',
+              account_status='active',
+              permission_score=excluded.permission_score,
+              last_login_at=excluded.last_login_at,
+              updated_at=excluded.updated_at
+            """,
+            (
+                user_id,
+                item["name"],
+                phone,
+                f"{user_id}@sparklearn.demo",
+                item["major"],
+                item["grade"],
+                item["name"][:1],
+                password_hash,
+                item["permission_score"],
+                f"{_date_days_ago(item['last_active_days'])}T{8 + idx % 10:02d}:2{idx % 6}:00Z",
+                ts,
+                ts,
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO profiles(
+              user_id, goal, knowledge_level, weak_points, learning_preference,
+              cognitive_style, daily_time, practical_ability, current_stage, version, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+              goal=excluded.goal,
+              knowledge_level=excluded.knowledge_level,
+              weak_points=excluded.weak_points,
+              learning_preference=excluded.learning_preference,
+              cognitive_style=excluded.cognitive_style,
+              daily_time=excluded.daily_time,
+              practical_ability=excluded.practical_ability,
+              current_stage=excluded.current_stage,
+              updated_at=excluded.updated_at
+            """,
+            (
+                user_id,
+                json.dumps(item["goals"], ensure_ascii=False),
+                item["knowledge_level"],
+                json.dumps(item["weak_points"], ensure_ascii=False),
+                json.dumps(item["learning_preference"], ensure_ascii=False),
+                item["cognitive_style"],
+                item["daily_time"],
+                item["practical_ability"],
+                item["current_stage"],
+                ts,
+            ),
+        )
+        conn.execute("DELETE FROM mastery_records WHERE user_id = ? AND knowledge_point_id LIKE '_._'", (user_id,))
+        mastery_rows = []
+        for kp_index, (kp_id, kp_name, chapter) in enumerate(kp_defs):
+            stage_offset = item["stage_bias"].get(chapter, -0.18)
+            wobble = (((idx * 17 + kp_index * 11) % 19) - 9) / 100
+            score = max(0.02, min(0.98, item["base_mastery"] + stage_offset + wobble))
+            if kp_name in item["weak_points"]:
+                score = max(0.02, score - 0.18)
+            mastery_rows.append((user_id, kp_id, kp_name, round(score, 2), chapter, ts))
+        conn.executemany(
+            """
+            INSERT INTO mastery_records(user_id, knowledge_point_id, knowledge_point_name, score, chapter, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            mastery_rows,
+        )
+
+        conn.execute("DELETE FROM contribution_days WHERE user_id = ?", (user_id,))
+        contrib_rows = []
+        for day in range(29, -1, -1):
+            active_gap = item["last_active_days"]
+            if day < active_gap:
+                count = 0
+            else:
+                rhythm = (idx * 7 + day * 5 + item["study_seed"]) % 13
+                base = item["activity_base"]
+                count = max(0, min(6, base + (1 if rhythm in {0, 2, 5, 8} else 0) - (1 if rhythm in {3, 11} else 0)))
+                if day % 7 in item["low_weekdays"]:
+                    count = max(0, count - 1)
+            contrib_rows.append((user_id, _date_days_ago(day), count))
+        conn.executemany(
+            "INSERT OR REPLACE INTO contribution_days(user_id, date, count) VALUES (?, ?, ?)",
+            contrib_rows,
+        )
+
+        if class_id:
+            conn.execute(
+                """
+                INSERT INTO teacher_class_members(class_id, student_id, display_name, phone, source, status, joined_at, updated_at)
+                VALUES (?, ?, ?, ?, 'seed_demo', 'active', ?, ?)
+                ON CONFLICT(class_id, student_id) DO UPDATE SET
+                  display_name=excluded.display_name,
+                  phone=excluded.phone,
+                  source='seed_demo',
+                  status='active',
+                  updated_at=excluded.updated_at
+                """,
+                (class_id, user_id, item["name"], phone, ts, ts),
+            )
+
+    broadcast_titles = [
+        ("函数与闭包补弱任务", "请完成闭包例题讲解和 8 道专项练习，明晚 20:00 前提交。"),
+        ("项目答辩代码复盘", "请把本周小项目中最不稳定的函数写成复盘笔记，重点说明输入输出。"),
+        ("风险学生一对一提醒", "近期活跃度下降的同学请先完成 20 分钟短任务，教师会在课后跟进。"),
+    ]
+    for bidx, (title, content) in enumerate(broadcast_titles, start=1):
+        target_students = [s["user_id"] for s in students if (bidx + s["study_seed"]) % 3 != 0]
+        conn.execute(
+            """
+            INSERT INTO teacher_broadcasts(
+              user_id, title, content, target_type, target_student_ids, target_class_ids, material_file_ids, created_at
+            ) VALUES (?, ?, ?, 'class', ?, ?, '[]', ?)
+            """,
+            (
+                teacher_id,
+                title,
+                content,
+                json.dumps(target_students, ensure_ascii=False),
+                json.dumps([class_id], ensure_ascii=False),
+                f"{_date_days_ago(4 - bidx)}T09:3{bidx}:00Z",
+            ),
+        )
+        broadcast_id = conn.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        delivery_rows = []
+        for sidx, sid in enumerate(target_students):
+            delivered_at = f"{_date_days_ago(4 - bidx)}T10:{(sidx * 3) % 60:02d}:00Z"
+            read_at = delivered_at if sidx % 5 != 0 else None
+            downloaded_at = delivered_at if sidx % 4 == 0 else None
+            delivery_rows.append((broadcast_id, sid, delivered_at, read_at, downloaded_at))
+        conn.executemany(
+            """
+            INSERT OR IGNORE INTO broadcast_deliveries(broadcast_id, student_id, delivered_at, read_at, downloaded_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            delivery_rows,
+        )
+
+    existing_audit = conn.execute(
+        "SELECT COUNT(1) AS cnt FROM admin_audit_logs WHERE actor_id = ? AND target_id = 'demo-learning-dataset'",
+        (teacher_id,),
+    ).fetchone()["cnt"]
+    if not existing_audit:
+        conn.execute(
+            """
+            INSERT INTO admin_audit_logs(actor_id, actor_name, action, target_type, target_id, target_label, level, detail_json, created_at)
+            VALUES (?, '周老师', '初始化答辩演示学情数据', 'dataset', 'demo-learning-dataset', 'Python 智能学习演示班', 'success', ?, ?)
+            """,
+            (
+                teacher_id,
+                json.dumps({"student_count": len(students), "class_id": class_id}, ensure_ascii=False),
+                ts,
+            ),
+        )
+
+
+def _demo_student_blueprints() -> list[dict[str, Any]]:
+    names = [
+        "林以晴", "陈宇航", "赵思远", "周嘉宁", "吴泽楷", "沈佳禾",
+        "许诺言", "马若溪", "黄景辰", "何雨桐", "郭子墨", "孙悦然",
+        "罗清扬", "梁知夏", "韩一鸣", "唐沐阳", "谢语晨", "蒋书瑶",
+    ]
+    phones = [
+        "16600001023", "13800042017", "19935061842", "15191027536", "18874293015", "15260358194",
+        "13928604751", "17853091628", "16620394718", "13879502164", "19964031875", "15137289406",
+        "18805623947", "15248701369", "13962075831", "17890463125", "16681245039", "13846759012",
+    ]
+    majors = ["计算机科学与技术", "软件工程", "人工智能", "数据科学", "网络工程", "信息安全"]
+    grades = ["大一", "大二", "大三"]
+    stages = ["基础语法", "函数与模块", "面向对象", "文件处理", "高级特性"]
+    weak_pool = [
+        ["循环与控制", "列表与字典"],
+        ["函数定义与调用", "作用域与闭包"],
+        ["模块与包", "常用标准库"],
+        ["类与对象", "继承与多态"],
+        ["异常处理", "日志与调试"],
+        ["装饰器", "异步编程入门"],
+        ["JSON 与持久化", "文件读写"],
+    ]
+    base_mastery = [0.79, 0.63, 0.48, 0.72, 0.56, 0.88, 0.41, 0.67, 0.74, 0.52, 0.69, 0.83, 0.58, 0.46, 0.77, 0.61, 0.54, 0.71]
+    last_active = [0, 1, 5, 0, 3, 0, 8, 2, 0, 6, 1, 0, 4, 9, 0, 2, 7, 1]
+    daily_times = [55, 40, 30, 70, 45, 95, 25, 60, 80, 35, 65, 110, 50, 28, 85, 58, 42, 75]
+    rows: list[dict[str, Any]] = []
+    for idx, name in enumerate(names):
+        stage = stages[(idx * 2 + idx // 3) % len(stages)]
+        chapter_bias = {
+            "基础语法": 0.12 if stage != "基础语法" else 0.04,
+            "函数与模块": 0.05 if stage in {"函数与模块", "面向对象", "文件处理", "高级特性"} else -0.08,
+            "面向对象": 0.02 if stage in {"面向对象", "文件处理", "高级特性"} else -0.16,
+            "文件处理": -0.02 if stage in {"文件处理", "高级特性"} else -0.22,
+            "高级特性": -0.08 if stage == "高级特性" else -0.28,
+        }
+        rows.append(
+            {
+                "user_id": f"demo_stu_{idx + 1:03d}",
+                "name": name,
+                "phone": phones[idx],
+                "major": majors[(idx * 3 + 1) % len(majors)],
+                "grade": grades[(idx * 5 + 2) % len(grades)],
+                "permission_score": 56 + ((idx * 9) % 35),
+                "goals": ["期末提分", "项目答辩"] if idx % 4 else ["竞赛准备", "作品集完善"],
+                "knowledge_level": ["零基础", "有一定基础", "基础扎实", "进阶"][idx % 4],
+                "weak_points": weak_pool[(idx * 5 + 2) % len(weak_pool)],
+                "learning_preference": [["视觉型", "实践型"], ["阅读型"], ["实践型", "挑战型"], ["归纳型", "视觉型"]][idx % 4],
+                "cognitive_style": ["归纳型", "发散型", "步骤型", "项目型"][idx % 4],
+                "daily_time": daily_times[idx],
+                "practical_ability": ["能完成课堂练习", "能独立完成小项目", "需要脚手架辅助", "能做项目复盘"][idx % 4],
+                "current_stage": stage,
+                "base_mastery": base_mastery[idx],
+                "stage_bias": chapter_bias,
+                "last_active_days": last_active[idx],
+                "activity_base": [3, 2, 1, 3, 2, 4, 1, 2, 3, 1, 2, 4, 2, 1, 3, 2, 1, 3][idx],
+                "study_seed": (idx + 3) * 7,
+                "low_weekdays": {(idx + 1) % 7, (idx + 4) % 7},
+            }
+        )
+    return rows
 
 
 def fetch_one(query: str, params: tuple[Any, ...] = ()) -> sqlite3.Row | None:
