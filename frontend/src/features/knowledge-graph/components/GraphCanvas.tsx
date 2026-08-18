@@ -1,9 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import * as echarts from 'echarts/core'
+import { GraphChart } from 'echarts/charts'
+import { TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import type { EChartsType } from 'echarts/core'
 import { useGraphStore } from '../store/graphStore'
 import type { GraphData, KnowledgeEdge, KnowledgeNode } from '../types/graph'
 import { cn } from '@/lib/utils/cn'
+
+echarts.use([GraphChart, TooltipComponent, CanvasRenderer])
 
 const STATUS_COLORS: Record<string, string> = {
   mastered: '#16A34A',
@@ -62,7 +69,7 @@ function filterGraphData(graphData: GraphData, filter: string, searchQuery: stri
 }
 
 export function GraphCanvas() {
-  const chartRef = useRef<ReturnType<typeof import('echarts').init> | null>(null)
+  const chartRef = useRef<EChartsType | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isEchartsReady, setIsEchartsReady] = useState(false)
 
@@ -100,19 +107,16 @@ export function GraphCanvas() {
     if (!containerRef.current || typeof window === 'undefined' || chartRef.current) return
 
     let disposed = false
+    const instance = echarts.init(containerRef.current, undefined, { renderer: 'canvas' })
+    chartRef.current = instance
+    queueMicrotask(() => {
+      if (!disposed) setIsEchartsReady(true)
+    })
 
-    import('echarts').then((echarts) => {
-      if (disposed || !containerRef.current) return
-
-      const instance = echarts.init(containerRef.current, undefined, { renderer: 'canvas' })
-      chartRef.current = instance
-      setIsEchartsReady(true)
-
-      instance.on('click', (params) => {
-        if (params.dataType === 'node' && hasNodeId(params.data)) {
-          selectNode(params.data.id)
-        }
-      })
+    instance.on('click', (params) => {
+      if (params.dataType === 'node' && hasNodeId(params.data)) {
+        selectNode(params.data.id)
+      }
     })
 
     return () => {

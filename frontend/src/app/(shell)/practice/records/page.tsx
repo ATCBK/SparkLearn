@@ -8,13 +8,13 @@ import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
 
 interface QuizRecord {
   quiz_id: string
-  answer: string | string[]
+  answer?: string | string[]
   correct: boolean
-  correct_answer: string | string[]
-  knowledge_point_id: string
-  knowledge_point_name: string
-  judge_mode: string
-  question: {
+  correct_answer?: string | string[]
+  knowledge_point_id?: string
+  knowledge_point_name?: string
+  judge_mode?: string
+  question?: {
     id: string
     type: string
     content: string
@@ -24,6 +24,23 @@ interface QuizRecord {
     knowledge_point_name: string
   }
   at: string
+}
+
+function formatAnswer(answer?: string | string[]) {
+  if (Array.isArray(answer)) return answer.length ? answer.join(', ') : '未作答'
+  return answer || '未作答'
+}
+
+function getRecordQuestionTitle(record: QuizRecord) {
+  return record.question?.content || `题目 ${record.quiz_id || '未命名'}`
+}
+
+function getRecordKnowledgePoint(record: QuizRecord) {
+  return record.question?.knowledge_point_name || record.knowledge_point_name || record.knowledge_point_id || '未记录'
+}
+
+function getRecordExplanation(record: QuizRecord) {
+  return record.question?.explanation || ''
 }
 
 export default function PracticeRecordsPage() {
@@ -136,24 +153,24 @@ export default function PracticeRecordsPage() {
                       )}
                       <div className="flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-small font-bold text-ink">{record.question.content}</h3>
+                          <h3 className="text-small font-bold text-ink">{getRecordQuestionTitle(record)}</h3>
                           <Pill tone={record.correct ? 'green' : 'red'}>
                             {record.correct ? '正确' : '错误'}
                           </Pill>
                         </div>
                         
                         <div className="mt-2 space-y-1 text-micro text-muted">
-                          <p><b>你的答案：</b> {Array.isArray(record.answer) ? record.answer.join(', ') : record.answer}</p>
-                          <p><b>正确答案：</b> {Array.isArray(record.correct_answer) ? record.correct_answer.join(', ') : record.correct_answer}</p>
-                          <p><b>知识点：</b> {record.question.knowledge_point_name}</p>
-                          <p><b>判题方式：</b> {record.judge_mode}</p>
+                          <p><b>你的答案：</b> {formatAnswer(record.answer)}</p>
+                          <p><b>正确答案：</b> {formatAnswer(record.correct_answer)}</p>
+                          <p><b>知识点：</b> {getRecordKnowledgePoint(record)}</p>
+                          <p><b>判题方式：</b> {record.judge_mode || '规则判题'}</p>
                           <p><b>时间：</b> {new Date(record.at).toLocaleString()}</p>
                         </div>
 
-                        {record.question.explanation && (
+                        {getRecordExplanation(record) && (
                           <div className="mt-3 rounded-[8px] bg-[#f9fafb] p-3">
                             <p className="text-micro font-bold text-ink">解析：</p>
-                            <p className="mt-1 text-micro text-muted">{record.question.explanation}</p>
+                            <p className="mt-1 text-micro text-muted">{getRecordExplanation(record)}</p>
                           </div>
                         )}
                       </div>

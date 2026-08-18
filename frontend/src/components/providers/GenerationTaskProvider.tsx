@@ -16,7 +16,7 @@ interface GenerationTask {
 
 interface GenerationTaskContextType {
   tasks: GenerationTask[]
-  startBackgroundGeneration: (type: string, prompt: string, knowledgeFileIds?: number[], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string; voiceSpeed?: number; voicePitch?: number; voiceVolume?: number }) => void
+  startBackgroundGeneration: (type: string, prompt: string, knowledgeFileIds?: number[], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string; voiceSpeed?: number; voicePitch?: number; voiceVolume?: number; codeLevel?: string }) => void
   dismissTask: (id: string) => void
 }
 
@@ -56,7 +56,7 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
   const router = useRouter()
   const taskIdRef = useRef(0)
 
-  const startBackgroundGeneration = useCallback((type: string, prompt: string, knowledgeFileIds: number[] = [], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string; voiceSpeed?: number; voicePitch?: number; voiceVolume?: number }) => {
+  const startBackgroundGeneration = useCallback((type: string, prompt: string, knowledgeFileIds: number[] = [], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string; voiceSpeed?: number; voicePitch?: number; voiceVolume?: number; codeLevel?: string }) => {
     const taskId = `bg-${Date.now()}-${++taskIdRef.current}`
     const newTask: GenerationTask = {
       id: taskId,
@@ -159,7 +159,12 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
     fetch(`${API_BASE}/api/resources/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, prompt, knowledge_file_ids: knowledgeFileIds }),
+      body: JSON.stringify({
+        type,
+        prompt,
+        knowledge_file_ids: knowledgeFileIds,
+        ...(type === 'visual3d' && videoOptions?.codeLevel ? { code_level: videoOptions.codeLevel } : {}),
+      }),
     }).then(async (res) => {
       if (!res.body) throw new Error('流式响应体为空')
       const reader = res.body.getReader()
@@ -194,6 +199,8 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
               createdAt: raw.created_at || new Date().toISOString(),
               content: raw.content,
               sourceUrl: raw.source_url,
+              artifactKind: raw.artifact_kind,
+              artifactFiles: Array.isArray(raw.artifact_files) ? raw.artifact_files.map((x: unknown) => String(x)) : undefined,
               progress: raw.progress,
             }
           }

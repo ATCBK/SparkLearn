@@ -25,6 +25,7 @@ const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
   { type: 'quiz', label: '练习题', desc: '达标检测题组' },
   { type: 'reading', label: '拓展阅读', desc: '延伸材料' },
   { type: 'code', label: '代码案例', desc: '可运行实践案例' },
+  { type: 'visual3d', label: '3D资源', desc: '交互式教学动画' },
 ]
 
 const TYPE_PROMPTS: Record<string, string> = {
@@ -36,6 +37,7 @@ const TYPE_PROMPTS: Record<string, string> = {
   quiz: '请根据我填写的学习目标或薄弱点生成一组练习题，覆盖简单、中等、困难三个难度。',
   reading: '请根据我填写的学习目标或薄弱点生成一份拓展阅读材料，包含背景知识和实际应用场景。',
   code: '请根据我填写的学习目标或薄弱点生成一个完整代码案例，包含问题描述、代码实现和讲解。',
+  visual3d: '请根据我填写的学习目标或薄弱点生成一个可交互的 3D 教学动画资源，帮助学生观察过程、调整参数并理解概念。',
 }
 
 const GENERATION_FOCUS_OPTIONS = [
@@ -111,7 +113,7 @@ function getDefaultVoiceTone(providerId: string): { speed: number; pitch: number
 }
 
 function typeLabel(type: string) {
-  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', video: '视频', blog: '播客电台', discovery: '学习发现', web_material: '网页资料' }
+  const map: Record<string, string> = { document: '讲义', ppt: 'PPT', mindmap: '思维导图', quiz: '题集', reading: '阅读', code: '代码案例', visual3d: '3D资源', video: '视频', blog: '播客电台', discovery: '学习发现', web_material: '网页资料' }
   return map[type] || type
 }
 
@@ -122,6 +124,7 @@ const RESOURCE_TABS = [
   { value: 'video', label: '视频' },
   { value: 'quiz', label: '题目' },
   { value: 'code', label: '代码' },
+  { value: 'visual3d', label: '3D资源' },
   { value: 'mindmap', label: '思维导图' },
   { value: 'blog', label: '播客' },
   { value: 'discovery', label: '学习发现' },
@@ -137,6 +140,7 @@ function resourceTypeText(type: string) {
     quiz: '题目',
     reading: '阅读',
     code: '代码',
+    visual3d: '3D资源',
     video: '视频',
     blog: '播客',
     discovery: '学习发现',
@@ -152,6 +156,7 @@ function resourceIcon(type: string) {
     video: { icon: <Video className="h-5 w-5" />, tone: 'bg-[#f1e8ff] text-[#7c3aed]' },
     quiz: { icon: <CheckSquare className="h-5 w-5" />, tone: 'bg-[#e9f9ef] text-[#16a34a]' },
     code: { icon: <Code className="h-5 w-5" />, tone: 'bg-[#edf4ff] text-[#3b82f6]' },
+    visual3d: { icon: <Layers className="h-5 w-5" />, tone: 'bg-[#eef2ff] text-[#4f46e5]' },
     mindmap: { icon: <Brain className="h-5 w-5" />, tone: 'bg-[#fff7e6] text-[#f59e0b]' },
     blog: { icon: <Radio className="h-5 w-5" />, tone: 'bg-[#e6fbff] text-[#0891b2]' },
     discovery: { icon: <Globe className="h-5 w-5" />, tone: 'bg-[#f0fdf4] text-[#059669]' },
@@ -171,6 +176,9 @@ function resourceDate(value: string) {
 function resourceOriginText(resource: Resource) {
   if (resource.type === 'web_material') return '网页采集'
   if (resource.type === 'reading') return '论坛导入'
+  if (resource.artifactKind === 'threejs' && resource.generationMode === 'fallback_template') return '模板兜底'
+  if (resource.artifactKind === 'threejs' && resource.generationMode === 'ai') return `${resource.provider === 'deepseek' ? 'DeepSeek' : 'AI'} 生成`
+  if (resource.generationMode === 'markdown_fallback') return '生成失败降级'
   return 'AI 生成'
 }
 
@@ -229,6 +237,7 @@ function GeneratePageContent() {
   const [polishResult, setPolishResult] = useState<VideoPolishResult | null>(null)
   const [polishError, setPolishError] = useState('')
   const [polishing, setPolishing] = useState(false)
+  const [visual3dLevel, setVisual3dLevel] = useState('beginner')
   const [generateError, setGenerateError] = useState('')
   const [showSegments, setShowSegments] = useState(false)
   const [sseMessages, setSseMessages] = useState<string[]>([])
@@ -321,7 +330,7 @@ function GeneratePageContent() {
         type,
         focusedPrompt,
         selectedKnowledge,
-        type === 'video' ? getVideoOptions() : undefined,
+        type === 'video' ? getVideoOptions() : type === 'visual3d' ? getVisual3dOptions() : undefined,
       )
       setResource(res)
       setResources((prev) => sortResourcesByLatest([res, ...prev.filter((item) => item.id !== res.id)]))
@@ -387,6 +396,12 @@ function GeneratePageContent() {
     }
   }
 
+  function getVisual3dOptions() {
+    return {
+      codeLevel: visual3dLevel,
+    }
+  }
+
   async function removeResource(id: string) {
     if (!id || deletingResourceId === id) return
     const target = resources.find((item) => item.id === id)
@@ -411,7 +426,11 @@ function GeneratePageContent() {
     setDownloadingResourceId(res.id)
     setLibraryError('')
     try {
-      await api.downloadResource(res.id)
+      if ((res.type === 'visual3d' || res.artifactKind === 'threejs') && res.artifactKind === 'threejs') {
+        await api.downloadResourceSource(res.id)
+      } else {
+        await api.downloadResource(res.id)
+      }
     } catch (ex) {
       setLibraryError(ex instanceof Error ? ex.message : '下载资源失败')
     } finally {
@@ -632,6 +651,11 @@ function GeneratePageContent() {
                         {resourceOriginText(selected)} · {resourceDate(selected.createdAt)}
                         {selected.type === 'web_material' ? '' : ` · ${selected.progress ?? 42}% 进度`}
                       </p>
+                      {selected.artifactKind === 'threejs' && selected.generationMode === 'fallback_template' && (
+                        <p className="mt-2 rounded-md bg-[#fff7ed] px-2 py-1 text-micro font-semibold text-[#c2410c]">
+                          DeepSeek 原始代码未通过校验，当前为安全模板兜底。{selected.fallbackReason ? `原因：${selected.fallbackReason}` : ''}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [&>*:last-child]:shrink-0 [&>*:nth-child(3)]:hidden [&>*:nth-child(5)]:hidden">
@@ -687,7 +711,7 @@ function GeneratePageContent() {
                     ) : selected.type === 'web_material' ? (
                       <WebMaterialPreview resource={selected} loading={detailLoadingId === selected.id} />
                     ) : previewUrl ? (
-                      <iframe title={selected.title} src={previewUrl} className="h-full min-h-[560px] w-full border-0" />
+                      <iframe title={selected.title} src={previewUrl} sandbox="allow-scripts allow-downloads" allow="fullscreen" className="h-full min-h-[560px] w-full border-0" />
                     ) : selected.type === 'video' ? (
                       <div className="grid min-h-[420px] place-items-center rounded-[12px] bg-[#0f172a] text-white">
                         <div className="text-center">
@@ -776,7 +800,7 @@ function GeneratePageContent() {
             <ProtoButton variant="tertiary" disabled={step === 0} onClick={() => setStep(Math.max(0, step - 1))}>上一步</ProtoButton>
             {step < 3 && <ProtoButton onClick={() => setStep(step + 1)}>下一步</ProtoButton>}
             {step === 3 && <ProtoButton onClick={() => void startGenerate()} disabled={generating}><Play className="h-4 w-4" />{type === 'video' ? '生成视频' : '开始生成'}</ProtoButton>}
-            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, buildFocusedPrompt(), selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice, voiceProvider: videoVoiceProvider, voiceSpeed: videoVoiceSpeed, voicePitch: videoVoicePitch, voiceVolume: videoVoiceVolume } : undefined); setStep(0) }}>后台生成</ProtoButton>}
+            {step === 2 && <ProtoButton variant="secondary" onClick={() => { startBackgroundGeneration(type, buildFocusedPrompt(), selectedKnowledge, type === 'video' ? { styleId: videoStyleId, durationSec: videoDuration, voice: videoVoice, voiceProvider: videoVoiceProvider, voiceSpeed: videoVoiceSpeed, voicePitch: videoVoicePitch, voiceVolume: videoVoiceVolume } : type === 'visual3d' ? getVisual3dOptions() : undefined); setStep(0) }}>后台生成</ProtoButton>}
           </div>
         </div>
 
@@ -801,6 +825,7 @@ function GeneratePageContent() {
                 quiz: { icon: <CheckSquare className="h-4 w-4" />, color: 'bg-[#fff7ed] text-[#d97706]' },
                 reading: { icon: <BookOpen className="h-4 w-4" />, color: 'bg-[#ecfdf5] text-[#059669]' },
                 code: { icon: <Code className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' },
+                visual3d: { icon: <Layers className="h-4 w-4" />, color: 'bg-[#eef2ff] text-[#4f46e5]' },
               }
               const t = IconMap[item.type] || { icon: <FileText className="h-4 w-4" />, color: 'bg-[#eff6ff] text-[#2563eb]' }
               return (
@@ -1019,9 +1044,35 @@ function GeneratePageContent() {
               </>
             )}
 
+            {type === 'visual3d' && (
+              <div className="grid gap-4">
+                <div>
+                  <span className="mb-2 block text-small font-bold text-ink">学习者水平</span>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'beginner', label: '入门' },
+                      { value: 'intermediate', label: '进阶' },
+                      { value: 'advanced', label: '深入' },
+                    ].map((level) => (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => setVisual3dLevel(level.value)}
+                        className={`h-10 flex-1 rounded-[10px] border text-small font-bold transition-all ${
+                          visual3dLevel === level.value ? 'border-blue bg-blue-light text-blue' : 'border-line bg-white text-ink hover:border-blue/50'
+                        }`}
+                      >
+                        {level.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <label className="grid gap-2">
               <span className="text-small font-bold text-ink">生成要求</span>
-              <textarea data-guide-target="resource-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={type === 'video' ? 4 : 7} placeholder="填写你这次真正想生成的学习内容。新用户没有画像数据时，系统不会自动带入演示薄弱点。" className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
+              <textarea data-guide-target="resource-prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={type === 'video' || type === 'code' || type === 'visual3d' ? 4 : 7} placeholder="填写你这次真正想生成的学习内容。新用户没有画像数据时，系统不会自动带入演示薄弱点。" className="rounded-[14px] border border-line bg-[#f9fafb] p-4 text-small leading-6 outline-none focus:border-blue" />
             </label>
 
             {/* 视频：润色按钮 + 结果 */}
@@ -1191,6 +1242,11 @@ function GeneratePageContent() {
               <>
                 <SoftCard>
                   <b className="block text-h2 text-ink">{resource.title}</b>
+                  {resource.artifactKind === 'threejs' && resource.generationMode === 'fallback_template' && (
+                    <p className="mt-3 rounded-md bg-[#fff7ed] px-3 py-2 text-small font-semibold text-[#c2410c]">
+                      DeepSeek 原始代码未通过校验，当前为安全模板兜底。{resource.fallbackReason ? `原因：${resource.fallbackReason}` : ''}
+                    </p>
+                  )}
                   {resource.type === 'video' ? (
                     <div className="mt-3">
                       {resource.videoUrl ? (
@@ -1229,7 +1285,7 @@ function GeneratePageContent() {
                     </div>
                   ) : generatedPreviewUrl ? (
                     <div className="mt-3">
-                      <iframe title={resource.title} src={generatedPreviewUrl} className="h-[72vh] min-h-[560px] w-full rounded-xl border border-line bg-white" />
+                      <iframe title={resource.title} src={generatedPreviewUrl} sandbox="allow-scripts allow-downloads" allow="fullscreen" className="h-[72vh] min-h-[560px] w-full rounded-xl border border-line bg-white" />
                     </div>
                   ) : (
                     <div className="mt-3 max-h-[calc(100vh-360px)] overflow-y-auto pr-3">

@@ -268,12 +268,16 @@ function getRectForStep(step: GuideStep): SpotlightRect | null {
   if (!target.getClientRects().length || rect.width <= 0 || rect.height <= 0) {
     return null
   }
-  const pad = 10
+  const left = Math.max(8, rect.left)
+  const top = Math.max(8, rect.top)
+  const right = Math.min(window.innerWidth - 8, rect.right)
+  const bottom = Math.min(window.innerHeight - 8, rect.bottom)
+
   return {
-    left: Math.max(10, rect.left - pad),
-    top: Math.max(10, rect.top - pad),
-    width: Math.min(window.innerWidth - 20, rect.width + pad * 2),
-    height: Math.min(window.innerHeight - 20, rect.height + pad * 2),
+    left,
+    top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top),
   }
 }
 
@@ -314,14 +318,15 @@ function waitForGuideTarget(step: GuideStep, onReady: () => void) {
 }
 
 function getTooltipPosition(rect: SpotlightRect): TooltipPosition {
-  const tooltipWidth = Math.min(430, window.innerWidth - 32)
-  const tooltipHeight = window.innerWidth < 560 ? 390 : 350
+  const tooltipWidth = Math.min(420, window.innerWidth - 32)
+  const tooltipHeight = window.innerWidth < 560 ? 380 : 360
   const spaceBelow = window.innerHeight - rect.top - rect.height
-  const canFitBelow = spaceBelow > tooltipHeight + 40
+  const canFitBelow = spaceBelow > tooltipHeight + 28
   const placement = canFitBelow || rect.top < tooltipHeight + 32 ? 'below' : 'above'
-  const preferredTop = placement === 'below' ? rect.top + rect.height + 34 : rect.top - tooltipHeight - 24
+  const preferredTop = placement === 'below' ? rect.top + rect.height + 28 : rect.top - tooltipHeight - 18
   const top = Math.min(Math.max(16, preferredTop), Math.max(16, window.innerHeight - tooltipHeight - 16))
-  const left = Math.min(Math.max(16, rect.left), window.innerWidth - tooltipWidth - 16)
+  const targetCenter = rect.left + rect.width / 2
+  const left = Math.min(Math.max(16, targetCenter - tooltipWidth / 2), window.innerWidth - tooltipWidth - 16)
 
   return { left, top, placement }
 }
@@ -381,9 +386,9 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       return
     }
     if (!hasSeenNewUserGuide(nextUserId)) {
-      setWelcomeVisible(storedIndex === 0)
-      setTourVisible(storedIndex > 0)
-      if (storedIndex > 0) markNewUserGuideActive(nextUserId)
+      const autoOpenOnHome = normalizeRoute(window.location.pathname) === '/'
+      setWelcomeVisible(autoOpenOnHome && storedIndex === 0)
+      setTourVisible(false)
     }
   }, [])
 
@@ -552,39 +557,42 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
       {welcomeVisible ? (
         <div
           data-testid="new-user-guide-panel"
-          className="fixed inset-0 z-[90] grid place-items-center bg-[#0f172a]/68 px-4 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[90] grid place-items-center bg-[#162033]/64 px-4 backdrop-blur-[3px]"
           role="dialog"
           aria-modal="true"
           aria-label="首次用户体验引导"
         >
-          <section className="w-full max-w-[620px] overflow-hidden rounded-[22px] border border-white/70 bg-white shadow-[0_30px_100px_rgba(15,23,42,.36)]">
-            <div className="relative bg-[radial-gradient(circle_at_18%_8%,#dbeafe,transparent_34%),linear-gradient(135deg,#ffffff,#f8fbff)] px-7 pb-6 pt-7 max-[560px]:px-5">
+          <section className="relative w-full max-w-[620px] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_30px_100px_rgba(15,23,42,.34)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(219,234,254,.92),transparent_30%),radial-gradient(circle_at_92%_24%,rgba(191,219,254,.58),transparent_26%),linear-gradient(135deg,#ffffff,#f8fbff_55%,#eef6ff)]" />
+            <div className="pointer-events-none absolute -right-10 top-12 h-40 w-40 rounded-full border border-[#dbeafe]" />
+            <div className="pointer-events-none absolute -bottom-16 left-10 h-36 w-36 rounded-full bg-[#dbeafe]/35 blur-2xl" />
+            <div className="relative px-7 pb-6 pt-7 max-[560px]:px-5">
               <button
                 type="button"
                 onClick={() => closeGuide(true)}
-                className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-[#64748b] transition-colors hover:bg-white hover:text-[#111827]"
+                className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full text-[#64748b] transition-colors hover:bg-white/80 hover:text-[#111827]"
                 aria-label="关闭引导"
                 title="关闭引导"
               >
                 <X className="h-4 w-4" />
               </button>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-white px-3 py-1.5 text-xs font-extrabold text-[#2563eb] shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-white/90 px-3 py-1.5 text-xs font-extrabold text-[#2563eb] shadow-sm">
                 <Sparkles className="h-3.5 w-3.5" />
-                8 步案例式引导
+                平台级新手任务流
               </div>
               <h2 className="mt-4 max-w-[520px] text-[27px] font-black leading-tight text-[#111827] max-[560px]:text-[23px]">
-                跟着小星同学完成一次学习闭环
+                跟着 SparkLearn 跑完整个平台
               </h2>
               <p className="mt-3 max-w-[540px] text-sm leading-7 text-[#52627b]">
-                这不是逐个按钮的功能介绍。我们会以小星同学学习 Python 闭包为线索，走过方向不清、资源筛选、追问辅导、练习验证和报告回流。
+                这不是功能介绍页。我们会带你在真实页面中依次体验工作台、画像、路径、记录、资源、Tutor、练习和报告。
               </p>
               <div className="mt-5 grid grid-cols-5 gap-2 max-[560px]:grid-cols-2">
                 {welcomeFlow.map((item, index) => (
                   <div key={item} className="relative">
-                    <div className="grid min-h-11 place-items-center rounded-xl border border-[#dbeafe] bg-white text-xs font-black text-[#2563eb] shadow-sm">
+                    <div className="grid min-h-11 place-items-center rounded-[12px] border border-[#dbeafe] bg-white/90 px-2 text-center text-xs font-black text-[#2563eb] shadow-[0_8px_18px_rgba(37,99,235,.08)]">
                       {item}
                     </div>
-                    {index < welcomeFlow.length - 1 ? (
+                    {index < welcomeFlow.length - 1 && index !== 4 ? (
                       <ArrowRight className="absolute -right-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[#93c5fd] max-[560px]:hidden" />
                     ) : null}
                   </div>
@@ -594,7 +602,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                 <button
                   type="button"
                   onClick={startTour}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(37,99,235,.24)] transition-colors hover:bg-[#1d4ed8]"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-[12px] bg-[#2563eb] px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(37,99,235,.26)] transition-colors hover:bg-[#1d4ed8]"
                 >
                   开始体验
                   <ChevronRight className="h-4 w-4" />
@@ -602,7 +610,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                 <button
                   type="button"
                   onClick={() => closeGuide(true)}
-                  className="inline-flex h-11 items-center justify-center rounded-xl border border-[#cbd5e1] bg-white px-5 text-sm font-black text-[#475569] transition-colors hover:bg-[#f8fafc]"
+                  className="inline-flex h-11 items-center justify-center rounded-[12px] border border-[#cbd5e1] bg-white/88 px-5 text-sm font-black text-[#475569] transition-colors hover:bg-white"
                 >
                   稍后再说
                 </button>
@@ -621,18 +629,18 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
           {onExpectedRoute && spotlightRect && tooltipPosition ? (
             <>
               <div
-                className="absolute rounded-[16px] border-[3px] border-[#60a5fa] shadow-[0_0_0_9999px_rgba(15,23,42,.66),0_0_0_8px_rgba(96,165,250,.16),0_18px_48px_rgba(37,99,235,.30)]"
+                className="absolute rounded-[14px] border-[3px] border-[#60a5fa] bg-transparent shadow-[0_0_0_9999px_rgba(15,23,42,.62),0_0_0_7px_rgba(96,165,250,.18),0_18px_52px_rgba(37,99,235,.34)]"
                 style={spotlightRect}
               />
               <svg
                 className="absolute text-[#60a5fa] drop-shadow-[0_10px_18px_rgba(15,23,42,.28)]"
-                width="86"
-                height="86"
+                width="78"
+                height="78"
                 viewBox="0 0 86 86"
                 aria-hidden="true"
                 style={{
-                  left: Math.min(spotlightRect.left + spotlightRect.width / 2 - 20, window.innerWidth - 100),
-                  top: tooltipPosition.placement === 'below' ? spotlightRect.top + spotlightRect.height + 2 : spotlightRect.top - 88,
+                  left: Math.min(Math.max(18, spotlightRect.left + spotlightRect.width / 2 - 20), window.innerWidth - 96),
+                  top: tooltipPosition.placement === 'below' ? spotlightRect.top + spotlightRect.height + 1 : spotlightRect.top - 80,
                   transform: tooltipPosition.placement === 'below' ? 'rotate(0deg)' : 'rotate(180deg)',
                 }}
               >
@@ -646,7 +654,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
 
           <section
             className={cn(
-              'absolute max-h-[calc(100dvh-32px)] w-[min(450px,calc(100vw-32px))] overflow-y-auto rounded-[18px] border border-white/80 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto',
+              'absolute max-h-[calc(100dvh-32px)] w-[min(430px,calc(100vw-32px))] overflow-y-auto rounded-[18px] border border-white/90 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,.34)] pointer-events-auto',
               onExpectedRoute && tooltipPosition && "before:absolute before:left-8 before:h-5 before:w-5 before:rotate-45 before:bg-white before:content-['']",
               onExpectedRoute && tooltipPosition?.placement === 'below' && 'before:-top-2',
               onExpectedRoute && tooltipPosition?.placement === 'above' && 'before:-bottom-2',
@@ -656,12 +664,12 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
             aria-modal="true"
           >
             <div className="relative">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-2 text-xs font-black text-[#2563eb]">
-                  <span className={cn('grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br text-white', currentStep.accent)}>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#eff6ff] py-1 pl-1 pr-3 text-xs font-black text-[#2563eb]">
+                  <span className={cn('grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br text-white shadow-sm', currentStep.accent)}>
                     {currentStep.icon}
                   </span>
-                  第 {currentIndex + 1} / {guideSteps.length} 步 · {showInsight ? '背后的思路' : '当前任务'}
+                  第 {currentIndex + 1} / {guideSteps.length} 步
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -688,7 +696,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                   </button>
                 </div>
               </div>
-              <h2 className="text-[20px] font-black leading-7 text-[#111827]">{currentStep.title}</h2>
+              <h2 className="text-[22px] font-black leading-8 text-[#111827]">{currentStep.title}</h2>
               {showInsight ? (
                 <div className="mt-3 grid gap-2.5">
                   {[
@@ -708,7 +716,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                 <p className="mt-2 text-sm leading-7 text-[#52627b]">{currentStep.description}</p>
               )}
               {currentStep.sampleInput ? (
-                <div className="mt-3 rounded-xl bg-[#f8fafc] px-3 py-2 text-xs leading-5 text-[#475569]">
+                <div className="mt-3 rounded-[12px] border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-xs leading-5 text-[#475569]">
                   示例输入：{currentStep.sampleInput}
                 </div>
               ) : null}
@@ -728,7 +736,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                     type="button"
                     onClick={() => setStep(currentIndex - 1)}
                     disabled={currentIndex === 0}
-                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#cbd5e1] bg-white px-3 text-sm font-black text-[#475569] transition-colors hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-0"
+                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[12px] border border-[#cbd5e1] bg-white px-3 text-sm font-black text-[#475569] transition-colors hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-0"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     上一步
@@ -736,7 +744,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                   <button
                     type="button"
                     onClick={() => advanceStep()}
-                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[#111827] px-4 text-sm font-black text-white transition-colors hover:bg-[#020617]"
+                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[12px] bg-[#111827] px-4 text-sm font-black text-white transition-colors hover:bg-[#020617]"
                   >
                     {currentIndex >= guideSteps.length - 1 ? '完成引导' : '下一步'}
                     <ChevronRight className="h-4 w-4" />
@@ -747,7 +755,7 @@ export const NewUserGuidePanel = forwardRef<NewUserGuidePanelHandle>(function Ne
                 <button
                   type="button"
                   onClick={goToStepAction}
-                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#eff6ff] px-4 text-sm font-black text-[#2563eb] transition-colors hover:bg-[#dbeafe]"
+                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[12px] bg-[#eff6ff] px-4 text-sm font-black text-[#2563eb] transition-colors hover:bg-[#dbeafe]"
                 >
                   前往当前页面
                   <ChevronRight className="h-4 w-4" />

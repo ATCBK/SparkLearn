@@ -47,11 +47,91 @@ type BoardState = {
   followUps: string[]
 }
 
+type ViewMode = 'classic' | 'town'
+
+type TownNodeStatus = 'waiting' | 'running' | 'done'
+
+type TownNode = {
+  id: string
+  title: string
+  agentName: string
+  duty: string
+  phase: string
+  tone: TimelineTone
+  x: string
+  y: string
+  status: TownNodeStatus
+  latestEvent?: TimelineEvent
+}
+
 const SYSTEM_AGENTS = [
   { id: 'profile-agent', name: '画像分析师', duty: '读取学习画像', icon: Database },
   { id: 'researcher', name: '资料研究员', duty: '检索资料与证据', icon: Search },
   { id: 'challenger', name: '质疑者', duty: '指出风险和漏洞', icon: ShieldAlert },
   { id: 'coach', name: '行动教练', duty: '转化为学习动作', icon: ClipboardList },
+]
+
+const TOWN_NODE_DEFS = [
+  {
+    id: 'profile-agent',
+    title: '画像塔',
+    agentName: '画像分析师',
+    duty: '读取学习画像、薄弱点和学习偏好',
+    phase: 'profile_analysis',
+    tone: 'profile' as TimelineTone,
+    x: '14%',
+    y: '18%',
+  },
+  {
+    id: 'clarifier',
+    title: '问题改写站',
+    agentName: '提问优化师',
+    duty: '补全目标、约束和上下文缺口',
+    phase: 'discussion',
+    tone: 'default' as TimelineTone,
+    x: '34%',
+    y: '31%',
+  },
+  {
+    id: 'subject-tutor',
+    title: '学科研究所',
+    agentName: '学科导师',
+    duty: '给出专业解释与解题路径',
+    phase: 'discussion',
+    tone: 'tool' as TimelineTone,
+    x: '57%',
+    y: '19%',
+  },
+  {
+    id: 'challenger',
+    title: '质疑审计局',
+    agentName: '质疑者',
+    duty: '发现漏洞、边界条件和易错点',
+    phase: 'discussion',
+    tone: 'risk' as TimelineTone,
+    x: '72%',
+    y: '43%',
+  },
+  {
+    id: 'coach',
+    title: '行动工坊',
+    agentName: '行动教练',
+    duty: '把讨论转化为可执行学习动作',
+    phase: 'discussion',
+    tone: 'action' as TimelineTone,
+    x: '38%',
+    y: '62%',
+  },
+  {
+    id: 'final-answer-agent',
+    title: '中央广场',
+    agentName: '最终回答智能体',
+    duty: '汇总各方观点并生成最终答复',
+    phase: 'synthesis',
+    tone: 'synthesis' as TimelineTone,
+    x: '64%',
+    y: '67%',
+  },
 ]
 
 export default function WorkshopPage() {
@@ -67,6 +147,8 @@ export default function WorkshopPage() {
   const [assistantDraft, setAssistantDraft] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [phaseLabel, setPhaseLabel] = useState('等待发起')
+  const [viewMode, setViewMode] = useState<ViewMode>('classic')
+  const [selectedTownNodeId, setSelectedTownNodeId] = useState('profile-agent')
   const timelineEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -95,6 +177,16 @@ export default function WorkshopPage() {
   const board = useMemo(
     () => buildBoardState(timelineEvents, assistantDraft),
     [timelineEvents, assistantDraft],
+  )
+
+  const townNodes = useMemo(
+    () => buildTownNodes(timelineEvents, started, streaming),
+    [timelineEvents, started, streaming],
+  )
+
+  const selectedTownNode = useMemo(
+    () => townNodes.find((node) => node.id === selectedTownNodeId) || townNodes[0],
+    [selectedTownNodeId, townNodes],
   )
 
   function toggleRole(roleId: number) {
@@ -126,6 +218,7 @@ export default function WorkshopPage() {
     setAssistantDraft('')
     setExpandedIds(new Set())
     setPhaseLabel('画像分析')
+    setSelectedTownNodeId('profile-agent')
 
     try {
       const conv = await api.createTutorConversation({
@@ -147,6 +240,9 @@ export default function WorkshopPage() {
           },
           onHub: (evt) => {
             setHubMessages((prev) => mergeHubEvent(prev, evt))
+            if (TOWN_NODE_DEFS.some((node) => node.id === evt.agentId)) {
+              setSelectedTownNodeId(evt.agentId)
+            }
           },
           onWorkshopPhase: (evt) => {
             setPhaseLabel(formatPhaseLabel(evt.phase, evt.round, evt.status))
@@ -219,6 +315,30 @@ export default function WorkshopPage() {
             <p className="mt-0.5 truncate text-xs text-[#6b7b90]">动态发言、工具查证、质疑修订和共享白板</p>
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex shrink-0 rounded-lg border border-[#dbe4ee] bg-[#f7fafc] p-0.5">
+              <button
+                type="button"
+                data-testid="view-mode-classic"
+                onClick={() => setViewMode('classic')}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                  viewMode === 'classic' ? 'bg-white text-[#2365d8] shadow-sm' : 'text-[#617089] hover:text-[#172033]',
+                )}
+              >
+                研讨会
+              </button>
+              <button
+                type="button"
+                data-testid="view-mode-town"
+                onClick={() => setViewMode('town')}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                  viewMode === 'town' ? 'bg-white text-[#2365d8] shadow-sm' : 'text-[#617089] hover:text-[#172033]',
+                )}
+              >
+                赛博小镇
+              </button>
+            </div>
             <span className="hidden rounded-full border border-[#dbe4ee] bg-[#f7fafc] px-3 py-1.5 text-xs text-[#617089] sm:inline-flex">
               当前阶段：{phaseLabel}
             </span>
@@ -231,6 +351,7 @@ export default function WorkshopPage() {
                   setAssistantDraft('')
                   setExpandedIds(new Set())
                   setPhaseLabel('等待发起')
+                  setSelectedTownNodeId('profile-agent')
                 }}
                 className="rounded-lg border border-[#f0c4c8] px-3 py-1.5 text-xs text-[#bd3c45] transition-colors hover:bg-[#fff1f2]"
               >
@@ -256,9 +377,34 @@ export default function WorkshopPage() {
           <section className="flex min-h-0 flex-col overflow-hidden bg-[#f7fafc]">
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
               {!started ? (
-                <EmptyWorkshop selectedCount={selectedRoleIds.length} />
+                viewMode === 'town' ? (
+                  <div className="mx-auto max-w-[920px] space-y-4">
+                    <CyberTownVerse
+                      nodes={townNodes}
+                      selectedNode={selectedTownNode}
+                      phaseLabel={phaseLabel}
+                      started={started}
+                      streaming={streaming}
+                      onSelectNode={setSelectedTownNodeId}
+                    />
+                    <EmptyWorkshop selectedCount={selectedRoleIds.length} />
+                  </div>
+                ) : (
+                  <EmptyWorkshop selectedCount={selectedRoleIds.length} />
+                )
               ) : (
-                <div className="mx-auto max-w-[820px] space-y-4">
+                <div className={cn('mx-auto space-y-4', viewMode === 'town' ? 'max-w-[920px]' : 'max-w-[820px]')}>
+                  {viewMode === 'town' && (
+                    <CyberTownVerse
+                      nodes={townNodes}
+                      selectedNode={selectedTownNode}
+                      phaseLabel={phaseLabel}
+                      started={started}
+                      streaming={streaming}
+                      onSelectNode={setSelectedTownNodeId}
+                    />
+                  )}
+
                   <div className="flex justify-end">
                     <div className="flex max-w-[650px] items-start gap-2">
                       <div className="rounded-2xl rounded-tr-sm bg-[#e8f1ff] px-4 py-2.5 text-[15px] leading-relaxed text-[#172033]">
@@ -495,6 +641,134 @@ function EmptyWorkshop({ selectedCount }: { selectedCount: number }) {
   )
 }
 
+function CyberTownVerse({
+  nodes,
+  selectedNode,
+  phaseLabel,
+  started,
+  streaming,
+  onSelectNode,
+}: {
+  nodes: TownNode[]
+  selectedNode: TownNode
+  phaseLabel: string
+  started: boolean
+  streaming: boolean
+  onSelectNode: (nodeId: string) => void
+}) {
+  return (
+    <section
+      data-testid="cyber-town-verse"
+      className="overflow-hidden rounded-xl border border-[#cfdbe8] bg-[#f8fbff] shadow-sm"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dbe4ee] bg-white px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold text-[#172033]">AgentVerse 赛博小镇</h2>
+          <p className="mt-0.5 text-xs leading-5 text-[#6b7b90]">
+            以环境模拟方式观察多个智能体协同，底层仍使用当前 Workshop 事件流。
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-[#dbe4ee] bg-[#f7fafc] px-3 py-1.5 text-xs text-[#617089]">
+          {streaming ? <PlayCircle className="h-4 w-4 text-[#12865f]" /> : <PauseCircle className="h-4 w-4" />}
+          {started ? phaseLabel : '小镇待机'}
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="relative min-h-[410px] overflow-hidden rounded-xl border border-[#dbe4ee] bg-[#eaf3fb]">
+          <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(30deg,rgba(35,101,216,0.10)_1px,transparent_1px),linear-gradient(150deg,rgba(35,101,216,0.10)_1px,transparent_1px)] [background-size:44px_44px]" />
+          <div className="absolute left-[10%] top-[56%] h-20 w-[76%] -rotate-[7deg] rounded-full bg-[#d7e8f7]" />
+          <div className="absolute left-[25%] top-[14%] h-[68%] w-20 rotate-[31deg] rounded-full bg-[#d7e8f7]" />
+          <div className="absolute bottom-4 left-4 rounded-lg border border-white/70 bg-white/75 px-3 py-2 text-[11px] text-[#617089] shadow-sm">
+            pixel simulation layer · observe / inspect / replay
+          </div>
+          {nodes.map((node) => (
+            <TownBuilding
+              key={node.id}
+              node={node}
+              selected={selectedNode.id === node.id}
+              onClick={() => onSelectNode(node.id)}
+            />
+          ))}
+        </div>
+
+        <TownInspector node={selectedNode} />
+      </div>
+    </section>
+  )
+}
+
+function TownBuilding({ node, selected, onClick }: { node: TownNode; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      data-testid={`town-building-${node.id}`}
+      onClick={onClick}
+      className="absolute w-[132px] -translate-x-1/2 -translate-y-1/2 text-left outline-none"
+      style={{ left: node.x, top: node.y }}
+    >
+      <div className={cn(
+        'relative mx-auto h-16 w-20 transition-transform',
+        selected && '-translate-y-1',
+        node.status === 'running' && 'animate-pulse',
+      )}>
+        <div className={cn('absolute left-4 top-0 h-12 w-12 border-2 shadow-sm', townRoofClass(node.tone, node.status))} />
+        <div className={cn('absolute bottom-0 left-1 h-11 w-[72px] border-2 shadow-sm', townWallClass(node.status))}>
+          <span className={cn('absolute left-2 top-2 h-2 w-2 rounded-sm', townLightClass(node.status))} />
+          <span className={cn('absolute right-2 top-2 h-2 w-2 rounded-sm', townLightClass(node.status))} />
+          <span className="absolute bottom-0 left-[29px] h-5 w-3 rounded-t-sm bg-[#526176]" />
+        </div>
+        <div className={cn('absolute -right-1 bottom-0 h-5 w-5 rounded-full border-2 border-white shadow-sm', townResidentClass(node.status))} />
+      </div>
+      <div className={cn(
+        'mt-2 rounded-lg border bg-white/90 px-2.5 py-2 text-center shadow-sm backdrop-blur',
+        selected ? 'border-[#2365d8]' : 'border-white',
+      )}>
+        <p className="truncate text-xs font-semibold text-[#172033]">{node.title}</p>
+        <p className="mt-0.5 text-[10px] text-[#617089]">{townStatusLabel(node.status)}</p>
+      </div>
+    </button>
+  )
+}
+
+function TownInspector({ node }: { node: TownNode }) {
+  return (
+    <aside data-testid="town-inspector" className="rounded-xl border border-[#dbe4ee] bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7a8aa0]">Agent Inspector</p>
+          <h3 className="mt-1 text-base font-semibold text-[#172033]">{node.title}</h3>
+          <p className="mt-0.5 text-xs text-[#617089]">{node.agentName}</p>
+        </div>
+        <span className={cn('rounded-full px-2 py-1 text-[11px] font-medium', townStatusPillClass(node.status))}>
+          {townStatusLabel(node.status)}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <TownInspectorRow label="职责" value={node.duty} />
+        <TownInspectorRow label="阶段" value={formatPhaseLabel(node.latestEvent?.phase || node.phase, node.latestEvent?.round, node.status === 'running' ? 'running' : 'done')} />
+        <TownInspectorRow label="轮次" value={node.latestEvent ? `第 ${node.latestEvent.round} 轮` : '等待发起'} />
+        <div>
+          <p className="text-[11px] font-semibold text-[#7a8aa0]">最近事件</p>
+          <p className="mt-1 rounded-lg border border-[#e4ebf2] bg-[#f8fafc] px-3 py-2 text-xs leading-5 text-[#44546a]">
+            {node.latestEvent?.content || '暂无事件，建筑处于待命状态。'}
+          </p>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+function TownInspectorRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-[#7a8aa0]">{label}</p>
+      <p className="mt-1 text-xs leading-5 text-[#44546a]">{value}</p>
+    </div>
+  )
+}
+
 function TimelineCard({ event, expanded, onToggle }: { event: TimelineEvent; expanded: boolean; onToggle: () => void }) {
   return (
     <button
@@ -645,6 +919,63 @@ function toneClass(tone: TimelineTone) {
   if (tone === 'synthesis') return 'border-[#d8cdf8] bg-[#f4f0ff] text-[#5a4fcf]'
   if (tone === 'profile') return 'border-[#cbd8e5] bg-[#f7fafc] text-[#526176]'
   return 'border-[#dbe4ee] bg-white text-[#526176]'
+}
+
+function buildTownNodes(events: TimelineEvent[], started: boolean, streaming: boolean): TownNode[] {
+  return TOWN_NODE_DEFS.map((definition) => {
+    const latestEvent = [...events].reverse().find((event) => event.agentId === definition.id)
+    return {
+      ...definition,
+      latestEvent,
+      status: deriveTownNodeStatus(latestEvent, started, streaming),
+    }
+  })
+}
+
+function deriveTownNodeStatus(latestEvent: TimelineEvent | undefined, started: boolean, streaming: boolean): TownNodeStatus {
+  if (!started) return 'waiting'
+  if (latestEvent?.delta) return 'running'
+  if (latestEvent) return 'done'
+  return streaming ? 'waiting' : 'waiting'
+}
+
+function townStatusLabel(status: TownNodeStatus) {
+  if (status === 'running') return '运行中'
+  if (status === 'done') return '已完成'
+  return '等待中'
+}
+
+function townRoofClass(tone: TimelineTone, status: TownNodeStatus) {
+  const active = status === 'running' || status === 'done'
+  if (tone === 'risk') return active ? 'border-[#f0a3ad] bg-[#ffccd5]' : 'border-[#cfd8e3] bg-[#e9eef5]'
+  if (tone === 'action') return active ? 'border-[#7bcfa8] bg-[#b9f2d4]' : 'border-[#cfd8e3] bg-[#e9eef5]'
+  if (tone === 'synthesis') return active ? 'border-[#b9a8f5] bg-[#dcd3ff]' : 'border-[#cfd8e3] bg-[#e9eef5]'
+  if (tone === 'tool') return active ? 'border-[#8eb4ef] bg-[#cfe0ff]' : 'border-[#cfd8e3] bg-[#e9eef5]'
+  return active ? 'border-[#95bddc] bg-[#d3eaff]' : 'border-[#cfd8e3] bg-[#e9eef5]'
+}
+
+function townWallClass(status: TownNodeStatus) {
+  if (status === 'running') return 'border-[#2365d8] bg-[#ffffff]'
+  if (status === 'done') return 'border-[#8ccdb0] bg-[#ffffff]'
+  return 'border-[#cfd8e3] bg-[#ffffff]'
+}
+
+function townLightClass(status: TownNodeStatus) {
+  if (status === 'running') return 'bg-[#4f8cff] shadow-[0_0_12px_rgba(79,140,255,0.8)]'
+  if (status === 'done') return 'bg-[#32c17b] shadow-[0_0_10px_rgba(50,193,123,0.55)]'
+  return 'bg-[#cbd5e1]'
+}
+
+function townResidentClass(status: TownNodeStatus) {
+  if (status === 'running') return 'bg-[#2365d8]'
+  if (status === 'done') return 'bg-[#12865f]'
+  return 'bg-[#94a3b8]'
+}
+
+function townStatusPillClass(status: TownNodeStatus) {
+  if (status === 'running') return 'bg-[#edf4ff] text-[#2365d8]'
+  if (status === 'done') return 'bg-[#ecfdf5] text-[#12865f]'
+  return 'bg-[#f1f5f9] text-[#617089]'
 }
 
 function formatPhaseLabel(phase: string, round?: number, status?: string) {

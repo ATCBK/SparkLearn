@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell, session } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { loadConfig } = require('./config-loader');
@@ -296,6 +296,15 @@ function loadFrontendWindow() {
   mainWindow.loadURL(startUrl);
 }
 
+async function clearFrontendCache() {
+  try {
+    await session.defaultSession.clearCache();
+    logManager.info('frontend HTTP cache cleared');
+  } catch (error) {
+    logManager.warn(`frontend cache clear failed: ${error.message}`);
+  }
+}
+
 function createConfigWindow() {
   if (configWindow && !configWindow.isDestroyed()) {
     configWindow.focus();
@@ -366,6 +375,7 @@ async function bootstrap() {
     installMenu();
     createWindow();
     await processManager.startAll();
+    await clearFrontendCache();
     loadFrontendWindow();
   } catch (error) {
     logManager.error(error.stack || error.message);

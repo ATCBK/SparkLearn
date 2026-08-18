@@ -326,6 +326,54 @@ async def test_agent_task_uses_learning_companion_backend(client, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_agent_pet_can_be_reset_and_adopted_again(client, monkeypatch):
+    from app.config import settings
+    from app.db import execute, fetch_one
+
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
+
+    created = await client.post(
+        "/api/agent/pet",
+        json={"name": "小星", "avatar": "fox", "personality": "encouraging"},
+    )
+    assert created.status_code == 200
+    assert created.json()["success"] is True
+    pet_id = created.json()["data"]["id"]
+
+    execute(
+        """INSERT INTO agent_tasks (id, user_id, pet_id, task_type, input_text, status, created_at, updated_at)
+           VALUES ('task-reset', ?, ?, 'search', 'Python 闭包', 'completed', '2026-05-30T00:00:00Z', '2026-05-30T00:00:00Z')""",
+        (settings.single_user_id, pet_id),
+    )
+    execute(
+        "INSERT INTO agent_messages (task_id, user_id, sender, content, created_at) VALUES ('task-reset', ?, 'user', 'Python 闭包', '2026-05-30T00:00:00Z')",
+        (settings.single_user_id,),
+    )
+    execute(
+        "INSERT INTO agent_task_steps (task_id, step_index, action, description, created_at) VALUES ('task-reset', 0, 'start', '开始处理任务', '2026-05-30T00:00:00Z')"
+    )
+
+    reset = await client.delete("/api/agent/pet")
+    assert reset.status_code == 200
+    assert reset.json()["success"] is True
+
+    current = await client.get("/api/agent/pet")
+    assert current.status_code == 200
+    assert current.json()["data"] is None
+    assert fetch_one("SELECT id FROM agent_tasks WHERE id = 'task-reset'") is None
+    assert fetch_one("SELECT id FROM agent_messages WHERE task_id = 'task-reset'") is None
+    assert fetch_one("SELECT id FROM agent_task_steps WHERE task_id = 'task-reset'") is None
+
+    adopted_again = await client.post(
+        "/api/agent/pet",
+        json={"name": "新星", "avatar": "panda", "personality": "concise"},
+    )
+    assert adopted_again.status_code == 200
+    assert adopted_again.json()["success"] is True
+    assert adopted_again.json()["data"]["name"] == "新星"
+
+
+@pytest.mark.asyncio
 async def test_agent_chat_returns_local_fallback_when_llm_unavailable(client, monkeypatch):
     from app.config import settings
     from app.routes import agent as agent_route

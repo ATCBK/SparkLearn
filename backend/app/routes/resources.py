@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import uuid
+import zipfile
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from html import escape, unescape as html_unescape
@@ -36,6 +37,8 @@ class GenerateReq(BaseModel):
     type: str = "document"
     prompt: str
     knowledge_file_ids: list[int] = []
+    visual_mode: str = ""
+    code_level: str = "beginner"
 
 
 class CodeEvaluateReq(BaseModel):
@@ -138,6 +141,104 @@ async def generate_resource(req: GenerateReq, current_user: dict = Depends(get_c
                     "source_url": None,
                     "progress": 100,
                 }
+        elif resource_type == "visual3d":
+            yield ("progress", {"stage": "visual_scripting", "resource_id": res_id, "progress": 18})
+            try:
+                payload = await _generate_threejs_code_visual_payload(
+                    topic=req.prompt,
+                    level=req.code_level,
+                    rag_prompt=rag_prompt,
+                )
+                payload["generation_mode"] = "ai"
+                payload["provider"] = "deepseek"
+                payload["model"] = "ds-pro"
+                artifact = _save_code_visual_artifact(res_id, payload, resource_type="visual3d")
+                resource = {
+                    "id": res_id,
+                    "title": artifact["title"],
+                    "type": "visual3d",
+                    "status": "completed",
+                    "created_at": _now_date(),
+                    "content": _code_visual_resource_markdown(payload),
+                    "source_url": _code_artifact_url(res_id, resource_type="visual3d"),
+                    "artifact_kind": "threejs",
+                    "artifact_files": artifact["files"],
+                    "generation_mode": "ai",
+                    "provider": "deepseek",
+                    "model": "ds-pro",
+                    "progress": 100,
+                }
+                yield ("progress", {"stage": "artifact_saved", "resource_id": res_id, "progress": 95})
+            except Exception as ex:
+                fallback_payload = _build_safe_threejs_template_payload(req.prompt, str(ex))
+                fallback_payload["generation_mode"] = "fallback_template"
+                fallback_payload["provider"] = "deepseek"
+                fallback_payload["model"] = "ds-pro"
+                fallback_payload["fallback_reason"] = str(ex).strip() or "未知错误"
+                artifact = _save_code_visual_artifact(res_id, fallback_payload, resource_type="visual3d")
+                resource = {
+                    "id": res_id,
+                    "title": artifact["title"],
+                    "type": "visual3d",
+                    "status": "completed",
+                    "created_at": _now_date(),
+                    "content": _code_visual_resource_markdown(fallback_payload)
+                    + f"\n\n## 生成说明\nAI 原始代码未通过校验，已使用安全模板兜底。\n\n失败原因：{str(ex).strip() or '未知错误'}",
+                    "source_url": _code_artifact_url(res_id, resource_type="visual3d"),
+                    "artifact_kind": "threejs",
+                    "artifact_files": artifact["files"],
+                    "generation_mode": "fallback_template",
+                    "provider": "deepseek",
+                    "model": "ds-pro",
+                    "fallback_reason": str(ex).strip() or "未知错误",
+                    "progress": 100,
+                }
+                yield ("progress", {"stage": "visual_fallback", "resource_id": res_id, "progress": 95})
+        elif resource_type == "code" and (req.visual_mode or "").strip().lower() == "threejs":
+            yield ("progress", {"stage": "visual_scripting", "resource_id": res_id, "progress": 18})
+            try:
+                payload = await _generate_threejs_code_visual_payload(
+                    topic=req.prompt,
+                    level=req.code_level,
+                    rag_prompt=rag_prompt,
+                )
+                payload["generation_mode"] = "ai"
+                payload["provider"] = "deepseek"
+                payload["model"] = "ds-pro"
+                artifact = _save_code_visual_artifact(res_id, payload)
+                resource = {
+                    "id": res_id,
+                    "title": artifact["title"],
+                    "type": "code",
+                    "status": "completed",
+                    "created_at": _now_date(),
+                    "content": _code_visual_resource_markdown(payload),
+                    "source_url": _code_artifact_url(res_id),
+                    "artifact_kind": "threejs",
+                    "artifact_files": artifact["files"],
+                    "generation_mode": "ai",
+                    "provider": "deepseek",
+                    "model": "ds-pro",
+                    "progress": 100,
+                }
+                yield ("progress", {"stage": "artifact_saved", "resource_id": res_id, "progress": 95})
+            except Exception as ex:
+                resource = {
+                    "id": res_id,
+                    "title": req.prompt[:20] or "代码可视化资源",
+                    "type": "code",
+                    "status": "completed",
+                    "created_at": _now_date(),
+                    "content": _fallback_code_visual_content(req.prompt, str(ex)),
+                    "source_url": None,
+                    "artifact_kind": "markdown_fallback",
+                    "generation_mode": "markdown_fallback",
+                    "provider": "deepseek",
+                    "model": "ds-pro",
+                    "fallback_reason": str(ex).strip() or "未知错误",
+                    "progress": 100,
+                }
+                yield ("progress", {"stage": "visual_fallback", "resource_id": res_id, "progress": 95})
         elif resource_type == "blog":
             # 播客电台：直接调用星火大模型生成播客脚本
             chunks: list[str] = []
@@ -301,6 +402,10 @@ async def get_resource_preview(resource_id: str, current_user: dict = Depends(ge
     item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
+    artifact_link = str(item.get("source_url") or "")
+    artifact_type = _artifact_type_from_url(artifact_link)
+    if artifact_type:
+        return ok({"url": artifact_link, "available": _code_artifact_file(resource_id, "index.html", resource_type=artifact_type).exists()})
     link = _resource_source_url(item)
     return ok({"url": link, "available": bool(link)})
 
@@ -310,6 +415,17 @@ async def get_resource_preview_html(resource_id: str, current_user: dict = Depen
     item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
+    artifact_link = str(item.get("source_url") or "")
+    artifact_type = _artifact_type_from_url(artifact_link)
+    if artifact_type:
+        index_path = _code_artifact_file(resource_id, "index.html", resource_type=artifact_type)
+        if not index_path.exists():
+            raise HTTPException(status_code=404, detail="visual artifact not found")
+        html = index_path.read_text(encoding="utf-8")
+        html = _inject_code_artifact_base(html, resource_id)
+        html = _inline_code_artifact_assets(html, resource_id, resource_type=artifact_type)
+        return HTMLResponse(content=html, headers=_code_artifact_security_headers())
+
     link = _resource_source_url(item)
 
     # 没有外部链接时，直接渲染自身 content
@@ -340,10 +456,23 @@ async def get_resource_preview_html(resource_id: str, current_user: dict = Depen
             html = re.sub(r"(<head[^>]*>)", r'\1<base href="' + safe_link + '" />', html, count=1, flags=re.IGNORECASE)
         else:
             html = f'<base href="{safe_link}" />\n{html}'
-        return HTMLResponse(content=html)
+        return HTMLResponse(content=html, headers=_code_artifact_security_headers())
     except Exception:
         # 外部 URL 获取失败（SSL 过期、404 等），fallback 显示资源自身内容
         return HTMLResponse(content=_render_content_as_html(item))
+
+
+@router.get("/{resource_id}/preview/files/{file_path:path}")
+async def get_code_artifact_preview_file(resource_id: str, file_path: str, current_user: dict = Depends(get_current_user_for_url_access)):
+    item = _find_resource(current_user["user_id"], resource_id)
+    artifact_type = _artifact_type_from_url(str(item.get("source_url") or "")) if item else ""
+    if not item or not artifact_type:
+        raise HTTPException(status_code=404, detail="visual artifact not found")
+    target = _code_artifact_file(resource_id, file_path, resource_type=artifact_type)
+    if not target.exists() or not target.is_file():
+        raise HTTPException(status_code=404, detail="code artifact file not found")
+    media_type = "text/javascript; charset=utf-8" if target.suffix == ".js" else "text/css; charset=utf-8"
+    return StreamingResponse(iter([target.read_bytes()]), media_type=media_type, headers={**_code_artifact_security_headers(), "Cache-Control": "no-store"})
 
 
 @router.get("/{resource_id}/download")
@@ -396,6 +525,17 @@ async def download_resource_source(resource_id: str, current_user: dict = Depend
     item = _find_resource(current_user["user_id"], resource_id)
     if not item:
         raise HTTPException(status_code=404, detail="resource not found")
+    artifact_link = str(item.get("source_url") or "")
+    artifact_type = _artifact_type_from_url(artifact_link)
+    if artifact_type:
+        title = str(item.get("title", "visual-resource")).strip() or "visual-resource"
+        data = await asyncio.to_thread(_zip_code_artifact_sync, resource_id, artifact_type)
+        return StreamingResponse(
+            iter([data]),
+            media_type="application/zip",
+            headers={"Content-Disposition": _build_content_disposition(_safe_filename(title + ".zip")), "Cache-Control": "no-store"},
+        )
+
     source_url = _resource_source_url(item)
     if not source_url:
         raise HTTPException(status_code=404, detail="source link not found")
@@ -787,6 +927,1203 @@ def _default_quality_advice(label: str) -> str:
     if label == "暂不优先":
         return "建议先补当前薄弱点最直接相关的资源，再回来看这份内容。"
     return "建议把它放在主资源之后，用来补例子或做延伸阅读。"
+
+
+async def _generate_threejs_code_visual_payload(*, topic: str, level: str, rag_prompt: str) -> dict[str, Any]:
+    prompt = _build_threejs_code_visual_prompt(topic=topic, level=level, rag_context=rag_prompt)
+    chunks: list[str] = []
+    async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode="general", history=[], model="ds-pro"):
+        if evt_type == "text":
+            chunk = str(payload.get("content", ""))
+            if chunk:
+                chunks.append(chunk)
+        elif evt_type == "error":
+            message = str(payload.get("message") or payload.get("error") or "DeepSeek 代码可视化生成失败")
+            raise ValueError(message)
+    return _parse_threejs_code_visual_payload("".join(chunks))
+
+
+def _build_threejs_code_visual_prompt(*, topic: str, level: str, rag_context: str) -> str:
+    return (
+        "你是 SparkLearn 的代码可视化资源生成智能体。请根据学习主题生成一个可本地预览的 Three.js 教学动画资源。\n\n"
+        f"学习主题：{topic.strip()}\n"
+        f"学习者水平：{(level or 'beginner').strip()}\n"
+        f"知识库上下文：{rag_context.strip()}\n"
+        "输出语言：中文\n\n"
+        "只输出合法 JSON，不要输出 Markdown。JSON 必须包含：\n"
+        "{\n"
+        '  "title": "资源标题",\n'
+        '  "teaching_goal": "学习目标",\n'
+        '  "concept_explanation": "概念解释",\n'
+        '  "files": [\n'
+        '    {"path": "index.html", "content": "完整 HTML，包含 canvas 容器和模块脚本"},\n'
+        '    {"path": "src/main.js", "content": "完整 Three.js 代码"}\n'
+        "  ],\n"
+        '  "interactions": ["学习者可操作项"],\n'
+        '  "acceptance": ["验收标准"],\n'
+        '  "safety_notes": ["安全说明"]\n'
+        "}\n\n"
+        "重要：上面的字段值只是结构说明，严禁照抄“资源标题”“学习目标”“完整 HTML”“完整 Three.js 代码”等占位文字。\n"
+        "files[].content 必须是真实可运行源码，index.html 必须是完整 HTML 文档，src/main.js 必须是完整 Three.js 模块脚本。\n\n"
+        "生成要求：\n"
+        "1. 代码必须可直接在浏览器 iframe 中运行，不能依赖构建工具。\n"
+        "2. 只能使用 Three.js 官方 CDN 或系统提供的固定导入地址。\n"
+        "3. 动画必须体现学习主题，不允许只做装饰性旋转物体。\n"
+        "4. 必须包含播放/暂停、重置、全屏、退出全屏按钮，并包含一个 id=\"timelineSlider\" 的可拖动进度条，用于拖动查看算法或代码演示步骤。\n"
+        "5. 所有屏幕文字使用中文。\n"
+        "6. 不得访问网络 API、Cookie、localStorage、父窗口或用户文件。\n"
+        "7. 不得输出省略号、伪代码或“请自行补充”。\n\n"
+        "验收标准：\n"
+        "1. 后端能保存 index.html、src/main.js、manifest.json 到本地 artifact 目录。\n"
+        "2. /api/resources/{id}/preview/html 能打开动画预览。\n"
+        "3. iframe 中 canvas 非空，动画在 3 秒内开始变化。\n"
+        "4. 控件可点击，timelineSlider 拖动后必须改变当前演示步骤或动画状态。\n"
+        "5. 资源库能展示标题、说明、预览入口和源码下载入口。\n"
+        "6. 生成失败时返回明确错误，并回退为普通 Markdown 代码案例。"
+    )
+
+
+def _parse_threejs_code_visual_payload(raw: str) -> dict[str, Any]:
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{", text)
+        if not match:
+            raise ValueError("DeepSeek 未返回合法 JSON。")
+        try:
+            data, _ = json.JSONDecoder().raw_decode(text[match.start():])
+        except json.JSONDecodeError as ex:
+            raise ValueError(f"DeepSeek 未返回合法 JSON：{ex.msg}") from ex
+    if not isinstance(data, dict):
+        raise ValueError("DeepSeek JSON 根节点必须是对象。")
+    _validate_threejs_code_visual_payload(data)
+    return data
+
+
+def _validate_threejs_code_visual_payload(data: dict[str, Any]) -> None:
+    files = data.get("files")
+    if not isinstance(files, list) or not files:
+        raise ValueError("可视化资源生成失败：files 不能为空。")
+    by_path: dict[str, str] = {}
+    for item in files:
+        if not isinstance(item, dict):
+            raise ValueError("可视化资源生成失败：files 中存在非法项目。")
+        rel_path = _safe_code_artifact_relpath(str(item.get("path") or ""))
+        content = str(item.get("content") or "")
+        if not content.strip():
+            raise ValueError(f"可视化资源生成失败：{rel_path} 内容为空。")
+        _validate_code_artifact_content(rel_path, content)
+        by_path[rel_path] = content
+    if "index.html" not in by_path:
+        raise ValueError("可视化资源生成失败：缺少 index.html。")
+    if "src/main.js" not in by_path:
+        raise ValueError("可视化资源生成失败：缺少 src/main.js。")
+    if "canvas" not in by_path["index.html"].lower():
+        raise ValueError("可视化资源生成失败：index.html 必须包含 canvas。")
+    html_lowered = by_path["index.html"].lower()
+    js_lowered = by_path["src/main.js"].lower()
+    if "fullscreenbtn" not in html_lowered or "exitfullscreenbtn" not in html_lowered:
+        raise ValueError("可视化资源生成失败：必须包含全屏和退出全屏按钮。")
+    if "timelineslider" not in html_lowered or "type=\"range\"" not in html_lowered:
+        raise ValueError("可视化资源生成失败：必须包含可拖动演示进度条 timelineSlider。")
+    if "requestfullscreen" not in js_lowered or "exitfullscreen" not in js_lowered or "fullscreenchange" not in js_lowered:
+        raise ValueError("可视化资源生成失败：必须实现完整全屏/退出全屏逻辑。")
+    if "timelineslider" not in js_lowered:
+        raise ValueError("可视化资源生成失败：必须实现 timelineSlider 拖动演示逻辑。")
+    if not re.search(r"fullscreenBtn[\s\S]{0,220}\.addEventListener\(\s*['\"]click['\"]", by_path["src/main.js"]):
+        raise ValueError("可视化资源生成失败：全屏按钮必须绑定 click 事件。")
+    if not re.search(r"exitFullscreenBtn[\s\S]{0,220}\.addEventListener\(\s*['\"]click['\"]", by_path["src/main.js"]):
+        raise ValueError("可视化资源生成失败：退出全屏按钮必须绑定 click 事件。")
+    if not re.search(r"timelineSlider[\s\S]{0,220}\.addEventListener\(\s*['\"](?:input|change)['\"]", by_path["src/main.js"]):
+        raise ValueError("可视化资源生成失败：timelineSlider 必须绑定拖动事件。")
+
+
+def _validate_code_artifact_content(rel_path: str, content: str) -> None:
+    lowered = content.lower()
+    stripped = content.strip()
+    placeholder_tokens = [
+        "完整 HTML",
+        "完整 Three.js",
+        "请自行补充",
+        "TODO",
+        "...",
+        "省略",
+    ]
+    if any(token.lower() in lowered for token in placeholder_tokens):
+        raise ValueError(f"可视化资源生成失败：{rel_path} 包含占位内容。")
+    if rel_path == "index.html":
+        html_lowered = stripped.lower()
+        if "<!doctype" not in html_lowered and "<html" not in html_lowered:
+            raise ValueError("可视化资源生成失败：index.html 必须是完整 HTML 文档。")
+        if "<canvas" not in html_lowered:
+            raise ValueError("可视化资源生成失败：index.html 必须包含 canvas 元素。")
+        if "<script" not in html_lowered:
+            raise ValueError("可视化资源生成失败：index.html 必须包含模块脚本。")
+    if rel_path == "src/main.js":
+        if "three" not in lowered:
+            raise ValueError("可视化资源生成失败：src/main.js 必须使用 Three.js。")
+        if "requestanimationframe" not in lowered and "setanimationloop" not in lowered:
+            raise ValueError("可视化资源生成失败：src/main.js 必须包含动画循环。")
+        if "renderer.render" not in lowered:
+            raise ValueError("可视化资源生成失败：src/main.js 必须渲染 Three.js 场景。")
+    blocked = [
+        "document.cookie",
+        "localstorage",
+        "sessionstorage",
+        "indexeddb",
+        "xmlhttprequest",
+        "websocket",
+        "navigator.sendbeacon",
+        "window.parent",
+        "window.top",
+        "window.opener",
+        "eval(",
+        "new function",
+    ]
+    if any(token in lowered for token in blocked):
+        raise ValueError(f"可视化资源生成失败：{rel_path} 包含不允许的浏览器能力。")
+    if re.search(r"\bfetch\s*\(", content):
+        raise ValueError(f"可视化资源生成失败：{rel_path} 不允许调用 fetch。")
+    urls = re.findall(r"https?://[^\s'\"<>`]+", content)
+    allowed_prefixes = (
+        "https://unpkg.com/three@",
+        "https://cdn.jsdelivr.net/npm/three@",
+    )
+    for url in urls:
+        if not url.startswith(allowed_prefixes):
+            raise ValueError(f"可视化资源生成失败：{rel_path} 只能引用 Three.js 官方 CDN。")
+
+
+def _save_code_visual_artifact(resource_id: str, payload: dict[str, Any], resource_type: str = "code") -> dict[str, Any]:
+    root = _code_artifact_dir(resource_id, resource_type=resource_type)
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(parents=True, exist_ok=True)
+
+    written: list[str] = []
+    for item in payload["files"]:
+        rel_path = _safe_code_artifact_relpath(str(item.get("path") or ""))
+        target = _code_artifact_file(resource_id, rel_path, resource_type=resource_type)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(str(item.get("content") or ""), encoding="utf-8")
+        written.append(rel_path)
+
+    manifest = {
+        "version": "1.0.0",
+        "resource_id": resource_id,
+        "resource_type": resource_type,
+        "title": str(payload.get("title") or "代码可视化资源"),
+        "teaching_goal": str(payload.get("teaching_goal") or ""),
+        "concept_explanation": str(payload.get("concept_explanation") or ""),
+        "interactions": _string_list(payload.get("interactions")),
+        "acceptance": _string_list(payload.get("acceptance")),
+        "safety_notes": _string_list(payload.get("safety_notes")),
+        "files": written,
+        "created_at": datetime.now(UTC).isoformat(),
+        "artifact_kind": "threejs",
+        "generation_mode": str(payload.get("generation_mode") or ""),
+        "provider": str(payload.get("provider") or ""),
+        "model": str(payload.get("model") or ""),
+        "fallback_reason": str(payload.get("fallback_reason") or ""),
+    }
+    (root / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"title": manifest["title"], "files": written}
+
+
+def _code_visual_resource_markdown(payload: dict[str, Any]) -> str:
+    title = str(payload.get("title") or "代码可视化资源")
+    goal = str(payload.get("teaching_goal") or "")
+    explanation = str(payload.get("concept_explanation") or "")
+    interactions = "\n".join(f"- {item}" for item in _string_list(payload.get("interactions")))
+    acceptance = "\n".join(f"- {item}" for item in _string_list(payload.get("acceptance")))
+    safety = "\n".join(f"- {item}" for item in _string_list(payload.get("safety_notes")))
+    return (
+        f"# {title}\n\n"
+        f"## 学习目标\n{goal}\n\n"
+        f"## 概念解释\n{explanation}\n\n"
+        f"## 交互方式\n{interactions or '- 打开预览后观察动画并使用控制项'}\n\n"
+        f"## 验收标准\n{acceptance or '- 预览页面可以正常显示 Three.js 动画'}\n\n"
+        f"## 安全说明\n{safety or '- 资源仅在浏览器沙盒中预览'}"
+    )
+
+
+def _fallback_code_visual_content(prompt: str, reason: str) -> str:
+    safe_reason = (reason or "未知错误").strip()
+    return (
+        f"# {prompt}\n\n"
+        "代码可视化资源生成失败，已回退为普通 Markdown 代码案例。\n\n"
+        f"失败原因：{safe_reason}\n\n"
+        "## 普通代码案例\n"
+        "请围绕该主题编写一个最小可运行示例，并在本资源中继续补充讲解、运行结果和扩展练习。"
+    )
+
+
+def _build_safe_threejs_template_payload(topic: str, reason: str = "") -> dict[str, Any]:
+    normalized = (topic or "").lower()
+    if any(key in normalized for key in ["bfs", "广度", "广搜", "队列", "图搜索", "搜索"]):
+        return _build_bfs_threejs_template_payload(topic, reason)
+    if any(key in normalized for key in ["排序", "冒泡", "bubble", "sort"]):
+        return _build_bubble_sort_threejs_template_payload(topic, reason)
+    return _build_generic_threejs_template_payload(topic, reason)
+
+
+def _build_bubble_sort_threejs_template_payload(topic: str, reason: str = "") -> dict[str, Any]:
+    title = "冒泡排序 3D 教学动画" if "排序" in topic or "冒泡" in topic else "3D 教学动画资源"
+    safe_topic = json.dumps(topic.strip() or title, ensure_ascii=False)
+    safe_reason = json.dumps((reason or "AI 生成内容未通过校验").strip()[:160], ensure_ascii=False)
+    index_html = """<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>冒泡排序 3D 教学动画</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, "Microsoft YaHei", sans-serif; background: #f7fafc; color: #172033; }
+    #scene { width: 100vw; height: 100vh; display: block; }
+    .panel { position: fixed; left: 16px; top: 16px; display: grid; gap: 10px; width: min(360px, calc(100vw - 32px)); padding: 14px; border: 1px solid rgba(22, 32, 51, .12); border-radius: 12px; background: rgba(255,255,255,.9); box-shadow: 0 12px 32px rgba(15,23,42,.12); }
+    .title { font-weight: 700; font-size: 16px; }
+    .hint { font-size: 13px; line-height: 1.55; color: #526070; }
+    .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    button { height: 34px; border: 0; border-radius: 9px; padding: 0 12px; font-weight: 700; color: white; background: #2563eb; cursor: pointer; }
+    button.secondary { color: #172033; background: #e8eef8; }
+    label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #374151; }
+    input { accent-color: #2563eb; }
+    #status { min-height: 40px; border-radius: 10px; padding: 10px; background: #eef6ff; font-size: 13px; line-height: 1.5; color: #1f3b64; }
+    #exitFullscreenBtn { display: none; }
+    :fullscreen .panel { background: rgba(255,255,255,.86); }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <section class="panel">
+    <div class="title">冒泡排序 3D 教学动画</div>
+    <div class="hint">观察相邻元素比较、交换、局部变量变化，以及函数最终 return 排序结果。</div>
+    <div class="controls">
+      <button id="pauseBtn">暂停</button>
+      <button id="resetBtn" class="secondary">重置</button>
+      <button id="fullscreenBtn" class="secondary">全屏</button>
+      <button id="exitFullscreenBtn" class="secondary">退出全屏</button>
+      <label>速度 <input id="speedSlider" type="range" min="0.5" max="3" value="1" step="0.5" /></label>
+      <label>步骤 <input id="timelineSlider" type="range" min="0" max="15" value="0" step="1" /></label>
+    </div>
+    <div id="status">准备开始：bubble_sort(data) 接收参数 data。</div>
+  </section>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>"""
+    main_js = f"""import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+
+const topic = {safe_topic};
+const fallbackReason = {safe_reason};
+const canvas = document.getElementById('scene');
+const statusBox = document.getElementById('status');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+const speedSlider = document.getElementById('speedSlider');
+const timelineSlider = document.getElementById('timelineSlider');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf7fafc);
+const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 7.5, 12);
+camera.lookAt(0, 1.5, 0);
+
+const renderer = new THREE.WebGLRenderer({{ canvas, antialias: true }});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8aa0b8, 2.4));
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+keyLight.position.set(4, 8, 6);
+scene.add(keyLight);
+
+const bubbleData = [5, 2, 8, 4, 1, 6];
+let values = bubbleData.slice();
+let paused = false;
+let stepIndex = 0;
+let lastStepAt = 0;
+let activePair = [-1, -1];
+let sortedFrom = values.length;
+let returnShown = false;
+const totalSteps = bubbleData.length * (bubbleData.length - 1) / 2;
+timelineSlider.max = String(totalSteps);
+
+const bars = [];
+const labels = [];
+const compareColor = new THREE.Color(0xf59e0b);
+const normalColor = new THREE.Color(0x3b82f6);
+const sortedColor = new THREE.Color(0x10b981);
+const swapColor = new THREE.Color(0xef4444);
+
+const floor = new THREE.Mesh(
+  new THREE.BoxGeometry(9, 0.08, 3.6),
+  new THREE.MeshStandardMaterial({{ color: 0xe6edf7, roughness: 0.82 }})
+);
+floor.position.y = -0.08;
+scene.add(floor);
+
+function makeLabel(text) {{
+  const labelCanvas = document.createElement('canvas');
+  labelCanvas.width = 256;
+  labelCanvas.height = 96;
+  const ctx = labelCanvas.getContext('2d');
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.fillRect(0, 0, 256, 96);
+  ctx.fillStyle = '#172033';
+  ctx.font = 'bold 34px Microsoft YaHei, Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 48);
+  const texture = new THREE.CanvasTexture(labelCanvas);
+  const material = new THREE.SpriteMaterial({{ map: texture }});
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(1.25, 0.46, 1);
+  return sprite;
+}}
+
+function buildBars() {{
+  for (const item of bars) scene.remove(item);
+  for (const item of labels) scene.remove(item);
+  bars.length = 0;
+  labels.length = 0;
+  values.forEach((value, index) => {{
+    const geometry = new THREE.BoxGeometry(0.82, value * 0.55, 0.82);
+    const material = new THREE.MeshStandardMaterial({{ color: normalColor, roughness: 0.45, metalness: 0.08 }});
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set((index - (values.length - 1) / 2) * 1.25, value * 0.275, 0);
+    mesh.userData.targetX = mesh.position.x;
+    scene.add(mesh);
+    bars.push(mesh);
+
+    const label = makeLabel(String(value));
+    label.position.set(mesh.position.x, value * 0.55 + 0.42, 0.08);
+    scene.add(label);
+    labels.push(label);
+  }});
+}}
+
+function updateStatus(text) {{
+  statusBox.textContent = text;
+}}
+
+function applyBubbleStep(showStatus) {{
+  if (returnShown) return;
+  const n = values.length;
+  let pass = 0;
+  let localStep = stepIndex;
+  while (localStep >= n - pass - 1 && pass < n - 1) {{
+    localStep -= (n - pass - 1);
+    pass += 1;
+  }}
+  if (pass >= n - 1) {{
+    activePair = [-1, -1];
+    sortedFrom = 0;
+    returnShown = true;
+    if (showStatus) updateStatus(`return ${{JSON.stringify(values)}}：函数把排好序的新数组返回给调用方。`);
+    return;
+  }}
+  const i = localStep;
+  activePair = [i, i + 1];
+  const left = values[i];
+  const right = values[i + 1];
+  if (left > right) {{
+    values[i] = right;
+    values[i + 1] = left;
+    if (showStatus) updateStatus(`局部变量 i=${{i}}：比较 ${{left}} 和 ${{right}}，发现左边更大，交换两个元素。`);
+    buildBars();
+    bars[i].material.color.copy(swapColor);
+    bars[i + 1].material.color.copy(swapColor);
+  }} else {{
+    if (showStatus) updateStatus(`局部变量 i=${{i}}：比较 ${{left}} 和 ${{right}}，顺序正确，不交换。`);
+  }}
+  if (i === n - pass - 2) sortedFrom = n - pass - 1;
+  stepIndex += 1;
+  timelineSlider.value = String(Math.min(stepIndex, totalSteps));
+}}
+
+function nextBubbleStep() {{
+  applyBubbleStep(true);
+}}
+
+function seekBubbleStep(targetStep) {{
+  values = bubbleData.slice();
+  stepIndex = 0;
+  activePair = [-1, -1];
+  sortedFrom = values.length;
+  returnShown = false;
+  buildBars();
+  const safeTarget = Math.max(0, Math.min(totalSteps, targetStep));
+  for (let step = 0; step < safeTarget; step += 1) {{
+    applyBubbleStep(false);
+  }}
+  timelineSlider.value = String(safeTarget);
+  paused = true;
+  pauseBtn.textContent = '继续';
+  updateStatus(`已拖动到第 ${{safeTarget}} / ${{totalSteps}} 步：当前数组为 ${{JSON.stringify(values)}}。`);
+}}
+
+function paintBars(elapsed) {{
+  bars.forEach((bar, index) => {{
+    const isActive = activePair.includes(index);
+    const isSorted = index >= sortedFrom;
+    const color = isSorted ? sortedColor : isActive ? compareColor : normalColor;
+    bar.material.color.lerp(color, 0.18);
+    const lift = isActive ? Math.sin(elapsed * 0.006) * 0.08 + 0.12 : 0;
+    bar.position.y = values[index] * 0.275 + lift;
+    labels[index].position.x = bar.position.x;
+    labels[index].position.y = values[index] * 0.55 + 0.42 + lift;
+  }});
+}}
+
+function reset() {{
+  values = bubbleData.slice();
+  paused = false;
+  stepIndex = 0;
+  lastStepAt = 0;
+  activePair = [-1, -1];
+  sortedFrom = values.length;
+  returnShown = false;
+  timelineSlider.value = '0';
+  pauseBtn.textContent = '暂停';
+  buildBars();
+  updateStatus(`主题：${{topic}}。参数 data=${{JSON.stringify(bubbleData)}} 进入 bubble_sort 函数。`);
+}}
+
+pauseBtn.addEventListener('click', () => {{
+  paused = !paused;
+  pauseBtn.textContent = paused ? '继续' : '暂停';
+}});
+resetBtn.addEventListener('click', reset);
+timelineSlider.addEventListener('input', () => {{
+  seekBubbleStep(Number(timelineSlider.value || 0));
+}});
+fullscreenBtn.addEventListener('click', async () => {{
+  if (document.fullscreenElement) return;
+  await document.documentElement.requestFullscreen();
+}});
+exitFullscreenBtn.addEventListener('click', async () => {{
+  if (!document.fullscreenElement) return;
+  await document.exitFullscreen();
+}});
+document.addEventListener('fullscreenchange', () => {{
+  const active = Boolean(document.fullscreenElement);
+  fullscreenBtn.style.display = active ? 'none' : 'inline-flex';
+  exitFullscreenBtn.style.display = active ? 'inline-flex' : 'none';
+}});
+window.addEventListener('resize', () => {{
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}});
+
+reset();
+console.info('SparkLearn 3D safe template fallback:', fallbackReason);
+
+function animate(now) {{
+  requestAnimationFrame(animate);
+  const speed = Number(speedSlider.value || 1);
+  if (!paused && now - lastStepAt > 1300 / speed) {{
+    nextBubbleStep();
+    lastStepAt = now;
+  }}
+  scene.rotation.y = Math.sin(now * 0.00025) * 0.08;
+  paintBars(now);
+  renderer.render(scene, camera);
+}}
+
+requestAnimationFrame(animate);
+"""
+    return {
+        "title": title,
+        "teaching_goal": "通过可操作的 3D 柱状数组理解冒泡排序中的参数传入、局部变量 i、相邻比较、交换和 return 返回值。",
+        "concept_explanation": "每个柱体代表数组中的一个元素。动画按 bubble_sort(data) 的执行顺序逐步比较相邻柱体，左边更大时交换位置；绿色区域表示本轮已经确定的最大值。排序完成后，函数把排好序的新数组作为返回值交回调用方。",
+        "files": [
+            {"path": "index.html", "content": index_html},
+            {"path": "src/main.js", "content": main_js},
+        ],
+        "interactions": ["暂停或继续动画", "重置排序过程", "拖动步骤进度条定位比较过程", "拖动速度滑块观察比较与交换节奏", "进入全屏和退出全屏"],
+        "acceptance": ["预览页出现非空 3D 柱状数组", "动画会持续比较和交换元素", "步骤进度条可定位演示状态", "速度滑块会改变排序步进速度", "全屏和退出全屏按钮可操作"],
+        "safety_notes": ["AI 原始代码未通过校验时启用安全模板兜底", "仅加载 Three.js 官方 CDN", "不访问网络 API、Cookie、localStorage、父窗口或用户文件"],
+    }
+
+
+def _build_bfs_threejs_template_payload(topic: str, reason: str = "") -> dict[str, Any]:
+    safe_topic = json.dumps(topic.strip() or "BFS 广度优先搜索 3D 教学可视化", ensure_ascii=False)
+    safe_reason = json.dumps((reason or "AI 生成内容未通过校验").strip()[:160], ensure_ascii=False)
+    index_html = """<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BFS 广度优先搜索 3D 教学可视化</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, "Microsoft YaHei", sans-serif; background: #030712; color: #f8fafc; }
+    #scene { width: 100vw; height: 100vh; display: block; }
+    .panel { position: fixed; left: 20px; top: 18px; width: min(430px, calc(100vw - 40px)); padding: 18px; border-radius: 8px; background: rgba(3, 7, 18, .78); border: 1px solid rgba(148, 163, 184, .26); box-shadow: 0 18px 50px rgba(0,0,0,.35); backdrop-filter: blur(10px); }
+    .title { font-size: 22px; font-weight: 800; letter-spacing: 0; }
+    .hint { margin-top: 10px; color: #dbeafe; font-size: 14px; line-height: 1.6; }
+    .queue { margin-top: 12px; min-height: 42px; border-radius: 8px; padding: 10px 12px; background: rgba(15, 23, 42, .78); color: #fef3c7; font-size: 13px; line-height: 1.5; }
+    .legend { position: fixed; left: 20px; bottom: 20px; display: grid; gap: 8px; padding: 12px; border-radius: 8px; background: rgba(3, 7, 18, .72); border: 1px solid rgba(148, 163, 184, .24); font-size: 13px; }
+    .legend span { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .swatch { width: 18px; height: 18px; border-radius: 4px; display: inline-block; }
+    .controls { position: fixed; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; max-width: min(720px, calc(100vw - 48px)); }
+    button { height: 42px; border: 0; border-radius: 8px; padding: 0 16px; font-weight: 800; color: #f8fafc; background: #2563eb; cursor: pointer; box-shadow: 0 12px 24px rgba(37, 99, 235, .2); }
+    button.secondary { color: #dbeafe; background: rgba(30, 41, 59, .92); border: 1px solid rgba(148, 163, 184, .24); }
+    button:focus-visible, input:focus-visible { outline: 3px solid rgba(34, 211, 238, .55); outline-offset: 2px; }
+    label { height: 42px; display: flex; align-items: center; gap: 8px; border-radius: 8px; padding: 0 12px; color: #e2e8f0; background: rgba(30, 41, 59, .9); border: 1px solid rgba(148, 163, 184, .24); font-size: 13px; }
+    input { accent-color: #22d3ee; }
+    #exitFullscreenBtn { display: none; }
+    :fullscreen .panel { left: 24px; top: 22px; }
+    :fullscreen .controls { right: 28px; bottom: 28px; }
+    @media (max-width: 760px) {
+      .panel { left: 12px; top: 12px; width: calc(100vw - 24px); padding: 14px; }
+      .title { font-size: 18px; }
+      .legend { display: none; }
+      .controls { left: 12px; right: 12px; bottom: 12px; max-width: none; justify-content: stretch; }
+      button, label { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <section class="panel">
+    <div class="title">BFS 广度优先搜索 · 3D 教学可视化</div>
+    <div class="hint">从起点开始，按距离分层扩展。队列先进先出，保证在无权图中第一次到达终点就是最短路径。</div>
+    <div id="queueStatus" class="queue">队列准备中</div>
+  </section>
+  <div class="legend" aria-label="图例">
+    <span><i class="swatch" style="background:#3b82f6"></i>第0层 起点</span>
+    <span><i class="swatch" style="background:#22d3ee"></i>第1层</span>
+    <span><i class="swatch" style="background:#22c55e"></i>第2层</span>
+    <span><i class="swatch" style="background:#facc15"></i>第3层</span>
+    <span><i class="swatch" style="background:#fb923c"></i>第4层 终点方向</span>
+  </div>
+  <div class="controls">
+    <button id="playBtn">播放</button>
+    <button id="pauseBtn" class="secondary">暂停</button>
+    <button id="resetBtn" class="secondary">重置</button>
+    <button id="viewBtn" class="secondary">切换视角</button>
+    <button id="fullscreenBtn" class="secondary">全屏</button>
+    <button id="exitFullscreenBtn" class="secondary">退出全屏</button>
+    <label>速度 <input id="speedSlider" type="range" min="0.5" max="3" value="1" step="0.5" /></label>
+    <label>进度 <input id="timelineSlider" type="range" min="0" max="124" value="0" step="1" /></label>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>"""
+    main_js = f"""import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+
+const topic = {safe_topic};
+const fallbackReason = {safe_reason};
+const canvas = document.getElementById('scene');
+const queueStatus = document.getElementById('queueStatus');
+const playBtn = document.getElementById('playBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const viewBtn = document.getElementById('viewBtn');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+const speedSlider = document.getElementById('speedSlider');
+const timelineSlider = document.getElementById('timelineSlider');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x030712);
+scene.fog = new THREE.Fog(0x030712, 12, 38);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+const cameraViews = [
+  new THREE.Vector3(8.5, 9.5, 11.5),
+  new THREE.Vector3(0, 14, 14),
+  new THREE.Vector3(14, 6, 3),
+];
+let viewIndex = 0;
+camera.position.copy(cameraViews[viewIndex]);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({{ canvas, antialias: true, alpha: false }});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+scene.add(new THREE.AmbientLight(0x93c5fd, 1.1));
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
+keyLight.position.set(6, 10, 8);
+scene.add(keyLight);
+const cyanLight = new THREE.PointLight(0x22d3ee, 1.2, 20);
+cyanLight.position.set(-5, 4, 3);
+scene.add(cyanLight);
+
+const gridSize = 5;
+const spacing = 1.32;
+const start = {{ x: 0, y: 0, z: 0 }};
+const goal = {{ x: 4, y: 4, z: 4 }};
+const layerColors = [0x3b82f6, 0x22d3ee, 0x22c55e, 0xfacc15, 0xfb923c, 0xef4444];
+const nodes = new Map();
+const queue = [];
+const visited = new Set();
+const parents = new Map();
+let visitOrder = [];
+let currentIndex = 0;
+let paused = false;
+let reachedGoal = false;
+let lastStepAt = 0;
+let currentKey = "";
+
+function keyOf(node) {{
+  return `${{node.x}},${{node.y}},${{node.z}}`;
+}}
+
+function formatNodeKey(key) {{
+  return `(${{key.replaceAll(',', ', ')}})`;
+}}
+
+function worldPosition(node) {{
+  return new THREE.Vector3(
+    (node.x - 2) * spacing,
+    (node.y - 2) * spacing,
+    (node.z - 2) * spacing
+  );
+}}
+
+function distanceLayer(node) {{
+  return Math.abs(node.x - start.x) + Math.abs(node.y - start.y) + Math.abs(node.z - start.z);
+}}
+
+function canVisit(node) {{
+  if (node.x < 0 || node.y < 0 || node.z < 0) return false;
+  if (node.x >= gridSize || node.y >= gridSize || node.z >= gridSize) return false;
+  const blocked = (node.x === 2 && node.y <= 3 && node.z === 2) || (node.x === 1 && node.y === 3 && node.z <= 3);
+  return !blocked;
+}}
+
+function neighborsOf(node) {{
+  const deltas = [
+    {{ x: 1, y: 0, z: 0 }}, {{ x: -1, y: 0, z: 0 }},
+    {{ x: 0, y: 1, z: 0 }}, {{ x: 0, y: -1, z: 0 }},
+    {{ x: 0, y: 0, z: 1 }}, {{ x: 0, y: 0, z: -1 }},
+  ];
+  return deltas.map(delta => ({{ x: node.x + delta.x, y: node.y + delta.y, z: node.z + delta.z }})).filter(canVisit);
+}}
+
+function createTextSprite(text, color = '#e0f2fe') {{
+  const labelCanvas = document.createElement('canvas');
+  labelCanvas.width = 320;
+  labelCanvas.height = 96;
+  const ctx = labelCanvas.getContext('2d');
+  ctx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+  ctx.fillStyle = 'rgba(3,7,18,0.76)';
+  ctx.fillRect(0, 0, labelCanvas.width, labelCanvas.height);
+  ctx.fillStyle = color;
+  ctx.font = 'bold 30px Microsoft YaHei, Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 160, 48);
+  const texture = new THREE.CanvasTexture(labelCanvas);
+  const material = new THREE.SpriteMaterial({{ map: texture, transparent: true }});
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(1.8, 0.54, 1);
+  return sprite;
+}}
+
+function buildGrid() {{
+  const cubeGeometry = new THREE.BoxGeometry(0.74, 0.74, 0.74);
+  const edgeGeometry = new THREE.EdgesGeometry(cubeGeometry);
+  for (let x = 0; x < gridSize; x += 1) {{
+    for (let y = 0; y < gridSize; y += 1) {{
+      for (let z = 0; z < gridSize; z += 1) {{
+        const node = {{ x, y, z }};
+        if (!canVisit(node)) continue;
+        const layer = Math.min(distanceLayer(node), layerColors.length - 1);
+        const material = new THREE.MeshStandardMaterial({{
+          color: layerColors[layer],
+          transparent: true,
+          opacity: 0.13,
+          roughness: 0.52,
+          metalness: 0.04,
+        }});
+        const mesh = new THREE.Mesh(cubeGeometry, material);
+        mesh.position.copy(worldPosition(node));
+        const edge = new THREE.LineSegments(edgeGeometry, new THREE.LineBasicMaterial({{ color: 0x64748b, transparent: true, opacity: 0.28 }}));
+        edge.position.copy(mesh.position);
+        scene.add(mesh);
+        scene.add(edge);
+        nodes.set(keyOf(node), {{ node, mesh, edge, layer, state: 'unseen' }});
+      }}
+    }}
+  }}
+  const startLabel = createTextSprite('起点');
+  startLabel.position.copy(worldPosition(start)).add(new THREE.Vector3(0, 0.78, 0));
+  scene.add(startLabel);
+  const goalLabel = createTextSprite('终点', '#fed7aa');
+  goalLabel.position.copy(worldPosition(goal)).add(new THREE.Vector3(0, 0.78, 0));
+  scene.add(goalLabel);
+  timelineSlider.max = String(Math.max(1, nodes.size));
+}}
+
+function resetSearch() {{
+  queue.length = 0;
+  visited.clear();
+  parents.clear();
+  visitOrder = [];
+  currentIndex = 0;
+  reachedGoal = false;
+  lastStepAt = 0;
+  currentKey = "";
+  paused = false;
+  queue.push(start);
+  visited.add(keyOf(start));
+  nodes.forEach(item => {{
+    item.state = 'unseen';
+    item.mesh.material.opacity = 0.13;
+    item.mesh.scale.set(1, 1, 1);
+  }});
+  const startItem = nodes.get(keyOf(start));
+  if (startItem) startItem.state = 'frontier';
+  timelineSlider.value = '0';
+  queueStatus.textContent = `主题：${{topic}}。初始化 queue=[${{formatNodeKey(keyOf(start))}}]，从起点按层扩展。`;
+  updatePauseButton();
+}}
+
+function markNode(key, state) {{
+  const item = nodes.get(key);
+  if (!item) return;
+  item.state = state;
+  if (state === 'visited') item.mesh.material.opacity = 0.48;
+  if (state === 'frontier') item.mesh.material.opacity = 0.66;
+  if (state === 'current') item.mesh.material.opacity = 1;
+  if (state === 'path') item.mesh.material.opacity = 1;
+}}
+
+function buildPathKeys() {{
+  const result = [];
+  let cursor = keyOf(goal);
+  while (cursor) {{
+    result.unshift(cursor);
+    cursor = parents.get(cursor);
+  }}
+  return result;
+}}
+
+function stepBfs() {{
+  if (reachedGoal) return;
+  if (queue.length === 0) {{
+    queueStatus.textContent = '队列为空：没有找到可达路径，搜索结束。';
+    reachedGoal = true;
+    return;
+  }}
+  const node = queue.shift();
+  const key = keyOf(node);
+  currentKey = key;
+  markNode(key, 'current');
+  visitOrder.push(key);
+  if (key === keyOf(goal)) {{
+    reachedGoal = true;
+    currentIndex += 1;
+    timelineSlider.value = String(currentIndex);
+    buildPathKeys().forEach(pathKey => markNode(pathKey, 'path'));
+    queueStatus.textContent = `到达终点 ${{formatNodeKey(key)}}：第一次到达即为最短路径，return path。`;
+    return;
+  }}
+  const added = [];
+  neighborsOf(node).forEach(next => {{
+    const nextKey = keyOf(next);
+    if (visited.has(nextKey)) return;
+    visited.add(nextKey);
+    parents.set(nextKey, key);
+    queue.push(next);
+    added.push(nextKey);
+    markNode(nextKey, 'frontier');
+  }});
+  markNode(key, 'visited');
+  currentIndex += 1;
+  timelineSlider.value = String(currentIndex);
+  const queueText = queue.slice(0, 5).map(item => formatNodeKey(keyOf(item))).join('  ');
+  const addedText = added.length ? added.map(formatNodeKey).join('  ') : '无新节点';
+  queueStatus.textContent = `出队 ${{formatNodeKey(key)}}，入队：${{addedText}}。当前 queue=[${{queueText}}]，已访问 ${{visited.size}} 个节点。`;
+}}
+
+function updatePauseButton() {{
+  pauseBtn.textContent = paused ? '继续' : '暂停';
+}}
+
+function seekBfsStep(targetStep) {{
+  const safeTarget = Math.max(0, Math.min(Number(timelineSlider.max || 1), targetStep));
+  resetSearch();
+  for (let step = 0; step < safeTarget && !reachedGoal; step += 1) {{
+    stepBfs();
+  }}
+  paused = true;
+  timelineSlider.value = String(currentIndex);
+  queueStatus.textContent += ` 已拖动定位到第 ${{currentIndex}} 步。`;
+  updatePauseButton();
+}}
+
+playBtn.addEventListener('click', () => {{
+  paused = false;
+  updatePauseButton();
+}});
+pauseBtn.addEventListener('click', () => {{
+  paused = !paused;
+  updatePauseButton();
+}});
+resetBtn.addEventListener('click', resetSearch);
+timelineSlider.addEventListener('input', () => {{
+  seekBfsStep(Number(timelineSlider.value || 0));
+}});
+viewBtn.addEventListener('click', () => {{
+  viewIndex = (viewIndex + 1) % cameraViews.length;
+}});
+fullscreenBtn.addEventListener('click', async () => {{
+  if (document.fullscreenElement) return;
+  await document.documentElement.requestFullscreen();
+}});
+exitFullscreenBtn.addEventListener('click', async () => {{
+  if (!document.fullscreenElement) return;
+  await document.exitFullscreen();
+}});
+document.addEventListener('fullscreenchange', () => {{
+  const active = Boolean(document.fullscreenElement);
+  fullscreenBtn.style.display = active ? 'none' : 'inline-flex';
+  exitFullscreenBtn.style.display = active ? 'inline-flex' : 'none';
+}});
+window.addEventListener('resize', () => {{
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}});
+
+buildGrid();
+resetSearch();
+console.info('SparkLearn 3D safe template fallback:', fallbackReason);
+
+function animate(now) {{
+  requestAnimationFrame(animate);
+  const speed = Number(speedSlider.value || 1);
+  if (!paused && !reachedGoal && now - lastStepAt > 900 / speed) {{
+    stepBfs();
+    lastStepAt = now;
+  }}
+  const targetPosition = cameraViews[viewIndex];
+  camera.position.lerp(targetPosition, 0.045);
+  camera.lookAt(0, 0, 0);
+  nodes.forEach((item, key) => {{
+    const pulse = key === currentKey ? 1.22 + Math.sin(now * 0.008) * 0.12 : item.state === 'frontier' ? 1.08 : 1;
+    item.mesh.scale.lerp(new THREE.Vector3(pulse, pulse, pulse), 0.18);
+    if (item.state === 'path') {{
+      item.mesh.material.color.setHex(0xf97316);
+    }} else if (item.state === 'current') {{
+      item.mesh.material.color.setHex(0xfacc15);
+    }} else {{
+      item.mesh.material.color.setHex(layerColors[item.layer]);
+    }}
+  }});
+  scene.rotation.y = Math.sin(now * 0.00018) * 0.08;
+  renderer.render(scene, camera);
+}}
+
+requestAnimationFrame(animate);
+"""
+    return {
+        "title": "BFS 广度优先搜索 3D 教学可视化",
+        "teaching_goal": "通过 3D 网格、队列和层级颜色理解 BFS 如何从起点逐层扩展，并在无权图中找到最短路径。",
+        "concept_explanation": "每个半透明方块是图中的一个节点。BFS 把起点放入队列，每一步取出队首节点，再把未访问的相邻节点放到队尾。颜色表示距离层级，发光节点表示当前出队节点；当终点第一次被取出时，路径就是最短路径。",
+        "files": [
+            {"path": "index.html", "content": index_html},
+            {"path": "src/main.js", "content": main_js},
+        ],
+        "interactions": ["播放或暂停 BFS 扩展", "重置搜索过程", "拖动进度条定位 BFS 出队步骤", "拖动速度滑块调整步进速度", "切换观察视角", "进入全屏和退出全屏"],
+        "acceptance": ["预览页出现非空 5x5x5 三维网格", "动画会在 3 秒内开始出队和入队", "队列文本会随动画变化", "进度条可定位 BFS 步骤", "速度滑块会改变 BFS 步进速度", "全屏和退出全屏按钮可操作"],
+        "safety_notes": ["AI 原始代码未通过校验时启用安全模板兜底", "仅加载 Three.js 官方 CDN", "不读取用户文件，不访问浏览器持久化数据"],
+    }
+
+
+def _build_generic_threejs_template_payload(topic: str, reason: str = "") -> dict[str, Any]:
+    safe_topic = json.dumps(topic.strip() or "3D 教学动画资源", ensure_ascii=False)
+    safe_reason = json.dumps((reason or "AI 生成内容未通过校验").strip()[:160], ensure_ascii=False)
+    index_html = """<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D 概念流程教学动画</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: Arial, "Microsoft YaHei", sans-serif; background: #07111f; color: #f8fafc; }
+    #scene { width: 100vw; height: 100vh; display: block; }
+    .panel { position: fixed; left: 18px; top: 18px; width: min(400px, calc(100vw - 36px)); padding: 16px; border-radius: 8px; background: rgba(7, 17, 31, .78); border: 1px solid rgba(148, 163, 184, .24); }
+    .title { font-size: 20px; font-weight: 800; }
+    #status { margin-top: 10px; color: #dbeafe; font-size: 14px; line-height: 1.55; }
+    .controls { position: fixed; right: 20px; bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    button { height: 40px; border: 0; border-radius: 8px; padding: 0 15px; font-weight: 800; color: #f8fafc; background: #2563eb; cursor: pointer; }
+    button.secondary { background: rgba(30, 41, 59, .92); border: 1px solid rgba(148, 163, 184, .24); }
+    #exitFullscreenBtn { display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <section class="panel">
+    <div class="title">3D 概念流程教学动画</div>
+    <div id="status">准备把主题拆成输入、处理、输出三个阶段。</div>
+  </section>
+  <div class="controls">
+    <button id="pauseBtn">暂停</button>
+    <button id="resetBtn" class="secondary">重置</button>
+    <button id="fullscreenBtn" class="secondary">全屏</button>
+    <button id="exitFullscreenBtn" class="secondary">退出全屏</button>
+    <label>进度 <input id="timelineSlider" type="range" min="0" max="2" value="0" step="1" /></label>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>"""
+    main_js = f"""import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+
+const topic = {safe_topic};
+const fallbackReason = {safe_reason};
+const canvas = document.getElementById('scene');
+const statusBox = document.getElementById('status');
+const pauseBtn = document.getElementById('pauseBtn');
+const resetBtn = document.getElementById('resetBtn');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const exitFullscreenBtn = document.getElementById('exitFullscreenBtn');
+const timelineSlider = document.getElementById('timelineSlider');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07111f);
+const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 4.5, 9);
+camera.lookAt(0, 0, 0);
+const renderer = new THREE.WebGLRenderer({{ canvas, antialias: true }});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x1d4ed8, 2));
+const light = new THREE.DirectionalLight(0xffffff, 2);
+light.position.set(4, 8, 6);
+scene.add(light);
+
+const stages = ['输入参数', '局部处理', '返回结果'];
+const colors = [0x38bdf8, 0xa3e635, 0xf97316];
+const boxes = stages.map((stage, index) => {{
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 1.4, 1.4),
+    new THREE.MeshStandardMaterial({{ color: colors[index], roughness: 0.45, metalness: 0.06 }})
+  );
+  mesh.position.x = (index - 1) * 2.7;
+  scene.add(mesh);
+  return mesh;
+}});
+let paused = false;
+let active = 0;
+let lastStepAt = 0;
+
+function reset() {{
+  active = 0;
+  lastStepAt = 0;
+  paused = false;
+  timelineSlider.value = '0';
+  pauseBtn.textContent = '暂停';
+  statusBox.textContent = `主题：${{topic}}。先观察输入参数如何进入小项目。`;
+}}
+
+function updateFullscreenButtons() {{
+  const on = Boolean(document.fullscreenElement);
+  fullscreenBtn.style.display = on ? 'none' : 'inline-flex';
+  exitFullscreenBtn.style.display = on ? 'inline-flex' : 'none';
+}}
+
+pauseBtn.addEventListener('click', () => {{
+  paused = !paused;
+  pauseBtn.textContent = paused ? '继续' : '暂停';
+}});
+resetBtn.addEventListener('click', reset);
+timelineSlider.addEventListener('input', () => {{
+  active = Number(timelineSlider.value || 0);
+  paused = true;
+  pauseBtn.textContent = '继续';
+  statusBox.textContent = `${{stages[active]}}：已拖动到该演示阶段，观察代码数据流当前位置。`;
+}});
+fullscreenBtn.addEventListener('click', async () => {{
+  if (document.fullscreenElement) return;
+  await document.documentElement.requestFullscreen();
+}});
+exitFullscreenBtn.addEventListener('click', async () => {{
+  if (!document.fullscreenElement) return;
+  await document.exitFullscreen();
+}});
+document.addEventListener('fullscreenchange', updateFullscreenButtons);
+window.addEventListener('resize', () => {{
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}});
+
+reset();
+console.info('SparkLearn 3D safe template fallback:', fallbackReason);
+
+function animate(now) {{
+  requestAnimationFrame(animate);
+  if (!paused && now - lastStepAt > 1100) {{
+    active = (active + 1) % stages.length;
+    timelineSlider.value = String(active);
+    statusBox.textContent = `${{stages[active]}}：把知识点放进可运行小项目，看数据如何流动。`;
+    lastStepAt = now;
+  }}
+  boxes.forEach((box, index) => {{
+    const target = index === active ? 1.35 : 1;
+    box.scale.lerp(new THREE.Vector3(target, target, target), 0.12);
+    box.rotation.x += 0.006 + index * 0.002;
+    box.rotation.y += 0.01;
+  }});
+  scene.rotation.y = Math.sin(now * 0.00028) * 0.12;
+  renderer.render(scene, camera);
+}}
+
+requestAnimationFrame(animate);
+"""
+    return {
+        "title": "3D 概念流程教学动画",
+        "teaching_goal": "用可运行的 3D 流程动画把学习主题拆成输入、处理和输出，帮助学生先建立整体结构。",
+        "concept_explanation": "当模型没有生成合格的主题专属代码时，系统会使用安全模板兜底。三个立方体分别表示输入参数、局部处理和返回结果，动画会突出当前阶段，方便教师继续补充更细的知识点。",
+        "files": [
+            {"path": "index.html", "content": index_html},
+            {"path": "src/main.js", "content": main_js},
+        ],
+        "interactions": ["暂停或继续动画", "重置流程", "拖动进度条定位输入、处理、返回阶段", "进入全屏和退出全屏"],
+        "acceptance": ["预览页出现非空 3D 场景", "动画会在 3 秒内切换阶段", "进度条可定位演示阶段", "全屏和退出全屏按钮可操作"],
+        "safety_notes": ["AI 原始代码未通过校验时启用安全模板兜底", "仅加载 Three.js 官方 CDN", "不读取用户文件，不访问浏览器持久化数据"],
+    }
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _code_artifact_url(resource_id: str, resource_type: str = "code") -> str:
+    return f"sparklearn-artifact://{_safe_artifact_type(resource_type)}/{resource_id}/index.html"
+
+
+def _is_code_artifact_url(value: str) -> bool:
+    return bool(_artifact_type_from_url(value))
+
+
+def _artifact_type_from_url(value: str) -> str:
+    match = re.fullmatch(r"sparklearn-artifact://(code|visual3d)/[A-Za-z0-9_-]+/index\.html", value or "")
+    return match.group(1) if match else ""
+
+
+def _safe_artifact_type(value: str) -> str:
+    resource_type = (value or "").strip().lower()
+    if resource_type not in {"code", "visual3d"}:
+        raise HTTPException(status_code=400, detail="invalid visual artifact type")
+    return resource_type
+
+
+def _code_artifact_dir(resource_id: str, resource_type: str = "code") -> Path:
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", resource_id or ""):
+        raise HTTPException(status_code=400, detail="invalid visual artifact id")
+    root = (settings.data_dir / "artifacts" / _safe_artifact_type(resource_type)).resolve()
+    path = (root / resource_id).resolve()
+    if root != path and root not in path.parents:
+        raise HTTPException(status_code=400, detail="invalid visual artifact path")
+    return path
+
+
+def _safe_code_artifact_relpath(value: str) -> str:
+    normalized = (value or "").replace("\\", "/").strip().lstrip("/")
+    if not normalized or normalized.endswith("/"):
+        raise ValueError("可视化资源生成失败：文件路径为空。")
+    if normalized.startswith("../") or "/../" in normalized or normalized == "..":
+        raise ValueError("可视化资源生成失败：文件路径不安全。")
+    if not re.fullmatch(r"[A-Za-z0-9._/-]+", normalized):
+        raise ValueError(f"可视化资源生成失败：文件路径不合法：{value}")
+    if normalized not in {"index.html", "src/main.js", "style.css", "src/style.css"}:
+        raise ValueError(f"可视化资源生成失败：不允许写入文件：{normalized}")
+    return normalized
+
+
+def _code_artifact_file(resource_id: str, rel_path: str, resource_type: str = "code") -> Path:
+    safe_rel = _safe_code_artifact_relpath(rel_path)
+    root = _code_artifact_dir(resource_id, resource_type=resource_type)
+    target = (root / safe_rel).resolve()
+    if root != target and root not in target.parents:
+        raise HTTPException(status_code=400, detail="invalid visual artifact file")
+    return target
+
+
+def _code_artifact_security_headers() -> dict[str, str]:
+    return {
+        "Content-Security-Policy": (
+            "default-src 'none'; "
+            "script-src 'unsafe-inline' https://unpkg.com; "
+            "style-src 'unsafe-inline'; "
+            "img-src data: blob:; "
+            "font-src 'none'; "
+            "connect-src 'none'; "
+            "media-src 'none'; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "form-action 'none'; "
+            "frame-ancestors 'self' http://127.0.0.1:3000 http://localhost:3000"
+        ),
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+    }
+
+
+def _inject_code_artifact_base(html: str, resource_id: str) -> str:
+    base = f'<base href="/api/resources/{resource_id}/preview/files/" />'
+    if re.search(r"<base\b", html, flags=re.IGNORECASE):
+        return html
+    if re.search(r"<head[^>]*>", html, flags=re.IGNORECASE):
+        return re.sub(r"(<head[^>]*>)", r"\1" + base, html, count=1, flags=re.IGNORECASE)
+    return base + html
+
+
+def _inline_code_artifact_assets(html: str, resource_id: str, resource_type: str = "code") -> str:
+    main_path = _code_artifact_file(resource_id, "src/main.js", resource_type=resource_type)
+    if main_path.exists():
+        js = main_path.read_text(encoding="utf-8")
+        inline = f"<!-- ./src/main.js -->\n<script type=\"module\">\n{js}\n</script>"
+        html = re.sub(
+            r"<script\b([^>]*?)\bsrc=[\"']\.?/src/main\.js[\"']([^>]*)>\s*</script>",
+            inline,
+            html,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    for rel_path in ("style.css", "src/style.css"):
+        css_path = _code_artifact_file(resource_id, rel_path, resource_type=resource_type)
+        if not css_path.exists():
+            continue
+        css = css_path.read_text(encoding="utf-8")
+        html = re.sub(
+            rf"<link\b([^>]*?)\bhref=[\"']\.?/{re.escape(rel_path)}[\"']([^>]*)>",
+            f"<style>\n{css}\n</style>",
+            html,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    return html
+
+
+def _zip_code_artifact_sync(resource_id: str, resource_type: str = "code") -> bytes:
+    root = _code_artifact_dir(resource_id, resource_type=resource_type)
+    if not root.exists():
+        raise HTTPException(status_code=404, detail="visual artifact not found")
+    from io import BytesIO
+
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for path in root.rglob("*"):
+            if path.is_file():
+                zf.write(path, path.relative_to(root).as_posix())
+    return buffer.getvalue()
 
 
 def _fallback_resource_content(resource_type: str, prompt: str, errors: list[str] | None = None) -> str:

@@ -34,6 +34,15 @@ test.describe('新手任务式引导', () => {
     await expect(page.getByRole('button', { name: /下一步|完成建档/ }).first()).toBeVisible()
   })
 
+  test('功能页不被自动新手引导遮罩拦截侧栏导航', async ({ page }) => {
+    await page.goto('/generate')
+    await expect(page.getByTestId('new-user-guide-panel')).toHaveCount(0)
+
+    await page.getByRole('link', { name: /知识图谱/ }).click()
+
+    await expect(page).toHaveURL(/\/graph/)
+  })
+
   test('跳过引导后刷新不再自动展示，重看入口仍可打开', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('button', { name: /开始体验/ }).click()

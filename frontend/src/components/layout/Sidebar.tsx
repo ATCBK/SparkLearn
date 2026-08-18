@@ -126,6 +126,11 @@ export function Sidebar({ state }: SidebarProps) {
                     href={item.href}
                     target={item.newTab ? '_blank' : undefined}
                     rel={item.newTab ? 'noopener noreferrer' : undefined}
+                    onClick={(event) => {
+                      if (item.newTab || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                      event.preventDefault()
+                      router.push(item.href)
+                    }}
                     data-guide-target={GUIDE_TARGET_BY_HREF[item.href]}
                     title={isIcons ? item.label : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors ${

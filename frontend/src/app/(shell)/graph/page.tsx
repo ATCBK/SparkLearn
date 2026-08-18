@@ -1,14 +1,13 @@
-// Python 知识图谱页面
 'use client'
 
 import { useEffect } from 'react'
 import { BookOpen, CheckCircle2, Loader2, Lock } from 'lucide-react'
-import { useGraphStore } from './store/graphStore'
 import { PageHead } from '@/components/proto'
-import { GraphToolbar } from './components/GraphToolbar'
-import { GraphCanvas } from './components/GraphCanvas'
-import { DetailPanel } from './components/DetailPanel'
 import { cn } from '@/lib/utils/cn'
+import { DetailPanel } from '@/features/knowledge-graph/components/DetailPanel'
+import { GraphCanvas } from '@/features/knowledge-graph/components/GraphCanvas'
+import { GraphToolbar } from '@/features/knowledge-graph/components/GraphToolbar'
+import { useGraphStore } from '@/features/knowledge-graph/store/graphStore'
 
 export default function GraphPage() {
   const graphData = useGraphStore((s) => s.graphData)
@@ -22,8 +21,7 @@ export default function GraphPage() {
   const stats = graphData?.stats
 
   return (
-    <div className={cn(isFullscreen && 'fixed inset-0 z-50 bg-bg p-4 overflow-auto')}>
-      {/* 页面头部 */}
+    <div className={cn(isFullscreen && 'fixed inset-0 z-50 overflow-auto bg-bg p-4')}>
       <PageHead
         eyebrow="学习中心 > 知识图谱"
         title="Python 知识图谱"
@@ -40,19 +38,14 @@ export default function GraphPage() {
         }
       />
 
-      {/* 工具栏 */}
       <div className="mb-4">
         <GraphToolbar />
       </div>
 
-      {/* 主体双栏 */}
       <div className="grid gap-4 min-[900px]:grid-cols-[1fr_360px]">
-        {/* 左侧：图谱画布 */}
-        <div className="min-w-0 rounded-[14px] border border-line bg-white shadow-sm overflow-hidden">
+        <div className="min-w-0 overflow-hidden rounded-[14px] border border-line bg-white shadow-sm">
           <GraphCanvas />
         </div>
-
-        {/* 右侧：详情面板 */}
         <div className="min-w-0">
           <DetailPanel />
         </div>

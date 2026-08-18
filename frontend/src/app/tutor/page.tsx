@@ -122,6 +122,7 @@ const resourceTypeLabel: Record<Resource['type'], string> = {
   quiz: '测验',
   reading: '阅读',
   code: '代码',
+  visual3d: '3D资源',
   video: '视频',
   blog: '博客',
   discovery: '学习发现',

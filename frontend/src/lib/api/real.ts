@@ -208,6 +208,13 @@ function toResource(raw: any): Resource {
     shareUrl: raw.shareUrl || raw.share_url,
     duration: raw.duration,
     provider: raw.provider,
+    model: raw.model,
+    generationMode: raw.generationMode || raw.generation_mode,
+    fallbackReason: raw.fallbackReason || raw.fallback_reason,
+    artifactKind: raw.artifactKind || raw.artifact_kind,
+    artifactFiles: Array.isArray(raw.artifactFiles || raw.artifact_files)
+      ? (raw.artifactFiles || raw.artifact_files).map((x: unknown) => String(x))
+      : undefined,
     ttsProvider: raw.ttsProvider || raw.tts_provider,
     hasMp4: raw.hasMp4 ?? raw.has_mp4,
     muxStatus: raw.muxStatus || raw.mux_status,
@@ -470,6 +477,7 @@ export async function generateResource(
     voiceSpeed?: number
     voicePitch?: number
     voiceVolume?: number
+    codeLevel?: string
     onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
   },
 ): Promise<Resource> {
@@ -478,7 +486,12 @@ export async function generateResource(
     return generateVideo(prompt, videoOptions)
   }
 
-  const events = await readSSE('/api/resources/generate', { type, prompt, knowledge_file_ids: knowledgeFileIds })
+  const events = await readSSE('/api/resources/generate', {
+    type,
+    prompt,
+    knowledge_file_ids: knowledgeFileIds,
+    ...(type === 'visual3d' && videoOptions?.codeLevel ? { code_level: videoOptions.codeLevel } : {}),
+  })
   const failed = events.find(evt => evt.type === 'error')
   if (failed) {
     const message = String(failed.payload?.message || failed.payload?.error || '生成失败')

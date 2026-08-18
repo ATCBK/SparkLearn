@@ -11,7 +11,7 @@ export interface Task {
 export interface Resource {
   id: string
   title: string
-  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'video' | 'blog' | 'discovery' | 'web_material'
+  type: 'document' | 'ppt' | 'mindmap' | 'quiz' | 'reading' | 'code' | 'visual3d' | 'video' | 'blog' | 'discovery' | 'web_material'
   status: 'generating' | 'completed' | 'failed'
   createdAt: string
   updatedAt?: string
@@ -35,6 +35,11 @@ export interface Resource {
   shareUrl?: string
   duration?: number
   provider?: string
+  model?: string
+  generationMode?: 'ai' | 'fallback_template' | 'markdown_fallback' | string
+  fallbackReason?: string
+  artifactKind?: string
+  artifactFiles?: string[]
   ttsProvider?: string
   hasMp4?: boolean
   muxStatus?: string
