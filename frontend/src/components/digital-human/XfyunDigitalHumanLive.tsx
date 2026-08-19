@@ -175,7 +175,8 @@ export default function XfyunDigitalHumanLive({ className = '' }: XfyunDigitalHu
   }, [])
 
   const showOverlay = state !== 'ready'
-  const isError = state === 'error' || state === 'missing_config'
+  const isMissingConfig = state === 'missing_config'
+  const isError = state === 'error'
 
   return (
     <div className={`relative h-full w-full overflow-hidden ${className}`}>
@@ -185,7 +186,7 @@ export default function XfyunDigitalHumanLive({ className = '' }: XfyunDigitalHu
         <div className="absolute inset-0 z-10 grid place-items-center bg-[linear-gradient(135deg,rgba(246,251,255,0.82),rgba(220,236,255,0.72))] px-6 text-center backdrop-blur-[1px]">
           <div className="max-w-[260px] rounded-[8px] border border-white/80 bg-white/86 px-4 py-3 shadow-sm">
             <div className="mx-auto mb-2 grid h-9 w-9 place-items-center rounded-[8px] bg-[#eef5ff] text-blue">
-              {isError ? <TriangleAlert className="h-5 w-5" /> : state === 'missing_config' ? <Sparkles className="h-5 w-5" /> : <Loader2 className="h-5 w-5 animate-spin" />}
+              {isMissingConfig ? <Sparkles className="h-5 w-5" /> : isError ? <TriangleAlert className="h-5 w-5" /> : <Loader2 className="h-5 w-5 animate-spin" />}
             </div>
             <p className="text-[13px] font-bold text-[#26364f]">{message}</p>
             {state === 'missing_config' && (

@@ -33,6 +33,8 @@ type ResourceSseEvent = {
       created_at?: string
       content?: string
       source_url?: string
+      artifact_kind?: string
+      artifact_files?: unknown[]
       progress?: number
     }
   }
