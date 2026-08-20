@@ -961,13 +961,37 @@ export interface AgentTask {
   updated_at: string
 }
 
+export interface AgentSearchIntent {
+  schema_version: string
+  decision: 'search' | 'clarify' | 'respond'
+  goal: string
+  normalized_query: string
+  constraints: string[]
+  output_focus: string
+  clarification_question: string
+  confidence: number
+  generated_by: 'llm' | 'rule_fallback' | string
+}
+
 export interface AgentSearchResult {
-  items: Array<{
+  items?: Array<{
     title: string
     summary: string
     url: string
     source: string
   }>
+  answer?: string
+  query_used?: string
+  intent?: AgentSearchIntent
+  tool_status?: 'success' | 'no_results' | 'timeout' | 'error' | 'not_called' | string
+  message?: string
+  _meta?: {
+    planner?: {
+      schema_version?: string
+      generated_by?: string
+      decision?: string
+    }
+  }
 }
 
 export interface AgentSummaryResult {

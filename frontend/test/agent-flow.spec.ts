@@ -4,6 +4,20 @@ const AGENT_USER_ID = 'agent-action-test'
 const AGENT_COLLECTED_KEY = `sparklearn_profile_collected_at:${AGENT_USER_ID}`
 const AGENT_RECAPTURE_KEY = 'sparklearn_profile_needs_recapture'
 
+function defaultSearchIntent() {
+  return {
+    schema_version: 'agent-search-intent-v1',
+    decision: 'search',
+    goal: '找到适合初学者的 Python 装饰器入门资料',
+    normalized_query: 'Python 装饰器教程',
+    constraints: ['中文优先'],
+    output_focus: '按学习顺序说明先看哪一项',
+    clarification_question: '',
+    confidence: 0.82,
+    generated_by: 'llm',
+  }
+}
+
 const pet = {
   id: 'pet-1',
   name: '小星',
@@ -25,9 +39,34 @@ async function mockAgentApis(
   page: Page,
   options: {
     chatResponse?: { answer: string; created_at: string; action?: AgentAction }
+    taskResult?: Record<string, unknown>
   } = {},
 ) {
   let pollCount = 0
+  const defaultTaskResult = {
+    items: [
+      {
+        title: 'Python 装饰器入门',
+        summary: '从函数闭包过渡到装饰器语法，适合初学者。',
+        url: 'https://example.com/python-decorator',
+        source: 'example.com',
+      },
+    ],
+    query_used: 'Python 装饰器 零基础 中文教程 示例',
+    intent: {
+      schema_version: 'agent-search-intent-v1',
+      decision: 'search',
+      goal: '找到适合初学者的 Python 装饰器入门资料',
+      normalized_query: 'Python 装饰器 零基础 中文教程 示例',
+      constraints: ['中文优先', '包含示例'],
+      output_focus: '按学习顺序说明先看哪一项',
+      clarification_question: '',
+      confidence: 0.86,
+      generated_by: 'llm',
+    },
+    tool_status: 'success',
+    message: '浏览器检索工具已返回结果。',
+  }
 
   await page.route('**/api/agent/pet', async route => {
     await route.fulfill({ json: { success: true, data: pet } })
@@ -74,18 +113,7 @@ async function mockAgentApis(
           task_type: 'search',
           input_text: 'Python 装饰器学习资料',
           status: completed ? 'completed' : 'running',
-          result: completed
-            ? {
-                items: [
-                  {
-                    title: 'Python 装饰器入门',
-                    summary: '从函数闭包过渡到装饰器语法，适合初学者。',
-                    url: 'https://example.com/python-decorator',
-                    source: 'example.com',
-                  },
-                ],
-              }
-            : null,
+          result: completed ? options.taskResult || defaultTaskResult : null,
           error_message: null,
           feedback: null,
           steps: [
@@ -144,7 +172,18 @@ test.describe('AI 学伴任务流程', () => {
 
     await expect(page.getByText('正在处理任务')).toBeVisible()
     await expect(page.getByText('找到 1 条可用学习资料。')).toBeVisible()
-    await expect(page.getByText('Python 装饰器入门')).toBeVisible()
+    const intentRegion = page.getByRole('region', { name: '搜索意图规划' })
+    await expect(intentRegion.getByText('理解目标')).toBeVisible()
+    await expect(intentRegion.getByText('找到适合初学者的 Python 装饰器入门资料')).toBeVisible()
+    await expect(intentRegion.getByText('实际检索词')).toBeVisible()
+    await expect(intentRegion.getByText('Python 装饰器 零基础 中文教程 示例')).toBeVisible()
+    await expect(intentRegion.getByText('中文优先')).toBeVisible()
+    const resultTitle = page.getByText('Python 装饰器入门', { exact: true })
+    await expect(resultTitle).toBeVisible()
+    const intentBox = await intentRegion.boundingBox()
+    const resultBox = await resultTitle.boundingBox()
+    expect(intentBox?.y).toBeLessThan(resultBox?.y || 0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 
     await page.getByRole('button', { name: '收藏结果' }).click()
     await expect(page.getByText('已收藏')).toBeVisible()
@@ -167,6 +206,87 @@ test.describe('AI 学伴任务流程', () => {
 
     await expect(page.getByText('任务描述太短')).toBeVisible()
     expect(createCalled).toBe(false)
+  })
+
+  for (const decision of ['clarify', 'respond'] as const) {
+    test(`${decision} 结果作为普通伙伴消息展示且不渲染结果卡`, async ({ page }) => {
+      const answer = decision === 'clarify'
+        ? '你希望查找哪个具体主题？也可以补充语言或难度。'
+        : '闭包会保留其定义环境中的变量。'
+      await mockAgentApis(page, {
+        taskResult: {
+          answer,
+          query_used: '',
+          intent: {
+            schema_version: 'agent-search-intent-v1',
+            decision,
+            goal: decision === 'clarify' ? '确认具体主题' : '解释 Python 闭包',
+            normalized_query: '',
+            constraints: [],
+            output_focus: '直接回答',
+            clarification_question: decision === 'clarify' ? answer : '',
+            confidence: 0.65,
+            generated_by: 'rule_fallback',
+          },
+          tool_status: 'not_called',
+        },
+      })
+      await page.goto('/agent')
+      await page.getByRole('button', { name: '任务模式' }).click()
+      await page.getByPlaceholder(/Python 装饰器/).fill('请解释 Python 闭包是什么')
+      await page.getByRole('button', { name: '发送任务' }).click()
+
+      await expect(page.getByText(answer, { exact: true })).toBeVisible()
+      await expect(page.getByRole('region', { name: '搜索意图规划' })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: '收藏结果' })).toHaveCount(0)
+      await expect(page.getByText('结果是否有帮助')).toHaveCount(0)
+    })
+  }
+
+  for (const state of [
+    { status: 'no_results', message: '浏览器检索工具未找到结果，请补充条件或更换关键词。' },
+    { status: 'timeout', message: '浏览器检索工具调用超时，请稍后重试。' },
+    { status: 'error', message: '浏览器检索工具调用失败，请稍后重试。' },
+  ]) {
+    test(`工具状态 ${state.status} 明确展示后端 message 且不生成虚构条目`, async ({ page }) => {
+      await mockAgentApis(page, {
+        taskResult: {
+          items: [],
+          query_used: 'Python 装饰器教程',
+          intent: defaultSearchIntent(),
+          tool_status: state.status,
+          message: state.message,
+        },
+      })
+      await page.goto('/agent')
+      await page.getByRole('button', { name: '任务模式' }).click()
+      await page.getByPlaceholder(/Python 装饰器/).fill('Python 装饰器学习资料')
+      await page.getByRole('button', { name: '发送任务' }).click()
+
+      await expect(page.getByText(state.message, { exact: true })).toBeVisible()
+      await expect(page.getByRole('button', { name: '收藏结果' })).toHaveCount(0)
+      await expect(page.getByText('Python 装饰器入门', { exact: true })).toHaveCount(0)
+    })
+  }
+
+  test('旧搜索任务缺少意图字段时仍按原样展示结果', async ({ page }) => {
+    await mockAgentApis(page, {
+      taskResult: {
+        items: [{
+          title: '旧版 Python 教程',
+          summary: '旧任务保存的搜索结果。',
+          url: 'https://example.com/legacy',
+          source: 'example.com',
+        }],
+      },
+    })
+    await page.goto('/agent')
+    await page.getByRole('button', { name: '任务模式' }).click()
+    await page.getByPlaceholder(/Python 装饰器/).fill('Python 旧版教程资料')
+    await page.getByRole('button', { name: '发送任务' }).click()
+
+    await expect(page.getByText('旧版 Python 教程')).toBeVisible()
+    await expect(page.getByRole('region', { name: '搜索意图规划' })).toHaveCount(0)
   })
 
   test('安全的重新建档导航 action 立即清理完成标记并展示真实链接', async ({ page }) => {

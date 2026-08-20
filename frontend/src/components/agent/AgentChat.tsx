@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type AgentChatAction, type AgentPet, type AgentTask, type AgentTaskStep } from '@/lib/api'
+import type { AgentSearchIntent } from '@/lib/api/types'
 import { clearProfileCompletionState } from '@/lib/auth'
 import { ProtoCard, SoftCard } from '@/components/proto'
 import { Bookmark, ExternalLink, FileText, GitCompare, Loader2, Mic, MicOff, Pause, Search, Send, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
@@ -21,6 +22,10 @@ type AgentResultItem = {
 type AgentResultPayload = {
   answer?: string
   items?: AgentResultItem[]
+  query_used?: string
+  intent?: AgentSearchIntent
+  tool_status?: string
+  message?: string
   topic?: string
   key_points?: string[]
   conclusion?: string
@@ -384,8 +389,8 @@ export function AgentChat({
                 </button>
               )}
 
-              {msg.task?.result && (
-                <div className="mt-2 space-y-2">
+              {msg.task?.result && !hasDirectAnswer(msg.task.result) && (
+                <div className="mt-2 min-w-0 space-y-2">
                   <TaskResultView task={msg.task} onBookmark={handleBookmark} />
                   {!msg.task.feedback ? (
                     <div className="flex items-center gap-2 text-micro text-muted">
@@ -480,11 +485,63 @@ function toDisplayText(value: unknown) {
 
 function formatResult(task: AgentTask): string {
   if (!task.result) return '任务完成，但没有返回可展示的结果。'
-  if ('answer' in task.result && task.result.answer) return toDisplayText(task.result.answer) || '任务已完成。'
-  if (task.task_type === 'search' && 'items' in task.result) return `找到 ${task.result.items?.length || 0} 条可用学习资料。`
+  const result = task.result as AgentResultPayload
+  if (result.answer) return toDisplayText(result.answer) || '任务已完成。'
+  if (task.task_type === 'search' && result.tool_status && result.tool_status !== 'success' && result.message) {
+    return toDisplayText(result.message) || '检索工具暂时不可用，请稍后重试。'
+  }
+  if (task.task_type === 'search' && result.items) return `找到 ${result.items.length} 条可用学习资料。`
   if (task.task_type === 'summarize' && 'topic' in task.result) return '摘要已生成，请查看要点和建议。'
   if (task.task_type === 'compare' && 'items' in task.result) return '对比分析已完成，请查看不同视角。'
   return '任务已完成。'
+}
+
+function hasDirectAnswer(result: AgentTask['result']): boolean {
+  return Boolean((result as AgentResultPayload | null)?.answer)
+}
+
+function SearchIntentSummary({ intent, queryUsed }: { intent?: AgentSearchIntent; queryUsed?: string }) {
+  if (!intent?.goal && !queryUsed) return null
+
+  return (
+    <section
+      aria-label="搜索意图规划"
+      className="min-w-0 overflow-hidden rounded-[10px] border border-[#bfdbfe] bg-[#f8fbff] p-3"
+    >
+      <div className="flex items-center gap-2 text-micro font-bold text-[#1d4ed8]">
+        <Search className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        已理解你的检索目标
+      </div>
+      <dl className="mt-3 grid min-w-0 gap-3 sm:grid-cols-2">
+        {intent?.goal && (
+          <div className="min-w-0">
+            <dt className="text-micro font-bold text-muted">理解目标</dt>
+            <dd className="mt-1 break-words text-small leading-5 text-ink">{intent.goal}</dd>
+          </div>
+        )}
+        {queryUsed && (
+          <div className="min-w-0">
+            <dt className="text-micro font-bold text-muted">实际检索词</dt>
+            <dd className="mt-1 break-all text-small leading-5 text-ink">{queryUsed}</dd>
+          </div>
+        )}
+      </dl>
+      {intent?.constraints && intent.constraints.length > 0 && (
+        <div className="mt-3 flex min-w-0 flex-wrap gap-1.5" aria-label="检索约束">
+          {intent.constraints.map((constraint, index) => (
+            <span key={`${constraint}-${index}`} className="max-w-full break-words rounded-full bg-[#eaf2ff] px-2 py-1 text-micro text-[#1d4ed8]">
+              {constraint}
+            </span>
+          ))}
+        </div>
+      )}
+      {intent?.output_focus && (
+        <p className="mt-3 break-words text-micro leading-5 text-muted">
+          <span className="font-bold text-ink">关注点：</span>{intent.output_focus}
+        </p>
+      )}
+    </section>
+  )
 }
 
 function TaskResultView({ task, onBookmark }: { task: AgentTask; onBookmark: (task: AgentTask, item: AgentResultItem, index: number) => void }) {
@@ -494,7 +551,10 @@ function TaskResultView({ task, onBookmark }: { task: AgentTask; onBookmark: (ta
 
   if ((task.task_type === 'search' || task.task_type === 'recommend') && result.items) {
     return (
-      <div className="space-y-2">
+      <div className="min-w-0 space-y-2">
+        {task.task_type === 'search' && (
+          <SearchIntentSummary intent={result.intent} queryUsed={result.query_used} />
+        )}
         {result.items.map((item, index) => (
           <SoftCard key={index} className="bg-white">
             <div className="flex items-start justify-between gap-3">
