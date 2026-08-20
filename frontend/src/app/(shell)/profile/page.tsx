@@ -2,13 +2,16 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { AlertCircle, ArrowRight, Clock, History, Lightbulb, RefreshCw, Sparkles, Target } from 'lucide-react'
 import { api, MasteryRecord, ProfileAnalysis, ProfileAnalysisResp, ProfileHistoryItem, ProfileHistoryResp, Resource as ResourceType, StudentProfile, Task } from '@/lib/api'
+import { clearDesktopAuthSession, removeToken } from '@/lib/auth'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [gender, setGender] = useState<'male' | 'female'>('male')
   const [recentResources, setRecentResources] = useState<ResourceType[]>([])
   const [profile, setProfile] = useState<StudentProfile | null>(null)
@@ -23,6 +26,8 @@ export default function ProfilePage() {
   const [analysisProgress, setAnalysisProgress] = useState(0)
 
   useEffect(() => {
+    let cancelled = false
+
     api.getRecentResources().then(data => setRecentResources(data.slice(0, 3))).catch(() => {})
     setProfileStatus('loading')
     api.getProfile()
@@ -30,7 +35,13 @@ export default function ProfilePage() {
         setProfile(data)
         setProfileStatus('ready')
       })
-      .catch(error => {
+      .catch(async error => {
+        if (isUnauthorizedRequest(error)) {
+          removeToken()
+          await clearDesktopAuthSession()
+          if (!cancelled) router.replace('/auth')
+          return
+        }
         setProfile(null)
         setProfileStatus(api.isProfileNotFoundError(error) ? 'missing' : 'error')
       })
@@ -42,7 +53,11 @@ export default function ProfilePage() {
       .then(setProfileHistory)
       .catch(() => setProfileHistory({ items: [], update_interval_days: 3, next_update_at: '' }))
       .finally(() => setHistoryLoading(false))
-  }, [profileReloadKey])
+
+    return () => {
+      cancelled = true
+    }
+  }, [profileReloadKey, router])
 
   async function runProfileAnalysis() {
     setAnalysisLoading(true)
@@ -412,6 +427,12 @@ function buildProfileSummary(profile: StudentProfile | null) {
 
 function profileSummaryText(profile: StudentProfile | null, analysis: ProfileAnalysis | ProfileAnalysisResp | null) {
   return analysis?.overview?.trim() || analysis?.narrative?.trim() || buildProfileSummary(profile)
+}
+
+function isUnauthorizedRequest(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && (error as { status?: unknown }).status === 401
 }
 
 function profileSummarySource(analysis: ProfileAnalysis | ProfileAnalysisResp | null) {

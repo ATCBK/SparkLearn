@@ -316,13 +316,22 @@ for (const failure of ['server', 'network'] as const) {
   })
 }
 
-test('画像接口未授权时进入加载失败而非无画像', async ({ page }) => {
+test('画像接口未授权时清理失效会话并返回登录页', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.sparklearnDesktop = {
+      clearAuthSession: async () => {
+        sessionStorage.setItem('desktop-auth-cleared', 'true')
+        return { cleared: true }
+      },
+    }
+  })
   await mockProfileApis(page, { profileFailure: 'unauthorized' })
   await page.goto('/profile')
 
-  await expect(page.getByRole('heading', { name: '画像加载失败' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '还没有学习画像' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: '重新建档' })).toHaveCount(0)
+  await expect(page).toHaveURL(/\/auth$/)
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('sparklearn_token'))).toBeNull()
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('sparklearn_user'))).toBeNull()
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('desktop-auth-cleared'))).toBe('true')
 })
 
 test('画像存在但分析读取失败时保留原卡片并使用资料摘要', async ({ page }) => {
