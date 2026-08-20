@@ -250,4 +250,3 @@ Expected: PASS。
 Run: `cd frontend; npm run lint; npm run build`
 
 Expected: 两条命令退出码均为 0。
-
