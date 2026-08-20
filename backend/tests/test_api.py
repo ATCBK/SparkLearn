@@ -9,7 +9,7 @@ import json
 
 from app.auth import create_access_token
 from app.config import settings
-from app.db import execute, now_iso
+from app.db import execute, fetch_one, now_iso
 from app.routes import profile as profile_route
 
 
@@ -59,6 +59,16 @@ async def test_profile_onboarding_and_get(client):
     body = p.json()
     assert body["success"] is True
     assert "goal" in body["data"]
+
+
+@pytest.mark.asyncio
+async def test_profile_get_无画像时返回404且保留统一失败结构(client):
+    execute("DELETE FROM profiles WHERE user_id = ?", (settings.single_user_id,))
+
+    response = await client.get("/api/profile")
+
+    assert response.status_code == 404
+    assert response.json() == {"success": False, "data": None, "error": "profile not found"}
 
 
 @pytest.mark.asyncio
@@ -631,6 +641,377 @@ async def test_profile_analysis_无画像行时查询与重分析均不创建用
     assert "profile" in (current.json()["error"] or "").lower()
     assert "profile" in (regenerated.json()["error"] or "").lower()
     assert user_dir.exists() is False
+
+
+@pytest.mark.asyncio
+async def test_profile_delete_仅重置当前认证用户且重复调用保持成功(client):
+    other_user = "profile-delete-other"
+    timestamp = now_iso()
+    execute(
+        "INSERT INTO students(user_id, name, email, major, grade, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (other_user, "其他用户", "other-delete@example.com", "人工智能", "大一", timestamp, timestamp),
+    )
+    execute(
+        "INSERT INTO profiles(user_id, goal, version, updated_at) VALUES (?, ?, ?, ?)",
+        (other_user, '["其他用户目标"]', 8, timestamp),
+    )
+
+    first = await client.delete(f"/api/profile?user_id={other_user}")
+    second = await client.delete(f"/api/profile?user_id={other_user}")
+
+    assert first.status_code == 200
+    assert first.json()["data"]["reset"] is True
+    assert first.json()["data"]["redirect"] == "/onboarding"
+    assert second.json()["data"]["reset"] is True
+    assert fetch_one("SELECT version FROM profiles WHERE user_id = ?", (settings.single_user_id,)) is None
+    assert fetch_one("SELECT version FROM profiles WHERE user_id = ?", (other_user,))["version"] == 8
+    archive = json.loads(
+        (settings.data_dir / "users" / settings.single_user_id / "profile_reset_archive.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(archive) == 1
+
+
+@pytest.mark.asyncio
+async def test_profile_delete_重置异常返回结构化失败且不泄露内部错误(client, monkeypatch):
+    def failed_reset(user_id: str):
+        raise OSError("D:/private/profile_snapshot.json 磁盘故障")
+
+    monkeypatch.setattr(profile_route, "reset_learning_profile", failed_reset)
+
+    response = await client.delete("/api/profile")
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "success": False,
+        "data": None,
+        "error": "学习画像重置失败，请稍后重试",
+    }
+    assert "private" not in response.text
+
+
+async def _adopt_reset_test_pet(client) -> None:
+    response = await client.post(
+        "/api/agent/pet",
+        json={"name": "重置测试伙伴", "avatar": "fox", "personality": "concise"},
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_画像重置首次只创建确认且不调用模型(client, monkeypatch):
+    from app.db import fetch_one
+    from app.routes import agent as agent_route
+
+    called = False
+
+    async def forbidden_stream(*args, **kwargs):
+        nonlocal called
+        called = True
+        yield "不应调用"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", forbidden_stream)
+    await _adopt_reset_test_pet(client)
+    before = fetch_one("SELECT version FROM profiles WHERE user_id = ?", (settings.single_user_id,))["version"]
+
+    response = await client.post("/api/agent/chat", json={"message": "请帮我重置学习画像可以吗？"})
+
+    assert response.json()["data"]["action"] == {"type": "confirm_profile_reset"}
+    assert "确认重置" in response.json()["data"]["answer"]
+    assert fetch_one("SELECT version FROM profiles WHERE user_id = ?", (settings.single_user_id,))["version"] == before
+    assert called is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("message", ["确认", "确认重置", "不用了", "取消"])
+async def test_agent_chat_无待确认状态的确认取消话术继续普通聊天(client, monkeypatch, message: str):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        yield f"普通聊天已处理：{message}"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+
+    response = await client.post("/api/agent/chat", json={"message": message})
+
+    assert response.json()["data"]["answer"] == f"普通聊天已处理：{message}"
+    assert "action" not in response.json()["data"]
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_确认被消费后再次确认回到普通模型分支(client, monkeypatch):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        yield "重复确认已按普通聊天处理"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+    await client.post("/api/agent/chat", json={"message": "我现在要重新建档"})
+    confirmed = await client.post("/api/agent/chat", json={"message": "确认重置"})
+
+    repeated = await client.post("/api/agent/chat", json={"message": "确认重置"})
+
+    assert confirmed.json()["data"]["reset"] is True
+    assert repeated.json()["data"]["answer"] == "重复确认已按普通聊天处理"
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_未认养伙伴时不能创建确认或重置(client):
+    confirmation_file = _analysis_file().parent / "profile_reset_confirmation.json"
+
+    requested = await client.post("/api/agent/chat", json={"message": "请帮我重置学习画像"})
+    confirmed = await client.post("/api/agent/chat", json={"message": "确认重置"})
+
+    assert requested.json()["success"] is False
+    assert confirmed.json()["success"] is False
+    assert "请先认养" in requested.json()["error"]
+    assert "请先认养" in confirmed.json()["error"]
+    assert confirmation_file.exists() is False
+    assert fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,)) is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "不要重置学习画像",
+        "别清空画像",
+        "无需重置学习画像",
+        "重置画像是什么意思",
+        "如何重置画像",
+        "怎么重置画像",
+        "请问重置学习画像后会怎样",
+        "我想知道如何重置学习画像",
+        "请帮我解释重置画像是什么意思",
+        "我不想重置画像",
+        "请勿重置学习画像",
+        "为什么要重置画像",
+        "重置画像的流程是什么",
+        "重置画像安全吗",
+    ],
+)
+async def test_agent_chat_否定或信息问句不会创建重置确认(client, monkeypatch, message: str):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        yield "这是普通说明回答"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+
+    response = await client.post("/api/agent/chat", json={"message": message})
+
+    assert response.json()["data"]["answer"] == "这是普通说明回答"
+    assert "action" not in response.json()["data"]
+    assert _analysis_file().parent.joinpath("profile_reset_confirmation.json").exists() is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "我只是说说重置画像",
+        "有人说重置画像",
+        "我们讨论一下重置画像",
+        "我只是提到重置画像",
+        "别人让我重置画像",
+        "如果重置学习画像会发生什么",
+        "假设重新建档会怎么样",
+        "请帮我重置画像只是别人说的，不是我的决定",
+        "我想重置画像是导师提出的假设，不代表我要操作",
+    ],
+)
+async def test_agent_chat_讨论转述假设语境不会创建重置确认(client, monkeypatch, message: str):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        yield "这是普通语境讨论"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+
+    response = await client.post("/api/agent/chat", json={"message": message})
+
+    assert response.json()["data"]["answer"] == "这是普通语境讨论"
+    assert "action" not in response.json()["data"]
+    assert _analysis_file().parent.joinpath("profile_reset_confirmation.json").exists() is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "重置学习画像",
+        "请帮我重置学习画像",
+        "我决定重新建档",
+        "麻烦你帮我重置学习画像",
+        "能帮我重置学习画像吗",
+        "可以帮我清空画像吗",
+        "现在帮我重置学习画像",
+        "请现在帮我重新建档",
+    ],
+)
+async def test_agent_chat_明确重置请求仍创建确认且不调用模型(client, monkeypatch, message: str):
+    from app.routes import agent as agent_route
+
+    called = False
+
+    async def forbidden_stream(*args, **kwargs):
+        nonlocal called
+        called = True
+        yield "不应调用"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", forbidden_stream)
+    await _adopt_reset_test_pet(client)
+
+    response = await client.post("/api/agent/chat", json={"message": message})
+
+    assert response.json()["data"]["action"] == {"type": "confirm_profile_reset"}
+    assert called is False
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_确认重置后清理画像并返回建档导航(client, monkeypatch):
+    from app.db import fetch_one
+    from app.routes import agent as agent_route
+
+    async def forbidden_stream(*args, **kwargs):
+        raise AssertionError("确认重置不得调用模型")
+        yield ""
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", forbidden_stream)
+    await _adopt_reset_test_pet(client)
+    await client.post("/api/agent/chat", json={"message": "重新建档"})
+
+    response = await client.post("/api/agent/chat", json={"message": "确认重置"})
+
+    data = response.json()["data"]
+    assert data["reset"] is True
+    assert data["action"] == {"type": "navigate", "label": "重新开始建档", "href": "/onboarding"}
+    assert fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,)) is None
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_取消重置不改画像且不调用模型(client, monkeypatch):
+    from app.db import fetch_one
+    from app.routes import agent as agent_route
+
+    async def forbidden_stream(*args, **kwargs):
+        raise AssertionError("取消重置不得调用模型")
+        yield ""
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", forbidden_stream)
+    await _adopt_reset_test_pet(client)
+    await client.post("/api/agent/chat", json={"message": "清空画像"})
+
+    response = await client.post("/api/agent/chat", json={"message": "取消重置"})
+
+    assert "已取消" in response.json()["data"]["answer"]
+    assert fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,)) is not None
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_确认已过期时不改画像且不调用模型(client, monkeypatch):
+    from app.db import fetch_one
+    from app.routes import agent as agent_route
+    from app.storage import write_json
+
+    async def forbidden_stream(*args, **kwargs):
+        raise AssertionError("过期确认不得调用模型")
+        yield ""
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", forbidden_stream)
+    await _adopt_reset_test_pet(client)
+    await client.post("/api/agent/chat", json={"message": "重新建立学习画像"})
+    write_json(
+        settings.single_user_id,
+        "profile_reset_confirmation.json",
+        {"requested_at": "2026-08-20T00:00:00Z", "expires_at": "2026-08-20T00:01:00Z"},
+    )
+
+    response = await client.post("/api/agent/chat", json={"message": "确认重置"})
+
+    assert "已过期" in response.json()["data"]["answer"]
+    assert fetch_one("SELECT * FROM profiles WHERE user_id = ?", (settings.single_user_id,)) is not None
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_确认后重置失败会保留确认并允许重试(client, monkeypatch):
+    from app import profile_reset as profile_reset_service
+
+    await _adopt_reset_test_pet(client)
+    await client.post("/api/agent/chat", json={"message": "请帮我重置学习画像"})
+    real_write_json = profile_reset_service.write_json
+    failed = False
+
+    def fail_first_snapshot_write(target_user: str, filename: str, payload):
+        nonlocal failed
+        if filename == "profile_snapshot.json" and not failed:
+            failed = True
+            raise OSError("模拟确认后的重置失败")
+        return real_write_json(target_user, filename, payload)
+
+    monkeypatch.setattr(profile_reset_service, "write_json", fail_first_snapshot_write)
+
+    failed_response = await client.post("/api/agent/chat", json={"message": "确认重置"})
+    retry_response = await client.post("/api/agent/chat", json={"message": "确认重置"})
+
+    assert failed_response.json()["success"] is False
+    assert "可重试" in failed_response.json()["error"]
+    assert retry_response.json()["data"]["reset"] is True
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_重置和确认恢复都失败时不承诺确认仍有效(client, monkeypatch):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+    await client.post("/api/agent/chat", json={"message": "请帮我重置学习画像"})
+
+    def failed_reset(user_id: str):
+        raise OSError("D:/secret-reset-state")
+
+    def failed_restore(user_id: str):
+        raise OSError("D:/secret-confirmation-state")
+
+    monkeypatch.setattr(agent_route, "reset_learning_profile", failed_reset)
+    monkeypatch.setattr(agent_route, "restore_pending_reset", failed_restore)
+
+    response = await client.post("/api/agent/chat", json={"message": "确认重置"})
+
+    assert response.json()["success"] is False
+    assert "确认可能仍在处理中" in response.json()["error"]
+    assert "稍后" in response.json()["error"]
+    assert "确认已过期" in response.json()["error"]
+    assert "重新发起" in response.json()["error"]
+    assert "仍然有效" not in response.json()["error"]
+    assert "立即重新发起" not in response.json()["error"]
+    assert "secret" not in response.json()["error"]
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_普通对话仍走原有模型链路(client, monkeypatch):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        yield "这是普通学习问题的回答"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+
+    response = await client.post("/api/agent/chat", json={"message": "学习画像是如何帮助规划课程的？"})
+
+    data = response.json()["data"]
+    assert data["answer"] == "这是普通学习问题的回答"
+    assert "action" not in data
 
 
 @pytest.mark.asyncio

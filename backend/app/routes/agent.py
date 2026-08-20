@@ -16,6 +16,16 @@ from ..config import settings
 from ..auth import get_current_user
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
 from ..llm import spark_lite
+from ..profile_reset import (
+    CONFIRMATION_ACTIVE,
+    CONFIRMATION_CLAIMED,
+    CONFIRMATION_EXPIRED,
+    claim_pending_reset,
+    consume_pending_reset,
+    request_reset_confirmation,
+    reset_learning_profile,
+    restore_pending_reset,
+)
 from ..schemas import fail, ok
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
@@ -246,6 +256,74 @@ def _local_agent_chat_fallback(message: str, pet_name: str, personality: str) ->
         f"{prefix}模型服务暂时没连上，不过我们可以先往前走。关于「{topic}」，"
         "先抓住定义、例子、常见误区这三块就很好。你可以把你卡住的点发我，我继续帮你拆。"
     )
+
+
+def _normalized_reset_reply(message: str) -> str:
+    return re.sub(r"[\s，。！？、,.!?]+", "", message.strip())
+
+
+def _is_profile_reset_intent(message: str) -> bool:
+    text = _normalized_reset_reply(message)
+    actions = ("重置", "清空", "重新建立", "重新建档")
+    objects = ("学习画像", "画像", "建档")
+    if not (any(action in text for action in actions) and any(target in text for target in objects)):
+        return False
+
+    action_pattern = r"(?:重置|清空|重新建立|重新建档)"
+    denial_patterns = (
+        r"(?:不要|不想|不希望|无需|不需要|不必|不用|请勿|勿|禁止|拒绝|别(?!人))",
+        r"(?:不是|并非)(?:我|本人)(?:的决定|要|想|会|准备|打算|决定)",
+        r"不代表(?:我|本人)(?:要|想|会|准备|打算|决定)",
+    )
+    if any(re.search(pattern, text) for pattern in denial_patterns):
+        return False
+    explanation_markers = (
+        "是什么意思",
+        "为什么",
+        "为何",
+        "如何",
+        "怎么",
+        "流程",
+        "步骤",
+        "安全吗",
+        "安全么",
+        "会怎样",
+        "会怎么样",
+        "有什么影响",
+        "有什么风险",
+    )
+    if any(marker in text for marker in explanation_markers):
+        return False
+
+    non_request_patterns = (
+        r"(?:只是|仅仅|单纯)(?:说说|提到|谈到|讨论)",
+        r"(?:讨论|聊聊|谈谈|说说)(?:一下|下)?",
+        r"(?:有人|别人|他人)(?:说|提到|谈到|建议|让我|叫我)",
+        r"(?:只是|不过是)?(?:别人|有人|他人|导师|老师|同学)(?:说|提到|谈到|提出|建议)(?:的)?",
+        rf"(?:如果|假如|假设|倘若|要是|比如|例如).{{0,16}}{action_pattern}",
+        r"(?:假设|设想|引用|转述)",
+    )
+    if any(re.search(pattern, text) for pattern in non_request_patterns):
+        return False
+
+    request_text = re.sub(
+        r"^(?:(?:请|麻烦|劳驾|拜托|能不能|能否|能|可以|可否|立即|马上|现在)|你)+",
+        "",
+        text,
+    )
+    explicit_request_patterns = (
+        rf"^(?:帮我|替我|为我|给我)?{action_pattern}",
+        rf"^我(?:已经)?(?:决定|现在要|要|想要|想|希望|准备|打算)(?:请你)?(?:帮我)?(?:立即|马上|现在)?{action_pattern}",
+    )
+    return any(re.search(pattern, request_text) for pattern in explicit_request_patterns)
+
+
+def _is_profile_reset_confirmation(message: str) -> bool:
+    return _normalized_reset_reply(message) in {"确认", "确认重置", "确定重置", "是的重置"}
+
+
+def _is_profile_reset_cancellation(message: str) -> bool:
+    return _normalized_reset_reply(message) in {"取消", "取消重置", "暂不重置", "不用了"}
 
 
 def _compute_level(xp: int) -> int:
@@ -727,6 +805,53 @@ async def chat_with_pet(req: PetChatReq, current_user: dict = Depends(get_curren
     if not pet:
         return fail("请先认养学习伙伴")
 
+    if _is_profile_reset_confirmation(req.message):
+        confirmation_state = claim_pending_reset(user_id)
+        if confirmation_state == CONFIRMATION_ACTIVE:
+            try:
+                result = reset_learning_profile(user_id)
+            except Exception:
+                restored = False
+                try:
+                    restore_pending_reset(user_id)
+                    restored = True
+                except Exception:
+                    pass
+                if restored:
+                    return fail("学习画像重置失败，确认仍然有效且可重试，请再次回复确认重置")
+                return fail(
+                    "学习画像重置失败，当前确认可能仍在处理中，请稍后查看处理状态；"
+                    "若确认已过期，请重新发起画像重置"
+                )
+            return ok(
+                {
+                    **result,
+                    "answer": "学习画像已重置，可以重新开始建档。",
+                    "action": {"type": "navigate", "label": "重新开始建档", "href": "/onboarding"},
+                    "created_at": result["reset_at"],
+                }
+            )
+        if confirmation_state == CONFIRMATION_EXPIRED:
+            return ok({"answer": "重置确认已过期或不存在，学习画像未改变。", "created_at": now_iso()})
+        if confirmation_state == CONFIRMATION_CLAIMED:
+            return ok({"answer": "学习画像正在重置，请稍候。", "created_at": now_iso()})
+    if _is_profile_reset_cancellation(req.message):
+        confirmation_state = consume_pending_reset(user_id)
+        if confirmation_state == CONFIRMATION_ACTIVE:
+            return ok({"answer": "已取消学习画像重置，当前画像保持不变。", "created_at": now_iso()})
+        if confirmation_state == CONFIRMATION_EXPIRED:
+            return ok({"answer": "重置确认已过期，当前画像保持不变。", "created_at": now_iso()})
+        if confirmation_state == CONFIRMATION_CLAIMED:
+            return ok({"answer": "学习画像正在重置，暂时无法取消。", "created_at": now_iso()})
+    if _is_profile_reset_intent(req.message):
+        request_reset_confirmation(user_id)
+        return ok(
+            {
+                "answer": "重置会清除当前学习画像、专业年级和画像语义记忆，但保留账号与学习记录。请回复“确认重置”继续。",
+                "action": {"type": "confirm_profile_reset"},
+                "created_at": now_iso(),
+            }
+        )
     persona_prompt = PERSONA_PROMPTS.get(pet["personality"], PERSONA_PROMPTS["encouraging"])
     profile_context = _load_agent_profile_context(user_id)
     prompt = f"""你是 SparkLearn 的学习伙伴「{pet['name']}」。

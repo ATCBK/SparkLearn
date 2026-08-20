@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -12,6 +12,7 @@ from ..auth import get_current_user
 from ..db import execute, fetch_one, now_iso
 from ..llm import spark_lite
 from ..profile_ai import build_rule_fallback_analysis, extract_dialog_profile, generate_profile_analysis
+from ..profile_reset import profile_sessions, reset_learning_profile
 from ..schemas import fail, ok
 from ..storage import append_jsonl, read_json, update_json, write_json
 from .common import sse_wrap
@@ -19,7 +20,7 @@ from .common import sse_wrap
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
-_sessions: dict[str, dict[str, Any]] = {}
+_sessions = profile_sessions
 PROFILE_HISTORY_FILE = "profile_history.json"
 PROFILE_ANALYSIS_FILE = "profile_ai_analysis.json"
 PROFILE_HISTORY_INTERVAL_DAYS = 3
@@ -193,13 +194,23 @@ async def chat(req: ProfileChatReq, current_user: dict = Depends(get_current_use
 
 
 @router.get("")
-async def get_profile(current_user: dict = Depends(get_current_user)):
+async def get_profile(response: Response, current_user: dict = Depends(get_current_user)):
     user_id = current_user["user_id"]
     profile_row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
     if not profile_row:
+        response.status_code = 404
         return fail("profile not found")
     student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     return ok(_row_to_profile(profile_row, student_row))
+
+
+@router.delete("")
+async def delete_profile(response: Response, current_user: dict = Depends(get_current_user)):
+    try:
+        return ok(reset_learning_profile(current_user["user_id"]))
+    except Exception:
+        response.status_code = 500
+        return fail("学习画像重置失败，请稍后重试")
 
 
 @router.get("/analysis/current")
