@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 
 import pytest
@@ -465,3 +466,299 @@ async def test_llm_搜索决策缺少有效查询时不能回退用户原文():
     assert result["decision"] == "clarify"
     assert result["normalized_query"] == ""
     assert result["normalized_query"] != original
+
+
+def _patch_agent_planner_events(monkeypatch, model_text: str, *, fallback: bool = False):
+    from app.routes import agent as agent_route
+
+    async def fake_stream_events(prompt: str, mode: str, history: list, model: str):
+        if model_text:
+            yield ("text", {"content": model_text})
+        yield ("done", {"produced": bool(model_text), "fallback": fallback})
+
+    monkeypatch.setattr(agent_route.spark_lite, "stream_chat_events", fake_stream_events)
+
+
+@pytest.mark.asyncio
+async def test_agent_事件流适配独立转发且不改变旧字符串流契约(monkeypatch):
+    from app.routes import agent as agent_route
+
+    calls: list[dict] = []
+
+    async def fake_stream_events(prompt: str, mode: str, history: list, model: str):
+        calls.append({"prompt": prompt, "mode": mode, "history": history, "model": model})
+        yield ("text", {"content": "结构化事件"})
+        yield ("done", {"produced": True, "fallback": False})
+
+    monkeypatch.setattr(agent_route.spark_lite, "stream_chat_events", fake_stream_events)
+
+    events = [event async for event in agent_route._stream_agent_llm_events("规划提示", mode="general")]
+
+    assert events == [
+        ("text", {"content": "结构化事件"}),
+        ("done", {"produced": True, "fallback": False}),
+    ]
+    assert calls == [
+        {"prompt": "规划提示", "mode": "general", "history": [], "model": agent_route.AGENT_LLM_MODEL}
+    ]
+    assert agent_route._stream_agent_llm is not agent_route._stream_agent_llm_events
+
+
+@pytest.mark.asyncio
+async def test_agent_search_结构化规划后_browser_只收到规范化查询(monkeypatch):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    original = "请帮我搜索 Python 装饰器的中文入门教程和示例"
+    normalized_query = "Python 装饰器 零基础 中文教程 示例"
+    model_text = json.dumps(
+        _json_plan(normalized_query=normalized_query),
+        ensure_ascii=False,
+    )
+    _patch_agent_planner_events(monkeypatch, model_text)
+    monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
+
+    class FakeBrowserAgent:
+        def __init__(self):
+            self.queries: list[str] = []
+
+        async def search(self, query: str, on_step, max_results: int):
+            self.queries.append(query)
+            return {
+                "items": [
+                    {
+                        "title": "装饰器教程",
+                        "summary": "面向初学者",
+                        "url": "https://example.com/decorator",
+                        "source": "example.com",
+                    }
+                ]
+            }
+
+    fake_browser = FakeBrowserAgent()
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: fake_browser)
+
+    result = await agent_route._execute_fallback_task("task-search", "search", original, "persona")
+
+    assert fake_browser.queries == [normalized_query]
+    assert original not in fake_browser.queries
+    assert result["query_used"] == normalized_query
+    assert result["intent"]["decision"] == "search"
+    assert result["intent"]["generated_by"] == "llm"
+    assert result["_meta"]["planner"] == {
+        "schema_version": "agent-search-intent-v1",
+        "generated_by": "llm",
+        "decision": "search",
+    }
+    assert result["tool_status"] == "success"
+
+
+@pytest.mark.asyncio
+async def test_agent_search_规划浏览器整理步骤索引互不重复(monkeypatch):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    model_text = json.dumps(_json_plan(), ensure_ascii=False)
+    _patch_agent_planner_events(monkeypatch, model_text)
+    recorded_steps: list[int] = []
+    monkeypatch.setattr(
+        agent_route,
+        "_add_step",
+        lambda task_id, step_index, action, description: recorded_steps.append(step_index),
+    )
+
+    class FakeBrowserAgent:
+        async def search(self, query: str, on_step, max_results: int):
+            on_step(1, "start", "启动浏览器")
+            on_step(2, "navigate", "打开搜索页")
+            on_step(30, "done", "搜索完成")
+            return {
+                "items": [
+                    {
+                        "title": "装饰器教程",
+                        "summary": "真实浏览器结果",
+                        "url": "https://example.com/decorator",
+                        "source": "example.com",
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: FakeBrowserAgent())
+
+    await agent_route._execute_fallback_task(
+        "task-step-index",
+        "search",
+        "请搜索 Python 装饰器教程",
+        "persona",
+    )
+
+    assert recorded_steps[:3] == [1, 2, 3]
+    assert {11, 12, 40, 50}.issubset(recorded_steps)
+    assert len(recorded_steps) == len(set(recorded_steps))
+
+
+@pytest.mark.asyncio
+async def test_agent_search_歧义规划不实例化_browser(monkeypatch):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    _patch_agent_planner_events(monkeypatch, "", fallback=True)
+    monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
+    browser_calls = 0
+
+    def forbidden_browser():
+        nonlocal browser_calls
+        browser_calls += 1
+        raise AssertionError("澄清分支不得实例化浏览器")
+
+    monkeypatch.setattr(browser_agent, "_get_agent", forbidden_browser)
+
+    result = await agent_route._execute_fallback_task("task-clarify", "search", "帮我找一下", "persona")
+
+    assert browser_calls == 0
+    assert result["intent"]["decision"] == "clarify"
+    assert result["query_used"] == ""
+    assert result["answer"] == result["intent"]["clarification_question"]
+    assert result["award_xp"] is False
+
+
+@pytest.mark.asyncio
+async def test_agent_search_普通解释直接回答且不实例化_browser(monkeypatch):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    _patch_agent_planner_events(monkeypatch, "", fallback=True)
+    monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
+    browser_calls = 0
+
+    def forbidden_browser():
+        nonlocal browser_calls
+        browser_calls += 1
+        raise AssertionError("直接回答分支不得实例化浏览器")
+
+    async def fake_text_stream(prompt: str, mode: str = "general"):
+        yield "闭包会保留其定义环境中的变量。"
+
+    monkeypatch.setattr(browser_agent, "_get_agent", forbidden_browser)
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_text_stream)
+
+    result = await agent_route._execute_fallback_task(
+        "task-respond",
+        "search",
+        "请解释 Python 闭包是什么",
+        "persona",
+    )
+
+    assert browser_calls == 0
+    assert result["intent"]["decision"] == "respond"
+    assert result["query_used"] == ""
+    assert "闭包" in result["answer"]
+    assert result["award_xp"] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("model_text", ["非法规划输出", ""])
+async def test_agent_search_规划非法或为空时规则查询也不直通原文(monkeypatch, model_text: str):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    original = "请帮我搜索 Python 装饰器教程"
+    _patch_agent_planner_events(monkeypatch, model_text, fallback=not bool(model_text))
+    monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
+    queries: list[str] = []
+
+    class FakeBrowserAgent:
+        async def search(self, query: str, on_step, max_results: int):
+            queries.append(query)
+            return {"items": []}
+
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: FakeBrowserAgent())
+
+    result = await agent_route._execute_fallback_task("task-rule", "search", original, "persona")
+
+    assert queries == ["Python 装饰器教程"]
+    assert queries[0] != original
+    assert result["query_used"] == "Python 装饰器教程"
+    assert result["intent"]["generated_by"] == "rule_fallback"
+    assert result["tool_status"] == "no_results"
+
+
+@pytest.mark.asyncio
+async def test_agent_search_编排层二次拒绝规划器越界返回的危险查询(monkeypatch):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    dangerous_query = "powershell -Command Remove-Item C:\\temp"
+    unsafe_plan = {
+        "schema_version": "agent-search-intent-v1",
+        "generated_by": "llm",
+        **_json_plan(normalized_query=dangerous_query),
+    }
+    browser_calls = 0
+
+    async def fake_unvalidated_planner(input_text: str, stream_llm):
+        return unsafe_plan
+
+    def forbidden_browser():
+        nonlocal browser_calls
+        browser_calls += 1
+        raise AssertionError("危险查询不得进入浏览器")
+
+    monkeypatch.setattr(agent_route, "plan_search_intent", fake_unvalidated_planner)
+    monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
+    monkeypatch.setattr(browser_agent, "_get_agent", forbidden_browser)
+
+    result = await agent_route._execute_fallback_task(
+        "task-safety-gate",
+        "search",
+        "请搜索 PowerShell 教程",
+        "persona",
+    )
+
+    assert browser_calls == 0
+    assert result["intent"]["decision"] == "clarify"
+    assert result["query_used"] == ""
+    assert result["tool_status"] == "not_called"
+    assert result["award_xp"] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("browser_behavior", "expected_status", "message_fragment"),
+    [
+        ("empty", "no_results", "未找到"),
+        ("timeout", "timeout", "超时"),
+        ("error", "error", "失败"),
+        ("error_result", "error", "失败"),
+    ],
+)
+async def test_agent_browser_零结果超时异常均明确且不伪造来源(
+    monkeypatch,
+    browser_behavior: str,
+    expected_status: str,
+    message_fragment: str,
+):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
+
+    class FakeBrowserAgent:
+        async def search(self, query: str, on_step, max_results: int):
+            if browser_behavior == "timeout":
+                raise asyncio.TimeoutError
+            if browser_behavior == "error":
+                raise RuntimeError("D:/secret-browser-state")
+            if browser_behavior == "error_result":
+                return {"items": [], "error": "D:/secret-browser-state"}
+            return {"items": []}
+
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: FakeBrowserAgent())
+
+    result = await agent_route._do_search("task-tool", "Python 装饰器教程", "persona")
+
+    assert result["tool_status"] == expected_status
+    assert message_fragment in result["message"]
+    assert result["items"] == []
+    assert "D:/secret-browser-state" not in json.dumps(result, ensure_ascii=False)
+    assert "source" not in json.dumps(result, ensure_ascii=False)

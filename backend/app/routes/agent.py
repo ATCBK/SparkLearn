@@ -12,6 +12,7 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import BaseModel, field_validator
 
+from ..agent_intent import normalize_search_query, plan_search_intent
 from ..config import settings
 from ..auth import get_current_user
 from ..db import execute, fetch_all, fetch_one, get_conn, now_iso
@@ -363,6 +364,18 @@ async def _stream_agent_llm(prompt: str, mode: str = "general"):
         yield chunk
 
 
+async def _stream_agent_llm_events(prompt: str, mode: str = "general"):
+    """为结构化规划保留模型 error/done 事件，不改变旧字符串流契约。"""
+
+    async for event in spark_lite.stream_chat_events(
+        prompt,
+        mode=mode,
+        history=[],
+        model=AGENT_LLM_MODEL,
+    ):
+        yield event
+
+
 def _extract_first_url(text: str) -> str:
     match = re.search(r"https?://[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%]+", text.strip())
     if not match:
@@ -446,13 +459,15 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
         persona_prompt = PERSONA_PROMPTS.get(personality, PERSONA_PROMPTS["encouraging"])
 
         result = await _execute_fallback_task(task_id, task_type, input_text, persona_prompt)
+        award_xp = bool(result.pop("award_xp", True))
 
         execute(
             "UPDATE agent_tasks SET status = 'completed', result_json = ?, updated_at = ? WHERE id = ?",
             (json.dumps(result, ensure_ascii=False), now_iso(), task_id),
         )
         _add_step(task_id, 99, "done", "任务完成！")
-        _award_xp(pet_id, task_type)
+        if award_xp:
+            _award_xp(pet_id, task_type)
 
     except asyncio.TimeoutError:
         execute(
@@ -471,7 +486,59 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
 
 async def _execute_fallback_task(task_id: str, task_type: str, input_text: str, persona_prompt: str) -> dict:
     if task_type == "search":
-        return await _do_search(task_id, input_text, persona_prompt)
+        _add_step(task_id, 1, "plan", "正在分析用户意图...")
+        plan = await plan_search_intent(input_text, _stream_agent_llm_events)
+        if plan["decision"] == "search":
+            planned_query = plan.get("normalized_query", "")
+            validated_query = normalize_search_query(planned_query)
+            if not validated_query or validated_query != planned_query:
+                plan = {
+                    **plan,
+                    "decision": "clarify",
+                    "normalized_query": "",
+                    "clarification_question": "检索词未通过安全校验，请换一种方式说明要查找的学习主题。",
+                }
+        planner_meta = {
+            "schema_version": plan["schema_version"],
+            "generated_by": plan["generated_by"],
+            "decision": plan["decision"],
+        }
+        shared_result = {
+            "query_used": "",
+            "intent": plan,
+            "_meta": {"planner": planner_meta},
+        }
+
+        if plan["decision"] == "clarify":
+            _add_step(task_id, 2, "plan", "当前信息不足，需要补充检索主题。")
+            return {
+                **shared_result,
+                "answer": plan["clarification_question"],
+                "tool_status": "not_called",
+                "award_xp": False,
+            }
+
+        if plan["decision"] == "respond":
+            _add_step(task_id, 2, "plan", "该问题无需联网检索，正在直接回答。")
+            answer = await _answer_without_browser(input_text, plan, persona_prompt)
+            return {
+                **shared_result,
+                "answer": answer,
+                "tool_status": "not_called",
+                "award_xp": False,
+            }
+
+        query = plan["normalized_query"]
+        _add_step(task_id, 2, "plan", f"已生成规范化检索词：{query}")
+        _add_step(task_id, 3, "browser", "正在调用浏览器检索工具...")
+        result = await _do_search(task_id, query, persona_prompt)
+        _add_step(task_id, 50, "organize", "正在整理浏览器检索结果。")
+        return {
+            **result,
+            "query_used": query,
+            "intent": plan,
+            "_meta": {"planner": planner_meta},
+        }
     if task_type == "summarize":
         return await _do_summarize(task_id, input_text, persona_prompt)
     if task_type == "compare":
@@ -481,54 +548,74 @@ async def _execute_fallback_task(task_id: str, task_type: str, input_text: str, 
     return {"error": "Unknown task type"}
 
 
+async def _answer_without_browser(input_text: str, plan: dict[str, Any], persona: str) -> str:
+    prompt = f"""你是 SparkLearn 学习伙伴。请直接回答用户问题，不要调用或声称调用浏览器工具。
+
+性格要求：{persona}
+回答目标：{plan.get("goal", "")}
+关注重点：{plan.get("output_focus", "")}
+用户问题：{input_text}
+
+请用中文清晰回答；不要伪造外部来源或链接。"""
+    chunks: list[str] = []
+    try:
+        async for chunk in _stream_agent_llm(prompt, mode="general"):
+            chunks.append(chunk)
+    except Exception:
+        pass
+    answer = "".join(chunks).strip()
+    if answer:
+        return answer
+    return "这个问题不需要联网检索，但当前模型没有返回可展示的回答，请稍后重试。"
+
+
 async def _do_search(task_id: str, query: str, persona: str) -> dict:
     """Real browser search using Playwright"""
     from ..browser_agent import _get_agent
 
     def on_step(idx: int, action: str, desc: str):
-        _add_step(task_id, idx, action, desc)
+        _add_step(task_id, idx + 10, action, desc)
 
     try:
         result = await asyncio.wait_for(
             _get_agent().search(query, on_step=on_step, max_results=5),
             timeout=40,
         )
-        if result.get("items") and len(result["items"]) > 0:
-            return result
-        # Fallback to LLM if browser got no results
-        _add_step(task_id, 9, "extract", "浏览器未获取到结果，使用 AI 补充...")
-        return await _do_search_llm_fallback(task_id, query, persona)
-    except (asyncio.TimeoutError, Exception):
-        _add_step(task_id, 9, "extract", "浏览器搜索超时，使用 AI 补充...")
-        return await _do_search_llm_fallback(task_id, query, persona)
-
-
-async def _do_search_llm_fallback(task_id: str, query: str, persona: str) -> dict:
-    prompt = f"""请根据以下学习需求，推荐 3-5 个优质学习资源。
-
-学习需求：{query}
-
-请严格按以下 JSON 格式返回（不要包含其他文字）：
-{{"items": [{{"title": "资源标题", "summary": "50字以内的摘要描述", "url": "资源链接", "source": "来源网站"}}]}}
-
-要求：
-- 推荐真实存在的知名教程、文档或博客
-- 优先推荐中文资源
-- 摘要要精炼有用"""
-
-    chunks: list[str] = []
-    async for c in _stream_agent_llm(prompt, mode="general"):
-        chunks.append(c)
-    text = "".join(chunks).strip()
-    try:
-        json_match = re.search(r'\{[\s\S]*\}', text)
-        if json_match:
-            result = json.loads(json_match.group())
-            if "items" in result:
-                return result
-    except (json.JSONDecodeError, TypeError):
-        pass
-    return {"items": [{"title": query, "summary": text[:200], "url": "", "source": "AI"}]}
+        if isinstance(result, dict) and result.get("error"):
+            _add_step(task_id, 45, "error", "浏览器检索工具调用失败。")
+            return {
+                "items": [],
+                "tool_status": "error",
+                "message": "浏览器检索工具调用失败，请稍后重试。",
+            }
+        items = result.get("items") if isinstance(result, dict) else None
+        if isinstance(items, list) and items:
+            return {
+                **result,
+                "items": items,
+                "tool_status": "success",
+                "message": result.get("message") or "浏览器检索工具已返回结果。",
+            }
+        _add_step(task_id, 45, "extract", "浏览器检索工具未找到结果。")
+        return {
+            "items": [],
+            "tool_status": "no_results",
+            "message": "浏览器检索工具未找到结果，请补充条件或更换关键词。",
+        }
+    except asyncio.TimeoutError:
+        _add_step(task_id, 45, "error", "浏览器检索工具调用超时。")
+        return {
+            "items": [],
+            "tool_status": "timeout",
+            "message": "浏览器检索工具调用超时，请稍后重试。",
+        }
+    except Exception:
+        _add_step(task_id, 45, "error", "浏览器检索工具调用失败。")
+        return {
+            "items": [],
+            "tool_status": "error",
+            "message": "浏览器检索工具调用失败，请稍后重试。",
+        }
 
 
 async def _do_summarize(task_id: str, input_text: str, persona: str) -> dict:

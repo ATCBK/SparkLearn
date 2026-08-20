@@ -1245,6 +1245,75 @@ async def test_tutor_docx_upload_is_indexed(client):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("input_text", "expected_decision"),
+    [
+        ("帮我找一下", "clarify"),
+        ("请解释 Python 闭包是什么", "respond"),
+    ],
+)
+async def test_agent_search_澄清和直接回答任务不调用浏览器不加经验且不保存控制字段(
+    client,
+    monkeypatch,
+    input_text: str,
+    expected_decision: str,
+):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    monkeypatch.setattr(settings, "auth_dev_bypass", True)
+    browser_calls = 0
+
+    async def fake_planner_events(prompt: str, mode: str, history: list, model: str):
+        yield ("done", {"produced": False, "fallback": True})
+
+    async def fake_text_stream(prompt: str, mode: str = "general"):
+        yield "闭包会保留其定义环境中的变量。"
+
+    def forbidden_browser():
+        nonlocal browser_calls
+        browser_calls += 1
+        raise AssertionError("澄清和直接回答不得实例化浏览器")
+
+    monkeypatch.setattr(agent_route.spark_lite, "stream_chat_events", fake_planner_events)
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_text_stream)
+    monkeypatch.setattr(browser_agent, "_get_agent", forbidden_browser)
+
+    adopted = await client.post(
+        "/api/agent/pet",
+        json={"name": "小星", "avatar": "fox", "personality": "encouraging"},
+    )
+    assert adopted.status_code == 200
+    assert adopted.json()["success"] is True
+    initial_xp = adopted.json()["data"]["xp"]
+
+    created = await client.post(
+        "/api/agent/task",
+        json={"task_type": "search", "input_text": input_text},
+    )
+    assert created.status_code == 200
+    task_id = created.json()["data"]["task_id"]
+
+    task_data = None
+    for _ in range(10):
+        response = await client.get(f"/api/agent/task/{task_id}")
+        task_data = response.json()["data"]
+        if task_data["status"] not in {"pending", "running"}:
+            break
+
+    assert task_data is not None
+    assert task_data["status"] == "completed"
+    assert browser_calls == 0
+    assert task_data["result"]["intent"]["decision"] == expected_decision
+    assert task_data["result"]["query_used"] == ""
+    assert task_data["result"]["_meta"]["planner"]["decision"] == expected_decision
+    assert "award_xp" not in task_data["result"]
+
+    current_pet = await client.get("/api/agent/pet")
+    assert current_pet.json()["data"]["xp"] == initial_xp
+
+
+@pytest.mark.asyncio
 async def test_agent_task_uses_learning_companion_backend(client, monkeypatch):
     from app.config import settings
     from app.routes import agent as agent_route
