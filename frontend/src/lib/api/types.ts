@@ -364,6 +364,9 @@ export interface ProfileHistoryItem {
   practical_ability: string
   current_stage: string
   summary: string
+  narrative?: string
+  analysis_source?: 'llm' | 'rule_fallback' | 'legacy_unverified' | string
+  confidence?: number
 }
 
 export interface ProfileHistoryResp {
@@ -372,14 +375,40 @@ export interface ProfileHistoryResp {
   next_update_at: string
 }
 
-export interface ProfileAnalysisResp {
-  analysis: string
-  analysis_steps: Array<{
-    title: string
-    detail: string
-    status: string
-  }>
+export interface ProfileAnalysisEvidence {
+  source: string
+  label: string
+  captured_at: string
+}
+
+export interface ProfileAnalysisStep {
+  title: string
+  detail: string
+  status: string
+}
+
+export interface ProfileAnalysis {
+  status: string
+  schema_version: string
+  profile_version: number
+  source_type: string
+  generated_by: 'llm' | 'rule_fallback' | 'legacy_unverified'
+  model: string
+  confidence: number
+  overview: string
+  narrative: string
+  goal_gap: string
+  strengths: string[]
+  focus_areas: string[]
+  learning_strategy: string
+  next_actions: string[]
+  evidence: ProfileAnalysisEvidence[]
+  analysis_steps: ProfileAnalysisStep[]
   updated_at: string
+}
+
+export interface ProfileAnalysisResp extends ProfileAnalysis {
+  analysis: string
 }
 
 export interface Message {

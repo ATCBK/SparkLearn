@@ -5,7 +5,7 @@ import type {
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherClass, TeacherClassMember, ClassBroadcast, TeacherSubject, TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledgeGraphNode, McpService, McpServicePayload,
-  ProfileHistoryResp, ProfileAnalysisResp,
+  ProfileHistoryResp, ProfileAnalysis, ProfileAnalysisResp,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
   AdminAuditList, AdminDashboard, AdminSettingsResp, AdminUser, AdminUserList,
@@ -17,6 +17,26 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 type ApiResp<T> = { success: boolean; data: T; error?: string; detail?: unknown }
 type SseEvent = { type: string; payload: Record<string, unknown> }
+
+export class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly method: string,
+    readonly path: string,
+  ) {
+    super(message)
+    this.name = 'ApiRequestError'
+  }
+}
+
+export function isProfileNotFoundError(error: unknown): boolean {
+  return error instanceof ApiRequestError
+    && error.status === 404
+    && error.method === 'GET'
+    && error.path === '/api/profile'
+    && /profile not found/i.test(error.message)
+}
 
 export function buildUrlAccessUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
   const url = new URL(`${API_BASE}${path}`)
@@ -108,7 +128,7 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
     })
     const json = await res.json() as ApiResp<T>
     if (!res.ok || !json.success) {
-      throw new Error(formatApiError(json, method, path, res.status))
+      throw new ApiRequestError(formatApiError(json, method, path, res.status), res.status, method, path)
     }
     return json.data
   } catch (error) {
@@ -382,6 +402,10 @@ export async function updateProfile(payload: ProfileUpdatePayload): Promise<void
 
 export async function getProfileHistory(): Promise<ProfileHistoryResp> {
   return fetchJson('/api/profile/history')
+}
+
+export async function getCurrentProfileAnalysis(): Promise<ProfileAnalysis> {
+  return fetchJson('/api/profile/analysis/current')
 }
 
 export async function analyzeProfileHistory(): Promise<ProfileAnalysisResp> {

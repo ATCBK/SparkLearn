@@ -14,8 +14,10 @@ export const api = {
   getMasteryData: impl.getMasteryData,
 
   getProfile: impl.getProfile,
+  isProfileNotFoundError: impl.isProfileNotFoundError,
   updateProfile: impl.updateProfile,
   getProfileHistory: impl.getProfileHistory,
+  getCurrentProfileAnalysis: impl.getCurrentProfileAnalysis,
   analyzeProfileHistory: impl.analyzeProfileHistory,
 
   getResources: impl.getResources,
@@ -165,7 +167,7 @@ export const api = {
 export type {
   Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, VideoStyle, VideoScriptSegment, VideoPolishResult, ContributionDay,
-  TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileHistoryItem, ProfileHistoryResp, ProfileAnalysisResp, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
+  TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileHistoryItem, ProfileHistoryResp, ProfileAnalysis, ProfileAnalysisResp, ProfileAnalysisEvidence, ProfileAnalysisStep, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherClass, TeacherClassMember, ClassBroadcast,
   McpService, McpServicePayload,
