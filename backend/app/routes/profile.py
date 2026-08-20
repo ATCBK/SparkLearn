@@ -1,18 +1,19 @@
 import json
+import math
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from ..config import settings
 from ..auth import get_current_user
 from ..db import execute, fetch_one, now_iso
 from ..llm import spark_lite
+from ..profile_ai import build_rule_fallback_analysis, extract_dialog_profile, generate_profile_analysis
 from ..schemas import fail, ok
-from ..storage import append_jsonl, read_json, write_json
+from ..storage import append_jsonl, read_json, update_json, write_json
 from .common import sse_wrap
 
 
@@ -22,6 +23,38 @@ _sessions: dict[str, dict[str, Any]] = {}
 PROFILE_HISTORY_FILE = "profile_history.json"
 PROFILE_ANALYSIS_FILE = "profile_ai_analysis.json"
 PROFILE_HISTORY_INTERVAL_DAYS = 3
+PROFILE_LEARNING_FIELDS = (
+    "major",
+    "grade",
+    "goal",
+    "knowledge_level",
+    "weak_points",
+    "learning_preference",
+    "cognitive_style",
+    "daily_time",
+    "practical_ability",
+    "current_stage",
+    "version",
+)
+PROFILE_ANALYSIS_REQUIRED_FIELDS = {
+    "status",
+    "schema_version",
+    "profile_version",
+    "source_type",
+    "generated_by",
+    "model",
+    "confidence",
+    "overview",
+    "narrative",
+    "goal_gap",
+    "strengths",
+    "focus_areas",
+    "learning_strategy",
+    "next_actions",
+    "evidence",
+    "analysis_steps",
+    "updated_at",
+}
 
 
 class ProfileChatReq(BaseModel):
@@ -58,15 +91,23 @@ class ProfileUpdateReq(BaseModel):
 @router.post("/onboarding")
 async def onboarding(req: ProfileOnboardingReq, current_user: dict = Depends(get_current_user)):
     user_id = current_user["user_id"]
+    if not _onboarding_has_learning_data(req):
+        return fail("请至少提供一项学习画像信息")
     profile = _build_profile_from_onboarding(req)
+    profile["version"] = _next_profile_version(user_id)
     major = _first_nonempty(req.major)
     _upsert_student_identity(user_id, name=req.name, grade=req.grade, major=major)
-    if major:
-        profile["major"] = major
+    _sync_profile_student_identity(user_id, profile)
     _upsert_profile(user_id, profile)
     _write_profile_snapshot(user_id, profile)
-    _record_profile_history(user_id, profile, reason="onboarding")
-    append_jsonl(user_id, "learning_events.jsonl", {"type": "profile_onboarding", "profile": profile})
+    source_text = json.dumps(_onboarding_source_payload(req), ensure_ascii=False)
+    analysis = await _generate_and_store_analysis(user_id, profile, "onboarding", source_text)
+    _record_profile_history(user_id, profile, reason="onboarding", analysis=analysis)
+    append_jsonl(
+        user_id,
+        "learning_events.jsonl",
+        {"type": "profile_onboarding", "profile": profile, "source_text": source_text},
+    )
     return ok({"version": profile["version"], "message": "onboarding profile saved"})
 
 
@@ -85,34 +126,63 @@ async def initiate(current_user: dict = Depends(get_current_user)):
 
 
 @router.post("/chat")
-async def chat(req: ProfileChatReq):
-    if req.session_id not in _sessions:
-        return fail("会话已过期")
+async def chat(req: ProfileChatReq, current_user: dict = Depends(get_current_user)):
+    session = _sessions.get(req.session_id)
+    if not session or session.get("user_id") != current_user["user_id"]:
+        return fail("会话不存在或无权访问")
 
     async def gen():
-        session = _sessions[req.session_id]
         session["messages"].append({"role": "user", "content": req.message, "ts": now_iso()})
         round_no = session["round"]
         history_for_model = [{"role": m["role"], "content": m["content"]} for m in session["messages"][-6:]]
+        assistant_parts: list[str] = []
         async for evt_type, payload in spark_lite.stream_chat_events(req.message, mode="general", history=history_for_model):
             if evt_type == "text":
-                yield ("text", {"content": str(payload.get("content", ""))})
+                content = str(payload.get("content", ""))
+                if content:
+                    assistant_parts.append(content)
+                yield ("text", {"content": content})
             elif evt_type == "error":
                 yield ("error", payload)
+        assistant_text = "".join(assistant_parts).strip()
+        if assistant_text:
+            session["messages"].append({"role": "assistant", "content": assistant_text, "ts": now_iso()})
         round_no += 1
         session["round"] = round_no
         if round_no > 3:
-            user_id = str(session.get("user_id") or settings.single_user_id)
-            profile = _build_profile_from_dialog(session["messages"])
-            if profile.get("major"):
-                _upsert_student_major(user_id, str(profile["major"]))
+            user_id = current_user["user_id"]
+            fallback_profile = _build_profile_from_dialog(session["messages"])
+            profile = await extract_dialog_profile(
+                session["messages"],
+                fallback_profile=fallback_profile,
+                stream_events=spark_lite.stream_chat_events,
+            )
+            profile["version"] = _next_profile_version(user_id)
+            if profile.get("major") or profile.get("grade"):
+                _upsert_student_identity(
+                    user_id,
+                    major=str(profile.get("major", "")),
+                    grade=str(profile.get("grade", "")),
+                )
+            _sync_profile_student_identity(user_id, profile)
             _upsert_profile(user_id, profile)
             _write_profile_snapshot(user_id, profile)
-            _record_profile_history(user_id, profile, reason="dialog")
+            source_messages = [
+                {"role": message.get("role", "user"), "content": str(message.get("content", ""))}
+                for message in session["messages"]
+            ]
+            source_text = "\n".join(message["content"] for message in source_messages if message["role"] == "user")
+            analysis = await _generate_and_store_analysis(user_id, profile, "dialog", source_text)
+            _record_profile_history(user_id, profile, reason="dialog", analysis=analysis)
             append_jsonl(
                 user_id,
                 "learning_events.jsonl",
-                {"type": "profile_dialog_completed", "session_id": req.session_id, "profile": profile},
+                {
+                    "type": "profile_dialog_completed",
+                    "session_id": req.session_id,
+                    "profile": profile,
+                    "source_messages": source_messages,
+                },
             )
             yield ("done", {"round": 3, "total_rounds": 3, "profile_saved": True})
             _sessions.pop(req.session_id, None)
@@ -130,6 +200,26 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
         return fail("profile not found")
     student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     return ok(_row_to_profile(profile_row, student_row))
+
+
+@router.get("/analysis/current")
+async def get_current_profile_analysis(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    if not row:
+        return fail("profile not found")
+    student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
+    current_profile = _row_to_profile(row, student_row)
+    saved = read_json(user_id, PROFILE_ANALYSIS_FILE, None)
+    if _is_current_profile_analysis(saved, int(current_profile["version"])):
+        return ok(saved)
+
+    fallback = build_rule_fallback_analysis(
+        current_profile,
+        source_type="current_profile",
+        reason="尚无已保存的融合分析",
+    )
+    return ok(fallback)
 
 
 @router.put("")
@@ -177,11 +267,18 @@ async def update_profile(req: ProfileUpdateReq, current_user: dict = Depends(get
     profile["updated_at"] = now_iso()
     _upsert_profile(user_id, profile)
     _write_profile_snapshot(user_id, profile)
-    _record_profile_history(user_id, profile, reason="manual_update")
+    learning_patch = {
+        key: value
+        for key, value in {**student_patch, **profile_patch}.items()
+        if key in PROFILE_LEARNING_FIELDS
+    }
+    source_text = json.dumps(learning_patch, ensure_ascii=False)
+    analysis = await _generate_and_store_analysis(user_id, profile, "manual_update", source_text)
+    _record_profile_history(user_id, profile, reason="manual_update", analysis=analysis)
     append_jsonl(
         user_id,
         "learning_events.jsonl",
-        {"type": "profile_updated", "patch": {**student_patch, **profile_patch}},
+        {"type": "profile_updated", "patch": learning_patch},
     )
     return ok({"version": profile["version"]})
 
@@ -193,7 +290,17 @@ async def get_profile_history(current_user: dict = Depends(get_current_user)):
     student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     current_profile = _row_to_profile(row, student_row) if row else {}
     if row and _profile_has_meaningful_data(current_profile):
-        _record_profile_history(user_id, current_profile, reason="history_view")
+        saved_analysis = read_json(user_id, PROFILE_ANALYSIS_FILE, {})
+        _record_profile_history(
+            user_id,
+            current_profile,
+            reason="history_view",
+            analysis=(
+                saved_analysis
+                if _is_current_profile_analysis(saved_analysis, int(current_profile["version"]))
+                else None
+            ),
+        )
 
     history = _load_profile_history(user_id)
     latest = history[0] if history else None
@@ -211,15 +318,106 @@ async def get_profile_history(current_user: dict = Depends(get_current_user)):
 async def analyze_profile_history(current_user: dict = Depends(get_current_user)):
     user_id = current_user["user_id"]
     row = fetch_one("SELECT * FROM profiles WHERE user_id = ?", (user_id,))
+    if not row:
+        return fail("profile not found")
     student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
-    current_profile = _row_to_profile(row, student_row) if row else {}
+    current_profile = _row_to_profile(row, student_row)
     history = _load_profile_history(user_id)
-    steps = _build_profile_analysis_steps(current_profile, history)
-    prompt = _build_profile_analysis_prompt(current_profile, history)
-    analysis = await _collect_profile_analysis(prompt)
-    payload = {"analysis": analysis, "analysis_steps": steps, "updated_at": now_iso()}
-    write_json(user_id, PROFILE_ANALYSIS_FILE, payload)
-    return ok(payload)
+    source_text = json.dumps(
+        {"current_profile": _learning_profile_payload(current_profile), "history": history[:5]},
+        ensure_ascii=False,
+    )
+    analysis = await _generate_and_store_analysis(
+        user_id,
+        current_profile,
+        source_type="history_analyze",
+        source_text=source_text,
+    )
+    _record_profile_history(user_id, current_profile, reason="history_analyze", analysis=analysis)
+    return ok({**analysis, "analysis": analysis["narrative"]})
+
+
+async def _generate_and_store_analysis(
+    user_id: str,
+    profile: dict[str, Any],
+    source_type: str,
+    source_text: str,
+) -> dict[str, Any]:
+    analysis = await generate_profile_analysis(
+        profile,
+        history=_load_profile_history(user_id),
+        source_type=source_type,
+        source_text=source_text,
+        stream_events=spark_lite.stream_chat_events,
+    )
+    write_json(user_id, PROFILE_ANALYSIS_FILE, analysis)
+    return analysis
+
+
+def _is_current_profile_analysis(value: Any, profile_version: int) -> bool:
+    if not isinstance(value, dict) or not PROFILE_ANALYSIS_REQUIRED_FIELDS.issubset(value):
+        return False
+    saved_version = value.get("profile_version")
+    if isinstance(saved_version, bool) or not isinstance(saved_version, int) or saved_version != profile_version:
+        return False
+    if value.get("status") != "ready" or value.get("schema_version") != "profile-analysis-v1":
+        return False
+    if value.get("generated_by") not in {"llm", "rule_fallback", "legacy_unverified"}:
+        return False
+    text_fields = ("source_type", "model", "overview", "narrative", "goal_gap", "learning_strategy", "updated_at")
+    if not all(isinstance(value.get(field), str) and value[field].strip() for field in text_fields):
+        return False
+    list_fields = ("strengths", "focus_areas", "next_actions", "evidence", "analysis_steps")
+    if not all(isinstance(value.get(field), list) for field in list_fields):
+        return False
+    confidence = value.get("confidence")
+    return (
+        isinstance(confidence, (int, float))
+        and not isinstance(confidence, bool)
+        and math.isfinite(float(confidence))
+        and 0.0 <= float(confidence) <= 1.0
+    )
+
+
+def _learning_profile_payload(profile: dict[str, Any]) -> dict[str, Any]:
+    return {key: profile.get(key) for key in PROFILE_LEARNING_FIELDS if key in profile}
+
+
+def _onboarding_source_payload(req: ProfileOnboardingReq) -> dict[str, Any]:
+    return {
+        "major": _clean_string_list(req.major),
+        "grade": str(req.grade or "").strip(),
+        "goal": _clean_string_list(req.goal),
+        "level": _clean_string_list(req.level),
+        "weak": _clean_string_list(req.weak),
+        "preference": _clean_string_list(req.preference),
+        "time": _clean_string_list(req.time),
+    }
+
+
+def _onboarding_has_learning_data(req: ProfileOnboardingReq) -> bool:
+    source = _onboarding_source_payload(req)
+    return any(value for value in source.values())
+
+
+def _next_profile_version(user_id: str) -> int:
+    versions: list[int] = []
+    row = fetch_one("SELECT version FROM profiles WHERE user_id = ?", (user_id,))
+    if row:
+        try:
+            versions.append(int(row["version"] or 1))
+        except (TypeError, ValueError):
+            pass
+    try:
+        snapshot = read_json(user_id, "profile_snapshot.json", None)
+    except (json.JSONDecodeError, OSError, UnicodeError):
+        snapshot = None
+    if isinstance(snapshot, dict) and snapshot:
+        try:
+            versions.append(int(snapshot.get("version", 1) or 1))
+        except (TypeError, ValueError):
+            pass
+    return max(versions) + 1 if versions else 1
 
 
 def _upsert_profile(user_id: str, profile: dict[str, Any]) -> None:
@@ -257,11 +455,6 @@ def _upsert_profile(user_id: str, profile: dict[str, Any]) -> None:
     )
 
 
-def _upsert_student_major(user_id: str, major: str) -> None:
-    _upsert_student_identity(user_id, major=major)
-    return
-
-
 def _upsert_student_identity(user_id: str, name: str | None = None, grade: str | None = None, major: str | None = None) -> None:
     current_student = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
     if current_student:
@@ -291,6 +484,14 @@ def _upsert_student_identity(user_id: str, name: str | None = None, grade: str |
     )
 
 
+def _sync_profile_student_identity(user_id: str, profile: dict[str, Any]) -> None:
+    student = fetch_one("SELECT major, grade FROM students WHERE user_id = ?", (user_id,))
+    if not student:
+        return
+    profile["major"] = str(student["major"] or "").strip()
+    profile["grade"] = str(student["grade"] or "").strip()
+
+
 def _row_to_profile(row, student_row=None) -> dict[str, Any]:
     return {
         "user_id": row["user_id"],
@@ -313,14 +514,15 @@ def _row_to_profile(row, student_row=None) -> dict[str, Any]:
 def _build_profile_from_onboarding(req: ProfileOnboardingReq) -> dict[str, Any]:
     return {
         "major": _first_nonempty(req.major),
-        "goal": req.goal or ["期末提分"],
-        "knowledge_level": req.level[0] if req.level else "有一些基础",
-        "weak_points": req.weak or ["函数"],
-        "learning_preference": req.preference or ["实践型"],
-        "cognitive_style": "归纳型",
-        "daily_time": _parse_daily_time(req.time[0] if req.time else "30-60分钟"),
-        "practical_ability": "能独立完成小项目",
-        "current_stage": "函数与模块",
+        "grade": str(req.grade or "").strip(),
+        "goal": _clean_string_list(req.goal),
+        "knowledge_level": _first_nonempty(req.level),
+        "weak_points": _clean_string_list(req.weak),
+        "learning_preference": _clean_string_list(req.preference),
+        "cognitive_style": "",
+        "daily_time": _parse_daily_time(_first_nonempty(req.time)) if _first_nonempty(req.time) else 0,
+        "practical_ability": "",
+        "current_stage": "",
         "version": 1,
         "updated_at": now_iso(),
     }
@@ -330,27 +532,29 @@ def _build_profile_from_dialog(messages: list[dict[str, Any]]) -> dict[str, Any]
     joined = " ".join(m["content"] for m in messages if m["role"] == "user")
     return {
         "major": _extract_major(joined),
-        "goal": ["竞赛准备"] if "竞赛" in joined else ["期末提分"],
-        "knowledge_level": "有一些基础",
-        "weak_points": ["函数", "面向对象"],
-        "learning_preference": ["实践型", "视觉型"],
-        "cognitive_style": "归纳型",
-        "daily_time": 60,
-        "practical_ability": "能独立完成小项目",
-        "current_stage": "函数与模块",
+        "goal": [],
+        "knowledge_level": "",
+        "weak_points": [],
+        "learning_preference": [],
+        "cognitive_style": "",
+        "daily_time": 0,
+        "practical_ability": "",
+        "current_stage": "",
         "version": 1,
         "updated_at": now_iso(),
     }
 
 
 def _parse_daily_time(raw: str) -> int:
-    if "30" in raw and "60" in raw:
-        return 45
-    if "2小时以上" in raw:
-        return 150
-    if "1-2" in raw:
-        return 90
-    return 30
+    return {
+        "5小时以下": 30,
+        "5-10小时": 60,
+        "10-20小时": 120,
+        "20小时以上": 180,
+        "30-60分钟": 45,
+        "1-2小时": 90,
+        "2小时以上": 150,
+    }.get(str(raw).strip(), 0)
 
 
 def _first_nonempty(values: list[str]) -> str:
@@ -359,6 +563,15 @@ def _first_nonempty(values: list[str]) -> str:
         if text:
             return text
     return ""
+
+
+def _clean_string_list(values: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    for value in values or []:
+        text = str(value).strip()
+        if text and text not in cleaned:
+            cleaned.append(text)
+    return cleaned
 
 
 def _extract_major(text: str) -> str:
@@ -387,30 +600,43 @@ def _profile_has_meaningful_data(profile: dict[str, Any]) -> bool:
     return any(str(profile.get(key, "")).strip() for key in ("major", "grade", "knowledge_level", "cognitive_style", "practical_ability", "current_stage"))
 
 
-def _record_profile_history(user_id: str, profile: dict[str, Any], reason: str) -> None:
+def _record_profile_history(
+    user_id: str,
+    profile: dict[str, Any],
+    reason: str,
+    analysis: dict[str, Any] | None = None,
+) -> None:
     if not profile:
         return
 
-    history = _load_profile_history(user_id)
     now = now_iso()
-    latest = history[0] if history else None
-    snapshot = _profile_history_snapshot(profile, now, reason)
+    snapshot = _profile_history_snapshot(profile, now, reason, analysis)
 
-    if latest and not _should_create_history_snapshot(str(latest.get("captured_at", "")), now):
-        history[0] = {
-            **latest,
-            **snapshot,
-            "id": latest.get("id") or snapshot["id"],
-            "captured_at": latest.get("captured_at") or snapshot["captured_at"],
-            "updated_at": now,
-        }
-    else:
-        history.insert(0, snapshot)
+    def merge_history(raw: Any) -> list[dict[str, Any]]:
+        history = [item for item in raw if isinstance(item, dict)] if isinstance(raw, list) else []
+        history.sort(key=lambda item: str(item.get("captured_at", "")), reverse=True)
+        latest = history[0] if history else None
+        if latest and not _should_create_history_snapshot(str(latest.get("captured_at", "")), now):
+            history[0] = {
+                **latest,
+                **snapshot,
+                "id": latest.get("id") or snapshot["id"],
+                "captured_at": latest.get("captured_at") or snapshot["captured_at"],
+                "updated_at": now,
+            }
+        else:
+            history.insert(0, snapshot)
+        return history[:12]
 
-    write_json(user_id, PROFILE_HISTORY_FILE, history[:12])
+    update_json(user_id, PROFILE_HISTORY_FILE, [], merge_history)
 
 
-def _profile_history_snapshot(profile: dict[str, Any], captured_at: str, reason: str) -> dict[str, Any]:
+def _profile_history_snapshot(
+    profile: dict[str, Any],
+    captured_at: str,
+    reason: str,
+    analysis: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     goals = profile.get("goal", [])
     weak_points = profile.get("weak_points", [])
     preferences = profile.get("learning_preference", [])
@@ -427,66 +653,21 @@ def _profile_history_snapshot(profile: dict[str, Any], captured_at: str, reason:
         "weak_points": weak_points if isinstance(weak_points, list) else [],
         "learning_preference": preferences if isinstance(preferences, list) else [],
         "cognitive_style": str(profile.get("cognitive_style", "")).strip(),
-        "daily_time": int(profile.get("daily_time", 60) or 60),
+        "daily_time": int(profile.get("daily_time", 0) or 0),
         "practical_ability": str(profile.get("practical_ability", "")).strip(),
         "current_stage": stage,
         "summary": _profile_snapshot_summary(profile),
+        "narrative": str((analysis or {}).get("narrative") or _profile_snapshot_summary(profile)).strip(),
+        "analysis_source": str((analysis or {}).get("generated_by") or "legacy_unverified"),
+        "confidence": float((analysis or {}).get("confidence") or 0.0),
     }
 
 
 def _profile_snapshot_summary(profile: dict[str, Any]) -> str:
-    weak = "、".join(str(item) for item in profile.get("weak_points", [])[:2]) or "暂无明显薄弱点"
-    goal = "、".join(str(item) for item in profile.get("goal", [])[:2]) or "提升学习能力"
-    stage = str(profile.get("current_stage", "")).strip() or "当前阶段未标记"
+    weak = "、".join(str(item) for item in profile.get("weak_points", [])[:2]) or "待提升点尚未采集"
+    goal = "、".join(str(item) for item in profile.get("goal", [])[:2]) or "学习目标尚未采集"
+    stage = str(profile.get("current_stage", "")).strip() or "当前阶段尚未采集"
     return f"目标：{goal}；阶段：{stage}；关注：{weak}"
-
-
-def _build_profile_analysis_steps(current_profile: dict[str, Any], history: list[dict[str, Any]]) -> list[dict[str, str]]:
-    latest = history[0] if history else {}
-    previous = history[1] if len(history) > 1 else {}
-    latest_weak = latest.get("weak_points", []) if isinstance(latest.get("weak_points", []), list) else []
-    previous_weak = previous.get("weak_points", []) if isinstance(previous.get("weak_points", []), list) else []
-    new_weak = [str(item) for item in latest_weak if item not in previous_weak]
-    resolved = [str(item) for item in previous_weak if item not in latest_weak]
-    trend = _profile_trend_text(history)
-    risk = "、".join(str(item) for item in latest_weak[:2]) or "暂无明显薄弱点"
-    preference = "、".join(str(item) for item in latest.get("learning_preference", [])[:2]) or "常规讲解与练习"
-
-    return [
-        {
-            "title": "读取当前画像",
-            "detail": f"专业方向：{current_profile.get('major') or latest.get('major') or '未知'}；当前阶段：{current_profile.get('current_stage') or latest.get('current_stage') or '未标记'}。",
-            "status": "done",
-        },
-        {
-            "title": "载入历史快照",
-            "detail": f"已载入 {len(history)} 条画像记录，按 {PROFILE_HISTORY_INTERVAL_DAYS} 天更新窗口进行对比。",
-            "status": "done",
-        },
-        {
-            "title": "对比变化",
-            "detail": f"{trend} 新增关注点：{'、'.join(new_weak) or '无'}；已缓解关注点：{'、'.join(resolved) or '无'}。",
-            "status": "done",
-        },
-        {
-            "title": "识别学习风险",
-            "detail": f"当前优先风险集中在 {risk}，需要避免直接进入综合项目导致基础概念再次混淆。",
-            "status": "done",
-        },
-        {
-            "title": "生成资源与路径建议",
-            "detail": f"建议采用“{preference}”资源组合，先补弱再推进路径节点。",
-            "status": "done",
-        },
-    ]
-
-
-def _profile_trend_text(history: list[dict[str, Any]]) -> str:
-    if len(history) < 2:
-        return "历史样本较少，暂以当前画像作为判断依据。"
-    latest_stage = str(history[0].get("current_stage", "")).strip() or "未标记阶段"
-    earliest_stage = str(history[-1].get("current_stage", "")).strip() or "未标记阶段"
-    return f"画像阶段从“{earliest_stage}”推进到“{latest_stage}”。"
 
 
 def _should_create_history_snapshot(latest_at: str, current_at: str) -> bool:
@@ -509,34 +690,6 @@ def _parse_iso(value: str) -> datetime | None:
         return datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
     except Exception:
         return None
-
-
-def _build_profile_analysis_prompt(current_profile: dict[str, Any], history: list[dict[str, Any]]) -> str:
-    compact_history = history[:5]
-    return (
-        "你是 SparkLearn 的学习画像分析师。请基于当前用户画像和历史画像变化，输出一段简洁、可执行的分析。\n"
-        "要求：1) 说明画像变化趋势；2) 指出当前最重要的学习风险；3) 给出下一阶段资源和路径建议；"
-        "4) 150字以内；5) 不要编造不存在的数据。\n\n"
-        f"当前画像: {json.dumps(current_profile, ensure_ascii=False)}\n"
-        f"历史画像: {json.dumps(compact_history, ensure_ascii=False)}"
-    )
-
-
-async def _collect_profile_analysis(prompt: str) -> str:
-    parts: list[str] = []
-    try:
-        async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode="general", history=[]):
-            if evt_type == "text":
-                chunk = str(payload.get("content", ""))
-                if chunk:
-                    parts.append(chunk)
-    except Exception:
-        parts = []
-
-    text = "".join(parts).strip()
-    if text:
-        return text
-    return "AI 暂未生成新的画像分析。建议先查看最近一次画像：结合学习目标、薄弱点和当前阶段，优先完成一组短练习并更新错题记录。"
 
 
 def _write_profile_snapshot(user_id: str, profile: dict[str, Any]) -> None:
