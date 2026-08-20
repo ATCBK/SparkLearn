@@ -87,6 +87,12 @@ export function userScopedStorageKey(baseKey: string, userId: string = getCurren
   return `${baseKey}:${normalized}`
 }
 
+export function clearProfileCompletionState(userId: string = getCurrentUserId()): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(userScopedStorageKey('sparklearn_profile_collected_at', userId))
+  localStorage.removeItem('sparklearn_profile_needs_recapture')
+}
+
 export function getDesktopBridge(): SparklearnDesktopBridge | null {
   if (typeof window === 'undefined') return null
   return window.sparklearnDesktop || null

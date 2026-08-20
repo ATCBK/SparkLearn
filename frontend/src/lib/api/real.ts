@@ -5,7 +5,7 @@ import type {
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherClass, TeacherClassMember, ClassBroadcast, TeacherSubject, TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledgeGraphNode, McpService, McpServicePayload,
-  ProfileHistoryResp, ProfileAnalysis, ProfileAnalysisResp,
+  ProfileHistoryResp, ProfileAnalysis, ProfileAnalysisResp, ProfileResetResult,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
   AdminAuditList, AdminDashboard, AdminSettingsResp, AdminUser, AdminUserList,
@@ -398,6 +398,10 @@ export async function updateProfile(payload: ProfileUpdatePayload): Promise<void
     method: 'PUT',
     body: JSON.stringify(body),
   })
+}
+
+export async function resetProfile(): Promise<ProfileResetResult> {
+  return fetchJson('/api/profile', { method: 'DELETE' })
 }
 
 export async function getProfileHistory(): Promise<ProfileHistoryResp> {

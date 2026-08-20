@@ -26,7 +26,7 @@ import {
   Languages,
   TerminalSquare,
 } from 'lucide-react'
-import { getToken, getUser, setUser, syncStudyBuddyProfile } from '@/lib/auth'
+import { clearProfileCompletionState, getCurrentUserId, getToken, getUser, setUser, syncStudyBuddyProfile, userScopedStorageKey } from '@/lib/auth'
 import { api, type StudentProfile } from '@/lib/api'
 import { getTeacherSubjects } from '@/lib/api/real'
 
@@ -204,10 +204,19 @@ export default function OnboardingPage() {
   const [showOptions, setShowOptions] = useState(false)
   const [subjectOptions, setSubjectOptions] = useState<string[]>(DEFAULT_SUBJECTS)
   const [profileChecking, setProfileChecking] = useState(true)
+  const [profileCheckError, setProfileCheckError] = useState('')
+  const [profileCheckAttempt, setProfileCheckAttempt] = useState(0)
   const [existingProfile, setExistingProfile] = useState<StudentProfile | null>(null)
   const [forceRecapture, setForceRecapture] = useState(false)
+  const [resetConfirming, setResetConfirming] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [resetError, setResetError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
   const finishingRef = useRef(false)
+  const resettingRef = useRef(false)
+  const submittingRef = useRef(false)
 
   const steps = useMemo(
     () => STEPS.map((item) => (item.key === 'major' ? { ...item, tags: subjectOptions } : item)),
@@ -225,6 +234,28 @@ export default function OnboardingPage() {
     window.setTimeout(() => startStep(0), 50)
   }
 
+  async function resetExistingProfile() {
+    if (resettingRef.current) return
+    resettingRef.current = true
+    setResetting(true)
+    setResetError('')
+    try {
+      const result = await api.resetProfile()
+      if (result.reset !== true) throw new Error('服务器未确认画像已重置')
+      clearProfileCompletionState()
+      setExistingProfile(null)
+      setForceRecapture(true)
+      setResetConfirming(false)
+      resetOnboardingFlow()
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '请稍后重试'
+      setResetError(`重置失败：${detail}`)
+    } finally {
+      resettingRef.current = false
+      setResetting(false)
+    }
+  }
+
   // 初始化第一步的消息
   useEffect(() => {
     if (typeof window !== 'undefined' && !localStorage.getItem('sparklearn_token')) {
@@ -234,17 +265,27 @@ export default function OnboardingPage() {
 
     let cancelled = false
     ;(async () => {
+      setProfileChecking(true)
+      setProfileCheckError('')
       try {
         const profile = await api.getProfile()
-        if (!cancelled && hasCompleteProfile(profile) && localStorage.getItem('sparklearn_profile_needs_recapture') !== 'true') {
+        if (!cancelled) {
           setExistingProfile(profile)
           setProfileChecking(false)
           return
         }
-      } catch {
-        // 没有画像时进入正常采集流程。
+      } catch (error) {
+        if (!api.isProfileNotFoundError(error)) {
+          if (!cancelled) {
+            const detail = error instanceof Error ? error.message : '请检查网络后重试'
+            setProfileCheckError(`画像状态读取失败：${detail}`)
+            setProfileChecking(false)
+          }
+          return
+        }
       }
       if (!cancelled) {
+        setExistingProfile(null)
         setProfileChecking(false)
         resetOnboardingFlow()
       }
@@ -253,7 +294,7 @@ export default function OnboardingPage() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [profileCheckAttempt, router])
 
   useEffect(() => {
     let cancelled = false
@@ -329,6 +370,7 @@ export default function OnboardingPage() {
   }
 
   function confirmSelection() {
+    if (submitError || submittingRef.current) return
     const selected = selections[step] || []
     if (selected.length === 0) return
 
@@ -356,6 +398,7 @@ export default function OnboardingPage() {
   }
 
   function handleSendMessage() {
+    if (submitError || submittingRef.current) return
     const text = inputValue.trim()
     if (!text) return
 
@@ -404,6 +447,10 @@ export default function OnboardingPage() {
   }
 
   async function submitOnboarding() {
+    if (submittingRef.current) return
+    submittingRef.current = true
+    setSubmitting(true)
+    setSubmitError('')
     try {
       const byKey = (key: string) => selections[steps.findIndex(item => item.key === key)] || []
       const name = byKey('name')[0] || ''
@@ -418,7 +465,7 @@ export default function OnboardingPage() {
         preference: byKey('preference'),
         time: byKey('time'),
       }
-      await fetch(
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/profile/onboarding`,
         {
           method: 'POST',
@@ -429,6 +476,11 @@ export default function OnboardingPage() {
           body: JSON.stringify(body),
         }
       )
+      const result = await response.json().catch(() => null) as { success?: boolean; error?: string; detail?: string } | null
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || result?.detail || `请求失败：${response.status}`)
+      }
+
       if (name) {
         const currentUser = getUser()
         if (currentUser) {
@@ -437,24 +489,20 @@ export default function OnboardingPage() {
         }
       }
       await syncStudyBuddyProfile('onboarding')
-    } catch {
-      // 即使提交失败也跳转
-    }
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('sparklearn_profile_needs_recapture')
+
+      clearProfileCompletionState()
       const collectedAt = new Date().toISOString()
-      try {
-        const rawUser = localStorage.getItem('sparklearn_user')
-        const user = rawUser ? JSON.parse(rawUser) : null
-        const userId = String(user?.user_id || user?.id || '')
-        if (userId) {
-          localStorage.setItem(`sparklearn_profile_collected_at:${userId}`, collectedAt)
-        }
-      } catch {
-        // Ignore malformed local user data; the server profile remains the source of truth.
-      }
+      localStorage.setItem(userScopedStorageKey('sparklearn_profile_collected_at', getCurrentUserId()), collectedAt)
+      setTimeout(() => router.replace('/'), 1500)
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '请检查网络后重试'
+      setSubmitError(`建档失败：${detail}`)
+      finishingRef.current = false
+      setIsTyping(false)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
     }
-    setTimeout(() => router.push('/'), 1500)
   }
 
   const selected = selections[step] || []
@@ -466,6 +514,26 @@ export default function OnboardingPage() {
         <div className="rounded-2xl border border-[#e2e8f0] bg-white px-6 py-5 text-sm font-semibold text-[#475569] shadow-sm">
           正在检查你的学习画像...
         </div>
+      </div>
+    )
+  }
+
+  if (profileCheckError) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#f8fafc] px-4">
+        <section className="w-full max-w-[520px] rounded-2xl border border-[#fecaca] bg-white p-6 shadow-sm" aria-labelledby="profile-check-error-title">
+          <div className="inline-flex rounded-full bg-[#fff1f2] px-3 py-1 text-xs font-bold text-[#dc2626]">画像检查未完成</div>
+          <h1 id="profile-check-error-title" className="mt-4 text-2xl font-black text-[#111827]">无法确认学习画像状态</h1>
+          <p role="alert" className="mt-3 text-sm leading-7 text-[#b91c1c]">{profileCheckError}</p>
+          <p className="mt-2 text-sm leading-7 text-[#52627b]">为避免覆盖已有资料，请先重新检查。只有服务器明确确认没有画像后，才会进入采集流程。</p>
+          <button
+            type="button"
+            onClick={() => setProfileCheckAttempt(value => value + 1)}
+            className="mt-5 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#1d4ed8]"
+          >
+            重新检查
+          </button>
+        </section>
       </div>
     )
   }
@@ -486,15 +554,43 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setExistingProfile(null)
-                  setForceRecapture(true)
-                  resetOnboardingFlow()
+                  setResetError('')
+                  setResetConfirming(true)
                 }}
                 className="rounded-xl px-4 py-2.5 text-sm font-bold text-[#64748b] hover:bg-[#f1f5f9]"
               >
                 重新采集
               </button>
             </div>
+            {resetConfirming && (
+              <div className="mt-5 rounded-xl border border-[#fecaca] bg-[#fff7f7] p-4">
+                <p className="text-sm font-bold text-[#991b1b]">确认清除现有画像后重新采集吗？</p>
+                <p className="mt-1 text-xs leading-5 text-[#b91c1c]">删除成功后才会开启新一轮对话建档；失败时会保留当前画像。</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void resetExistingProfile()}
+                    disabled={resetting}
+                    className="rounded-xl bg-[#dc2626] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {resetting ? '正在重置...' : '确认重置并重新采集'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResetConfirming(false)}
+                    disabled={resetting}
+                    className="rounded-xl border border-[#cbd5e1] bg-white px-4 py-2.5 text-sm font-bold text-[#475569] disabled:opacity-60"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            )}
+            {resetError && (
+              <p role="alert" className="mt-4 rounded-xl border border-[#fecaca] bg-[#fff1f2] px-4 py-3 text-sm font-semibold text-[#b91c1c]">
+                {resetError}
+              </p>
+            )}
           </section>
         </div>
       </>
@@ -505,51 +601,59 @@ export default function OnboardingPage() {
     <>
     <div className="flex min-h-screen flex-col items-center px-4 py-8" style={{ backgroundImage: 'url(/ui-images/onboarding-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       {/* ═══ 顶部步骤指示器 ═══ */}
-      <div className="mb-6 flex items-center justify-center gap-0">
-        {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center">
-            <div className="flex flex-col items-center gap-1.5">
-              <div
-                className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold transition-all ${
-                  i < step
-                    ? 'bg-[#34c759] text-white'
-                    : i === step
-                      ? 'bg-[#2563eb] text-white shadow-md shadow-blue-200'
-                      : 'bg-[#e2e8f0] text-[#94a3b8]'
-                }`}
-              >
-                {i < step ? <CheckCircle2 size={14} /> : i + 1}
+      <div className="mb-6 w-full max-w-full overflow-x-auto pb-2" aria-label="建档进度">
+        <div className="mx-auto flex w-max min-w-max items-center gap-0 px-1">
+          {steps.map((s, i) => (
+            <div key={s.key} className="flex items-center">
+              <div className="flex flex-col items-center gap-1.5">
+                <div
+                  className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold transition-all ${
+                    i < step
+                      ? 'bg-[#34c759] text-white'
+                      : i === step
+                        ? 'bg-[#2563eb] text-white shadow-md shadow-blue-200'
+                        : 'bg-[#e2e8f0] text-[#94a3b8]'
+                  }`}
+                >
+                  {i < step ? <CheckCircle2 size={14} /> : i + 1}
+                </div>
+                <span
+                  className={`text-[11px] font-medium whitespace-nowrap ${
+                    i < step ? 'text-[#34c759]' : i === step ? 'text-[#2563eb]' : 'text-[#94a3b8]'
+                  }`}
+                >
+                  {s.title}
+                </span>
               </div>
-              <span
-                className={`text-[11px] font-medium whitespace-nowrap ${
-                  i < step ? 'text-[#34c759]' : i === step ? 'text-[#2563eb]' : 'text-[#94a3b8]'
-                }`}
-              >
-                {s.title}
-              </span>
+              {i < steps.length - 1 && (
+                <div
+                  className={`mx-3 mb-5 h-[2px] w-12 rounded-full transition-colors ${
+                    i < step ? 'bg-[#34c759]' : 'bg-[#e2e8f0]'
+                  }`}
+                />
+              )}
             </div>
-            {i < steps.length - 1 && (
-              <div
-                className={`mx-3 mb-5 h-[2px] w-12 rounded-full transition-colors ${
-                  i < step ? 'bg-[#34c759]' : 'bg-[#e2e8f0]'
-                }`}
-              />
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* ═══ 主卡片容器 ═══ */}
       <div className="w-full max-w-[680px] h-[calc(100vh-160px)] rounded-2xl border border-[#e8ecf2] bg-white shadow-lg shadow-black/[0.03] flex flex-col overflow-hidden">
         {/* 对话内容区 */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div
+          role="log"
+          aria-label="对话建档消息"
+          aria-live="polite"
+          aria-relevant="additions text"
+          className="flex-1 overflow-y-auto p-6 space-y-4"
+        >
           {messages.map((msg, idx) => (
             <MessageBubble key={`${msg.id}-${idx}`} message={msg} />
           ))}
 
           {/* 打字指示器 */}
           {isTyping && (
-            <div className="flex items-start gap-3">
+            <div role="status" aria-label="正在生成建档消息" className="flex items-start gap-3">
               <SpriteAvatar />
               <div className="rounded-2xl rounded-tl-sm bg-[#f8fafc] px-4 py-3 border border-[#eef2f7]">
                 <div className="flex gap-1.5">
@@ -658,11 +762,26 @@ export default function OnboardingPage() {
 
         {/* 底部操作栏 - 卡片内部底部 */}
         <div className="shrink-0 border-t border-[#eef2f7] px-6 py-4 space-y-3">
+          {submitError && (
+            <div role="alert" className="rounded-xl border border-[#fecaca] bg-[#fff1f2] p-3 text-sm font-semibold text-[#b91c1c]">
+              <p>{submitError}</p>
+              <button
+                type="button"
+                onClick={() => void submitOnboarding()}
+                disabled={submitting}
+                className="mt-2 rounded-lg border border-[#fca5a5] bg-white px-3 py-2 text-xs font-bold text-[#b91c1c] hover:bg-[#fff7f7] disabled:opacity-60"
+              >
+                {submitting ? '正在提交...' : '重试提交'}
+              </button>
+            </div>
+          )}
+
           {/* 输入框 */}
           <div className="relative">
             <input
               type="text"
               value={inputValue}
+              disabled={submitting || Boolean(submitError)}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -675,7 +794,7 @@ export default function OnboardingPage() {
             />
             <button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() || submitting || Boolean(submitError)}
               className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-[#2563eb] text-white transition-opacity disabled:opacity-30"
               aria-label="发送"
             >
@@ -687,13 +806,14 @@ export default function OnboardingPage() {
           <div className="flex items-center justify-between">
             <button
               onClick={() => {
+                if (submitError || submittingRef.current) return
                 if (step > 0) {
                   const prevStep = step - 1
                   setStep(prevStep)
                   setShowOptions(true)
                 }
               }}
-              disabled={step === 0}
+              disabled={step === 0 || submitting || Boolean(submitError)}
               className="flex items-center gap-1.5 text-sm font-medium text-[#64748b] transition-colors hover:text-[#2563eb] disabled:opacity-30"
             >
               <ArrowLeft size={15} />
@@ -703,9 +823,9 @@ export default function OnboardingPage() {
             <button
               onClick={confirmSelection}
               data-guide-target="onboarding-primary-action"
-              disabled={selected.length === 0}
+              disabled={selected.length === 0 || submitting || Boolean(submitError)}
               className={`flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all ${
-                selected.length > 0
+                selected.length > 0 && !submitting && !submitError
                   ? 'bg-[#2563eb] text-white shadow-sm hover:bg-[#1d4ed8]'
                   : 'bg-[#f1f5f9] text-[#94a3b8] cursor-not-allowed'
               }`}
@@ -719,21 +839,6 @@ export default function OnboardingPage() {
     </div>
     </>
   )
-}
-
-function hasLearningProfile(profile: StudentProfile | null) {
-  if (!profile) return false
-  return Boolean(
-    profile.major?.trim() ||
-    profile.goals?.some(item => item.trim()) ||
-    profile.knowledgeLevel?.trim() ||
-    profile.weakPoints?.some(item => item.trim()) ||
-    profile.learningPreference?.some(item => item.trim()),
-  )
-}
-
-function hasCompleteProfile(profile: StudentProfile | null) {
-  return Boolean(profile?.name?.trim() && profile?.grade?.trim() && hasLearningProfile(profile))
 }
 
 /* ── 精灵头像组件 ─── */

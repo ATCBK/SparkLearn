@@ -1,4 +1,8 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+const AGENT_USER_ID = 'agent-action-test'
+const AGENT_COLLECTED_KEY = `sparklearn_profile_collected_at:${AGENT_USER_ID}`
+const AGENT_RECAPTURE_KEY = 'sparklearn_profile_needs_recapture'
 
 const pet = {
   id: 'pet-1',
@@ -13,11 +17,38 @@ const pet = {
   updated_at: '2026-05-30T00:00:00Z',
 }
 
-async function mockAgentApis(page: import('@playwright/test').Page) {
+type AgentAction =
+  | { type: 'confirm_profile_reset' }
+  | { type: 'navigate'; label: string; href: string }
+
+async function mockAgentApis(
+  page: Page,
+  options: {
+    chatResponse?: { answer: string; created_at: string; action?: AgentAction }
+  } = {},
+) {
   let pollCount = 0
 
   await page.route('**/api/agent/pet', async route => {
     await route.fulfill({ json: { success: true, data: pet } })
+  })
+
+  await page.route('**/api/agent/chat', async route => {
+    await route.fulfill({
+      json: {
+        success: true,
+        data: options.chatResponse || {
+          answer: '先从一个 20 分钟的小练习开始。',
+          created_at: '2026-08-20T10:00:00Z',
+        },
+      },
+    })
+  })
+
+  await page.route('**/api/agent/tasks?**', async route => {
+    await route.fulfill({
+      json: { success: true, data: { items: [], total: 0, page: 1, page_size: 10 } },
+    })
   })
 
   await page.route('**/api/agent/task', async route => {
@@ -81,11 +112,33 @@ async function mockAgentApis(page: import('@playwright/test').Page) {
   })
 }
 
+async function readProfileMarkers(page: Page) {
+  return page.evaluate(({ collectedKey, recaptureKey }) => ({
+    collected: localStorage.getItem(collectedKey),
+    recapture: localStorage.getItem(recaptureKey),
+  }), { collectedKey: AGENT_COLLECTED_KEY, recaptureKey: AGENT_RECAPTURE_KEY })
+}
+
 test.describe('AI 学伴任务流程', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(({ userId, collectedKey, recaptureKey }) => {
+      localStorage.setItem('sparklearn_token', 'agent-action-token')
+      localStorage.setItem('sparklearn_user', JSON.stringify({ user_id: userId, name: '林同学' }))
+      localStorage.setItem(`sparklearn_new_user_guide_seen:${userId}`, 'true')
+      localStorage.setItem(collectedKey, 'existing-marker')
+      localStorage.setItem(recaptureKey, 'true')
+    }, {
+      userId: AGENT_USER_ID,
+      collectedKey: AGENT_COLLECTED_KEY,
+      recaptureKey: AGENT_RECAPTURE_KEY,
+    })
+  })
+
   test('正常流程：输入学习任务，等待任务完成，收藏结果并反馈', async ({ page }) => {
     await mockAgentApis(page)
     await page.goto('/agent')
 
+    await page.getByRole('button', { name: '任务模式' }).click()
     await page.getByPlaceholder(/Python 装饰器/).fill('Python 装饰器学习资料：请按初学者路径推荐，并说明阅读顺序')
     await page.getByRole('button', { name: '发送任务' }).click()
 
@@ -108,10 +161,68 @@ test.describe('AI 学伴任务流程', () => {
     })
 
     await page.goto('/agent')
+    await page.getByRole('button', { name: '任务模式' }).click()
     await page.getByPlaceholder(/Python 装饰器/).fill('闭包')
     await page.getByRole('button', { name: '发送任务' }).click()
 
     await expect(page.getByText('任务描述太短')).toBeVisible()
     expect(createCalled).toBe(false)
   })
+
+  test('安全的重新建档导航 action 立即清理完成标记并展示真实链接', async ({ page }) => {
+    await mockAgentApis(page, {
+      chatResponse: {
+        answer: '画像已重置，请重新开始建档。',
+        created_at: '2026-08-20T10:00:00Z',
+        action: { type: 'navigate', label: '重新开始建档', href: '/onboarding' },
+      },
+    })
+    await page.goto('/agent')
+
+    const messageLog = page.getByRole('log', { name: '学习伙伴对话消息' })
+    await expect(messageLog).toHaveAttribute('aria-live', 'polite')
+    await page.getByPlaceholder(/直接提问/).fill('确认重置我的学习画像')
+    await page.getByRole('button', { name: '发送任务' }).click()
+
+    const actionLink = page.getByRole('link', { name: '重新开始建档' })
+    await expect(actionLink).toHaveAttribute('href', '/onboarding')
+    await expect.poll(() => readProfileMarkers(page)).toEqual({ collected: null, recapture: null })
+  })
+
+  test('确认重置 action 只展示确认回复，不伪造导航也不清理标记', async ({ page }) => {
+    await mockAgentApis(page, {
+      chatResponse: {
+        answer: '这会删除现有画像。请回复确认后再继续。',
+        created_at: '2026-08-20T10:00:00Z',
+        action: { type: 'confirm_profile_reset' },
+      },
+    })
+    await page.goto('/agent')
+
+    await page.getByPlaceholder(/直接提问/).fill('帮我重置学习画像')
+    await page.getByRole('button', { name: '发送任务' }).click()
+
+    await expect(page.getByText('这会删除现有画像。请回复确认后再继续。', { exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: '重新开始建档' })).toHaveCount(0)
+    expect(await readProfileMarkers(page)).toEqual({ collected: 'existing-marker', recapture: 'true' })
+  })
+
+  for (const href of ['/profile', 'javascript:alert(1)']) {
+    test(`非白名单导航 ${href} 不渲染链接、不清理画像标记`, async ({ page }) => {
+      await mockAgentApis(page, {
+        chatResponse: {
+          answer: '请点击下一步。',
+          created_at: '2026-08-20T10:00:00Z',
+          action: { type: 'navigate', label: '继续', href },
+        },
+      })
+      await page.goto('/agent')
+
+      await page.getByPlaceholder(/直接提问/).fill('继续下一步')
+      await page.getByRole('button', { name: '发送任务' }).click()
+
+      await expect(page.getByRole('link', { name: '继续' })).toHaveCount(0)
+      expect(await readProfileMarkers(page)).toEqual({ collected: 'existing-marker', recapture: 'true' })
+    })
+  }
 })

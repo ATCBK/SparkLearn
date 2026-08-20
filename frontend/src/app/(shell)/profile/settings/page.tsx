@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { BellRing, Camera, Mail, GraduationCap, BookOpen, Clock, Target, ArrowLeft, LogOut, School } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { AlertTriangle, BellRing, Camera, Mail, GraduationCap, BookOpen, Clock, Target, ArrowLeft, LogOut, School } from 'lucide-react'
 import { api, ClassBroadcast, ProfileUpdatePayload, StudentProfile, TeacherClass } from '@/lib/api'
-import { getUser, setUser, syncStudyBuddyProfile } from '@/lib/auth'
+import { clearProfileCompletionState, getUser, setUser, syncStudyBuddyProfile } from '@/lib/auth'
 import { PageHead, ProtoButton, ProtoCard } from '@/components/proto'
 
 export default function ProfileSettingsPage() {
+  const router = useRouter()
   const [form, setForm] = useState<StudentProfile | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -18,6 +20,10 @@ export default function ProfileSettingsPage() {
   const [inviteCode, setInviteCode] = useState('')
   const [classMessage, setClassMessage] = useState('')
   const [classLoading, setClassLoading] = useState(false)
+  const [resetConfirming, setResetConfirming] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [resetError, setResetError] = useState('')
+  const resettingRef = useRef(false)
 
   useEffect(() => {
     void loadClassInfo()
@@ -131,6 +137,25 @@ export default function ProfileSettingsPage() {
     }
   }
 
+  async function resetProfile() {
+    if (resettingRef.current) return
+    resettingRef.current = true
+    setResetting(true)
+    setResetError('')
+    try {
+      const result = await api.resetProfile()
+      if (result.reset !== true) throw new Error('服务器未确认画像已重置')
+      clearProfileCompletionState()
+      router.replace('/onboarding')
+    } catch (ex) {
+      const detail = ex instanceof Error ? ex.message : '请稍后重试'
+      setResetError(`重置失败：${detail}`)
+    } finally {
+      resettingRef.current = false
+      setResetting(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-[720px]">
       <PageHead
@@ -154,7 +179,7 @@ export default function ProfileSettingsPage() {
 
       {/* 错误提示 */}
       {error && (
-        <div className="mb-4 rounded-[10px] border border-red/30 bg-red-light p-3 text-small text-red">
+        <div role="alert" className="mb-4 rounded-[10px] border border-red/30 bg-red-light p-3 text-small text-red">
           {error}
         </div>
       )}
@@ -390,6 +415,64 @@ export default function ProfileSettingsPage() {
               </div>
             </div>
           </div>
+
+          <ProtoCard>
+            <section aria-labelledby="profile-reset-title">
+              <div className="flex items-start gap-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[#fff1f2] text-[#dc2626]">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 id="profile-reset-title" className="text-body font-bold text-ink">重置学习画像</h3>
+                  <p className="mt-1 text-micro leading-5 text-muted">
+                    需要从头更新学习目标、基础和偏好时，可以清除当前画像并重新进入对话建档。
+                  </p>
+
+                  {!resetConfirming ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetError('')
+                        setResetConfirming(true)
+                      }}
+                      className="mt-4 inline-flex h-10 items-center rounded-[10px] border border-[#fecaca] bg-white px-4 text-small font-bold text-[#dc2626] transition-colors hover:bg-[#fff1f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fca5a5]"
+                    >
+                      重置学习画像
+                    </button>
+                  ) : (
+                    <div className="mt-4 rounded-[10px] border border-[#fecaca] bg-[#fff7f7] p-4">
+                      <p className="text-small font-bold text-[#991b1b]">重置后，现有画像与分析记录将被清除。</p>
+                      <p className="mt-1 text-micro leading-5 text-[#b91c1c]">此操作只会在服务器确认删除成功后进入重新建档。</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void resetProfile()}
+                          disabled={resetting}
+                          className="inline-flex h-10 items-center rounded-[10px] bg-[#dc2626] px-4 text-small font-bold text-white transition-colors hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {resetting ? '正在重置...' : '确认重置并重新建档'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setResetConfirming(false)}
+                          disabled={resetting}
+                          className="inline-flex h-10 items-center rounded-[10px] border border-line bg-white px-4 text-small font-bold text-muted hover:bg-[#f8fafc] disabled:opacity-60"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {resetError && (
+                    <div role="alert" className="mt-3 rounded-[10px] border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-small font-semibold text-[#b91c1c]">
+                      {resetError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </ProtoCard>
 
           {/* 操作按钮 */}
           <div className="flex items-center justify-end gap-3 pb-6">

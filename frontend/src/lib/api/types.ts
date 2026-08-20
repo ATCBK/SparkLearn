@@ -369,6 +369,12 @@ export interface ProfileHistoryItem {
   confidence?: number
 }
 
+export interface ProfileResetResult {
+  reset: boolean
+  redirect: '/onboarding'
+  reset_at: string
+}
+
 export interface ProfileHistoryResp {
   items: ProfileHistoryItem[]
   update_interval_days: number
@@ -997,9 +1003,14 @@ export interface CreateAgentTaskPayload {
   input_text: string
 }
 
+export type AgentChatAction =
+  | { type: 'confirm_profile_reset' }
+  | { type: 'navigate'; label: string; href: string }
+
 export interface AgentChatResp {
   answer: string
   created_at: string
+  action?: AgentChatAction
 }
 
 export interface BookmarkPayload {

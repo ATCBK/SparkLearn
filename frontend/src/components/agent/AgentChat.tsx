@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AgentPet, AgentTask, AgentTaskStep, api } from '@/lib/api'
+import { api, type AgentChatAction, type AgentPet, type AgentTask, type AgentTaskStep } from '@/lib/api'
+import { clearProfileCompletionState } from '@/lib/auth'
 import { ProtoCard, SoftCard } from '@/components/proto'
 import { Bookmark, ExternalLink, FileText, GitCompare, Loader2, Mic, MicOff, Pause, Search, Send, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
 import { PetAvatar, PetState, PetType, taskStatusToPetState } from './PetAvatar'
@@ -52,6 +53,7 @@ interface ChatMessage {
   sender: 'user' | 'agent'
   content: string
   task?: AgentTask
+  action?: AgentChatAction
   timestamp: string
 }
 
@@ -183,10 +185,14 @@ export function AgentChat({
       onStateChange?.('thinking', '正在调用大模型生成回复。')
       try {
         const result = await api.chatWithAgentPet(text)
+        if (result.action?.type === 'navigate' && result.action.href === '/onboarding') {
+          clearProfileCompletionState()
+        }
         setMessages(prev => [...prev, {
           id: `agent-${++msgCounter.current}`,
           sender: 'agent',
           content: result.answer,
+          action: result.action,
           timestamp: result.created_at || new Date().toISOString(),
         }])
         onStateChange?.('success', '对话回复已生成。')
@@ -336,7 +342,13 @@ export function AgentChat({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+      <div
+        role="log"
+        aria-label="学习伙伴对话消息"
+        aria-live="polite"
+        aria-relevant="additions text"
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4"
+      >
         {messages.map(msg => (
           <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className="max-w-[86%]">
@@ -351,6 +363,15 @@ export function AgentChat({
               }`}>
                 {msg.content}
               </div>
+
+              {msg.action?.type === 'navigate' && msg.action.href === '/onboarding' && (
+                <a
+                  href="/onboarding"
+                  className="mt-2 inline-flex h-9 items-center rounded-[9px] border border-[#bfdbfe] bg-[#eff6ff] px-3 text-micro font-bold text-[#1d4ed8] transition-colors hover:bg-[#dbeafe] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#93c5fd]"
+                >
+                  {msg.action.label || '重新开始建档'}
+                </a>
+              )}
 
               {msg.sender === 'agent' && (
                 <button
@@ -382,7 +403,7 @@ export function AgentChat({
         ))}
 
         {polling && (
-          <div className="flex justify-start">
+          <div role="status" aria-live="polite" className="flex justify-start">
             <div className="max-w-[86%]">
               <div className="mb-1.5 flex items-center gap-2">
                 <PetAvatar type={pet.avatar as PetType} state="searching" size="sm" />
