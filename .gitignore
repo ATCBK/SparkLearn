@@ -37,3 +37,6 @@ miniapp/.swc/
 .venv-nanobot/
 nanobot-main/
 
+# Isolated feature worktrees
+.worktrees/
+
