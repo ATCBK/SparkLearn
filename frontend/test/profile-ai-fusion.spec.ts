@@ -198,40 +198,33 @@ test.afterEach(async ({ page }) => {
   expect(unknownRequestsByPage.get(page) || []).toEqual([])
 })
 
-test('画像页以 AI 融合结论作为首屏主体', async ({ page }) => {
+test('画像页保留学生大头照和原卡片，只在人物画像中显示 AI 总结', async ({ page }) => {
   const requests = await mockProfileApis(page)
   await page.goto('/profile')
 
-  await expect(page.getByRole('heading', { name: '当前综合画像' })).toBeVisible()
-  await expect(page.getByText('目标与差距', { exact: true })).toBeVisible()
-  await expect(page.getByText('优势', { exact: true })).toBeVisible()
-  await expect(page.getByText('待提升点', { exact: true })).toBeVisible()
-  await expect(page.getByText('适合你的学习方式', { exact: true })).toBeVisible()
-  await expect(page.getByText('下一步行动', { exact: true })).toBeVisible()
-  await expect(page.getByText('AI 融合分析', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('分析状态').getByText('v3', { exact: true })).toBeVisible()
-  await expect(page.getByText('82%')).toBeVisible()
-  await expect(page.getByLabel('分析状态')).toContainText('2026')
+  const portrait = page.getByRole('img', { name: '学生人物画像' })
+  await expect(portrait).toBeVisible()
+  await expect(portrait).toHaveAttribute('src', '/ui-images/profile-male.png')
+  await expect(page.getByText('人物画像', { exact: true })).toBeVisible()
+  await expect(page.getByText('需要关注', { exact: true })).toBeVisible()
+  await expect(page.getByText('更适合的学法', { exact: true })).toBeVisible()
+  await expect(page.getByText('阶段目标', { exact: true })).toBeVisible()
+  await expect(page.getByText('今天先做', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '能力雷达' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '最近学习过的资源' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '当前综合画像' })).toHaveCount(0)
+
+  const summary = page.getByLabel('AI 学习画像总结')
+  await expect(summary).toContainText(analysis.narrative)
+  await expect(summary).toContainText('AI 总结')
   await expect(page.getByText('历史画像连续叙述：从基础语法逐步转向项目实践。', { exact: true })).toBeVisible()
   await expect(page.getByText('不应优先展示的旧摘要', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('来源：AI 融合分析', { exact: true })).toBeVisible()
-  await expect(page.getByText('78% 置信度', { exact: true })).toBeVisible()
-
-  const evidence = page.getByText('学习目标与基础', { exact: true })
-  await expect(evidence).toBeHidden()
-  await page.getByText('查看分析依据', { exact: true }).click()
-  await expect(evidence).toBeVisible()
-
-  const profileDataLink = page.getByRole('link', { name: '查看画像资料' })
-  await expect(profileDataLink).toHaveAttribute('href', '/profile/settings')
-  await expect(page.getByText('计算机科学', { exact: true })).toHaveCount(0)
 
   const historyRequestsBeforeRegenerate = requests.getHistoryRequestCount()
-  await page.getByLabel('分析状态').getByRole('button', { name: '重新生成分析' }).click()
+  await page.getByRole('button', { name: 'AI 分析画像' }).click()
   await expect.poll(requests.getAnalyzeRequestCount).toBe(1)
-  await expect.poll(requests.getHistoryRequestCount).toBeGreaterThan(historyRequestsBeforeRegenerate)
-  await expect(page.getByText('重新分析后的综合概览。', { exact: true })).toBeVisible()
-  await expect(page.getByText('重新分析后的历史叙述。', { exact: true })).toBeVisible()
+  await expect.poll(requests.getHistoryRequestCount).toBeGreaterThanOrEqual(historyRequestsBeforeRegenerate)
+  await expect(summary).toContainText(regeneratedAnalysis.narrative)
 })
 
 test('规则降级时明确告知 AI 暂不可用', async ({ page }) => {
@@ -245,7 +238,8 @@ test('规则降级时明确告知 AI 暂不可用', async ({ page }) => {
   })
   await page.goto('/profile')
 
-  await expect(page.getByText('基础分析（AI 暂不可用）', { exact: true })).toBeVisible()
+  await expect(page.getByRole('img', { name: '学生人物画像' })).toBeVisible()
+  await expect(page.getByLabel('AI 学习画像总结')).toContainText('基础总结（AI 暂不可用）')
 })
 
 test('历史未验证分析明确建议重新生成', async ({ page }) => {
@@ -258,7 +252,8 @@ test('历史未验证分析明确建议重新生成', async ({ page }) => {
   })
   await page.goto('/profile')
 
-  await expect(page.getByText('历史分析，建议重新生成', { exact: true })).toBeVisible()
+  await expect(page.getByRole('img', { name: '学生人物画像' })).toBeVisible()
+  await expect(page.getByLabel('AI 学习画像总结')).toContainText('历史总结（建议重新生成）')
 })
 
 test('无当前画像时提供重新建档入口', async ({ page }) => {
@@ -291,12 +286,14 @@ test('画像接口未授权时进入加载失败而非无画像', async ({ page 
   await expect(page.getByRole('link', { name: '重新建档' })).toHaveCount(0)
 })
 
-test('画像存在但分析读取失败时展示可恢复降级页', async ({ page }) => {
+test('画像存在但分析读取失败时保留原卡片并使用资料摘要', async ({ page }) => {
   await mockProfileApis(page, { analysisFailure: true })
   await page.goto('/profile')
 
-  await expect(page.getByRole('heading', { name: '分析暂时不可用' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '生成综合分析' })).toBeVisible()
+  await expect(page.getByRole('img', { name: '学生人物画像' })).toBeVisible()
+  await expect(page.getByText('需要关注', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('AI 学习画像总结')).toContainText('画像资料摘要')
+  await expect(page.getByLabel('AI 学习画像总结')).toContainText('当前基础：已掌握基础语法')
   await expect(page.getByRole('heading', { name: '还没有学习画像' })).toHaveCount(0)
 })
 
@@ -314,14 +311,13 @@ test('旧历史数据使用摘要兜底并明确未经 AI 验证', async ({ page
   await page.goto('/profile')
 
   await expect(page.getByText('旧版字段摘要仍可读取。', { exact: true })).toBeVisible()
-  await expect(page.getByText('来源：历史记录（未经 AI 验证）', { exact: true })).toBeVisible()
-  await expect(page.getByText('置信度未记录', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '历史画像' })).toBeVisible()
 })
 
 test('页面在当前视口不产生横向溢出', async ({ page }) => {
   await mockProfileApis(page)
   await page.goto('/profile')
-  await expect(page.getByRole('heading', { name: '当前综合画像' })).toBeVisible()
+  await expect(page.getByRole('img', { name: '学生人物画像' })).toBeVisible()
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
   expect(overflow).toBeLessThanOrEqual(1)
