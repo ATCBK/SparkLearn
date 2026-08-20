@@ -416,6 +416,11 @@ function profileSummaryText(profile: StudentProfile | null, analysis: ProfileAna
 
 function profileSummarySource(analysis: ProfileAnalysis | ProfileAnalysisResp | null) {
   if (!analysis) return '画像资料摘要'
+  if (analysis.generated_by === 'rule_fallback'
+    && 'fallback_reason' in analysis
+    && analysis.fallback_reason === '尚无已保存的融合分析') {
+    return 'AI 总结待生成'
+  }
   if (analysis.generated_by === 'rule_fallback') return '基础总结（AI 暂不可用）'
   if (analysis.generated_by === 'legacy_unverified') return '历史总结（建议重新生成）'
   return 'AI 总结'

@@ -152,6 +152,7 @@ async def test_非法或空模型输出明确降级而不冒充_llm(model_text: 
     assert result["generated_by"] == "rule_fallback"
     assert result["model"] == "rule"
     assert result["status"] == "ready"
+    assert result["fallback_reason"] == "模型输出不可用"
     assert "模型输出不可用" in result["analysis_steps"][0]["detail"]
     assert "异步编程" in result["narrative"]
 

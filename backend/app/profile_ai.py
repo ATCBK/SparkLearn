@@ -186,6 +186,7 @@ def build_rule_fallback_analysis(
 
     result.update(
         {
+            "fallback_reason": _clean_text(reason, limit=300) or "模型输出不可用",
             "confidence": 0.35 if _has_profile_data(facts) else 0.0,
             "overview": overview,
             "narrative": narrative,

@@ -22,6 +22,7 @@ const analysis = {
   profile_version: 3,
   source_type: 'onboarding',
   generated_by: 'llm',
+  fallback_reason: undefined as string | undefined,
   model: 'spark-lite',
   confidence: 0.82,
   overview: '你正在从语法掌握迈向独立项目实践。',
@@ -261,6 +262,23 @@ test('规则降级时明确告知 AI 暂不可用', async ({ page }) => {
 
   await expect(page.getByRole('img', { name: '学生人物画像' })).toBeVisible()
   await expect(page.getByLabel('AI 学习画像总结')).toContainText('基础总结（AI 暂不可用）')
+})
+
+test('旧分析尚未升级时提示生成总结而非误报 AI 不可用', async ({ page }) => {
+  await mockProfileApis(page, {
+    currentAnalysis: {
+      ...analysis,
+      generated_by: 'rule_fallback',
+      model: 'rule',
+      confidence: 0.35,
+      fallback_reason: '尚无已保存的融合分析',
+    },
+  })
+  await page.goto('/profile')
+
+  const summary = page.getByLabel('AI 学习画像总结')
+  await expect(summary).toContainText('AI 总结待生成')
+  await expect(summary).not.toContainText('AI 暂不可用')
 })
 
 test('历史未验证分析明确建议重新生成', async ({ page }) => {
