@@ -120,7 +120,7 @@ export default function ProfilePage() {
             </h2>
             <div aria-label="AI 学习画像总结" className="mt-2">
               <span className="text-micro font-bold text-blue">{profileReady ? profileSummarySource(analysis) : '等待建档'}</span>
-              <p className="mt-1 text-small leading-6 text-muted">
+              <p className="mt-1 line-clamp-2 max-h-12 overflow-hidden text-small leading-6 text-muted">
                 {profileReady
                   ? profileSummaryText(profile, analysis)
                   : '第一次登录时这里不会展示演示学生数据。完成画像采集后，系统会根据你的目标、基础和偏好生成专属画像。'}
@@ -411,7 +411,7 @@ function buildProfileSummary(profile: StudentProfile | null) {
 }
 
 function profileSummaryText(profile: StudentProfile | null, analysis: ProfileAnalysis | ProfileAnalysisResp | null) {
-  return analysis?.narrative?.trim() || analysis?.overview?.trim() || buildProfileSummary(profile)
+  return analysis?.overview?.trim() || analysis?.narrative?.trim() || buildProfileSummary(profile)
 }
 
 function profileSummarySource(analysis: ProfileAnalysis | ProfileAnalysisResp | null) {

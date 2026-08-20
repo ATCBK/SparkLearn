@@ -215,7 +215,8 @@ test('画像页保留学生大头照和原卡片，只在人物画像中显示 A
   await expect(page.getByRole('heading', { name: '当前综合画像' })).toHaveCount(0)
 
   const summary = page.getByLabel('AI 学习画像总结')
-  await expect(summary).toContainText(analysis.narrative)
+  await expect(summary).toContainText(analysis.overview)
+  await expect(summary).not.toContainText(analysis.narrative)
   await expect(summary).toContainText('AI 总结')
   await expect(page.getByText('历史画像连续叙述：从基础语法逐步转向项目实践。', { exact: true })).toBeVisible()
   await expect(page.getByText('不应优先展示的旧摘要', { exact: true })).toHaveCount(0)
@@ -224,7 +225,27 @@ test('画像页保留学生大头照和原卡片，只在人物画像中显示 A
   await page.getByRole('button', { name: 'AI 分析画像' }).click()
   await expect.poll(requests.getAnalyzeRequestCount).toBe(1)
   await expect.poll(requests.getHistoryRequestCount).toBeGreaterThanOrEqual(historyRequestsBeforeRegenerate)
-  await expect(summary).toContainText(regeneratedAnalysis.narrative)
+  await expect(summary).toContainText(regeneratedAnalysis.overview)
+})
+
+test('超长连续画像在人物卡中只展示两行概览', async ({ page }) => {
+  const conciseOverview = '目前处于 Python 项目实战过渡期，先巩固函数与模块拆分。'
+  const longNarrative = '当前基础和学习目标已经采集，但函数设计、模块组织、项目拆解、代码调试和复盘等内容仍需要逐项说明。'.repeat(8)
+  await mockProfileApis(page, {
+    currentAnalysis: {
+      ...analysis,
+      overview: conciseOverview,
+      narrative: longNarrative,
+    },
+  })
+  await page.goto('/profile')
+
+  const summary = page.getByLabel('AI 学习画像总结')
+  await expect(summary).toContainText(conciseOverview)
+  await expect(summary).not.toContainText(longNarrative)
+  const summaryBox = await summary.locator('p').boundingBox()
+  expect(summaryBox).not.toBeNull()
+  expect(summaryBox!.height).toBeLessThanOrEqual(48)
 })
 
 test('规则降级时明确告知 AI 暂不可用', async ({ page }) => {
