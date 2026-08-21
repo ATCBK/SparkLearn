@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, FileText, Sparkles, BarChart3, Clock, CheckCircle2, Target } from 'lucide-react'
 import { PageHead, Pill, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -8,31 +8,23 @@ import { ReportData } from '@/lib/api'
 import { getReport as getMockReport } from '@/lib/api/mock'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-
-type ViewMode = 'day' | 'week' | 'month'
-
-// 生成热力图数据
-function generateHeatmapData(mode: ViewMode): number[][] {
-  if (mode === 'day') {
-    // 24小时 x 1行，每小时的学习强度 0-4
-    return [Array.from({ length: 24 }, () => Math.floor(Math.random() * 5))]
-  }
-  if (mode === 'week') {
-    // 7天 x 24小时
-    return Array.from({ length: 7 }, () =>
-      Array.from({ length: 24 }, () => Math.floor(Math.random() * 5))
-    )
-  }
-  // month: 30天 x 24小时
-  return Array.from({ length: 30 }, () =>
-    Array.from({ length: 24 }, () => Math.floor(Math.random() * 5))
-  )
-}
+import {
+  canNavigateToNextPeriod,
+  generateHeatmapData,
+  getWeekStart,
+  moveReportPeriod,
+  type HeatmapCell,
+  type HeatmapData,
+  type ViewMode,
+} from './heatmap'
 
 const WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 const HOURS = Array.from({ length: 24 }, (_, i) => `${i}:00`)
 
-function getHeatColor(value: number): string {
+function getHeatColor(value: HeatmapCell): string {
+  if (value === null) {
+    return 'border border-dashed border-[#d6dee8] bg-white'
+  }
   const colors = [
     'bg-[#ebedf0]',   // 0 - no activity
     'bg-[#9be9a8]',   // 1 - light
@@ -49,8 +41,7 @@ function getDateLabel(date: Date, mode: ViewMode): string {
   const d = date.getDate()
   if (mode === 'day') return `${y}年${m}月${d}日`
   if (mode === 'week') {
-    const weekStart = new Date(date)
-    weekStart.setDate(date.getDate() - date.getDay() + 1)
+    const weekStart = getWeekStart(date)
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekStart.getDate() + 6)
     return `${weekStart.getMonth() + 1}月${weekStart.getDate()}日 - ${weekEnd.getMonth() + 1}月${weekEnd.getDate()}日`
@@ -61,37 +52,42 @@ function getDateLabel(date: Date, mode: ViewMode): string {
 export default function ReportPage() {
   const [mode, setMode] = useState<ViewMode>('week')
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [heatmapData, setHeatmapData] = useState<number[][]>([])
+  const [now, setNow] = useState(new Date())
   const [report, setReport] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [aiSummary, setAiSummary] = useState<string>('')
   const [aiGenerating, setAiGenerating] = useState(false)
 
-  const loadData = useCallback(async (viewMode: ViewMode) => {
+  const heatmapData = useMemo(
+    () => generateHeatmapData(mode, currentDate, now),
+    [currentDate, mode, now],
+  )
+  const canNavigateForward = canNavigateToNextPeriod(mode, currentDate, now)
+
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const reportData = await getMockReport()
       setReport(reportData)
-      setHeatmapData(generateHeatmapData(viewMode))
     } catch {
-      // fallback
-      setHeatmapData(generateHeatmapData(viewMode))
+      setReport(null)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    loadData(mode)
+    loadData()
   }, [mode, loadData])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   function navigateDate(direction: -1 | 1) {
-    const next = new Date(currentDate)
-    if (mode === 'day') next.setDate(next.getDate() + direction)
-    else if (mode === 'week') next.setDate(next.getDate() + direction * 7)
-    else next.setMonth(next.getMonth() + direction)
-    setCurrentDate(next)
-    setHeatmapData(generateHeatmapData(mode))
+    if (direction === 1 && !canNavigateForward) return
+    setCurrentDate(moveReportPeriod(currentDate, mode, direction))
   }
 
   function switchMode(newMode: ViewMode) {
@@ -161,8 +157,10 @@ export default function ReportPage() {
           </div>
           <button
             onClick={() => navigateDate(1)}
-            className="grid h-8 w-8 place-items-center rounded-lg border border-line hover:bg-[#f1f5f9] transition-colors"
+            disabled={!canNavigateForward}
+            className="grid h-8 w-8 place-items-center rounded-lg border border-line transition-colors hover:bg-[#f1f5f9] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
             aria-label="下一个周期"
+            title={canNavigateForward ? '下一个周期' : '未来周期尚未发生'}
           >
             <ChevronRight className="h-4 w-4 text-muted" />
           </button>
@@ -197,7 +195,10 @@ export default function ReportPage() {
                 <StatCard label="总学习时长" value={`${report.stats.totalHours}h`} />
                 <StatCard label="连续学习" value={`${report.stats.streakDays}天`} />
                 <StatCard label="高效时段" value="20:00-22:00" />
-                <StatCard label="活跃天数" value={`${heatmapData.filter(row => row.some(v => v > 0)).length}天`} />
+                <StatCard
+                  label="活跃天数"
+                  value={`${heatmapData.filter(row => row.some(v => typeof v === 'number' && v > 0)).length}天`}
+                />
               </div>
             )}
 
@@ -329,11 +330,17 @@ function HeatmapLegend() {
         <div key={v} className={`h-3 w-3 rounded-[2px] ${getHeatColor(v)}`} />
       ))}
       <span>多</span>
+      <span className="ml-1 h-3 w-3 rounded-[2px] border border-dashed border-[#d6dee8] bg-white" />
+      <span>尚未发生</span>
     </div>
   )
 }
 
-function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
+function heatmapCellTitle(prefix: string, value: HeatmapCell): string {
+  return value === null ? `${prefix} - 尚未发生` : `${prefix} - 学习强度: ${value}`
+}
+
+function HeatmapGrid({ data, mode }: { data: HeatmapData; mode: ViewMode }) {
   if (mode === 'day') {
     // Single row: 24 hours
     return (
@@ -344,7 +351,7 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
             <div
               key={hour}
               className={`h-8 flex-1 min-w-[20px] rounded-[4px] ${getHeatColor(value)} transition-colors`}
-              title={`${hour}:00 - 学习强度: ${value}`}
+              title={heatmapCellTitle(`${hour}:00`, value)}
             />
           ))}
         </div>
@@ -377,7 +384,7 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
                 <div
                   key={hour}
                   className={`h-5 flex-1 min-w-[12px] rounded-[3px] ${getHeatColor(value)} transition-colors`}
-                  title={`${WEEKDAYS[dayIdx]} ${hour}:00 - 学习强度: ${value}`}
+                  title={heatmapCellTitle(`${WEEKDAYS[dayIdx]} ${hour}:00`, value)}
                 />
               ))}
             </div>
@@ -406,7 +413,7 @@ function HeatmapGrid({ data, mode }: { data: number[][]; mode: ViewMode }) {
               <div
                 key={hour}
                 className={`h-3 flex-1 min-w-[8px] rounded-[2px] ${getHeatColor(value)} transition-colors`}
-                title={`${dayIdx + 1}日 ${hour}:00 - 学习强度: ${value}`}
+                title={heatmapCellTitle(`${dayIdx + 1}日 ${hour}:00`, value)}
               />
             ))}
           </div>
@@ -429,15 +436,18 @@ function StatCard({ label, value }: { label: string; value: string }) {
 // ===== Day View Extra Charts =====
 
 /** Hourly learning intensity curve (area chart) */
-function DayHourlyCurve({ data }: { data: number[] }) {
-  const max = Math.max(...data, 1)
-  const points = data.map((v, i) => {
-    const x = (i / 23) * 100
-    const y = 100 - (v / max) * 100
-    return `${x},${y}`
+function DayHourlyCurve({ data }: { data: HeatmapCell[] }) {
+  const elapsedData = data.flatMap((value, hour) => value === null ? [] : [{ hour, value }])
+  const max = Math.max(...elapsedData.map(({ value }) => value), 1)
+  const points = elapsedData.map(({ hour, value }) => {
+    const x = (hour / 23) * 100
+    const y = 100 - (value / max) * 100
+    return { x, point: `${x},${y}` }
   })
-  const areaPoints = `0,100 ${points.join(' ')} 100,100`
-  const linePoints = points.join(' ')
+  const firstX = points[0]?.x ?? 0
+  const lastX = points.at(-1)?.x ?? 0
+  const linePoints = points.map(({ point }) => point).join(' ')
+  const areaPoints = `${firstX},100 ${linePoints} ${lastX},100`
 
   return (
     <div className="rounded-[10px] border border-[#eef2f7] bg-[#f9fafb] p-4">
@@ -458,11 +468,11 @@ function DayHourlyCurve({ data }: { data: number[] }) {
           {/* Line */}
           <polyline points={linePoints} fill="none" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           {/* Dots at peaks */}
-          {data.map((v, i) => {
-            if (v >= max * 0.7) {
-              const x = (i / 23) * 100
-              const y = 100 - (v / max) * 100
-              return <circle key={i} cx={x} cy={y} r="1.5" fill="#16a34a" />
+          {elapsedData.map(({ hour, value }) => {
+            if (value >= max * 0.7) {
+              const x = (hour / 23) * 100
+              const y = 100 - (value / max) * 100
+              return <circle key={hour} cx={x} cy={y} r="1.5" fill="#16a34a" />
             }
             return null
           })}
@@ -483,7 +493,7 @@ function DayHourlyCurve({ data }: { data: number[] }) {
       <div className="mt-6 flex items-center gap-4 text-micro text-muted">
         <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-green" />高峰时段</span>
         <span>最高强度: {max} 级</span>
-        <span>活跃小时: {data.filter(v => v > 0).length}h</span>
+        <span>活跃小时: {elapsedData.filter(({ value }) => value > 0).length}h</span>
       </div>
     </div>
   )

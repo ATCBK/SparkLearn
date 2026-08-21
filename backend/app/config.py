@@ -86,7 +86,9 @@ class Settings(BaseSettings):
     xf_dh_api_key: str = ""
     xf_dh_api_secret: str = ""
     xf_dh_avatar_id: str = ""
-    xf_dh_server_url: str = "/vmss"
+    xf_dh_server_url: str = ""
+    xf_dh_signed_url_ttl_sec: int = 240
+    xf_dh_memory_ttl_sec: int = 1800
     xf_dh_sdk_url: str = "/libs/avatar-sdk-web_3.2.3.1002/esm/index.js"
     xf_dh_width: int = 720
     xf_dh_height: int = 405

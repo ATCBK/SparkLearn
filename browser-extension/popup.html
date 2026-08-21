@@ -12,7 +12,7 @@
         <div class="logo">S</div>
         <div>
           <h1>SparkLearn 采集</h1>
-          <p>保存当前网页到我的资料</p>
+          <p>保存当前网页到个人资源中心</p>
         </div>
       </header>
 
@@ -21,8 +21,28 @@
         <input id="apiBase" placeholder="http://127.0.0.1:8000" />
       </label>
 
-      <button id="captureBtn">抓取并保存</button>
-      <p id="status" class="status">打开一篇网页后点击保存。</p>
+      <section id="loginPanel" class="auth-panel">
+        <label class="field">
+          <span>登录手机号</span>
+          <input id="phone" inputmode="numeric" autocomplete="username" placeholder="请输入 SparkLearn 手机号" />
+        </label>
+        <label class="field">
+          <span>登录密码</span>
+          <input id="password" type="password" autocomplete="current-password" placeholder="请输入登录密码" />
+        </label>
+        <button id="loginBtn">登录并连接账号</button>
+      </section>
+
+      <section id="accountPanel" class="account-panel" hidden>
+        <div>
+          <span>当前账号</span>
+          <b id="accountName"></b>
+        </div>
+        <button id="logoutBtn" class="text-button">退出</button>
+      </section>
+
+      <button id="captureBtn" disabled>抓取并保存到资源中心</button>
+      <p id="status" class="status">请先登录 SparkLearn。</p>
 
       <section id="result" class="result" hidden>
         <b id="resultTitle"></b>

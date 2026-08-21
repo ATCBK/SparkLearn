@@ -1,14 +1,17 @@
 """
 Browser Agent Service - Real browser automation with Playwright.
 Runs sync Playwright in a thread pool to avoid Windows event loop conflicts.
-Shows the FULL browsing process: open, type, search, scroll, click results, read pages, go back.
+Shows the browsing process: open, type, search, scroll, and extract the result list.
 """
 from __future__ import annotations
 
 import asyncio
+import ctypes
 import logging
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from ctypes import wintypes
 from typing import Any, Callable
 from urllib.parse import urlparse
 
@@ -17,6 +20,120 @@ from playwright.sync_api import sync_playwright
 logger = logging.getLogger("browser_agent")
 
 _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="browser_agent")
+_IS_WINDOWS = sys.platform == "win32"
+
+
+def _visible_chromium_window_handles() -> set[int] | None:
+    """获取当前可见的 Chromium 顶层窗口。
+
+    这里只做窗口快照，后续会用“启动前/启动后”差集锁定本次 Playwright
+    新建的窗口，避免误激活用户已有的 Chrome 窗口。
+    """
+    if not _IS_WINDOWS:
+        return set()
+
+    try:
+        user32 = ctypes.windll.user32
+        handles: set[int] = set()
+        enum_windows_proc = ctypes.WINFUNCTYPE(
+            wintypes.BOOL,
+            wintypes.HWND,
+            wintypes.LPARAM,
+        )
+
+        @enum_windows_proc
+        def collect_window(hwnd, _lparam):
+            if not user32.IsWindowVisible(hwnd):
+                return True
+
+            class_name = ctypes.create_unicode_buffer(256)
+            if not user32.GetClassNameW(hwnd, class_name, len(class_name)):
+                return True
+            if class_name.value != "Chrome_WidgetWin_1":
+                return True
+
+            # 排除有 owner 的弹窗，只保留可独立切换的顶层浏览器窗口。
+            if user32.GetWindow(hwnd, 4):  # GW_OWNER
+                return True
+            handles.add(int(hwnd))
+            return True
+
+        user32.EnumWindows(collect_window, 0)
+        return handles
+    except Exception:
+        logger.exception("获取 Chromium 窗口快照失败。")
+        return None
+
+
+def _activate_windows_window(handle: int) -> bool:
+    """恢复并激活指定 Windows 窗口，返回是否真正成为前台窗口。"""
+    if not _IS_WINDOWS or not handle:
+        return False
+
+    attached_threads: set[tuple[int, int]] = set()
+    try:
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        user32.GetForegroundWindow.restype = wintypes.HWND
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.c_void_p]
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+
+        hwnd = wintypes.HWND(handle)
+
+        def activate() -> None:
+            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            user32.BringWindowToTop(hwnd)
+            user32.SetForegroundWindow(hwnd)
+            user32.SetActiveWindow(hwnd)
+
+        activate()
+        if int(user32.GetForegroundWindow() or 0) == handle:
+            return True
+
+        # Windows 会限制后台进程抢前台。短暂关联相关输入线程后再激活，
+        # 随后立即解除关联，不会改变其他窗口的置顶状态。
+        current_thread = int(kernel32.GetCurrentThreadId())
+        target_thread = int(user32.GetWindowThreadProcessId(hwnd, None))
+        foreground = user32.GetForegroundWindow()
+        foreground_thread = (
+            int(user32.GetWindowThreadProcessId(foreground, None))
+            if foreground
+            else 0
+        )
+
+        for source_thread, destination_thread in (
+            (current_thread, foreground_thread),
+            (current_thread, target_thread),
+        ):
+            if (
+                source_thread
+                and destination_thread
+                and source_thread != destination_thread
+                and user32.AttachThreadInput(
+                    source_thread,
+                    destination_thread,
+                    True,
+                )
+            ):
+                attached_threads.add((source_thread, destination_thread))
+
+        activate()
+        return int(user32.GetForegroundWindow() or 0) == handle
+    except Exception:
+        logger.exception("激活新建 Chromium 窗口失败。")
+        return False
+    finally:
+        if attached_threads:
+            try:
+                user32 = ctypes.windll.user32
+                for source_thread, destination_thread in attached_threads:
+                    user32.AttachThreadInput(
+                        source_thread,
+                        destination_thread,
+                        False,
+                    )
+            except Exception:
+                logger.exception("解除 Windows 输入线程关联失败。")
 
 
 class BrowserAgentService:
@@ -24,6 +141,52 @@ class BrowserAgentService:
     def __init__(self, headless: bool = True, slow_mo: int = 0):
         self.headless = headless
         self.slow_mo = slow_mo
+
+    def _focus_search_window(
+        self,
+        page: Any,
+        existing_handles: set[int] | None,
+    ) -> None:
+        """激活搜索标签页，并安全地将本次新建窗口切到 Windows 前台。"""
+        try:
+            page.bring_to_front()
+        except Exception:
+            logger.exception("激活 Playwright 搜索标签页失败，将继续检索。")
+
+        if self.headless or not _IS_WINDOWS:
+            return
+        if existing_handles is None:
+            logger.warning(
+                "启动前窗口快照不可用，为避免误激活已跳过系统级切换。"
+            )
+            return
+
+        try:
+            for _ in range(20):
+                current_handles = _visible_chromium_window_handles()
+                if current_handles is None:
+                    logger.warning(
+                        "启动后窗口快照不可用，为避免误激活已跳过系统级切换。"
+                    )
+                    return
+                new_handles = current_handles - existing_handles
+                if len(new_handles) == 1:
+                    handle = next(iter(new_handles))
+                    if not _activate_windows_window(handle):
+                        logger.warning(
+                            "新建 Chromium 窗口未能成为前台窗口，将继续检索。"
+                        )
+                    return
+                if len(new_handles) > 1:
+                    logger.warning(
+                        "检测到 %s 个新 Chromium 窗口，为避免误激活已跳过系统级切换。",
+                        len(new_handles),
+                    )
+                    return
+                time.sleep(0.1)
+            logger.warning("未识别到本次新建的 Chromium 窗口，将继续检索。")
+        except Exception:
+            logger.exception("切换新建 Chromium 窗口时出错，将继续检索。")
 
     async def search(self, query: str, on_step: Callable[[int, str, str], None] | None = None, max_results: int = 5) -> dict[str, Any]:
         loop = asyncio.get_event_loop()
@@ -64,6 +227,12 @@ class BrowserAgentService:
 
         step(1, "start", "正在启动浏览器...")
 
+        existing_browser_windows = (
+            _visible_chromium_window_handles()
+            if not self.headless and _IS_WINDOWS
+            else set()
+        )
+
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=self.headless, slow_mo=self.slow_mo)
             context = browser.new_context(
@@ -77,8 +246,17 @@ class BrowserAgentService:
             try:
                 # Step 1: Open Bing homepage
                 step(2, "navigate", "正在打开 Bing 搜索引擎...")
-                page.goto("https://cn.bing.com", timeout=20000)
+                try:
+                    page.goto("https://cn.bing.com", timeout=20000)
+                except Exception as ex:
+                    if "net::ERR_CERT_VERIFIER_CHANGED" not in str(ex):
+                        raise
+                    logger.warning("Chromium 证书校验器发生瞬时切换，正在重试 Bing 导航。")
+                    step(2, "navigate", "浏览器网络状态刚刚变化，正在重新打开 Bing...")
+                    time.sleep(0.5)
+                    page.goto("https://cn.bing.com", timeout=20000)
                 page.wait_for_load_state("domcontentloaded")
+                self._focus_search_window(page, existing_browser_windows)
                 time.sleep(1)
 
                 # Step 2: Click search box and type query character by character
@@ -113,59 +291,8 @@ class BrowserAgentService:
                     step(20, "done", "未找到搜索结果")
                     return {"items": []}
 
-                # Step 6-N: Click into each result, scroll/read, then go back
-                enriched = []
-                step_idx = 7
-                for i, result in enumerate(results[:3]):
-                    if not result.get("url"):
-                        enriched.append(result)
-                        continue
-
-                    # Click the result link
-                    step(step_idx, "click", f"点击第 {i+1} 条结果: 「{result['title'][:25]}」...")
-                    step_idx += 1
-                    try:
-                        page.goto(result["url"], timeout=12000)
-                        page.wait_for_load_state("domcontentloaded")
-                        time.sleep(1)
-
-                        # Scroll down to read the page content
-                        step(step_idx, "scroll", f"正在阅读第 {i+1} 篇文章...")
-                        step_idx += 1
-                        for y in [300, 600, 900]:
-                            page.evaluate(f"window.scrollTo(0, {y})")
-                            time.sleep(0.6)
-
-                        # Extract content from the page
-                        step(step_idx, "extract", f"提取第 {i+1} 篇文章要点...")
-                        step_idx += 1
-                        content = self._extract_page_content_sync(page)
-                        if content and len(content) > 20:
-                            result["summary"] = content[:200]
-
-                        enriched.append(result)
-
-                        # Go back to search results
-                        step(step_idx, "navigate", "返回搜索结果页...")
-                        step_idx += 1
-                        page.go_back()
-                        page.wait_for_load_state("domcontentloaded")
-                        time.sleep(1)
-
-                    except Exception:
-                        enriched.append(result)
-                        try:
-                            page.go_back()
-                            time.sleep(0.5)
-                        except Exception:
-                            pass
-
-                # Add remaining results that we didn't click into
-                for result in results[3:]:
-                    enriched.append(result)
-
-                step(30, "done", f"搜索完成！共找到 {len(enriched)} 条相关资源")
-                return {"items": enriched}
+                step(20, "done", f"搜索完成！共找到 {len(results)} 条相关资源")
+                return {"items": results}
 
             except Exception as ex:
                 logger.exception("Browser search failed")

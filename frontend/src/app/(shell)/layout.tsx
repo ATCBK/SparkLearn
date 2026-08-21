@@ -10,7 +10,6 @@ import { AIAssistant } from '@/components/layout/AIAssistant'
 import { LearningNotesPanel } from '@/components/layout/LearningNotesPanel'
 import { MOBILE_TABS, PAGE_META } from '@/components/layout/navigation'
 import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
-import { GenerationTaskProvider } from '@/components/providers/GenerationTaskProvider'
 import { useBreakpoint } from '@/lib/hooks/useMediaQuery'
 import { clearDesktopAuthSession, isAuthenticated, restoreDesktopAuthSession, syncStudyBuddyProfile } from '@/lib/auth'
 
@@ -133,64 +132,60 @@ export default function ShellLayout({
 
   if (isMobile) {
     return (
-      <GenerationTaskProvider>
-        <div className="min-h-screen bg-bg">
-          <MobileTopbar />
-          <main
-            className="min-h-screen pt-14 pb-28"
-            style={{
-              backgroundImage: 'url(/gongzuotai-bg.png)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center top',
-            }}
-          >
-            <div className="mx-auto max-w-[560px] px-3 py-4">{children}</div>
-          </main>
-          <BottomTabBar />
-          <NewUserGuidePanel />
-        </div>
-      </GenerationTaskProvider>
+      <div className="min-h-screen bg-bg">
+        <MobileTopbar />
+        <main
+          className="min-h-screen pt-14 pb-28"
+          style={{
+            backgroundImage: 'url(/gongzuotai-bg.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
+          }}
+        >
+          <div className="mx-auto max-w-[560px] px-3 py-4">{children}</div>
+        </main>
+        <BottomTabBar />
+        <NewUserGuidePanel />
+      </div>
     )
   }
 
   return (
-    <GenerationTaskProvider>
-      <div className="min-h-screen bg-bg">
-        <Sidebar state={sidebarState} onStateChange={setSidebarState} />
-        <Topbar
-          sidebarWidth={sidebarWidth}
-          sidebarExpanded={sidebarState === 'expanded'}
-          onToggleSidebar={() => setSidebarState(sidebarState === 'expanded' ? 'icons' : 'expanded')}
-        />
-        <main
-          className="min-h-screen pt-14 transition-[margin-left] duration-300 ease-out"
-          style={{
-            marginLeft: sidebarWidth,
-            backgroundImage: 'url(/gongzuotai-bg.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center top',
-            backgroundAttachment: 'fixed',
-          }}
+    <div className="min-h-screen bg-bg">
+      <Sidebar state={sidebarState} onStateChange={setSidebarState} />
+      <Topbar
+        sidebarWidth={sidebarWidth}
+        sidebarExpanded={sidebarState === 'expanded'}
+        onToggleSidebar={() => setSidebarState(sidebarState === 'expanded' ? 'icons' : 'expanded')}
+      />
+      <main
+        className="min-h-screen pt-14 transition-[margin-left] duration-300 ease-out"
+        style={{
+          marginLeft: sidebarWidth,
+          backgroundImage: 'url(/gongzuotai-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center top',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        <div className="mx-auto max-w-[1360px] px-8 py-7 max-[760px]:px-4">{children}</div>
+      </main>
+      <Suspense fallback={null}>
+        <LearningNotesPanel />
+      </Suspense>
+      <AIAssistant />
+      <NewUserGuidePanel />
+      {sidebarState === 'collapsed' && (
+        <button
+          onClick={() => setSidebarState('expanded')}
+          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-bg-card/80 backdrop-blur-sm rounded-r-lg shadow-sm flex items-center justify-center hover:bg-bg-hover transition-colors"
+          aria-label="展开侧栏"
         >
-          <div className="mx-auto max-w-[1360px] px-8 py-7 max-[760px]:px-4">{children}</div>
-        </main>
-        <Suspense fallback={null}>
-          <LearningNotesPanel />
-        </Suspense>
-        <AIAssistant />
-        <NewUserGuidePanel />
-        {sidebarState === 'collapsed' && (
-          <button
-            onClick={() => setSidebarState('expanded')}
-            className="fixed left-0 top-1/2 -translate-y-1/2 z-50 w-6 h-12 bg-bg-card/80 backdrop-blur-sm rounded-r-lg shadow-sm flex items-center justify-center hover:bg-bg-hover transition-colors"
-            aria-label="展开侧栏"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        )}
-      </div>
-    </GenerationTaskProvider>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      )}
+    </div>
   )
 }

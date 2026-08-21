@@ -10,10 +10,6 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: `${apiBase}/api/:path*`,
       },
-      {
-        source: '/vmss/:path*',
-        destination: 'https://vms.cn-huadong-1.xf-yun.com/:path*',
-      },
     ]
   },
 };

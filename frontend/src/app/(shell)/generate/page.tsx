@@ -16,6 +16,13 @@ import { GenerationFailureContactDialog } from '@/components/ui/GenerationFailur
 import { buildUrlAccessUrl } from '@/lib/api/real'
 
 const STEPS = ['确认上下文', '选择类型', '配置要求', '生成中', '预览结果', '自动保存']
+const STRICT_RESOURCE_PREVIEW_SANDBOX = 'allow-scripts allow-downloads'
+const PPT_RESOURCE_PREVIEW_SANDBOX = `${STRICT_RESOURCE_PREVIEW_SANDBOX} allow-forms allow-same-origin`
+
+function resourcePreviewSandbox(type: Resource['type']) {
+  return type === 'ppt' ? PPT_RESOURCE_PREVIEW_SANDBOX : STRICT_RESOURCE_PREVIEW_SANDBOX
+}
+
 const TYPES: Array<{ type: Resource['type']; label: string; desc: string }> = [
   { type: 'document', label: '文档', desc: '结构化概念讲义' },
   { type: 'ppt', label: 'PPT', desc: '课堂式演示稿' },
@@ -711,7 +718,7 @@ function GeneratePageContent() {
                     ) : selected.type === 'web_material' ? (
                       <WebMaterialPreview resource={selected} loading={detailLoadingId === selected.id} />
                     ) : previewUrl ? (
-                      <iframe title={selected.title} src={previewUrl} sandbox="allow-scripts allow-downloads" allow="fullscreen" className="h-full min-h-[560px] w-full border-0" />
+                      <iframe title={selected.title} src={previewUrl} sandbox={resourcePreviewSandbox(selected.type)} allow="fullscreen" className="h-full min-h-[560px] w-full border-0" />
                     ) : selected.type === 'video' ? (
                       <div className="grid min-h-[420px] place-items-center rounded-[12px] bg-[#0f172a] text-white">
                         <div className="text-center">
@@ -1285,7 +1292,7 @@ function GeneratePageContent() {
                     </div>
                   ) : generatedPreviewUrl ? (
                     <div className="mt-3">
-                      <iframe title={resource.title} src={generatedPreviewUrl} sandbox="allow-scripts allow-downloads" allow="fullscreen" className="h-[72vh] min-h-[560px] w-full rounded-xl border border-line bg-white" />
+                      <iframe title={resource.title} src={generatedPreviewUrl} sandbox={resourcePreviewSandbox(resource.type)} allow="fullscreen" className="h-[72vh] min-h-[560px] w-full rounded-xl border border-line bg-white" />
                     </div>
                   ) : (
                     <div className="mt-3 max-h-[calc(100vh-360px)] overflow-y-auto pr-3">

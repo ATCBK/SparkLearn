@@ -1,8 +1,9 @@
 'use client'
 
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Resource } from '@/lib/api'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { api, type Resource } from '@/lib/api'
+import { getCurrentUserId } from '@/lib/auth'
 import { GenerationFailureContactDialog } from '@/components/ui/GenerationFailureContactDialog'
 
 interface GenerationTask {
@@ -20,26 +21,6 @@ interface GenerationTaskContextType {
   dismissTask: (id: string) => void
 }
 
-type ResourceSseEvent = {
-  type?: string
-  payload?: {
-    message?: unknown
-    error?: unknown
-    resource?: {
-      id?: string | number
-      title?: string
-      type?: string
-      status?: string
-      created_at?: string
-      content?: string
-      source_url?: string
-      artifact_kind?: string
-      artifact_files?: unknown[]
-      progress?: number
-    }
-  }
-}
-
 const GenerationTaskContext = createContext<GenerationTaskContextType>({
   tasks: [],
   startBackgroundGeneration: () => {},
@@ -50,15 +31,27 @@ export function useGenerationTasks() {
   return useContext(GenerationTaskContext)
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
-
 export function GenerationTaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<GenerationTask[]>([])
   const [failureDialog, setFailureDialog] = useState<{ message: string; detail?: string } | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const taskIdRef = useRef(0)
+  const ownerIdRef = useRef(getCurrentUserId())
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const currentOwnerId = getCurrentUserId()
+      if (ownerIdRef.current === currentOwnerId) return
+      ownerIdRef.current = currentOwnerId
+      setTasks([])
+      setFailureDialog(null)
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [pathname])
 
   const startBackgroundGeneration = useCallback((type: string, prompt: string, knowledgeFileIds: number[] = [], videoOptions?: { styleId?: string; durationSec?: number; voice?: string; voiceProvider?: string; voiceSpeed?: number; voicePitch?: number; voiceVolume?: number; codeLevel?: string }) => {
+    const taskOwnerId = getCurrentUserId()
     const taskId = `bg-${Date.now()}-${++taskIdRef.current}`
     const newTask: GenerationTask = {
       id: taskId,
@@ -76,148 +69,29 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
     const voicePitch = videoOptions?.voicePitch
     const voiceVolume = videoOptions?.voiceVolume
 
-    // 视频类型走独立管线
-    if (type === 'video') {
-      (async () => {
-        try {
-          // Step 1: Polish
-          const polishRes = await fetch(`${API_BASE}/api/video/polish`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, duration_sec: durationSec, style_id: styleId, voice }),
-          })
-          const polishJson = await polishRes.json()
-          const polish = polishJson.data || polishJson
-
-          // Step 2: Create job
-          const jobRes = await fetch(`${API_BASE}/api/video/jobs`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              polish_id: polish.polish_id,
-              prompt: polish.polished_prompt || prompt,
-              title: polish.title || prompt.slice(0, 20),
-              script_outline: polish.script_outline || [],
-              video_provider: 'html_ppt',
-              style_id: styleId,
-              duration_sec: durationSec,
-              voice: {
-                provider: voiceProvider,
-                ...(voice ? { voice } : {}),
-                ...(voiceSpeed !== undefined ? { speed: voiceSpeed } : {}),
-                ...(voicePitch !== undefined ? { pitch: voicePitch } : {}),
-                ...(voiceVolume !== undefined ? { volume: voiceVolume } : {}),
-              },
-            }),
-          })
-          const jobJson = await jobRes.json()
-          const job = jobJson.data || jobJson
-          const resourceId = job.resource_id
-
-          // Step 3: Wait for events to complete
-          if (job.events_url) {
-            try {
-              const eventsRes = await fetch(`${API_BASE}${job.events_url}`)
-              if (eventsRes.body) {
-                const reader = eventsRes.body.getReader()
-                const decoder = new TextDecoder()
-                let buf = ''
-                while (true) {
-                  const { done, value } = await reader.read()
-                  if (done) break
-                  buf += decoder.decode(value, { stream: true })
-                  buf = buf.split('\n\n').pop() || ''
-                }
-              }
-            } catch { /* SSE failed, video may still generate */ }
-          }
-
-          // Step 4: Fetch result
-          const resRes = await fetch(`${API_BASE}/api/video/resources/${resourceId}`)
-          if (resRes.ok) {
-            const resJson = await resRes.json()
-            const raw = resJson.data || resJson
-            const resource: Resource = {
-              id: raw.id || resourceId,
-              title: raw.title || polish.title || prompt.slice(0, 20),
-              type: 'video',
-              status: raw.status || 'completed',
-              createdAt: raw.created_at || new Date().toISOString(),
-            }
-            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource } : t))
-          } else {
-            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource: { id: resourceId, title: polish.title || prompt.slice(0, 20), type: 'video', status: 'completed', createdAt: new Date().toISOString() } } : t))
-          }
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : '视频生成失败'
-          setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: message } : t))
-          setFailureDialog({ message: '后台视频生成失败，请联系项目负责人处理。', detail: message })
-        }
-      })()
-      return
-    }
-
-    // 其他类型走 /api/resources/generate SSE
-    fetch(`${API_BASE}/api/resources/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        prompt,
-        knowledge_file_ids: knowledgeFileIds,
-        ...(type === 'visual3d' && videoOptions?.codeLevel ? { code_level: videoOptions.codeLevel } : {}),
-      }),
-    }).then(async (res) => {
-      if (!res.body) throw new Error('流式响应体为空')
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let resource: Resource | undefined
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const chunks = buffer.split('\n\n')
-        buffer = chunks.pop() || ''
-        for (const c of chunks) {
-          const line = c.split('\n').find(l => l.startsWith('data: '))
-          if (!line) continue
-          let evt: ResourceSseEvent | null = null
-          try {
-            evt = JSON.parse(line.slice(6))
-          } catch { /* ignore parse errors */ }
-          if (!evt) continue
-          if (evt.type === 'error') {
-            throw new Error(String(evt.payload?.message || evt.payload?.error || '生成失败'))
-          }
-          if (evt.type === 'done' && evt.payload?.resource) {
-            const raw = evt.payload.resource
-            resource = {
-              id: String(raw.id || taskId),
-              title: raw.title || prompt.slice(0, 20) || '生成资源',
-              type: (raw.type || type) as Resource['type'],
-              status: (raw.status || 'completed') as Resource['status'],
-              createdAt: raw.created_at || new Date().toISOString(),
-              content: raw.content,
-              sourceUrl: raw.source_url,
-              artifactKind: raw.artifact_kind,
-              artifactFiles: Array.isArray(raw.artifact_files) ? raw.artifact_files.map((x: unknown) => String(x)) : undefined,
-              progress: raw.progress,
-            }
-          }
-        }
+    void api.generateResource(type as Resource['type'], prompt, knowledgeFileIds, {
+      durationSec,
+      styleId,
+      voice,
+      voiceProvider,
+      voiceSpeed,
+      voicePitch,
+      voiceVolume,
+      codeLevel: videoOptions?.codeLevel,
+    }).then((resource) => {
+      if (getCurrentUserId() !== taskOwnerId) return
+      if (resource.status !== 'completed') {
+        throw new Error('后台生成尚未返回完成结果，请稍后重试')
       }
-
-      if (resource) {
-        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource } : t))
-      } else {
-        throw new Error('生成结果为空')
-      }
-    }).catch((err) => {
-      const message = err?.message || '生成失败'
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed', resource } : t))
+    }).catch((err: unknown) => {
+      if (getCurrentUserId() !== taskOwnerId) return
+      const message = err instanceof Error ? err.message : '生成失败'
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'error', error: message } : t))
-      setFailureDialog({ message: '后台资源生成失败，请联系项目负责人处理。', detail: message })
+      setFailureDialog({
+        message: type === 'video' ? '后台视频生成失败，请联系项目负责人处理。' : '后台资源生成失败，请联系项目负责人处理。',
+        detail: message,
+      })
     })
   }, [])
 
@@ -229,11 +103,9 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
     <GenerationTaskContext.Provider value={{ tasks, startBackgroundGeneration, dismissTask }}>
       {children}
       {/* 完成通知弹窗 */}
-      {tasks.filter(t => t.status === 'completed' || t.status === 'error').map(task => (
-        <div
-          key={task.id}
-          className="fixed bottom-6 right-6 z-[9999] max-w-sm animate-in slide-in-from-bottom-4 fade-in duration-300"
-        >
+      <div className="fixed bottom-6 right-6 z-[9999] flex max-w-sm flex-col gap-3">
+        {tasks.filter(t => t.status === 'completed' || t.status === 'error').map(task => (
+          <div key={task.id} className="animate-in slide-in-from-bottom-4 fade-in duration-300">
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-4 shadow-lg">
             {task.status === 'completed' ? (
               <>
@@ -276,8 +148,9 @@ export function GenerationTaskProvider({ children }: { children: React.ReactNode
               </>
             )}
           </div>
-        </div>
-      ))}
+          </div>
+        ))}
+      </div>
       <GenerationFailureContactDialog
         open={Boolean(failureDialog)}
         message={failureDialog?.message}

@@ -1,7 +1,16 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { CheckCircle2, KeyRound, Plus, Save, Server, Trash2, Zap } from 'lucide-react'
+import {
+  CheckCircle2,
+  KeyRound,
+  Plus,
+  Save,
+  Server,
+  Trash2,
+  Zap,
+} from 'lucide-react'
+import { TutorSidebar } from '@/components/tutor/TutorSidebar'
 
 type ModelProvider = 'spark' | 'deepseek'
 
@@ -169,34 +178,50 @@ export default function TutorModelSettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f8fb] px-4 py-6 text-[#0f172a] md:px-8">
-      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-5">
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e2e8f0] pb-5">
+    <div
+      className="flex h-screen bg-[#f5f7fa] text-[#0f172a] max-[760px]:h-auto max-[760px]:min-h-screen"
+      style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+    >
+      <TutorSidebar />
+
+      <main className="min-w-0 flex-1 overflow-y-auto bg-[#fbfcfe]">
+        <header className="flex min-h-14 items-center justify-between gap-4 border-b border-[#e2e8f0] bg-white px-6 py-3">
           <div>
-            <p className="text-sm font-bold text-[#2563eb]">智能辅导 / 模型配置</p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-normal">模型配置</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748b]">
-              管理 Tutor 可用模型的名称、模型标识、网关地址和密钥状态。
-            </p>
+            <h1 className="text-sm font-semibold text-[#1e293b]">模型配置</h1>
+            <p className="mt-0.5 text-[11px] text-[#94a3b8]">智能辅导 / 模型配置</p>
           </div>
-          <button
-            type="button"
-            onClick={() => chooseProvider(selectedProvider)}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#2563eb] px-4 text-sm font-bold text-white hover:bg-[#1d4ed8]"
-          >
-            <Plus className="h-4 w-4" />
-            新建配置
-          </button>
+          <div className="inline-flex items-center gap-2 text-xs font-medium text-[#64748b]">
+            <span className="h-2 w-2 rounded-full bg-[#059669]" />
+            本机配置
+          </div>
         </header>
 
-        {toast && (
-          <div className="rounded-lg border border-[#bfdbfe] bg-[#eff6ff] px-4 py-3 text-sm font-bold text-[#1d4ed8]">
-            {toast}
+        <div className="mx-auto w-full max-w-[1100px] px-8 py-7 max-[760px]:px-4">
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-[#1e293b]">管理 Tutor 使用的大模型</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64748b]">
+                配置模型名称、模型标识、API Key 和接口地址，供智能辅导读取同一套模型标识。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => chooseProvider(selectedProvider)}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#2563eb] px-4 text-sm font-semibold text-white shadow-sm shadow-blue-100 transition-colors hover:bg-[#1d4ed8]"
+            >
+              <Plus className="h-4 w-4" />
+              新建配置
+            </button>
           </div>
-        )}
 
-        <section className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="rounded-lg border border-[#e2e8f0] bg-white p-3">
+          {toast && (
+            <div className="mb-5 rounded-xl border border-[#bfdbfe] bg-[#eff6ff] px-4 py-3 text-sm font-medium text-[#1d4ed8]">
+              {toast}
+            </div>
+          )}
+
+          <section className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="rounded-xl border border-[#e2e8f0] bg-white p-3 shadow-[0_8px_24px_rgba(31,41,55,0.04)]">
             <div className="mb-3 px-2 text-xs font-bold uppercase text-[#94a3b8]">供应商</div>
             <div className="space-y-2">
               {PROVIDERS.map((provider) => (
@@ -251,7 +276,7 @@ export default function TutorModelSettingsPage() {
             </div>
           </aside>
 
-          <form onSubmit={saveConfig} className="rounded-lg border border-[#e2e8f0] bg-white p-5">
+          <form onSubmit={saveConfig} className="rounded-xl border border-[#e2e8f0] bg-white p-5 shadow-[0_8px_24px_rgba(31,41,55,0.04)]">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-[#eef2f7] pb-4">
               <div>
                 <h2 className="text-xl font-extrabold">{activeConfig ? '编辑模型' : '新增模型'}</h2>
@@ -346,8 +371,9 @@ export default function TutorModelSettingsPage() {
               </button>
             </div>
           </form>
-        </section>
-      </div>
-    </main>
+          </section>
+        </div>
+      </main>
+    </div>
   )
 }

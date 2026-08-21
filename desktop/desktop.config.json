@@ -1,15 +1,15 @@
 {
   "api": {
-    "baseUrl": "http://121.41.78.3"
+    "baseUrl": "http://127.0.0.1:8000"
   },
   "frontend": {
-    "enabled": false,
-    "url": "http://121.41.78.3",
+    "enabled": true,
+    "url": "http://localhost:3000",
     "env": {
-      "NEXT_PUBLIC_API_BASE_URL": "http://121.41.78.3"
+      "NEXT_PUBLIC_API_BASE_URL": "http://127.0.0.1:8000"
     }
   },
   "backend": {
-    "enabled": false
+    "enabled": true
   }
 }

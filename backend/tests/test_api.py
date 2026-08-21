@@ -2,6 +2,7 @@
 
 
 from io import BytesIO
+import asyncio
 
 from docx import Document
 
@@ -1015,6 +1016,92 @@ async def test_agent_chat_普通对话仍走原有模型链路(client, monkeypat
 
 
 @pytest.mark.asyncio
+async def test_agent_chat_连续对话只注入最近六条轻量记忆(client, monkeypatch):
+    from app.db import fetch_all
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+    prompts: list[str] = []
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        prompts.append(prompt)
+        yield f"第{len(prompts)}轮回答"
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+
+    for index in range(1, 6):
+        response = await client.post("/api/agent/chat", json={"message": f"第{index}轮问题"})
+        assert response.json()["success"] is True
+
+    assert "最近对话记忆" in prompts[1]
+    assert "第1轮问题" in prompts[1]
+    assert "第1轮回答" in prompts[1]
+    assert "第1轮问题" not in prompts[4]
+    assert "第1轮回答" not in prompts[4]
+    assert "第2轮问题" in prompts[4]
+    assert "第4轮回答" in prompts[4]
+
+    rows = fetch_all(
+        "SELECT sender, content FROM agent_messages WHERE user_id = ? ORDER BY id ASC",
+        (settings.single_user_id,),
+    )
+    assert [(row["sender"], row["content"]) for row in rows] == [
+        ("user", "第1轮问题"),
+        ("agent", "第1轮回答"),
+        ("user", "第2轮问题"),
+        ("agent", "第2轮回答"),
+        ("user", "第3轮问题"),
+        ("agent", "第3轮回答"),
+        ("user", "第4轮问题"),
+        ("agent", "第4轮回答"),
+        ("user", "第5轮问题"),
+        ("agent", "第5轮回答"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_记忆写入失败不会阻断本轮回答(client, monkeypatch):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        yield "本轮回答仍然可用"
+
+    def failed_save(*args, **kwargs):
+        raise OSError("记忆存储暂时不可用")
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+    monkeypatch.setattr(agent_route, "_save_chat_turn", failed_save)
+
+    response = await client.post("/api/agent/chat", json={"message": "继续讲闭包"})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["answer"] == "本轮回答仍然可用"
+
+
+@pytest.mark.asyncio
+async def test_agent_chat_记忆读取失败不会阻断本轮回答(client, monkeypatch):
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+
+    async def fake_stream(prompt: str, mode: str = "general"):
+        yield "不依赖旧记忆也能回答"
+
+    def failed_load(*args, **kwargs):
+        raise OSError("记忆读取暂时不可用")
+
+    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_stream)
+    monkeypatch.setattr(agent_route, "_load_recent_chat_memory", failed_load)
+
+    response = await client.post("/api/agent/chat", json={"message": "解释闭包"})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["answer"] == "不依赖旧记忆也能回答"
+
+
+@pytest.mark.asyncio
 async def test_tutor_stream_and_history(client):
     r = await client.post("/api/tutor/chat", json={"message": "什么是闭包", "mode": "knowledge_qa"})
     assert r.status_code == 200
@@ -1136,6 +1223,246 @@ async def test_generate_stream(client):
 
 
 @pytest.mark.asyncio
+async def test_tutor_video_job_persists_completed_resource_in_conversation_history(client, monkeypatch):
+    from app.routes import video as video_route
+
+    conversation = await client.post("/api/tutor/conversations", json={"title": "视频辅导持久化"})
+    conversation_id = int(conversation.json()["data"]["id"])
+
+    def fake_build_video_artifacts(resource_id, job):
+        return {
+            "title": job["title"],
+            "duration_ms": 15000,
+            "created_at": "2026-08-20T12:00:00+08:00",
+            "has_mp4": True,
+            "slides": 2,
+            "voice": {"provider": "cosyvoice", "voice": "longxiaochun"},
+        }
+
+    monkeypatch.setattr(video_route, "build_video_artifacts", fake_build_video_artifacts)
+
+    created = await client.post(
+        "/api/video/jobs",
+        json={
+            "prompt": "用视频讲解 Python 闭包",
+            "title": "Python 闭包讲解",
+            "script_outline": [{"title": "闭包", "narration": "闭包会记住外层作用域。"}],
+            "tutor_context": {
+                "conversation_id": conversation_id,
+                "message": "用视频讲解 Python 闭包",
+            },
+        },
+    )
+    assert created.status_code == 200
+    job = created.json()["data"]
+
+    events = await client.get(job["events_url"])
+    assert events.status_code == 200
+    assert '"type": "done"' in events.text
+
+    history = await client.get(f"/api/tutor/history?conversation_id={conversation_id}&limit=20")
+    assert history.status_code == 200
+    messages = history.json()["data"]
+    assert [message["role"] for message in messages[-2:]] == ["user", "assistant"]
+    assert messages[-2]["content"] == "用视频讲解 Python 闭包"
+    assert messages[-1]["content"] == "视频已生成，可以直接在下方播放。"
+    assert messages[-1]["video_resource"]["id"] == job["resource_id"]
+    assert messages[-1]["video_resource"]["type"] == "video"
+    assert messages[-1]["video_resource"]["status"] == "completed"
+    assert messages[-1]["video_resource"]["has_mp4"] is True
+
+
+@pytest.mark.asyncio
+async def test_tutor_video_job_runs_without_event_stream_consumer(client, monkeypatch):
+    from app.routes import video as video_route
+
+    conversation = await client.post("/api/tutor/conversations", json={"title": "离开页面仍生成"})
+    conversation_id = int(conversation.json()["data"]["id"])
+
+    def fake_build_video_artifacts(resource_id, job):
+        return {
+            "title": job["title"],
+            "duration_ms": 15000,
+            "created_at": "2026-08-20T12:00:00+08:00",
+            "has_mp4": True,
+            "slides": 2,
+            "voice": {"provider": "cosyvoice", "voice": "longxiaochun"},
+        }
+
+    monkeypatch.setattr(video_route, "build_video_artifacts", fake_build_video_artifacts)
+    created = await client.post(
+        "/api/video/jobs",
+        json={
+            "prompt": "离开当前页面后继续生成",
+            "title": "后台视频任务",
+            "script_outline": [{"title": "后台", "narration": "任务由后端继续执行。"}],
+            "tutor_context": {
+                "conversation_id": conversation_id,
+                "message": "离开当前页面后继续生成",
+            },
+        },
+    )
+    job = created.json()["data"]
+
+    resource_response = None
+    for _ in range(50):
+        resource_response = await client.get(f"/api/video/resources/{job['resource_id']}")
+        if resource_response.status_code == 200:
+            break
+        await asyncio.sleep(0.02)
+
+    assert resource_response is not None
+    assert resource_response.status_code == 200
+    history = await client.get(f"/api/tutor/history?conversation_id={conversation_id}&limit=20")
+    assert history.json()["data"][-1]["video_resource"]["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_tutor_video_job_failure_is_saved_without_event_stream_consumer(client, monkeypatch):
+    from app.routes import video as video_route
+
+    conversation = await client.post("/api/tutor/conversations", json={"title": "后台失败状态"})
+    conversation_id = int(conversation.json()["data"]["id"])
+
+    def fail_build_video_artifacts(resource_id, job):
+        raise RuntimeError("后台渲染失败")
+
+    monkeypatch.setattr(video_route, "build_video_artifacts", fail_build_video_artifacts)
+    await client.post(
+        "/api/video/jobs",
+        json={
+            "prompt": "生成失败也要保存",
+            "title": "后台失败视频",
+            "script_outline": [{"title": "失败", "narration": "失败状态必须可恢复。"}],
+            "tutor_context": {
+                "conversation_id": conversation_id,
+                "message": "生成失败也要保存",
+            },
+        },
+    )
+
+    assistant = None
+    for _ in range(50):
+        history = await client.get(f"/api/tutor/history?conversation_id={conversation_id}&limit=20")
+        assistant = history.json()["data"][-1]
+        if assistant["video_resource"]["status"] == "failed":
+            break
+        await asyncio.sleep(0.02)
+
+    assert assistant is not None
+    assert assistant["video_resource"]["status"] == "failed"
+    assert assistant["video_resource"]["error"] == "后台渲染失败"
+
+
+@pytest.mark.asyncio
+async def test_tutor_video_job_persists_failed_state_in_conversation_history(client, monkeypatch):
+    from app.routes import video as video_route
+
+    conversation = await client.post("/api/tutor/conversations", json={"title": "视频失败状态"})
+    conversation_id = int(conversation.json()["data"]["id"])
+    build_calls: list[str] = []
+
+    def fail_build_video_artifacts(resource_id, job):
+        build_calls.append(resource_id)
+        raise RuntimeError("渲染器不可用")
+
+    monkeypatch.setattr(video_route, "build_video_artifacts", fail_build_video_artifacts)
+    created = await client.post(
+        "/api/video/jobs",
+        json={
+            "prompt": "生成一个会失败的视频",
+            "title": "失败视频",
+            "script_outline": [{"title": "失败", "narration": "用于验证失败状态。"}],
+            "tutor_context": {
+                "conversation_id": conversation_id,
+                "message": "生成一个会失败的视频",
+            },
+        },
+    )
+    job = created.json()["data"]
+
+    events = await client.get(job["events_url"])
+    assert '"type": "error"' in events.text
+
+    history = await client.get(f"/api/tutor/history?conversation_id={conversation_id}&limit=20")
+    assistant = history.json()["data"][-1]
+    assert build_calls == [job["resource_id"]]
+    assert assistant["content"] == "视频生成失败，请稍后重试。"
+    assert assistant["video_resource"]["id"] == job["resource_id"]
+    assert assistant["video_resource"]["status"] == "failed"
+    assert assistant["video_resource"]["error"] == "渲染器不可用"
+
+
+@pytest.mark.asyncio
+async def test_tutor_video_job_rejects_conversation_owned_by_another_user(client):
+    conversation = await client.post("/api/tutor/conversations", json={"title": "归属用户的会话"})
+    conversation_id = int(conversation.json()["data"]["id"])
+    timestamp = now_iso()
+    execute(
+        "INSERT INTO students(user_id, name, phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        ("other_video_user", "其他视频用户", "13800009999", timestamp, timestamp),
+    )
+    other_user_headers = {"Authorization": f"Bearer {create_access_token('other_video_user')}"}
+
+    response = await client.post(
+        "/api/video/jobs",
+        headers=other_user_headers,
+        json={
+            "prompt": "尝试写入其他用户会话",
+            "title": "越权视频",
+            "script_outline": [{"title": "越权", "narration": "不应创建。"}],
+            "tutor_context": {
+                "conversation_id": conversation_id,
+                "message": "尝试写入其他用户会话",
+            },
+        },
+    )
+
+    assert response.status_code == 404
+    history = await client.get(f"/api/tutor/history?conversation_id={conversation_id}&limit=20")
+    assert history.json()["data"] == []
+
+
+@pytest.mark.asyncio
+async def test_tutor_video_job_rejects_role_owned_by_another_user(client, monkeypatch):
+    from app.routes import video as video_route
+
+    def fail_if_rendered(resource_id, job):
+        raise RuntimeError("越权请求不应启动渲染")
+
+    monkeypatch.setattr(video_route, "build_video_artifacts", fail_if_rendered)
+    created_role = await client.post(
+        "/api/tutor/roles",
+        json={"name": "视频归属测试导师", "persona": "只属于当前用户"},
+    )
+    role_id = int(created_role.json()["data"]["id"])
+    timestamp = now_iso()
+    execute(
+        "INSERT INTO students(user_id, name, phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        ("other_video_role_user", "其他角色用户", "13800008888", timestamp, timestamp),
+    )
+    other_user_headers = {"Authorization": f"Bearer {create_access_token('other_video_role_user')}"}
+
+    response = await client.post(
+        "/api/video/jobs",
+        headers=other_user_headers,
+        json={
+            "prompt": "尝试引用其他用户导师",
+            "title": "越权角色视频",
+            "script_outline": [{"title": "越权", "narration": "不应创建。"}],
+            "tutor_context": {
+                "role_id": role_id,
+                "message": "尝试引用其他用户导师",
+            },
+        },
+    )
+
+    assert response.status_code == 404
+    conversations = await client.get("/api/tutor/conversations", headers=other_user_headers)
+    assert conversations.json()["data"] == []
+
+
+@pytest.mark.asyncio
 async def test_tutor_workspace_closed_loop(client):
     roles = await client.get("/api/tutor/roles")
     assert roles.status_code == 200
@@ -1245,39 +1572,23 @@ async def test_tutor_docx_upload_is_indexed(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("input_text", "expected_decision"),
-    [
-        ("帮我找一下", "clarify"),
-        ("请解释 Python 闭包是什么", "respond"),
-    ],
-)
-async def test_agent_search_澄清和直接回答任务不调用浏览器不加经验且不保存控制字段(
-    client,
-    monkeypatch,
-    input_text: str,
-    expected_decision: str,
-):
+async def test_agent_search_有明确主题就直接把优化查询交给浏览器(client, monkeypatch):
     from app import browser_agent
     from app.routes import agent as agent_route
 
     monkeypatch.setattr(settings, "auth_dev_bypass", True)
-    browser_calls = 0
+    queries: list[str] = []
 
     async def fake_planner_events(prompt: str, mode: str, history: list, model: str):
         yield ("done", {"produced": False, "fallback": True})
 
-    async def fake_text_stream(prompt: str, mode: str = "general"):
-        yield "闭包会保留其定义环境中的变量。"
-
-    def forbidden_browser():
-        nonlocal browser_calls
-        browser_calls += 1
-        raise AssertionError("澄清和直接回答不得实例化浏览器")
+    class FakeBrowserAgent:
+        async def search(self, query: str, on_step, max_results: int):
+            queries.append(query)
+            return {"items": []}
 
     monkeypatch.setattr(agent_route.spark_lite, "stream_chat_events", fake_planner_events)
-    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_text_stream)
-    monkeypatch.setattr(browser_agent, "_get_agent", forbidden_browser)
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: FakeBrowserAgent())
 
     adopted = await client.post(
         "/api/agent/pet",
@@ -1289,7 +1600,7 @@ async def test_agent_search_澄清和直接回答任务不调用浏览器不加�
 
     created = await client.post(
         "/api/agent/task",
-        json={"task_type": "search", "input_text": input_text},
+        json={"task_type": "search", "input_text": "请解释 Python 闭包是什么"},
     )
     assert created.status_code == 200
     task_id = created.json()["data"]["task_id"]
@@ -1303,14 +1614,118 @@ async def test_agent_search_澄清和直接回答任务不调用浏览器不加�
 
     assert task_data is not None
     assert task_data["status"] == "completed"
-    assert browser_calls == 0
-    assert task_data["result"]["intent"]["decision"] == expected_decision
-    assert task_data["result"]["query_used"] == ""
-    assert task_data["result"]["_meta"]["planner"]["decision"] == expected_decision
+    assert queries == ["Python 闭包 是什么"]
+    assert task_data["result"]["intent"]["decision"] == "search"
+    assert task_data["result"]["query_used"] == "Python 闭包 是什么"
+    assert task_data["result"]["_meta"]["planner"]["decision"] == "search"
     assert "award_xp" not in task_data["result"]
 
     current_pet = await client.get("/api/agent/pet")
-    assert current_pet.json()["data"]["xp"] == initial_xp
+    assert current_pet.json()["data"]["xp"] == initial_xp + 10
+
+
+@pytest.mark.asyncio
+async def test_agent_search_后续省略主题时用最近搜索记忆继续执行(client, monkeypatch):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    queries: list[str] = []
+
+    async def fake_planner_events(prompt: str, mode: str, history: list, model: str):
+        yield ("done", {"produced": False, "fallback": True})
+
+    class FakeBrowserAgent:
+        async def search(self, query: str, on_step, max_results: int):
+            queries.append(query)
+            return {
+                "items": [
+                    {
+                        "title": "Python 装饰器教程",
+                        "summary": "面向初学者",
+                        "url": "https://example.com/python-decorator",
+                        "source": "example.com",
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(agent_route.spark_lite, "stream_chat_events", fake_planner_events)
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: FakeBrowserAgent())
+    await client.post(
+        "/api/agent/pet",
+        json={"name": "小星", "avatar": "fox", "personality": "encouraging"},
+    )
+
+    first = await client.post(
+        "/api/agent/task",
+        json={"task_type": "search", "input_text": "请搜索 Python 装饰器入门教程"},
+    )
+    assert first.json()["success"] is True
+
+    second = await client.post(
+        "/api/agent/task",
+        json={"task_type": "search", "input_text": "再找个简单点的"},
+    )
+    assert second.json()["success"] is True
+    second_task = await client.get(f"/api/agent/task/{second.json()['data']['task_id']}")
+
+    assert second_task.json()["data"]["status"] == "completed"
+    assert len(queries) == 2
+    assert "Python 装饰器" in queries[1]
+    assert "简单" in queries[1]
+
+
+@pytest.mark.asyncio
+async def test_agent_search_空结果任务不会挤掉最近有效检索记忆(client):
+    from app.db import execute
+    from app.routes import agent as agent_route
+
+    user_id = settings.single_user_id
+    rows = [
+        ("memory-valid", "completed", '{"query_used":"Python 装饰器入门教程"}', "2026-08-21T10:00:00Z"),
+        ("memory-empty-1", "completed", '{"query_used":""}', "2026-08-21T10:01:00Z"),
+        ("memory-empty-2", "completed", '{"answer":"请补充主题"}', "2026-08-21T10:02:00Z"),
+        ("memory-empty-3", "completed", None, "2026-08-21T10:03:00Z"),
+        ("memory-current", "running", None, "2026-08-21T10:04:00Z"),
+    ]
+    for task_id, status, result_json, updated_at in rows:
+        execute(
+            """INSERT INTO agent_tasks(
+                   id, user_id, pet_id, task_type, input_text, result_json, status, created_at, updated_at
+               ) VALUES (?, ?, 'pet-memory-test', 'search', '测试检索', ?, ?, ?, ?)""",
+            (task_id, user_id, result_json, status, updated_at, updated_at),
+        )
+
+    assert agent_route._load_recent_search_context("memory-current") == ["Python 装饰器入门教程"]
+
+
+@pytest.mark.asyncio
+async def test_agent_search_近期检索记忆最多保留三个有效主题(client):
+    from app.db import execute
+    from app.routes import agent as agent_route
+
+    user_id = settings.single_user_id
+    for index, topic in enumerate(["主题一", "主题二", "主题三", "主题四"], start=1):
+        timestamp = f"2026-08-21T10:0{index}:00Z"
+        execute(
+            """INSERT INTO agent_tasks(
+                   id, user_id, pet_id, task_type, input_text, result_json, status, created_at, updated_at
+               ) VALUES (?, ?, 'pet-memory-limit', 'search', '测试检索', ?, 'completed', ?, ?)""",
+            (
+                f"memory-limit-{index}",
+                user_id,
+                json.dumps({"query_used": topic}, ensure_ascii=False),
+                timestamp,
+                timestamp,
+            ),
+        )
+    execute(
+        """INSERT INTO agent_tasks(
+               id, user_id, pet_id, task_type, input_text, status, created_at, updated_at
+           ) VALUES ('memory-limit-current', ?, 'pet-memory-limit', 'search', '继续', 'running', ?, ?)""",
+        (user_id, "2026-08-21T10:05:00Z", "2026-08-21T10:05:00Z"),
+    )
+
+    assert agent_route._load_recent_search_context("memory-limit-current") == ["主题四", "主题三", "主题二"]
 
 
 @pytest.mark.asyncio

@@ -111,7 +111,7 @@ async def test_demo_phone_login_returns_demo_user(client, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_profile_uses_authenticated_user_after_password_register(client):
+async def test_new_registered_user_has_no_completed_profile_before_onboarding(client):
     phone = "16600000005"
     _insert_sms_code(phone)
     register_resp = await client.post(
@@ -125,11 +125,8 @@ async def test_profile_uses_authenticated_user_after_password_register(client):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert profile_resp.status_code == 200
-    profile = profile_resp.json()["data"]
-    assert profile["user_id"] == f"user_{phone}"
-    assert profile["name"] == "新用户"
-    assert profile["major"] == ""
+    assert profile_resp.status_code == 404
+    assert profile_resp.json() == {"success": False, "data": None, "error": "profile not found"}
 
 
 @pytest.mark.asyncio

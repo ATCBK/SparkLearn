@@ -8,7 +8,6 @@ import { ErrorState } from '@/components/ui/ErrorState'
 import { A2UITaskCards, type A2UITaskAction, type A2UITaskCard } from '@/components/a2ui/A2UITaskCards'
 import { AgentTimeline } from '@/components/agui/AgentTimeline'
 import {
-  Bot,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -20,7 +19,6 @@ import {
   MessageSquareText,
   Mic,
   MicOff,
-  Paperclip,
   Pause,
   Pencil,
   Plus,
@@ -30,18 +28,15 @@ import {
   Send,
   Sparkles,
   Trash2,
-  UserCog,
   Volume2,
   X,
-  ArrowLeft,
   Image as ImageIcon,
-  Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { getToken, userScopedStorageKey } from '@/lib/auth'
 import { addCustomSkill, getSkillById, LEARNING_SKILLS, markdownToSkill, readCustomSkills, selectedSkillStorageKey, type LearningSkill } from '@/lib/skills'
 import { matchPersonalizedNotes, readLearningNotes, tokenizeLearningText, type LearningNote } from '@/lib/learningNotes'
-import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
+import { TutorSidebar } from '@/components/tutor/TutorSidebar'
 import { NewUserGuidePanel } from '@/components/onboarding/NewUserGuidePanel'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -814,6 +809,10 @@ export default function TutorPage() {
     })
   }, [skillLibrary, skillSearch])
   const hasInteracted = messages.length > 0
+  const hasGeneratingVideoInHistory = useMemo(
+    () => messages.some((message) => message.videoResource?.status === 'generating'),
+    [messages],
+  )
 
   const isMessagesNearBottom = useCallback(() => {
     const scroller = messageScrollRef.current
@@ -851,6 +850,40 @@ export default function TutorPage() {
       window.removeEventListener('storage', refreshCustomSkills)
     }
   }, [])
+
+  useEffect(() => {
+    if (!currentConversationId || streaming || !hasGeneratingVideoInHistory) return
+    let disposed = false
+    let refreshing = false
+
+    const refreshVideoStatus = async () => {
+      if (refreshing) return
+      refreshing = true
+      try {
+        const history = await api.getChatHistory(currentConversationId)
+        if (!disposed) {
+          const historyById = new Map(history.map((message) => [message.id, message]))
+          setMessages((current) => current.map((message) => {
+            const refreshed = historyById.get(message.id)
+            return refreshed?.videoResource
+              ? { ...message, content: refreshed.content, videoResource: refreshed.videoResource }
+              : message
+          }))
+        }
+      } catch {
+        // 后端任务仍在执行或网络暂时不可用时，保留当前生成中卡片并继续轮询。
+      } finally {
+        refreshing = false
+      }
+    }
+
+    void refreshVideoStatus()
+    const timer = window.setInterval(() => void refreshVideoStatus(), 1500)
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+    }
+  }, [currentConversationId, hasGeneratingVideoInHistory, streaming])
 
   useEffect(() => {
     const loadNotes = () => setLearningNotes(readLearningNotes())
@@ -1346,31 +1379,42 @@ export default function TutorPage() {
           setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content } : m)))
         }
 
-        const resource = await api.generateVideo(userInput, {
-          durationSec: 90,
-          styleId: 'apple-minimal',
-          voice: videoVoice,
-          onEvent: (evt) => {
-            appendAGUIEventsToMessage(assistantId, videoEventToAGUIEvents(evt, assistantId, userInput), setMessages)
-            if (evt.type === 'progress') {
-              const stage = String(evt.payload.stage || '').replace(/_/g, ' ').trim()
-              const progress = Number(evt.payload.progress ?? 0)
-              const progressText = Number.isFinite(progress) && progress > 0 ? ` ${Math.round(progress)}%` : ''
-              updateAssistantContent(`视频生成中${stage ? ` · ${stage}` : ''}${progressText}`)
-              return
-            }
-            if (evt.type === 'artifact') {
-              const kind = String(evt.payload.kind || '')
-              if (kind === 'timeline') {
-                updateAssistantContent('视频已生成，正在整理播放卡片…')
-              }
-              return
-            }
-            if (evt.type === 'error') {
-              updateAssistantContent(String(evt.payload.message || '视频生成失败'))
-            }
+        const { resource, conversationId: videoConversationId } = await api.generateTutorVideo(
+          userInput,
+          {
+            conversationId: convId,
+            roleId: currentRoleId ?? undefined,
+            message: userInput,
           },
-        })
+          {
+            durationSec: 90,
+            styleId: 'apple-minimal',
+            voice: videoVoice,
+            onConversationCreated: (conversationId) => {
+              if (conversationId !== convId) setCurrentConversationId(conversationId)
+            },
+            onEvent: (evt) => {
+              appendAGUIEventsToMessage(assistantId, videoEventToAGUIEvents(evt, assistantId, userInput), setMessages)
+              if (evt.type === 'progress') {
+                const stage = String(evt.payload.stage || '').replace(/_/g, ' ').trim()
+                const progress = Number(evt.payload.progress ?? 0)
+                const progressText = Number.isFinite(progress) && progress > 0 ? ` ${Math.round(progress)}%` : ''
+                updateAssistantContent(`视频生成中${stage ? ` · ${stage}` : ''}${progressText}`)
+                return
+              }
+              if (evt.type === 'artifact') {
+                const kind = String(evt.payload.kind || '')
+                if (kind === 'timeline') {
+                  updateAssistantContent('视频已生成，正在整理播放卡片…')
+                }
+                return
+              }
+              if (evt.type === 'error') {
+                updateAssistantContent(String(evt.payload.message || '视频生成失败'))
+              }
+            },
+          },
+        )
         const readyText = resource.hasMp4
           ? '视频已生成，可以直接在下方播放。'
           : resource.sceneUrl
@@ -1392,6 +1436,10 @@ export default function TutorPage() {
         )))
         setGeneratedResources((prev) => [resource, ...prev.filter((item) => item.id !== resource.id)])
         setPendingFiles([])
+        if (videoConversationId && videoConversationId !== convId) {
+          setCurrentConversationId(videoConversationId)
+        }
+        await refreshConversations(videoConversationId ?? convId ?? null)
         return
       }
 
@@ -1706,53 +1754,7 @@ export default function TutorPage() {
   return (
     <>
       <div className="flex h-screen bg-[#f5f7fa] max-[760px]:block max-[760px]:h-auto max-[760px]:min-h-screen" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-        {/* 左侧导航栏 */}
-        <nav className="flex w-[200px] shrink-0 flex-col border-r border-[#e2e8f0] bg-[#f0f4ff] max-[760px]:hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="p-3 border-b border-[#e2e8f0]"><div className="flex items-center gap-2.5"><img src="/sparklearn-logo-official.png" alt="" className="h-8 w-8 object-contain" /><div><div className="text-xs font-bold text-[#1e293b]">SparkLearn</div><div className="text-[10px] text-[#94a3b8]">个性化学习闭环</div></div></div></div>
-          {/* 鏂板缓瀵硅瘽鎸夐挳 */}
-          <div className="p-3">
-            <button onClick={() => void handleCreateConversation()} className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-sm font-semibold transition-colors shadow-sm">
-              <Plus className="w-4 h-4" /> 新建对话
-            </button>
-          </div>
-
-          {/* 瀵艰埅鑿滃崟 */}
-          <div className="px-3 space-y-0.5 flex-1">
-            <button onClick={() => setSkillStoreOpen(false)} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors', !skillStoreOpen ? 'bg-[#2563eb] text-white font-medium shadow-sm' : 'text-[#475569] hover:bg-white hover:text-[#1e293b]')}>
-              <Sparkles className="w-4 h-4" /> 学习空间
-            </button>
-            <button data-guide-target="tutor-role-create" onClick={() => router.push('/tutor/roles')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-              <UserCog className="w-4 h-4" /> 角色工坊
-            </button>
-            <button onClick={() => router.push('/tutor/workshop')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-[#475569] hover:bg-white hover:text-[#1e293b] transition-colors">
-              <Users className="w-4 h-4" /> 研讨会
-            </button>
-
-            <div className="my-3 border-t border-[#e2e8f0]" />
-
-            <button onClick={() => router.push('/tutor/knowledge')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-              <Bot className="w-4 h-4" /> 知识库
-            </button>
-            <button onClick={() => router.push('/tutor/mcp-store')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-              <Puzzle className="w-4 h-4" /> MCP 插件商店
-            </button>
-            <button onClick={() => router.push('/tutor/skills')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-[#475569] hover:bg-white hover:text-[#1e293b] transition-colors">
-              <Sparkles className="w-4 h-4" /> Skills 商店
-            </button>
-            <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-              <Paperclip className="w-4 h-4" /> 我的文件
-            </button>
-          </div>
-
-          {/* 搴曢儴 */}
-          <div className="p-3 border-t border-[#e2e8f0] space-y-2">
-            <button onClick={() => router.push('/')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-              <ArrowLeft className="w-4 h-4" /> 返回主平台
-            </button>
-            <TutorUserBadge />
-          </div>
-        </nav>
+        <TutorSidebar onNewConversation={() => void handleCreateConversation()} />
 
         {/* 中间侧栏：列表 / Skills 商店 */}
         <div className={cn('flex shrink-0 flex-col border-r border-[#eef1f5] bg-white transition-[width] duration-300 max-[760px]:w-full max-[760px]:border-b max-[760px]:border-r-0', skillStoreOpen ? 'flex-1 bg-[#fbfcfe]' : 'w-[280px]')}>

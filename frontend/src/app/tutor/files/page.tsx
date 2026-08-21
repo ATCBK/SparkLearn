@@ -1,24 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
-  Database,
   FileText,
   Paperclip,
-  Plus,
-  Puzzle,
-  Sparkles,
   Trash2,
-  UserCog,
-  Users,
 } from 'lucide-react'
 import { api, TutorFile } from '@/lib/api'
-import { TutorUserBadge } from '@/components/tutor/TutorUserBadge'
+import { TutorSidebar } from '@/components/tutor/TutorSidebar'
 
 export default function TutorFilesPage() {
-  const router = useRouter()
   const [files, setFiles] = useState<TutorFile[]>([])
   const [selected, setSelected] = useState<TutorFile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -62,46 +53,7 @@ export default function TutorFilesPage() {
 
   return (
     <div className="h-screen flex bg-[#f5f7fa]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-      {/* ═══ 左侧导航栏 ═══ */}
-      <nav className="w-[200px] shrink-0 bg-[#f0f4ff] border-r border-[#e2e8f0] flex flex-col">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <div className="p-3 border-b border-[#e2e8f0]"><div className="flex items-center gap-2.5"><img src="/sparklearn-logo-official.png" alt="" className="h-8 w-8 object-contain" /><div><div className="text-xs font-bold text-[#1e293b]">学而思 SparkLearn</div><div className="text-[10px] text-[#94a3b8]">个性化学习闭环</div></div></div></div>
-        <div className="p-3">
-          <button onClick={() => router.push('/tutor')} className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-sm font-semibold transition-colors shadow-sm">
-            <Plus className="w-4 h-4" /> 新建对话
-          </button>
-        </div>
-        <div className="px-3 space-y-0.5 flex-1">
-          <button onClick={() => router.push('/tutor')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-            <Sparkles className="w-4 h-4" /> 学习空间
-          </button>
-          <button onClick={() => router.push('/tutor/roles')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-            <UserCog className="w-4 h-4" /> 角色工坊
-          </button>
-          <button onClick={() => router.push('/tutor/workshop')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-            <Users className="w-4 h-4" /> 研讨会
-          </button>
-          <div className="my-3 border-t border-[#e2e8f0]" />
-          <button onClick={() => router.push('/tutor/knowledge')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-            <Database className="w-4 h-4" /> 知识库
-          </button>
-          <button onClick={() => router.push('/tutor/mcp-store')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-            <Puzzle className="w-4 h-4" /> MCP 插件商店
-          </button>
-          <button onClick={() => router.push('/tutor/skills')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-            <Sparkles className="w-4 h-4" /> Skills 商店
-          </button>
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#2563eb] text-white text-sm font-medium shadow-sm">
-            <Paperclip className="w-4 h-4" /> 我的文件
-          </div>
-        </div>
-        <div className="p-3 border-t border-[#e2e8f0] space-y-2">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[#475569] hover:bg-white hover:text-[#1e293b] text-sm transition-colors">
-            <ArrowLeft className="w-4 h-4" /> 返回主平台
-          </button>
-          <TutorUserBadge />
-        </div>
-      </nav>
+      <TutorSidebar />
 
       {/* ═══ 主内容区 ═══ */}
       <main className="min-w-0 flex-1 overflow-hidden">

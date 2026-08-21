@@ -134,6 +134,7 @@ export const api = {
   downloadVideoArtifact: impl.downloadVideoArtifact,
   polishVideoPrompt: impl.polishVideoPrompt,
   generateVideo: impl.generateVideo,
+  generateTutorVideo: impl.generateTutorVideo,
 
   getKnowledgeFiles: impl.getKnowledgeFiles,
   uploadKnowledgeFiles: impl.uploadKnowledgeFiles,
@@ -162,6 +163,7 @@ export const api = {
   loadMemory: impl.loadMemory,
   deleteMemory: impl.deleteMemory,
   getDigitalHumanConfig: impl.getDigitalHumanConfig,
+  getDigitalHumanSession: impl.getDigitalHumanSession,
   chatWithDigitalHuman: impl.chatWithDigitalHuman,
 }
 
@@ -177,5 +179,5 @@ export type {
   AdoptPetPayload, CreateAgentTaskPayload, AgentChatResp, AgentChatAction, BookmarkPayload,
   A2UIEnvelope, A2UISurfaceState, A2UIComponentNode, AGUIEvent,
   AdminUser, AdminUserList, AdminDashboard, AdminAuditLog, AdminAuditList, AdminSettingsResp,
-  DigitalHumanConfig,
+  DigitalHumanConfig, DigitalHumanSession,
 } from './types'

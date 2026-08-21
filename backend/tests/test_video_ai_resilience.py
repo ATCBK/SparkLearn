@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import threading
+import time
 from typing import Any
 
 import httpx
+import pytest
 
 
 def _ai_script_payload() -> dict[str, Any]:
@@ -129,3 +132,41 @@ def test_video_ai_limits_concurrent_upstream_calls(monkeypatch):
 
     assert len(results) == 2
     assert max_active == 1
+
+
+@pytest.mark.asyncio
+async def test_polish_video_prompt_does_not_block_event_loop(monkeypatch):
+    from app.routes import video
+
+    release = threading.Event()
+    safety_release = threading.Timer(0.6, release.set)
+
+    def blocking_make_polished_script(**_: object) -> dict[str, Any]:
+        assert release.wait(timeout=1)
+        return {
+            "polish_id": "polish_test",
+            "style_id": "apple-minimal",
+            "title": "背包问题",
+            "polished_prompt": "讲解背包问题",
+            "script_outline": [],
+        }
+
+    monkeypatch.setattr(video, "make_polished_script", blocking_make_polished_script)
+    monkeypatch.setattr(video, "append_jsonl", lambda *_args, **_kwargs: None)
+
+    request = video.VideoPolishReq(prompt="讲解背包问题")
+    safety_release.start()
+    started = time.monotonic()
+    polish_task = asyncio.create_task(
+        video.polish_video_prompt(request, current_user={"user_id": "test-user"})
+    )
+
+    await asyncio.sleep(0)
+    heartbeat_elapsed = time.monotonic() - started
+    release.set()
+    response = await polish_task
+    safety_release.cancel()
+
+    assert heartbeat_elapsed < 0.3
+    assert response.success is True
+    assert response.data["polish_id"] == "polish_test"

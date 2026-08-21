@@ -15,6 +15,7 @@ type RequestOptions = {
   data?: unknown
   header?: Record<string, string>
   skipAuth?: boolean
+  timeout?: number
 }
 
 function buildUrl(path: string, baseUrl = API_BASE_URL) {
@@ -70,7 +71,7 @@ export async function request<T>(options: RequestOptions): Promise<T> {
         method: options.method || 'GET',
         data: options.data as any,
         header,
-        timeout: 45000
+        timeout: options.timeout || 45000
       })
       break
     } catch (err) {

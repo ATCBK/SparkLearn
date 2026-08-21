@@ -99,8 +99,16 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
     style_name = style_config.get("name", style_id)
     voice_config = _normalize_voice_config(job.get("voice") or {})
     generated_script: dict[str, Any] = {}
-    if not isinstance(script_outline, list) or not script_outline:
-        generated_script = make_polished_script(prompt, style=style_id, voice=str(voice_config.get("voice") or ""))
+    duration_sec = _coerce_duration_sec(job.get("duration_sec"), 90)
+    target_level = str(job.get("target_level") or "beginner")
+    if not _has_usable_video_script_outline(script_outline):
+        generated_script = make_polished_script(
+            prompt,
+            duration_sec=duration_sec,
+            target_level=target_level,
+            style=style_id,
+            voice=str(voice_config.get("voice") or ""),
+        )
         script_outline = generated_script.get("script_outline", [])
         title = str(generated_script.get("title") or title)
         style_id = str(generated_script.get("style_id") or style_id)
@@ -604,6 +612,66 @@ def _make_polish_id(prompt: str, duration_sec: int, target_level: str, style: st
     raw = f"{prompt}|{duration_sec}|{target_level}|{style}".encode("utf-8")
     digest = hashlib.sha1(raw).hexdigest()[:8]
     return f"polish_{digest}"
+
+
+def _coerce_duration_sec(value: Any, fallback: int) -> int:
+    try:
+        duration = int(value)
+    except (TypeError, ValueError):
+        duration = fallback
+    return max(15, min(duration, 180))
+
+
+def _has_usable_video_script_outline(script_outline: Any) -> bool:
+    if not isinstance(script_outline, list) or not script_outline:
+        return False
+
+    narrated_segments = 0
+    for item in script_outline:
+        if not isinstance(item, dict):
+            continue
+        narration = str(item.get("narration") or "").strip()
+        title = str(item.get("title") or "").strip()
+        subtitle = str(item.get("subtitle") or "").strip()
+        if len(narration) >= 8 and not _looks_like_prompt_contract(narration):
+            narrated_segments += 1
+            continue
+        if not narration and len(title + subtitle) >= 8 and not _looks_like_prompt_contract(title + subtitle):
+            narrated_segments += 1
+
+    return narrated_segments > 0
+
+
+def _looks_like_prompt_contract(text: str) -> bool:
+    normalized = re.sub(r"\s+", " ", text or "").strip().lower()
+    if not normalized:
+        return False
+    hard_markers = [
+        "只输出合法 json",
+        "不要输出 markdown",
+        "response_format",
+        "script_outline",
+        "slide_text",
+        "polished_prompt",
+        "schema",
+        "contract",
+    ]
+    if any(marker in normalized for marker in hard_markers):
+        return True
+    prompt_markers = [
+        "请",
+        "生成",
+        "输出",
+        "严格",
+        "提示词",
+        "分镜",
+        "脚本",
+        "json",
+        "narration",
+        "duration_ms",
+    ]
+    score = sum(1 for marker in prompt_markers if marker in normalized)
+    return score >= 4
 
 
 def _build_timeline_segments(script_outline: list[Any]) -> list[dict[str, Any]]:

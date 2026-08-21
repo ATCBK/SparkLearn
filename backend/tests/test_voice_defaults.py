@@ -64,10 +64,22 @@ async def test_voice_tts_status_keeps_xunfei_label_but_reports_single_default(cl
 
 
 @pytest.mark.asyncio
-async def test_video_job_forces_single_default_voice(client):
+async def test_video_job_forces_single_default_voice(client, monkeypatch):
     from app.auth import create_access_token
     from app.routes import video as video_route
     from app.config import settings
+
+    def fake_build_video_artifacts(resource_id: str, job: dict[str, object]) -> dict[str, object]:
+        return {
+            "title": job.get("title") or "默认音色测试视频",
+            "duration_ms": 15000,
+            "created_at": "2026-08-20T12:00:00Z",
+            "voice": job["voice"],
+            "has_mp4": False,
+            "slides": 1,
+        }
+
+    monkeypatch.setattr(video_route, "build_video_artifacts", fake_build_video_artifacts)
 
     before_count = len(video_route._jobs(settings.single_user_id))
     headers = {"Authorization": f"Bearer {create_access_token(settings.single_user_id)}"}
@@ -98,6 +110,8 @@ async def test_video_job_forces_single_default_voice(client):
         "pitch": 1.0,
         "volume": 1.0,
     }
+    events = await client.get(response.json()["data"]["events_url"], headers=headers)
+    assert '"type": "done"' in events.text
 
 
 def test_cosyvoice_semaphore_covers_synthesis_call(monkeypatch):

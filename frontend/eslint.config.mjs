@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "test-results/**",
     "public/dh-live/**",
+    "public/libs/**",
     "public/screen/**",
     "public/**/*.min.js",
   ]),

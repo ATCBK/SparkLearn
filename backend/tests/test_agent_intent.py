@@ -160,13 +160,60 @@ async def test_歧义短句规则降级为具体追问():
 
 
 @pytest.mark.asyncio
-async def test_普通解释请求规则判定为直接回答():
+async def test_资料检索模式中的解释请求仍生成浏览器查询():
     result = await plan_search_intent("请解释一下 Python 闭包是什么", _chunk_stream(""))
 
-    assert result["decision"] == "respond"
-    assert result["normalized_query"] == ""
+    assert result["decision"] == "search"
+    assert result["normalized_query"] == "Python 闭包 是什么"
     assert "Python 闭包" in result["goal"]
     assert result["generated_by"] == "rule_fallback"
+
+
+@pytest.mark.asyncio
+async def test_近期搜索记忆不会覆盖本轮明确提出的新主题():
+    result = await plan_search_intent(
+        "另外找 Java 并发教程",
+        _chunk_stream(""),
+        ["Python 装饰器入门教程"],
+    )
+
+    assert result["decision"] == "search"
+    assert result["normalized_query"] == "Java 并发教程"
+    assert "Python" not in result["normalized_query"]
+
+
+@pytest.mark.asyncio
+async def test_合法_llm_json_也不能用旧记忆覆盖本轮新主题():
+    model_text = json.dumps(
+        _json_plan(
+            goal="继续学习 Python 装饰器",
+            normalized_query="Python 装饰器入门教程",
+        ),
+        ensure_ascii=False,
+    )
+
+    result = await plan_search_intent(
+        "另外找 Java 并发教程",
+        _chunk_stream(model_text),
+        ["Python 装饰器入门教程"],
+    )
+
+    assert result["decision"] == "search"
+    assert result["normalized_query"] == "Java 并发教程"
+    assert result["generated_by"] == "rule_fallback"
+
+
+@pytest.mark.asyncio
+async def test_裸承接偏好会结合最近主题而不是搜索泛词():
+    result = await plan_search_intent(
+        "更简单一点",
+        _chunk_stream(""),
+        ["Python 装饰器入门教程"],
+    )
+
+    assert result["decision"] == "search"
+    assert "Python 装饰器" in result["normalized_query"]
+    assert "简单" in result["normalized_query"]
 
 
 @pytest.mark.asyncio
@@ -181,11 +228,11 @@ async def test_单一泛词无法形成有效搜索主题时必须澄清(input_t
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("input_text", ["推荐系统是什么", "搜索引擎是什么"])
-async def test_技术名词包含搜索标记时解释意图仍优先(input_text: str):
+async def test_资料检索模式中的技术名词问句仍然搜索(input_text: str):
     result = await plan_search_intent(input_text, _chunk_stream(""))
 
-    assert result["decision"] == "respond"
-    assert result["normalized_query"] == ""
+    assert result["decision"] == "search"
+    assert result["normalized_query"]
 
 
 @pytest.mark.asyncio
@@ -200,15 +247,30 @@ async def test_否定搜索并请求解释时直接回答而不生成查询():
 
 
 @pytest.mark.asyncio
+async def test_明确拒绝搜索时忽略_llm_给出的_search_决策():
+    original = "不要搜索，请解释 Python 闭包"
+    model_text = json.dumps(
+        _json_plan(normalized_query="Python 闭包教程"),
+        ensure_ascii=False,
+    )
+
+    result = await plan_search_intent(original, _chunk_stream(model_text))
+
+    assert result["decision"] == "respond"
+    assert result["normalized_query"] == ""
+    assert result["generated_by"] == "rule_fallback"
+
+
+@pytest.mark.asyncio
 async def test_字符串流中的_fallback_文案因不是合法_json_而走规则():
     result = await plan_search_intent(
         "请解释 Python 闭包",
         _chunk_stream("模型服务暂不可用，请稍后重试"),
     )
 
-    assert result["decision"] == "respond"
+    assert result["decision"] == "search"
     assert result["generated_by"] == "rule_fallback"
-    assert result["normalized_query"] == ""
+    assert result["normalized_query"] == "Python 闭包"
 
 
 @pytest.mark.asyncio
@@ -288,7 +350,7 @@ async def test_llm_搜索后置门禁允许技术词白名单(technical_topic: s
         ensure_ascii=False,
     )
 
-    result = await plan_search_intent("请搜索相关学习内容", _chunk_stream(model_text))
+    result = await plan_search_intent(f"请搜索{technical_topic}", _chunk_stream(model_text))
 
     assert result["decision"] == "search"
     assert result["normalized_query"] == technical_topic
@@ -623,24 +685,20 @@ async def test_agent_search_歧义规划不实例化_browser(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_agent_search_普通解释直接回答且不实例化_browser(monkeypatch):
+async def test_agent_search_普通解释也把优化查询输入_browser(monkeypatch):
     from app import browser_agent
     from app.routes import agent as agent_route
 
     _patch_agent_planner_events(monkeypatch, "", fallback=True)
     monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
-    browser_calls = 0
+    queries: list[str] = []
 
-    def forbidden_browser():
-        nonlocal browser_calls
-        browser_calls += 1
-        raise AssertionError("直接回答分支不得实例化浏览器")
+    class FakeBrowserAgent:
+        async def search(self, query: str, on_step, max_results: int):
+            queries.append(query)
+            return {"items": []}
 
-    async def fake_text_stream(prompt: str, mode: str = "general"):
-        yield "闭包会保留其定义环境中的变量。"
-
-    monkeypatch.setattr(browser_agent, "_get_agent", forbidden_browser)
-    monkeypatch.setattr(agent_route, "_stream_agent_llm", fake_text_stream)
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: FakeBrowserAgent())
 
     result = await agent_route._execute_fallback_task(
         "task-respond",
@@ -649,11 +707,42 @@ async def test_agent_search_普通解释直接回答且不实例化_browser(monk
         "persona",
     )
 
-    assert browser_calls == 0
-    assert result["intent"]["decision"] == "respond"
-    assert result["query_used"] == ""
-    assert "闭包" in result["answer"]
-    assert result["award_xp"] is False
+    assert queries == ["Python 闭包 是什么"]
+    assert result["intent"]["decision"] == "search"
+    assert result["query_used"] == "Python 闭包 是什么"
+    assert result["tool_status"] == "no_results"
+
+
+@pytest.mark.asyncio
+async def test_agent_search_近期记忆读取失败仍执行当前明确查询(monkeypatch):
+    from app import browser_agent
+    from app.routes import agent as agent_route
+
+    _patch_agent_planner_events(monkeypatch, "", fallback=True)
+    monkeypatch.setattr(agent_route, "_add_step", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        agent_route,
+        "_load_recent_search_context",
+        lambda task_id: (_ for _ in ()).throw(OSError("近期检索记忆不可用")),
+    )
+    queries: list[str] = []
+
+    class FakeBrowserAgent:
+        async def search(self, query: str, on_step, max_results: int):
+            queries.append(query)
+            return {"items": []}
+
+    monkeypatch.setattr(browser_agent, "_get_agent", lambda: FakeBrowserAgent())
+
+    result = await agent_route._execute_fallback_task(
+        "task-memory-read-error",
+        "search",
+        "请搜索 FastAPI 依赖注入教程",
+        "persona",
+    )
+
+    assert queries == ["FastAPI 依赖注入教程"]
+    assert result["query_used"] == "FastAPI 依赖注入教程"
 
 
 @pytest.mark.asyncio
@@ -696,7 +785,7 @@ async def test_agent_search_编排层二次拒绝规划器越界返回的危险�
     }
     browser_calls = 0
 
-    async def fake_unvalidated_planner(input_text: str, stream_llm):
+    async def fake_unvalidated_planner(input_text: str, stream_llm, recent_context=None):
         return unsafe_plan
 
     def forbidden_browser():

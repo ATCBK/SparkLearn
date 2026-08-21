@@ -567,6 +567,13 @@ async def delete_resource(resource_id: str, current_user: dict = Depends(get_cur
                 return ok({"resource_id": resource_id, "deleted": True})
         return ok({"resource_id": resource_id, "deleted": False})
 
+    video_resources = read_json(user_id, "video_resources.json", [])
+    if any(str(item.get("id", "")) == resource_id for item in video_resources):
+        from .video import delete_video_resource_for_user
+
+        deleted = delete_video_resource_for_user(user_id, resource_id)
+        return ok({"resource_id": resource_id, "deleted": deleted})
+
     resources = read_json(user_id, "resources_index.json", [])
     before = len(resources)
     next_resources = [r for r in resources if str(r.get("id", "")) != resource_id]
@@ -2238,11 +2245,13 @@ def _web_material_row_to_resource(row, include_content: bool = False) -> dict[st
     path = Path(str(row["stored_path"] or ""))
     if include_content and path.exists() and path.is_file():
         content = path.read_text(encoding="utf-8", errors="ignore")
+    stored_status = str(row["status"] or "completed") if "status" in row.keys() else "completed"
+    resource_status = "completed" if stored_status in {"ready", "indexed"} else stored_status
     return {
         "id": f"webmat-{int(row['id'])}",
         "title": str(row["filename"] or "网页资料"),
         "type": "web_material",
-        "status": str(row["status"] or "completed") if "status" in row.keys() else "completed",
+        "status": resource_status,
         "created_at": str(row["created_at"] or ""),
         "updated_at": str(row["updated_at"] or row["created_at"] or "") if "updated_at" in row.keys() else str(row["created_at"] or ""),
         "content": content,
@@ -2287,18 +2296,24 @@ async def _fetch_url_binary(url: str) -> tuple[bytes, str]:
 
 
 async def _request_public_url_with_ssl_fallback(url: str, timeout: float) -> httpx.Response:
+    trust_env = not _should_bypass_environment_proxy(url)
     try:
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, max_redirects=3) as client:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, max_redirects=3, trust_env=trust_env) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             return resp
     except httpx.ConnectError as ex:
         if not _should_retry_insecure_ssl(url, ex):
             raise
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, max_redirects=3, verify=False) as client:
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, max_redirects=3, verify=False, trust_env=trust_env) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         return resp
+
+
+def _should_bypass_environment_proxy(url: str) -> bool:
+    """ContentCube 的静态预览页直连可用，但部分环境代理会关闭其 TLS 隧道。"""
+    return (urlparse(url).hostname or "").strip().lower() == "preview.contentcube.cn"
 
 
 def _should_retry_insecure_ssl(url: str, ex: Exception) -> bool:
@@ -2399,7 +2414,6 @@ def _is_iframe_embeddable_url(url: str) -> bool:
         "mermaid.live",
         "markmap.keepto.top",
         "markmap.js.org",
-        "preview.contentcube.cn",
         "gapi.shutu.cn",
         "shutu.cn",
     ]

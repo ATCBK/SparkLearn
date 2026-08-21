@@ -52,6 +52,49 @@ p {
   font-weight: 700;
 }
 
+.auth-panel {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #dbe7f5;
+  border-radius: 10px;
+}
+
+.auth-panel .field:last-of-type {
+  margin-bottom: 12px;
+}
+
+.account-panel {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+}
+
+.account-panel:not([hidden]) {
+  display: flex;
+}
+
+.account-panel span,
+.account-panel b {
+  display: block;
+}
+
+.account-panel span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.account-panel b {
+  margin-top: 3px;
+  color: #065f46;
+  font-size: 13px;
+}
+
 input {
   width: 100%;
   height: 36px;
@@ -82,6 +125,16 @@ button {
 button:disabled {
   cursor: wait;
   opacity: 0.62;
+}
+
+button.text-button {
+  width: auto;
+  height: 30px;
+  padding: 0 10px;
+  color: #475569;
+  font-size: 12px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
 }
 
 .status {

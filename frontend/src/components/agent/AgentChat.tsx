@@ -215,16 +215,6 @@ export function AgentChat({
       return
     }
 
-    if (text.length < 6) {
-      setMessages(prev => [...prev, {
-        id: `guard-${++msgCounter.current}`,
-        sender: 'agent',
-        content: '任务描述太短。请补充学习目标、当前基础或希望得到的结果。',
-        timestamp: new Date().toISOString(),
-      }])
-      return
-    }
-
     if (!pet.unlocked_abilities.includes(taskType)) {
       setMessages(prev => [...prev, {
         id: `locked-${++msgCounter.current}`,

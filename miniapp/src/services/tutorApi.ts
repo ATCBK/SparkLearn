@@ -5,7 +5,7 @@ import { getToken } from '../utils/storage'
 import { decodeArrayBuffer, parseSseChunk } from '../utils/sseParser'
 
 export function getRoles() {
-  return request<TutorRole[]>({ url: '/api/tutor/roles' })
+  return request<TutorRole[]>({ url: '/api/tutor/roles', timeout: 8000 })
 }
 
 export function getConversations() {
@@ -139,6 +139,7 @@ export function requestVideoJobEvents(
       header: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      timeout: 300000,
       success: (res) => {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           reject(new Error(`视频任务请求失败：${res.statusCode}`))
@@ -228,6 +229,7 @@ export function requestTutorStream(options: StreamOptions) {
         'content-type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
+      timeout: 300000,
       success: (res) => {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           reject(new Error(`AI 请求失败（${res.statusCode}）`))

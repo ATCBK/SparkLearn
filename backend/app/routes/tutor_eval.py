@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..config import settings
-from ..auth import get_current_user
+from ..auth import get_authenticated_user, get_current_user
 from ..db import execute, fetch_all, fetch_one, now_iso
 from ..llm import spark_lite
 from ..memory_engine import build_injected_context, update_memory_from_turn
@@ -1115,6 +1115,58 @@ def _analyze_role_request(question: str, profile: dict[str, Any] | None) -> dict
     }
 
 
+_CHINESE_ROLE_NAME_PATTERN = re.compile(r'^[\u4e00-\u9fff]{4,10}$')
+_ROLE_NAME_SUFFIXES = ('导师', '教练', '老师', '助教', '伙伴', '顾问')
+
+
+def _valid_chinese_role_name(value: Any) -> str:
+    candidate = str(value or '').strip().strip('`"\'“”‘’')
+    if not _CHINESE_ROLE_NAME_PATTERN.fullmatch(candidate):
+        return ''
+    if not candidate.endswith(_ROLE_NAME_SUFFIXES):
+        return ''
+    return candidate
+
+
+def _fallback_chinese_role_name(analysis: dict[str, str]) -> str:
+    subject = str(analysis.get('subject_label') or '')
+    for pattern, replacement in (
+        (r'python(?:\s*编程)?', '编程'),
+        (r'javascript', '前端'),
+        (r'java', '编程'),
+        (r'c\+\+', '编程'),
+        (r'\bai\b', '智能'),
+    ):
+        subject = re.sub(pattern, replacement, subject, flags=re.I)
+    subject = ''.join(re.findall(r'[\u4e00-\u9fff]', subject))
+    for redundant in ('领域', '学科', '课程'):
+        subject = subject.replace(redundant, '')
+    while '编程编程' in subject:
+        subject = subject.replace('编程编程', '编程')
+    if subject in {'', '通用', '通用学习'}:
+        subject = '学习'
+    subject = subject[:6]
+
+    role_signal = f"{analysis.get('archetype', '')}{analysis.get('intent_label', '')}"
+    qualifier = ''
+    for signal, label in (
+        ('提分', '提分'),
+        ('规划', '规划'),
+        ('陪练', '陪练'),
+        ('拆解', '思维'),
+        ('入门', '启蒙'),
+        ('基础', '启蒙'),
+    ):
+        if signal in role_signal:
+            qualifier = label
+            break
+
+    fallback = f'{subject}{qualifier}导师'
+    if len(fallback) > 10:
+        fallback = f'{subject[:10 - len(qualifier) - 2]}{qualifier}导师'
+    return _valid_chinese_role_name(fallback) or '个性学习导师'
+
+
 def _load_profile_snapshot_for_role_generation(user_id: str) -> dict[str, Any]:
     try:
         return _load_profile_snapshot(user_id)
@@ -1148,10 +1200,24 @@ async def _generate_role_from_question(user_id: str, question: str | None = None
     generation_prompt = (
         "请基于以下结构化分析生成 AI 学习导师角色 JSON，不要复述原始用户问题。\n"
         f"结构化分析：{json.dumps(analysis, ensure_ascii=False)}\n"
-        "字段：name,role_identity,service_scenarios,workflow,output_format,prohibitions,sample_dialogue"
+        "字段：name,role_identity,service_scenarios,workflow,output_format,prohibitions,sample_dialogue。\n"
+        "其中 name 必须是根据分析取出的自然中文角色名：仅含 4-10 个汉字，"
+        "以导师、教练、老师、助教、伙伴或顾问结尾；可以体现角色特色，"
+        "例如“悟空编程导师”；不得包含英文、数字、标点、冒号、空格或口号式长句。"
     )
     generated = _json_from_text(await _collect_llm_text(generation_prompt))
-    name = str(generated.get('name') or f"{analysis['subject_label']}{analysis['archetype']}导师")
+    name = _valid_chinese_role_name(generated.get('name'))
+    if not name:
+        naming_prompt = (
+            "请根据以下结构化分析为 AI 学习导师重新取名。\n"
+            f"结构化分析：{json.dumps(analysis, ensure_ascii=False)}\n"
+            "名称必须自然、简短并体现角色特色，仅含 4-10 个汉字，"
+            "以导师、教练、老师、助教、伙伴或顾问结尾；"
+            "不得包含英文、数字、标点、空格或描述性长句。只输出名称。"
+        )
+        name = _valid_chinese_role_name(await _collect_llm_text(naming_prompt))
+    if not name:
+        name = _fallback_chinese_role_name(analysis)
     role_identity = str(generated.get('role_identity') or f"你是{analysis['subject_label']}领域的{analysis['archetype']}导师，负责{analysis['intent_label']}。")
     service_scenarios = str(generated.get('service_scenarios') or f"适配{analysis['stage']}，围绕{analysis['goals']}展开。")
     workflow = str(generated.get('workflow') or f"1. 先定位薄弱点：{analysis['weak_points']}；2. 再按偏好：{analysis['preference']} 讲解；3. 最后给出练习。")
@@ -1159,7 +1225,7 @@ async def _generate_role_from_question(user_id: str, question: str | None = None
     prohibitions = str(generated.get('prohibitions') or '不要直接跳过推理过程，不要给出与学习阶段无关的任务。')
     sample_dialogue = str(generated.get('sample_dialogue') or f"用户：我不会{analysis['subject_label']}。\n导师：先看一个最小例子，再总结规律。")
     return {
-        'name': name[:40] or '个性化学习导师',
+        'name': name,
         'persona': f"角色身份：{role_identity}\n服务场景：{service_scenarios}",
         'background': f"专属工作流：{workflow}",
         'style_guide': f"输出格式：{output_format}",
@@ -1377,7 +1443,7 @@ async def upload_tutor_file(files: list[UploadFile] = File(...), current_user: d
 
 
 @router.post('/tutor/files/web-capture')
-async def import_web_capture(req: WebCaptureReq, current_user: dict = Depends(get_current_user)):
+async def import_web_capture(req: WebCaptureReq, current_user: dict = Depends(get_authenticated_user)):
     user_id = current_user["user_id"]
     text = _clean_web_material_text(req.text or req.excerpt)
     if not text:
@@ -1405,7 +1471,7 @@ async def import_web_capture(req: WebCaptureReq, current_user: dict = Depends(ge
             len(raw),
             'web_capture',
             req.url.strip(),
-            'ready',
+            'completed',
             json.dumps(analysis, ensure_ascii=False),
             ts,
             ts,
@@ -2128,6 +2194,7 @@ async def tutor_history(limit: int = 20, conversation_id: int | None = None, cur
                 'a2ui_ui_only': bool(meta.get('a2ui_ui_only', False)),
                 'agui_events': meta.get('agui_events') if isinstance(meta.get('agui_events'), list) else [],
                 'open_mode': bool(meta.get('open_mode', False)),
+                'video_resource': meta.get('video_resource') if isinstance(meta.get('video_resource'), dict) else None,
             }
         )
 
@@ -2264,6 +2331,7 @@ def _message_row_to_dict(row, user_id: str) -> dict[str, Any]:
         'a2ui_events': meta.get('a2ui_events') if isinstance(meta.get('a2ui_events'), list) else [],
         'a2ui_ui_only': bool(meta.get('a2ui_ui_only', False)),
         'open_mode': bool(meta.get('open_mode', False)),
+        'video_resource': meta.get('video_resource') if isinstance(meta.get('video_resource'), dict) else None,
         'created_at': row['created_at'],
     }
 

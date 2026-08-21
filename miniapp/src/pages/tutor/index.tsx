@@ -800,7 +800,7 @@ export default function TutorPage() {
         </View>
       </AppHeader>
 
-      <ScrollView scrollY enhanced showScrollbar={false} className='tutor-scroll' scrollIntoView={lastAssistant?.id}>
+      <ScrollView scrollY showScrollbar={false} className='tutor-scroll' scrollIntoView={lastAssistant?.id}>
         {messages.length === 0 ? (
           <View className='quick-start'>
             <View className='quick-start__icon'>
@@ -932,7 +932,7 @@ export default function TutorPage() {
           </View>
         ) : null}
 
-        <ScrollView scrollX enhanced showScrollbar={false} className='composer-options'>
+        <ScrollView scrollX showScrollbar={false} className='composer-options'>
           <View className='option-strip'>
             <View className='option-chip option-chip--model' hoverClass='tap-active' onClick={handleModelSelect}>
               <AppIcon name='sparkles' className='option-chip__icon' />

@@ -218,6 +218,21 @@ export default function OnboardingPage() {
   const resettingRef = useRef(false)
   const submittingRef = useRef(false)
 
+  function hasCollectedLearningProfile(profile: StudentProfile | null) {
+    if (!profile) return false
+    return Boolean(
+      profile.major.trim()
+      || profile.grade.trim()
+      || profile.goals.some(item => item.trim())
+      || profile.knowledgeLevel.trim()
+      || profile.weakPoints.some(item => item.trim())
+      || profile.learningPreference.some(item => item.trim())
+      || profile.cognitiveStyle.trim()
+      || profile.practicalAbility.trim()
+      || profile.currentStage.trim(),
+    )
+  }
+
   const steps = useMemo(
     () => STEPS.map((item) => (item.key === 'major' ? { ...item, tags: subjectOptions } : item)),
     [subjectOptions],
@@ -270,7 +285,12 @@ export default function OnboardingPage() {
       try {
         const profile = await api.getProfile()
         if (!cancelled) {
-          setExistingProfile(profile)
+          if (hasCollectedLearningProfile(profile)) {
+            setExistingProfile(profile)
+          } else {
+            setExistingProfile(null)
+            resetOnboardingFlow()
+          }
           setProfileChecking(false)
           return
         }

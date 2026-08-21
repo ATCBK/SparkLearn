@@ -23,7 +23,8 @@ class ProcessManager {
 
   getNanobotGatewayConfig() {
     const rootDir = this.config.rootDir || path.resolve(__dirname, '..', '..');
-    const projectDir = this.config.env?.NANOBOT_PROJECT_DIR || path.join(rootDir, 'nanobot-main');
+    const workspaceRoot = path.basename(rootDir) === 'desktop' ? path.resolve(rootDir, '..') : rootDir;
+    const projectDir = this.config.env?.NANOBOT_PROJECT_DIR || path.join(workspaceRoot, 'nanobot-main');
     const configPath = this.config.env?.NANOBOT_CONFIG_PATH || path.join(projectDir, '.nanobot', 'config.json');
     const workspace = this.config.env?.NANOBOT_WORKSPACE || path.join(projectDir, '.workspace');
     const pythonExe = this.config.env?.NANOBOT_PYTHON_EXE || 'python';

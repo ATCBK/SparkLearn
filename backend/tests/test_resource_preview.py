@@ -86,10 +86,37 @@ async def test_preview_html_accepts_access_token_query(client, monkeypatch):
     assert "Preview OK" in resp.text
 
 
-def test_contentcube_preview_url_is_iframe_embeddable():
+@pytest.mark.asyncio
+async def test_fetch_contentcube_preview_bypasses_environment_proxy(monkeypatch):
     url = "https://preview.contentcube.cn/preview_1781430809752_8pqecz.html"
 
-    assert resources_route._is_iframe_embeddable_url(url) is True
+    class FakeResponse:
+        text = "<html><body><h1>代理绕过成功</h1></body></html>"
+        headers = {"content-type": "text/html; charset=utf-8"}
+
+        def raise_for_status(self):
+            return None
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            self.uses_environment_proxy = kwargs.get("trust_env", True)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def get(self, requested_url: str):
+            if self.uses_environment_proxy:
+                raise httpx.ConnectError("proxy closed the TLS tunnel")
+            return FakeResponse()
+
+    monkeypatch.setattr(resources_route.httpx, "AsyncClient", FakeAsyncClient)
+
+    html = await resources_route._fetch_url_text(url)
+
+    assert "代理绕过成功" in html
 
 
 def test_shutu_preview_url_is_iframe_embeddable():
@@ -105,23 +132,30 @@ def test_extract_shutu_image_url_from_preview_html():
 
 
 @pytest.mark.asyncio
-async def test_preview_html_wraps_contentcube_url_with_iframe(client, monkeypatch):
+async def test_preview_html_proxies_contentcube_document(client, monkeypatch):
     monkeypatch.setattr(settings, "auth_dev_bypass", True)
+    source_url = "https://preview.contentcube.cn/preview_1781430809752_8pqecz.html"
     item = {
         "id": "contentcube-preview",
         "title": "Python函数讲义",
         "type": "document",
         "content": "# 本地内容",
-        "source_url": "https://preview.contentcube.cn/preview_1781430809752_8pqecz.html",
+        "source_url": source_url,
     }
 
+    async def fake_fetch_url_text(url: str) -> str:
+        assert url == source_url
+        return "<!doctype html><html><head><title>外部文档</title></head><body><h1>代理后的文档内容</h1></body></html>"
+
     monkeypatch.setattr(resources_route, "_find_resource", lambda *args: item)
+    monkeypatch.setattr(resources_route, "_fetch_url_text", fake_fetch_url_text)
 
     resp = await client.get("/api/resources/contentcube-preview/preview/html")
 
     assert resp.status_code == 200
-    assert "<iframe" in resp.text
-    assert "preview.contentcube.cn/preview_1781430809752_8pqecz.html" in resp.text
+    assert "代理后的文档内容" in resp.text
+    assert "<iframe" not in resp.text
+    assert f'<base href="{source_url}" />' in resp.text
 
 
 @pytest.mark.asyncio

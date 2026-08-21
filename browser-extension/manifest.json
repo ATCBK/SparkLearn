@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "SparkLearn 网页资料采集",
-  "version": "0.1.0",
-  "description": "抓取当前网页正文，保存到 SparkLearn 我的资料并生成 AI 解析。",
+  "version": "0.2.0",
+  "description": "登录 SparkLearn 后抓取当前网页正文，保存到个人资源中心并生成 AI 解析。",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["http://127.0.0.1:8000/*", "http://localhost:8000/*", "<all_urls>"],
   "action": {

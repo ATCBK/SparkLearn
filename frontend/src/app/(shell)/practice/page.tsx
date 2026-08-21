@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks, ClipboardList, Target, TrendingUp } from 'lucide-react'
+import { Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, Zap, Check, X, CheckSquare, ListChecks, ClipboardList, Target, TrendingUp } from 'lucide-react'
 import { api, QuizQuestion } from '@/lib/api'
 import { Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
 import { TypewriterLoader } from '@/components/ui/TypewriterLoader'
@@ -71,6 +71,8 @@ export default function PracticePage() {
   const [autoMode, setAutoMode] = useState(true)
   const [progressPage, setProgressPage] = useState(0)
   const [answerRecords, setAnswerRecords] = useState<AnswerRecord[]>([]) // 答题记录
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [favoriteUpdatingIds, setFavoriteUpdatingIds] = useState<Set<string>>(new Set())
 
   function hasAnswer(answer: string | string[] | null): boolean {
     return Array.isArray(answer) ? answer.length > 0 : Boolean(answer)
@@ -91,11 +93,15 @@ export default function PracticePage() {
     setGenerating(true)
     setError('')
     try {
-      const data = await api.getQuizQuestions(topic, countNum)
+      const [data, favorites] = await Promise.all([
+        api.getQuizQuestions(topic, countNum),
+        api.getQuizFavorites(),
+      ])
       if (data && data.length > 0) {
         const enriched = data.map(enrichQuestion)
         // 追加新题目而不是替换
         setQuestions(prev => [...prev, ...enriched])
+        setFavoriteIds(new Set(favorites.map(item => item.quizId)))
         setError('')
       } else {
         setError('未获取到题目数据，请检查题目主题')
@@ -104,6 +110,36 @@ export default function PracticePage() {
       setError(ex instanceof Error ? ex.message : '生成题目失败')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  async function toggleFavorite(quizId: string) {
+    if (favoriteUpdatingIds.has(quizId)) return
+
+    const nextFavorite = !favoriteIds.has(quizId)
+    setFavoriteUpdatingIds(prev => {
+      const next = new Set(prev)
+      next.add(quizId)
+      return next
+    })
+    setError('')
+
+    try {
+      await api.setQuizFavorite(quizId, nextFavorite)
+      setFavoriteIds(prev => {
+        const next = new Set(prev)
+        if (nextFavorite) next.add(quizId)
+        else next.delete(quizId)
+        return next
+      })
+    } catch (ex) {
+      setError(ex instanceof Error ? ex.message : '收藏操作失败')
+    } finally {
+      setFavoriteUpdatingIds(prev => {
+        const next = new Set(prev)
+        next.delete(quizId)
+        return next
+      })
     }
   }
 
@@ -284,7 +320,20 @@ export default function PracticePage() {
                     </Pill>
                   </div>
                 </div>
-                <span className="shrink-0 text-micro text-muted">当前题组：{questions.length} 题 · 预计 {Math.ceil(questions.length * 1.5)} 分钟</span>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <span className="text-micro text-muted">当前题组：{questions.length} 题 · 预计 {Math.ceil(questions.length * 1.5)} 分钟</span>
+                  <ProtoButton
+                    variant={favoriteIds.has(currentQuestion.id) ? 'secondary' : 'tertiary'}
+                    onClick={() => void toggleFavorite(currentQuestion.id)}
+                    disabled={favoriteUpdatingIds.has(currentQuestion.id)}
+                    aria-pressed={favoriteIds.has(currentQuestion.id)}
+                  >
+                    {favoriteIds.has(currentQuestion.id)
+                      ? <BookmarkCheck className="h-4 w-4" />
+                      : <Bookmark className="h-4 w-4" />}
+                    {favoriteIds.has(currentQuestion.id) ? '已收藏' : '收藏'}
+                  </ProtoButton>
+                </div>
               </div>
 
               {currentQuestion && (

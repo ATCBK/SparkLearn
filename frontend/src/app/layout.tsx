@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { DownloadStatusProvider } from "@/components/providers/DownloadStatusProvider";
+import { GenerationTaskProvider } from "@/components/providers/GenerationTaskProvider";
 
 export const metadata: Metadata = {
   title: "SparkLearn - AI 驱动的个性化学习平台",
@@ -20,7 +21,9 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full">
-        <DownloadStatusProvider>{children}</DownloadStatusProvider>
+        <DownloadStatusProvider>
+          <GenerationTaskProvider>{children}</GenerationTaskProvider>
+        </DownloadStatusProvider>
       </body>
     </html>
   );

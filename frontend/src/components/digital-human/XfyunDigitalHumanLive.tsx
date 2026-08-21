@@ -1,30 +1,36 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react'
 import { Loader2, Sparkles, TriangleAlert } from 'lucide-react'
 import { api, type DigitalHumanConfig } from '@/lib/api'
+import {
+  XfyunAvatarDriver,
+  type AvatarPlatform as DriverAvatarPlatform,
+  type XfyunDigitalHumanHandle,
+} from './xfyun-avatar-driver'
 
 type AvatarSdkEventHandler = (...args: unknown[]) => void
 
-type AvatarPlatform = {
-  on: (event: string, handler: AvatarSdkEventHandler) => AvatarPlatform
+type AvatarSdkPlatform = DriverAvatarPlatform & {
+  on: (event: string, handler: AvatarSdkEventHandler) => AvatarSdkPlatform
   setApiInfo: (apiInfo: {
-    serverUrl?: string
     appId: string
-    apiKey?: string
-    apiSecret?: string
+    signedUrl: string
     sceneId?: string
     sceneVersion?: string
-  }) => AvatarPlatform
-  setGlobalParams: (config: Record<string, unknown>) => AvatarPlatform
+  }) => AvatarSdkPlatform
+  setGlobalParams: (config: Record<string, unknown>) => AvatarSdkPlatform
   start: (props?: { wrapper?: HTMLDivElement }) => Promise<void>
-  stop: () => void
-  destroy: () => void
-  writeText?: (text: string, extend?: Record<string, unknown>) => Promise<string>
 }
 
 type AvatarSdkModule = {
-  default: new (props?: { useInlinePlayer?: boolean; logLevel?: number; binaryData?: boolean }) => AvatarPlatform
+  default: new (props?: { useInlinePlayer?: boolean; logLevel?: number; binaryData?: boolean }) => AvatarSdkPlatform
   SDKEvents?: Record<string, string>
 }
 
@@ -33,6 +39,8 @@ type LoadState = 'loading_config' | 'missing_config' | 'loading_sdk' | 'starting
 interface XfyunDigitalHumanLiveProps {
   className?: string
 }
+
+const RECONNECT_DELAYS_MS = [1000, 2000, 4000] as const
 
 function buildMaskRegion(config: DigitalHumanConfig) {
   const mask = config.stage.mask_region
@@ -87,14 +95,116 @@ function getErrorMessage(error: unknown) {
   return '讯飞数字人启动失败'
 }
 
-export default function XfyunDigitalHumanLive({ className = '' }: XfyunDigitalHumanLiveProps) {
+const XfyunDigitalHumanLive = forwardRef<
+  XfyunDigitalHumanHandle,
+  XfyunDigitalHumanLiveProps
+>(function XfyunDigitalHumanLive({ className = '' }, ref) {
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const platformRef = useRef<AvatarPlatform | null>(null)
+  const driverRef = useRef<XfyunAvatarDriver | null>(null)
   const [state, setState] = useState<LoadState>('loading_config')
   const [message, setMessage] = useState('正在读取讯飞数字人配置')
+  const [muted, setMuted] = useState(true)
+
+  useImperativeHandle(ref, () => ({
+    speak: async (text) => driverRef.current?.speak(text),
+    interrupt: async () => driverRef.current?.interrupt(),
+    setMuted: async (nextMuted) => driverRef.current?.setMuted(nextMuted),
+    isReady: () => driverRef.current?.isReady() ?? false,
+  }), [])
 
   useEffect(() => {
     let alive = true
+    let connectionId = 0
+    let reconnectAttempt = 0
+    let reconnectTimer: number | null = null
+
+    function disposeDriver() {
+      const driver = driverRef.current
+      driverRef.current = null
+      if (!driver) return
+      try {
+        driver.dispose()
+      } catch {
+        // 路由切换或异常重连时忽略第三方 SDK 的清理失败。
+      }
+    }
+
+    function scheduleReconnect(
+      config: DigitalHumanConfig,
+      sdk: AvatarSdkModule,
+      error: unknown,
+    ) {
+      if (!alive) return
+      connectionId += 1
+      disposeDriver()
+
+      if (reconnectAttempt >= RECONNECT_DELAYS_MS.length) {
+        setState('error')
+        setMessage(getErrorMessage(error))
+        return
+      }
+
+      const delay = RECONNECT_DELAYS_MS[reconnectAttempt]
+      reconnectAttempt += 1
+      setState('starting')
+      setMessage(`连接中断，${delay / 1000} 秒后重试`)
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null
+        void connect(config, sdk)
+      }, delay)
+    }
+
+    async function connect(config: DigitalHumanConfig, sdk: AvatarSdkModule) {
+      const currentConnectionId = ++connectionId
+      try {
+        setState('starting')
+        setMessage('正在申请讯飞数字人安全会话')
+        const session = await api.getDigitalHumanSession()
+        if (!alive || currentConnectionId !== connectionId) return
+
+        const AvatarPlatform = sdk.default
+        const platform = new AvatarPlatform({ useInlinePlayer: true, logLevel: 3 })
+        const driver = new XfyunAvatarDriver(platform)
+        driverRef.current = driver
+        await driver.setMuted(true)
+        setMuted(true)
+
+        platform.on(sdk.SDKEvents?.connected || 'connected', () => {
+          if (!alive || currentConnectionId !== connectionId) return
+          reconnectAttempt = 0
+          driver.markConnected(true)
+          setState('ready')
+          setMessage('讯飞数字人已就绪')
+        })
+        platform.on(sdk.SDKEvents?.error || 'error', (error) => {
+          if (!alive || currentConnectionId !== connectionId) return
+          driver.markConnected(false)
+          scheduleReconnect(config, sdk, error)
+        })
+        platform.on(sdk.SDKEvents?.disconnected || 'disconnected', (error) => {
+          if (!alive || currentConnectionId !== connectionId) return
+          driver.markConnected(false)
+          scheduleReconnect(config, sdk, error || new Error('讯飞数字人连接已断开'))
+        })
+
+        platform
+          .setApiInfo({
+            appId: session.app_id,
+            signedUrl: session.signed_url,
+            sceneId: session.scene_id || undefined,
+            sceneVersion: session.scene_version || undefined,
+          })
+          .setGlobalParams(buildGlobalParams(config))
+
+        if (!wrapperRef.current) throw new Error('数字人播放容器不存在')
+
+        setMessage('正在启动讯飞数字人')
+        await platform.start({ wrapper: wrapperRef.current })
+      } catch (error) {
+        if (!alive || currentConnectionId !== connectionId) return
+        scheduleReconnect(config, sdk, error)
+      }
+    }
 
     async function startDigitalHuman() {
       try {
@@ -112,47 +222,10 @@ export default function XfyunDigitalHumanLive({ className = '' }: XfyunDigitalHu
         setState('loading_sdk')
         setMessage('正在加载讯飞数字人 SDK')
         const sdk = await importAvatarSdk(config.sdk_url)
-        const AvatarPlatform = sdk.default
-        if (!AvatarPlatform) throw new Error('SDK 已加载，但没有找到 AvatarPlatform 默认导出')
+        if (!sdk.default) throw new Error('SDK 已加载，但没有找到 AvatarPlatform 默认导出')
 
         if (!alive) return
-        const platform = new AvatarPlatform({ useInlinePlayer: true, logLevel: 3 })
-        platformRef.current = platform
-
-        platform.on(sdk.SDKEvents?.connected || 'connected', () => {
-          if (!alive) return
-          setState('ready')
-          setMessage('讯飞数字人已就绪')
-        })
-        platform.on(sdk.SDKEvents?.error || 'error', (error) => {
-          if (!alive) return
-          setState('error')
-          setMessage(getErrorMessage(error))
-        })
-        platform.on(sdk.SDKEvents?.disconnected || 'disconnected', (error) => {
-          if (!alive) return
-          if (error) {
-            setState('error')
-            setMessage(getErrorMessage(error))
-          }
-        })
-
-        platform
-          .setApiInfo({
-            serverUrl: config.server_url,
-            appId: config.app_id,
-            apiKey: config.api_key,
-            apiSecret: config.api_secret,
-            sceneId: config.scene_id || undefined,
-            sceneVersion: config.scene_version || undefined,
-          })
-          .setGlobalParams(buildGlobalParams(config))
-
-        if (!wrapperRef.current) throw new Error('数字人播放容器不存在')
-
-        setState('starting')
-        setMessage('正在启动讯飞数字人')
-        await platform.start({ wrapper: wrapperRef.current })
+        await connect(config, sdk)
       } catch (error) {
         if (!alive) return
         setState('error')
@@ -164,13 +237,9 @@ export default function XfyunDigitalHumanLive({ className = '' }: XfyunDigitalHu
 
     return () => {
       alive = false
-      try {
-        platformRef.current?.stop()
-        platformRef.current?.destroy()
-      } catch {
-        // Ignore SDK cleanup failures during route transitions.
-      }
-      platformRef.current = null
+      connectionId += 1
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer)
+      disposeDriver()
     }
   }, [])
 
@@ -181,6 +250,23 @@ export default function XfyunDigitalHumanLive({ className = '' }: XfyunDigitalHu
   return (
     <div className={`relative h-full w-full overflow-hidden ${className}`}>
       <div ref={wrapperRef} className="absolute inset-0 h-full w-full [&_canvas]:!h-full [&_canvas]:!w-full [&_video]:!h-full [&_video]:!w-full [&_video]:!object-cover" aria-label="讯飞数字人画面" />
+
+      {state === 'ready' && muted && (
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await driverRef.current?.setMuted(false)
+              setMuted(false)
+            } catch {
+              setMessage('请再次点击开启声音')
+            }
+          }}
+          className="absolute bottom-3 right-3 z-20 rounded-full bg-white/90 px-3 py-2 text-xs font-bold text-blue shadow"
+        >
+          {message === '请再次点击开启声音' ? message : '开启声音'}
+        </button>
+      )}
 
       {showOverlay && (
         <div className="absolute inset-0 z-10 grid place-items-center bg-[linear-gradient(135deg,rgba(246,251,255,0.82),rgba(220,236,255,0.72))] px-6 text-center backdrop-blur-[1px]">
@@ -199,4 +285,6 @@ export default function XfyunDigitalHumanLive({ className = '' }: XfyunDigitalHu
       )}
     </div>
   )
-}
+})
+
+export default XfyunDigitalHumanLive

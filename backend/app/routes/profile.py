@@ -201,7 +201,11 @@ async def get_profile(response: Response, current_user: dict = Depends(get_curre
         response.status_code = 404
         return fail("profile not found")
     student_row = fetch_one("SELECT * FROM students WHERE user_id = ?", (user_id,))
-    return ok(_row_to_profile(profile_row, student_row))
+    profile = _row_to_profile(profile_row, student_row)
+    if not _profile_has_meaningful_data(profile):
+        response.status_code = 404
+        return fail("profile not found")
+    return ok(profile)
 
 
 @router.delete("")

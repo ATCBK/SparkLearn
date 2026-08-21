@@ -283,6 +283,19 @@ async def get_current_user(
     return _user_payload(user)
 
 
+async def get_authenticated_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict:
+    """获取必须由 Bearer Token 明确认证的当前用户，不启用单用户开发绕过。"""
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未提供认证凭证",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return await get_current_user(credentials)
+
+
 async def get_current_user_for_url_access(
     access_token: str | None = Query(default=None),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
@@ -511,10 +524,6 @@ async def sms_register(req: SmsRegisterReq):
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (user_id, name, req.phone, password_hash, is_demo, "phone_password", ts, ts),
-    )
-    execute(
-        "INSERT INTO profiles (user_id, updated_at) VALUES (?, ?)",
-        (user_id, ts),
     )
     if is_demo:
         seed_demo_account_data(user_id)

@@ -14,6 +14,13 @@ from ..config import settings
 from ..auth import get_current_user
 from ..schemas import ok
 from ..storage import append_jsonl, read_json, update_json, write_json
+from ..tutor_video_turns import (
+    TutorVideoConversationNotFoundError,
+    TutorVideoRoleNotFoundError,
+    complete_tutor_video_turn,
+    create_tutor_video_turn,
+    fail_tutor_video_turn,
+)
 from ..video_ai import VideoAIScriptError
 from ..video_generator import artifact_dir, build_video_artifacts, make_polished_script, now_iso
 from .common import sse_wrap
@@ -79,6 +86,12 @@ class VideoPolishReq(BaseModel):
     voice: str = ""
 
 
+class TutorVideoContextReq(BaseModel):
+    conversation_id: int | None = Field(default=None, ge=1)
+    role_id: int | None = Field(default=None, ge=1)
+    message: str = Field(min_length=1)
+
+
 class VideoJobReq(BaseModel):
     polish_id: str | None = None
     prompt: str = Field(min_length=1)
@@ -93,10 +106,15 @@ class VideoJobReq(BaseModel):
     duration_sec: int = 90
     voice: dict[str, Any] = Field(default_factory=dict)
     output: dict[str, Any] = Field(default_factory=dict)
+    tutor_context: TutorVideoContextReq | None = None
 
 
 def _jobs(user_id: str) -> list[dict[str, Any]]:
     return read_json(user_id, "video_jobs.json", [])
+
+
+def _find_job(user_id: str, job_id: str) -> dict[str, Any] | None:
+    return next((item for item in _jobs(user_id) if str(item.get("job_id")) == job_id), None)
 
 
 def _save_jobs(user_id: str, items: list[dict[str, Any]]) -> None:
@@ -174,12 +192,14 @@ async def _run_video_job_once(user_id: str, job_id: str, job: dict[str, Any]) ->
     resource_id = str(job["resource_id"])
     existing = _find_resource(user_id, resource_id)
     if existing:
+        complete_tutor_video_turn(user_id, job.get("tutor_turn"), existing)
         return existing
 
     _update_job(user_id, job_id, status="running", progress=18, started_at=now_iso())
     async with _get_video_generation_semaphore():
         existing = _find_resource(user_id, resource_id)
         if existing:
+            complete_tutor_video_turn(user_id, job.get("tutor_turn"), existing)
             return existing
 
         manifest = await asyncio.to_thread(build_video_artifacts, resource_id, job)
@@ -191,22 +211,44 @@ async def _run_video_job_once(user_id: str, job_id: str, job: dict[str, Any]) ->
 
         update_json(user_id, "video_resources.json", [], upsert_resource)
         _update_job(user_id, job_id, status="completed", progress=100, completed_at=now_iso())
+        complete_tutor_video_turn(user_id, job.get("tutor_turn"), resource)
         append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_completed", "job_id": job_id, "resource_id": resource_id})
         return resource
+
+
+async def _run_video_job(user_id: str, job_id: str, job: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return await _run_video_job_once(user_id, job_id, job)
+    except Exception as exc:
+        _update_job(user_id, job_id, status="failed", progress=0, failed_at=now_iso(), error=str(exc))
+        fail_tutor_video_turn(user_id, job.get("tutor_turn"), str(exc))
+        raise
+
+
+async def _raise_stored_video_job_failure(error: str) -> dict[str, Any]:
+    raise RuntimeError(error or "视频生成失败")
 
 
 def _ensure_video_job_task(user_id: str, job_id: str, job: dict[str, Any]) -> asyncio.Task[dict[str, Any]]:
     key = _video_job_task_key(user_id, job_id)
     task = _video_job_tasks.get(key)
-    if task is None or task.cancelled() or (task.done() and task.exception() is not None):
-        task = asyncio.create_task(_run_video_job_once(user_id, job_id, dict(job)))
-        _video_job_tasks[key] = task
+    if task is not None and not task.cancelled():
+        return task
 
-        def cleanup(done_task: asyncio.Task[dict[str, Any]]) -> None:
-            if not done_task.cancelled() and done_task.exception() is None:
-                _video_job_tasks.pop(key, None)
+    latest_job = _find_job(user_id, job_id)
+    if latest_job and str(latest_job.get("status")) == "failed":
+        return asyncio.create_task(_raise_stored_video_job_failure(str(latest_job.get("error") or "")))
 
-        task.add_done_callback(cleanup)
+    task = asyncio.create_task(_run_video_job(user_id, job_id, dict(latest_job or job)))
+    _video_job_tasks[key] = task
+
+    def cleanup(done_task: asyncio.Task[dict[str, Any]]) -> None:
+        if not done_task.cancelled():
+            done_task.exception()
+        if _video_job_tasks.get(key) is done_task:
+            _video_job_tasks.pop(key, None)
+
+    task.add_done_callback(cleanup)
     return task
 
 
@@ -224,7 +266,8 @@ def _video_artifact_path(resource_id: str) -> Path:
 async def polish_video_prompt(req: VideoPolishReq, current_user: dict = Depends(get_current_user)):
     user_id = current_user["user_id"]
     voice = req.voice.strip() or settings.cosyvoice_default_voice
-    result = make_polished_script(
+    result = await asyncio.to_thread(
+        make_polished_script,
         prompt=req.prompt,
         duration_sec=req.duration_sec,
         target_level=req.target_level,
@@ -242,6 +285,22 @@ async def create_video_job(req: VideoJobReq, current_user: dict = Depends(get_cu
     resource_id = f"video_{uuid.uuid4().hex[:8]}"
     job_id = f"job_{uuid.uuid4().hex[:8]}"
     voice = _default_public_voice_config()
+    tutor_turn: dict[str, Any] | None = None
+    if req.tutor_context:
+        try:
+            tutor_turn = create_tutor_video_turn(
+                user_id,
+                req.tutor_context.model_dump(),
+                resource_id=resource_id,
+                title=req.title or req.prompt[:80],
+            )
+        except (TutorVideoConversationNotFoundError, TutorVideoRoleNotFoundError) as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        tutor_turn = {
+            **tutor_turn,
+            "resource_id": resource_id,
+            "title": req.title or req.prompt[:80],
+        }
     job = {
         "job_id": job_id,
         "resource_id": resource_id,
@@ -250,14 +309,22 @@ async def create_video_job(req: VideoJobReq, current_user: dict = Depends(get_cu
         "created_at": now_iso(),
         **req.model_dump(),
         "voice": voice,
+        "tutor_turn": tutor_turn,
     }
     def append_job(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
         jobs.append(job)
         return jobs
 
     update_json(user_id, "video_jobs.json", [], append_job)
+    _ensure_video_job_task(user_id, job_id, job)
     append_jsonl(user_id, "video_events.jsonl", {"type": "video_job_created", "job_id": job_id, "resource_id": resource_id})
-    return ok({"job_id": job_id, "resource_id": resource_id, "status": "queued", "events_url": f"/api/video/jobs/{job_id}/events"})
+    return ok({
+        "job_id": job_id,
+        "resource_id": resource_id,
+        "status": "queued",
+        "events_url": f"/api/video/jobs/{job_id}/events",
+        **(tutor_turn or {}),
+    })
 
 
 @router.get("/jobs/{job_id}/events")
@@ -298,10 +365,8 @@ async def video_job_events(job_id: str, current_user: dict = Depends(get_current
             yield ("progress", {"stage": "completed", "progress": 100, "message": "视频创作产物已生成", "resource_id": resource_id})
             yield ("done", {"resource_id": resource_id, "resource": resource})
         except VideoAIScriptError as ex:
-            _update_job(user_id, job_id, status="failed", progress=0, failed_at=now_iso(), error=str(ex))
             yield ("error", {"code": "VIDEO_SCRIPT_ERROR", "message": str(ex), "retryable": False})
         except Exception as ex:
-            _update_job(user_id, job_id, status="failed", progress=0, failed_at=now_iso(), error=str(ex))
             yield ("error", {"code": "VIDEO_GENERATION_FAILED", "message": f"视频生成失败：{ex}", "retryable": True})
 
     return StreamingResponse(sse_wrap(gen()), media_type="text/event-stream")
@@ -329,9 +394,7 @@ async def get_video_timeline(resource_id: str, current_user: dict = Depends(get_
     return ok(_read_artifact_json(resource_id, "timeline.json", {}))
 
 
-@router.delete("/resources/{resource_id}")
-async def delete_video_resource(resource_id: str, current_user: dict = Depends(get_current_user)):
-    user_id = current_user["user_id"]
+def delete_video_resource_for_user(user_id: str, resource_id: str) -> bool:
     resources = _resources(user_id)
     next_resources = [item for item in resources if str(item.get("id")) != resource_id]
     deleted = len(next_resources) != len(resources)
@@ -347,6 +410,13 @@ async def delete_video_resource(resource_id: str, current_user: dict = Depends(g
         deleted = True
 
     append_jsonl(user_id, "video_events.jsonl", {"type": "video_resource_deleted", "resource_id": resource_id, "deleted": deleted})
+    return deleted
+
+
+@router.delete("/resources/{resource_id}")
+async def delete_video_resource(resource_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    deleted = delete_video_resource_for_user(user_id, resource_id)
     return ok({"resource_id": resource_id, "deleted": deleted})
 
 

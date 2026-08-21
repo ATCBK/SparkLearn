@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import html
 import json
+import logging
 import re
 import uuid
 from typing import Any
@@ -30,6 +31,7 @@ from ..profile_reset import (
 from ..schemas import fail, ok
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
+logger = logging.getLogger("agent")
 
 # --- Constants ---
 
@@ -48,6 +50,9 @@ LEVEL_ABILITIES: dict[int, list[str]] = {
 }
 
 AGENT_LLM_MODEL = "ds-flash"
+AGENT_CHAT_MEMORY_LIMIT = 6
+AGENT_SEARCH_MEMORY_LIMIT = 3
+AGENT_SEARCH_MEMORY_SCAN_LIMIT = 30
 
 PERSONA_PROMPTS = {
     "concise": "You are a concise learning assistant. Keep replies under 80 chars, direct and to the point.",
@@ -214,6 +219,94 @@ def _task_row_to_dict(row: Any) -> dict:
 
 def _get_pet(user_id: str) -> Any:
     return fetch_one("SELECT * FROM agent_pets WHERE user_id = ?", (user_id,))
+
+
+def _chat_memory_key(pet_id: str) -> str:
+    return f"pet-chat:{pet_id}"
+
+
+def _clean_memory_text(value: Any, *, limit: int = 500) -> str:
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]+", " ", str(value or ""))
+    return re.sub(r"\s+", " ", text).strip()[:limit]
+
+
+def _load_recent_chat_memory(user_id: str, pet_id: str) -> str:
+    rows = fetch_all(
+        """SELECT sender, content
+           FROM agent_messages
+           WHERE user_id = ? AND task_id = ? AND sender IN ('user', 'agent')
+           ORDER BY id DESC LIMIT ?""",
+        (user_id, _chat_memory_key(pet_id), AGENT_CHAT_MEMORY_LIMIT),
+    )
+    lines: list[str] = []
+    for row in reversed(rows):
+        content = _clean_memory_text(row["content"])
+        if content:
+            speaker = "用户" if row["sender"] == "user" else "学习伙伴"
+            lines.append(f"{speaker}：{content}")
+    return "\n".join(lines)
+
+
+def _recall_recent_chat_memory(user_id: str, pet_id: str) -> str:
+    try:
+        return _load_recent_chat_memory(user_id, pet_id)
+    except Exception:
+        logger.warning("学习伙伴近期对话记忆读取失败，本轮按无历史继续。", exc_info=True)
+        return ""
+
+
+def _save_chat_turn(user_id: str, pet_id: str, message: str, answer: str) -> None:
+    memory_key = _chat_memory_key(pet_id)
+    ts = now_iso()
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO agent_messages (task_id, user_id, sender, content, created_at) VALUES (?, ?, 'user', ?, ?)",
+            (memory_key, user_id, _clean_memory_text(message, limit=800), ts),
+        )
+        conn.execute(
+            "INSERT INTO agent_messages (task_id, user_id, sender, content, created_at) VALUES (?, ?, 'agent', ?, ?)",
+            (memory_key, user_id, _clean_memory_text(answer, limit=1200), ts),
+        )
+
+
+def _remember_chat_turn(user_id: str, pet_id: str, message: str, answer: str) -> None:
+    try:
+        _save_chat_turn(user_id, pet_id, message, answer)
+    except Exception:
+        logger.warning("学习伙伴近期对话记忆写入失败，本轮回答仍正常返回。", exc_info=True)
+
+
+def _load_recent_search_context(task_id: str) -> list[str]:
+    current = fetch_one("SELECT user_id FROM agent_tasks WHERE id = ?", (task_id,))
+    if not current:
+        return []
+    rows = fetch_all(
+        """SELECT result_json
+           FROM agent_tasks
+           WHERE user_id = ? AND task_type = 'search' AND status = 'completed' AND id <> ?
+           ORDER BY updated_at DESC, id DESC LIMIT ?""",
+        (current["user_id"], task_id, AGENT_SEARCH_MEMORY_SCAN_LIMIT),
+    )
+    queries: list[str] = []
+    for row in rows:
+        try:
+            result = json.loads(row["result_json"] or "{}")
+        except (json.JSONDecodeError, TypeError):
+            continue
+        query = normalize_search_query(result.get("query_used")) if isinstance(result, dict) else ""
+        if query and query not in queries:
+            queries.append(query)
+            if len(queries) >= AGENT_SEARCH_MEMORY_LIMIT:
+                break
+    return queries
+
+
+def _recall_recent_search_context(task_id: str) -> list[str]:
+    try:
+        return _load_recent_search_context(task_id)
+    except Exception:
+        logger.warning("学习伙伴近期检索记忆读取失败，本轮仅使用当前输入。", exc_info=True)
+        return []
 
 
 def _load_agent_profile_context(user_id: str) -> str:
@@ -487,7 +580,8 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
 async def _execute_fallback_task(task_id: str, task_type: str, input_text: str, persona_prompt: str) -> dict:
     if task_type == "search":
         _add_step(task_id, 1, "plan", "正在分析用户意图...")
-        plan = await plan_search_intent(input_text, _stream_agent_llm_events)
+        recent_context = _recall_recent_search_context(task_id)
+        plan = await plan_search_intent(input_text, _stream_agent_llm_events, recent_context)
         if plan["decision"] == "search":
             planned_query = plan.get("normalized_query", "")
             validated_query = normalize_search_query(planned_query)
@@ -941,9 +1035,13 @@ async def chat_with_pet(req: PetChatReq, current_user: dict = Depends(get_curren
         )
     persona_prompt = PERSONA_PROMPTS.get(pet["personality"], PERSONA_PROMPTS["encouraging"])
     profile_context = _load_agent_profile_context(user_id)
+    recent_memory = _recall_recent_chat_memory(user_id, pet["id"])
+    memory_context = recent_memory or "暂无可用的近期对话。"
     prompt = f"""你是 SparkLearn 的学习伙伴「{pet['name']}」。
 性格要求：{persona_prompt}
 用户画像：{profile_context}
+最近对话记忆（最多 6 条，仅用于承接本轮上下文）：
+{memory_context}
 
 回答要求：
 - 用中文直接回答用户问题；
@@ -961,8 +1059,10 @@ async def chat_with_pet(req: PetChatReq, current_user: dict = Depends(get_curren
             chunks.append(c)
     except Exception as ex:
         answer = _local_agent_chat_fallback(req.message, pet["name"], pet["personality"])
+        _remember_chat_turn(user_id, pet["id"], req.message, answer)
         return ok({"answer": answer, "created_at": now_iso(), "fallback": True, "error": str(ex)[:160]})
     answer = "".join(chunks).strip() or _local_agent_chat_fallback(req.message, pet["name"], pet["personality"])
+    _remember_chat_turn(user_id, pet["id"], req.message, answer)
     return ok({"answer": answer, "created_at": now_iso()})
 
 

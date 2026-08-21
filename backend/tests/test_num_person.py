@@ -29,6 +29,82 @@ TEST_SEGMENTS = [
 ]
 
 
+def _configure_digital_human(monkeypatch, *, api_secret: str = "api-secret"):
+    from app import config as cfg
+
+    values = {
+        "xf_dh_enabled": True,
+        "xf_dh_app_id": "app-id",
+        "xf_dh_api_key": "api-key",
+        "xf_dh_api_secret": api_secret,
+        "xf_dh_avatar_id": "avatar-id",
+        "xf_dh_server_url": "wss://avatar.example.com/v1/interact",
+        "xf_dh_signed_url_ttl_sec": 240,
+        "xf_dh_sdk_url": "/libs/avatar-sdk-web_3.2.3.1002/esm/index.js",
+        "xf_dh_width": 720,
+        "xf_dh_height": 405,
+        "xf_dh_scale": 1.15,
+        "xf_dh_move_h": 0,
+        "xf_dh_move_v": -95,
+        "xf_dh_mask_top": 0,
+        "xf_dh_mask_right": 0,
+        "xf_dh_mask_bottom": 0,
+        "xf_dh_mask_left": 0,
+        "xf_dh_transparent": True,
+        "xf_dh_tts_voice": "x4_lingxiaoxuan_oral",
+        "xf_dh_tts_speed": 50,
+        "xf_dh_tts_pitch": 50,
+        "xf_dh_tts_volume": 100,
+        "xf_dh_stream_protocol": "webrtc",
+        "xf_dh_scene_id": "",
+        "xf_dh_scene_version": "",
+    }
+    for key, value in values.items():
+        monkeypatch.setattr(cfg.settings, key, value, raising=False)
+
+
+@pytest.mark.asyncio
+async def test_数字人配置返回形象ID但不返回长期凭据(np_client, monkeypatch):
+    _configure_digital_human(monkeypatch)
+
+    response = await np_client.get("/api/num-person/digital-human/config")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["configured"] is True
+    assert data["avatar_id"] == "avatar-id"
+    assert "api_key" not in data
+    assert "api_secret" not in data
+    assert "server_url" not in data
+    assert "app_id" not in data
+
+
+@pytest.mark.asyncio
+async def test_数字人会话返回禁止缓存的短期签名地址(np_client, monkeypatch):
+    _configure_digital_human(monkeypatch)
+
+    response = await np_client.post("/api/num-person/digital-human/session")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["app_id"] == "app-id"
+    assert data["signed_url"].startswith("wss://avatar.example.com/v1/interact?")
+    assert data["expires_at"] > int(time.time())
+    assert "no-store" in response.headers["cache-control"]
+    assert response.headers["pragma"] == "no-cache"
+    assert "api-secret" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_数字人会话拒绝不完整配置(np_client, monkeypatch):
+    _configure_digital_human(monkeypatch, api_secret="")
+
+    response = await np_client.post("/api/num-person/digital-human/session")
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "DH_NOT_CONFIGURED"
+
+
 @pytest_asyncio.fixture
 async def np_client(client, tmp_path, monkeypatch):
     """Client with a test video timeline pre-created."""

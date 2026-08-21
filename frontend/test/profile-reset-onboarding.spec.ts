@@ -262,7 +262,7 @@ test('已有画像重新采集必须先重置成功，不能只在本地绕过',
   expect(await readCompletionMarkers(page)).toEqual({ collected: null, recapture: null })
 })
 
-test('画像接口成功返回不完整画像时仍视为已有画像，不能绕过服务器重置', async ({ page }) => {
+test('画像接口成功返回不完整画像时仍进入首次采集，不显示已完成画像', async ({ page }) => {
   const requests = await mockProfileFlowApis(page, {
     currentProfile: {
       ...profile,
@@ -272,12 +272,16 @@ test('画像接口成功返回不完整画像时仍视为已有画像，不能�
       knowledge_level: '',
       weak_points: [],
       learning_preference: [],
+      cognitive_style: '',
+      daily_time: 0,
+      practical_ability: '',
+      current_stage: '',
     },
   })
   await page.goto('/onboarding')
 
-  await expect(page.getByRole('heading', { name: /画像已经建立/ })).toBeVisible()
-  await expect(page.getByPlaceholder('输入你的名字，例如：林同学')).toHaveCount(0)
+  await expect(page.getByPlaceholder('输入你的名字，例如：林同学')).toBeVisible()
+  await expect(page.getByRole('heading', { name: /画像已经建立/ })).toHaveCount(0)
   expect(requests.getResetRequestCount()).toBe(0)
 })
 

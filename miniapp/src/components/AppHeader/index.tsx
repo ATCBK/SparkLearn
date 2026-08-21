@@ -24,10 +24,10 @@ const fallbackMetrics: HeaderMetrics = {
 
 function getHeaderMetrics(): HeaderMetrics {
   try {
-    const system = Taro.getSystemInfoSync()
+    const windowInfo = Taro.getWindowInfo()
     const menu = Taro.getMenuButtonBoundingClientRect()
-    const statusBarHeight = system.statusBarHeight || fallbackMetrics.statusBarHeight
-    const windowWidth = system.windowWidth || 375
+    const statusBarHeight = windowInfo.statusBarHeight || fallbackMetrics.statusBarHeight
+    const windowWidth = windowInfo.windowWidth || 375
 
     if (!menu || !menu.height || !menu.top || !menu.left) {
       return fallbackMetrics

@@ -2,14 +2,14 @@
 import type {
   Task, Resource, StudentProfile, Message, QuizQuestion,
   DashboardStats, MasteryRecord, ReportData, Recommendation,
-  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
+  LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, WorkshopMetaEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherClass, TeacherClassMember, ClassBroadcast, TeacherSubject, TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledgeGraphNode, McpService, McpServicePayload,
   ProfileHistoryResp, ProfileAnalysis, ProfileAnalysisResp, ProfileResetResult,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
   AdminAuditList, AdminDashboard, AdminSettingsResp, AdminUser, AdminUserList,
-  DigitalHumanConfig,
+  DigitalHumanConfig, DigitalHumanSession,
 } from './types'
 import { getAdminToken, getToken } from '../auth'
 
@@ -17,6 +17,9 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 type ApiResp<T> = { success: boolean; data: T; error?: string; detail?: unknown }
 type SseEvent = { type: string; payload: Record<string, unknown> }
+type VideoJobCreated = { conversationId?: number }
+
+class VideoJobTerminalError extends Error {}
 
 export class ApiRequestError extends Error {
   constructor(
@@ -600,6 +603,7 @@ export async function sendMessage(
     onText?: (chunk: string) => void
     onError?: (error: { code?: number; message?: string; sid?: string }) => void
     onHub?: (evt: WorkshopHubEvent) => void
+    onWorkshopMeta?: (evt: WorkshopMetaEvent) => void
     onWorkshopPhase?: (evt: { phase: string; round?: number; status: string }) => void
     onConfidence?: (confidence: ConfidenceInfo) => void
     onCitations?: (citations: CitationItem[]) => void
@@ -658,6 +662,24 @@ export async function sendMessage(
         content: String(evt.payload.content || ''),
         timestamp: String(evt.payload.timestamp || new Date().toISOString()),
         delta: Boolean(evt.payload.delta),
+      })
+      return
+    }
+    if (evt.type === 'workshop_meta') {
+      handlers?.onWorkshopMeta?.({
+        enabled: Boolean(evt.payload.enabled),
+        complexity: String(evt.payload.complexity || ''),
+        rounds: Number(evt.payload.rounds || 0),
+        participants: Array.isArray(evt.payload.participants)
+          ? evt.payload.participants.map((participant) => {
+            const item = participant && typeof participant === 'object' ? participant as Record<string, unknown> : {}
+            return {
+              id: String(item.id || ''),
+              name: String(item.name || '协作导师'),
+              kind: String(item.kind || 'custom'),
+            }
+          })
+          : [],
       })
       return
     }
@@ -781,6 +803,9 @@ export async function getChatHistory(conversationId?: number): Promise<Message[]
     timestamp: m.timestamp,
     conversationId: m.conversation_id,
     fileNames: Array.isArray(m.file_names) ? m.file_names : [],
+    videoResource: m.video_resource && typeof m.video_resource === 'object'
+      ? toResource(m.video_resource)
+      : undefined,
     confidence: m.confidence && typeof m.confidence === 'object' ? {
       score: Number(m.confidence.score ?? 0),
       level: String(m.confidence.level || 'low'),
@@ -1866,6 +1891,12 @@ export async function generateVideo(
     voiceSpeed?: number
     voicePitch?: number
     voiceVolume?: number
+    tutorContext?: {
+      conversationId?: number
+      roleId?: number
+      message: string
+    }
+    onJobCreated?: (job: VideoJobCreated) => void
     onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
   },
 ): Promise<Resource> {
@@ -1877,6 +1908,8 @@ export async function generateVideo(
   const voiceSpeed = options?.voiceSpeed
   const voicePitch = options?.voicePitch
   const voiceVolume = options?.voiceVolume
+  const tutorContext = options?.tutorContext
+  const onJobCreated = options?.onJobCreated
   const onEvent = options?.onEvent
 
   // Step 1: Polish the prompt into a script
@@ -1887,7 +1920,7 @@ export async function generateVideo(
     method: 'POST',
     body: JSON.stringify({
       polish_id: polish.polishId,
-      prompt: polish.polishedPrompt,
+      prompt,
       title: polish.title,
       script_outline: polish.scriptOutline,
       video_provider: 'html_ppt',
@@ -1901,21 +1934,38 @@ export async function generateVideo(
         ...(voicePitch !== undefined ? { pitch: voicePitch } : {}),
         ...(voiceVolume !== undefined ? { volume: voiceVolume } : {}),
       },
+      ...(tutorContext ? {
+        tutor_context: {
+          conversation_id: tutorContext.conversationId,
+          role_id: tutorContext.roleId,
+          message: tutorContext.message,
+        },
+      } : {}),
     }),
   })
 
   const resourceId = job.resource_id
+  const createdConversationId = Number(job.conversation_id)
+  onJobCreated?.({
+    conversationId: Number.isInteger(createdConversationId) && createdConversationId > 0
+      ? createdConversationId
+      : undefined,
+  })
 
   // Step 3: Stream job events
   const hadEventStream = Boolean(job.events_url)
   if (job.events_url) {
-    try {
-      const eventsUrl = `${API_BASE}${job.events_url}`
-      const res = await fetch(eventsUrl, { headers: _authUploadHeaders() })
-      if (!res.ok) {
-        throw new Error(await readApiErrorMessage(res, 'GET', job.events_url))
-      }
-      if (res.body) {
+    const eventsUrl = `${API_BASE}${job.events_url}`
+    let completed = false
+    while (!completed) {
+      try {
+        const res = await fetch(eventsUrl, { headers: _authUploadHeaders() })
+        if (!res.ok) {
+          const message = await readApiErrorMessage(res, 'GET', job.events_url)
+          if (res.status >= 400 && res.status < 500) throw new VideoJobTerminalError(message)
+          throw new Error(message)
+        }
+        if (!res.body) throw new Error('视频生成事件流为空')
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
         let buffer = ''
@@ -1937,13 +1987,22 @@ export async function generateVideo(
             onEvent?.(evt)
             if (evt?.type === 'error') {
               const payload = evt.payload && typeof evt.payload === 'object' ? evt.payload as Record<string, unknown> : {}
-              throw new Error(String(payload.message || payload.error || '视频生成失败'))
+              throw new VideoJobTerminalError(String(payload.message || payload.error || '视频生成失败'))
+            }
+            if (evt?.type === 'done') {
+              completed = true
             }
           }
         }
+        if (!completed) throw new Error('视频生成事件流提前结束')
+      } catch (error) {
+        if (error instanceof VideoJobTerminalError) throw error
+        onEvent?.({
+          type: 'progress',
+          payload: { stage: 'reconnecting', message: '连接中断，正在恢复后台视频任务' },
+        })
+        await new Promise((resolve) => setTimeout(resolve, 250))
       }
-    } catch (error) {
-      throw error instanceof Error ? error : new Error('视频生成事件流连接失败')
     }
   }
 
@@ -1963,6 +2022,39 @@ export async function generateVideo(
       createdAt: new Date().toISOString(),
     }
   }
+}
+
+export async function generateTutorVideo(
+  prompt: string,
+  tutorContext: {
+    conversationId?: number
+    roleId?: number
+    message: string
+  },
+  options?: {
+    durationSec?: number
+    targetLevel?: string
+    styleId?: string
+    voice?: string
+    voiceProvider?: string
+    voiceSpeed?: number
+    voicePitch?: number
+    voiceVolume?: number
+    onConversationCreated?: (conversationId: number) => void
+    onEvent?: (evt: { type: string; payload: Record<string, unknown> }) => void
+  },
+): Promise<{ resource: Resource; conversationId?: number }> {
+  let conversationId = tutorContext.conversationId
+  const { onConversationCreated, ...videoOptions } = options || {}
+  const resource = await generateVideo(prompt, {
+    ...videoOptions,
+    tutorContext,
+    onJobCreated: (job) => {
+      conversationId = job.conversationId ?? conversationId
+      if (job.conversationId) onConversationCreated?.(job.conversationId)
+    },
+  })
+  return { resource, conversationId }
 }
 
 export async function getVideoStyles(): Promise<Array<{ id: string; name: string; description: string; accent_color: string; bg_gradient: string; tone: string }>> {
@@ -2117,6 +2209,16 @@ export async function callMcpTool(serviceId: string, toolName: string, args: Rec
 
 // ─── Digital Human API ─────────────────────────────────────────────────────────
 
+export async function getDigitalHumanConfig(): Promise<DigitalHumanConfig> {
+  return fetchJson<DigitalHumanConfig>('/api/num-person/digital-human/config')
+}
+
+export async function getDigitalHumanSession(): Promise<DigitalHumanSession> {
+  return fetchJson<DigitalHumanSession>('/api/num-person/digital-human/session', {
+    method: 'POST',
+  })
+}
+
 export async function loadMemory(videoId: string): Promise<{
   memory_id: string
   video_id: string
@@ -2137,10 +2239,6 @@ export async function loadMemory(videoId: string): Promise<{
 
 export async function deleteMemory(memoryId: string): Promise<void> {
   await fetchJson(`/api/num-person/memory/${memoryId}`, { method: 'DELETE' })
-}
-
-export async function getDigitalHumanConfig(): Promise<DigitalHumanConfig> {
-  return fetchJson<DigitalHumanConfig>('/api/num-person/digital-human/config')
 }
 
 export async function chatWithDigitalHuman(

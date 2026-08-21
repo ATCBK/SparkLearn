@@ -527,6 +527,17 @@ export interface WorkshopHubEvent {
   delta?: boolean
 }
 
+export interface WorkshopMetaEvent {
+  enabled: boolean
+  complexity: string
+  rounds: number
+  participants: Array<{
+    id: string
+    name: string
+    kind: 'system' | 'custom' | string
+  }>
+}
+
 export interface TutorRole {
   id: number
   name: string
@@ -827,10 +838,6 @@ export interface DigitalHumanConfig {
   configured: boolean
   provider: 'xfyun' | string
   sdk_url: string
-  server_url: string
-  app_id: string
-  api_key: string
-  api_secret: string
   avatar_id: string
   scene_id?: string
   scene_version?: string
@@ -858,6 +865,14 @@ export interface DigitalHumanConfig {
     protocol: 'xrtc' | 'webrtc' | 'rtmp' | string
     alpha?: number
   }
+}
+
+export interface DigitalHumanSession {
+  app_id: string
+  signed_url: string
+  expires_at: number
+  scene_id?: string
+  scene_version?: string
 }
 
 export interface ContributionDay {
