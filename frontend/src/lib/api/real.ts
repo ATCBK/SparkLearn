@@ -5,7 +5,7 @@ import type {
   LearningPath, VideoInfo, ContributionDay, TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, WorkshopHubEvent, WorkshopMetaEvent, ProfileUpdatePayload, KnowledgeFile, KnowledgeStats, TaskCreatePayload,
   ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsResp, ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherClass, TeacherClassMember, ClassBroadcast, TeacherSubject, TeacherKnowledgeGraph, TeacherKnowledgeGraphEdge, TeacherKnowledgeGraphNode, McpService, McpServicePayload,
-  ProfileHistoryResp, ProfileAnalysis, ProfileAnalysisResp, ProfileResetResult,
+  ProfileHistoryResp, ProfileDialogHistoryResp, ProfileAnalysis, ProfileAnalysisResp, ProfileResetResult,
   CodeEvaluatePayload, CodeEvaluateResult, ResourceQualityResult,
   A2UIEnvelope, A2UISurfaceState, AGUIEvent,
   AdminAuditList, AdminDashboard, AdminSettingsResp, AdminUser, AdminUserList,
@@ -409,6 +409,10 @@ export async function resetProfile(): Promise<ProfileResetResult> {
 
 export async function getProfileHistory(): Promise<ProfileHistoryResp> {
   return fetchJson('/api/profile/history')
+}
+
+export async function getProfileDialogHistory(): Promise<ProfileDialogHistoryResp> {
+  return fetchJson('/api/profile/dialog-history')
 }
 
 export async function getCurrentProfileAnalysis(): Promise<ProfileAnalysis> {
@@ -2082,6 +2086,12 @@ export async function updateAgentPet(payload: { personality?: string; name?: str
   return fetchJson('/api/agent/pet', {
     method: 'PATCH',
     body: JSON.stringify(payload),
+  })
+}
+
+export async function resetAgentPet(): Promise<{ deleted: boolean }> {
+  return fetchJson('/api/agent/pet', {
+    method: 'DELETE',
   })
 }
 

@@ -107,18 +107,21 @@ async def test_uploaded_knowledge_file_can_be_used_by_resource_generation(client
 
 
 @pytest.mark.asyncio
-async def test_blog_generation_keeps_specialized_prompt_template(client, monkeypatch):
-    captured: dict[str, str] = {}
+async def test_blog_generation_uses_script_brief_before_final_draft(client, monkeypatch):
+    captured_prompts: list[str] = []
     monkeypatch.setattr(settings, "auth_dev_bypass", True)
 
     async def fake_stream_chat_events(prompt: str, mode: str, history: list):
-        captured["prompt"] = prompt
+        captured_prompts.append(prompt)
         if False:
             yield ("text", {"content": ""})
-        yield ("text", {"content": "播客稿内容"})
+        if "最终可朗读的播客电台正文" in prompt:
+            yield ("text", {"content": "SOURCE_URL: NONE\n\n最终播客稿内容"})
+        else:
+            yield ("text", {"content": "学习者意图：讲清楚函数返回值\n播客结构：开场、概念、例子、总结"})
 
     async def fake_load_knowledge_context_async(file_ids, query: str, **kwargs):
-        return "不应该拼进 prompt 的知识内容"
+        return "知识库依据：return 会把值交回调用方"
 
     monkeypatch.setattr(resources_route.spark_lite, "stream_chat_events", fake_stream_chat_events)
     monkeypatch.setattr(resources_route, "load_knowledge_context_async", fake_load_knowledge_context_async)
@@ -128,9 +131,16 @@ async def test_blog_generation_keeps_specialized_prompt_template(client, monkeyp
 
     assert resp.status_code == 200
     assert '"type": "done"' in resp.text
-    assert captured["prompt"] != user_prompt
-    assert "播客电台脚本" in captured["prompt"]
-    assert user_prompt in captured["prompt"]
+    assert len(captured_prompts) == 2
+    assert captured_prompts[0] != user_prompt
+    assert "分析并生成播客制作脚本" in captured_prompts[0]
+    assert "知识库依据：return 会把值交回调用方" in captured_prompts[0]
+    assert "最终可朗读的播客电台正文" in captured_prompts[1]
+    assert "学习者意图：讲清楚函数返回值" in captured_prompts[1]
+    assert "最终播客稿内容" in resp.text
+    assert "script_brief" in resp.text
+    assert "PODCAST_SCRIPT_BRIEF" not in resp.text
+    assert "SOURCE_URL" not in resp.text
 
 
 def test_build_resource_prompt_returns_raw_user_prompt():

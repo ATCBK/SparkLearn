@@ -19,7 +19,15 @@ const STATUS_INFO: Record<string, { label: string; tone: 'blue' | 'green' | 'ora
   failed: { label: '失败', tone: 'red' },
 }
 
-export function AgentHistory({ className = '' }: { className?: string }) {
+export function AgentHistory({
+  className = '',
+  selectedTaskId,
+  onSelectTask,
+}: {
+  className?: string
+  selectedTaskId?: string | null
+  onSelectTask?: (taskId: string) => void
+}) {
   const [tasks, setTasks] = useState<AgentTask[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -54,7 +62,15 @@ export function AgentHistory({ className = '' }: { className?: string }) {
           const typeInfo = TASK_TYPE_INFO[task.task_type] || TASK_TYPE_INFO.search
           const statusInfo = STATUS_INFO[task.status] || STATUS_INFO.pending
           return (
-            <div key={task.task_id} className="rounded-lg border border-[#f1f5f9] p-3 transition-colors hover:bg-[#f8fafc]">
+            <button
+              key={task.task_id}
+              type="button"
+              onClick={() => onSelectTask?.(task.task_id)}
+              aria-pressed={selectedTaskId === task.task_id}
+              className={`block w-full rounded-lg border p-3 text-left transition-colors hover:bg-[#f8fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue ${
+                selectedTaskId === task.task_id ? 'border-blue bg-blue-light' : 'border-[#f1f5f9]'
+              }`}
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <Pill tone={typeInfo.tone}>{typeInfo.icon} {typeInfo.label}</Pill>
                 <Pill tone={statusInfo.tone}>{statusInfo.label}</Pill>
@@ -63,7 +79,7 @@ export function AgentHistory({ className = '' }: { className?: string }) {
               <div className="mt-1 text-[10px] leading-4 text-[#9ca3af]">
                 {new Date(task.created_at).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
-            </div>
+            </button>
           )
         })}
       </div>

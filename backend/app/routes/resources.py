@@ -240,26 +240,31 @@ async def generate_resource(req: GenerateReq, current_user: dict = Depends(get_c
                 }
                 yield ("progress", {"stage": "visual_fallback", "resource_id": res_id, "progress": 95})
         elif resource_type == "blog":
-            # 播客电台：直接调用星火大模型生成播客脚本
             chunks: list[str] = []
-            progress = 10
-            blog_prompt = rag_prompt
+            progress = 28
+            yield ("progress", {"stage": "podcast_scripting", "resource_id": res_id, "progress": 12})
+            script_brief = await _generate_podcast_script_brief(
+                user_prompt=req.prompt,
+                generation_prompt=rag_prompt,
+            )
 
-            yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": 10})
+            yield ("progress", {"stage": "podcast_drafting", "resource_id": res_id, "progress": progress})
+            blog_prompt = _build_podcast_final_prompt(req.prompt, script_brief)
             async for evt_type, payload in spark_lite.stream_chat_events(blog_prompt, mode="general", history=[]):
                 if evt_type == "text":
                     chunk = str(payload.get("content", ""))
                     if chunk:
                         chunks.append(chunk)
                         progress = min(progress + 5, 90)
-                        yield ("text", {"content": chunk, "resource_id": res_id})
-                        yield ("progress", {"stage": "generating", "resource_id": res_id, "progress": progress})
+                        yield ("progress", {"stage": "podcast_drafting", "resource_id": res_id, "progress": progress})
                 elif evt_type == "error":
                     yield ("error", payload)
 
-            content = "".join(chunks).strip()
+            content = _sanitize_podcast_content("".join(chunks).strip())
             if not content:
                 content = _fallback_resource_content("blog", req.prompt)
+            else:
+                yield ("text", {"content": content, "resource_id": res_id})
 
             resource = {
                 "id": res_id,
@@ -267,8 +272,9 @@ async def generate_resource(req: GenerateReq, current_user: dict = Depends(get_c
                 "type": "blog",
                 "status": "completed",
                 "created_at": _now_date(),
-                "content": f"# {req.prompt}\n\n{content}",
+                "content": content,
                 "source_url": None,
+                "script_brief": script_brief,
                 "progress": 100,
             }
         else:
@@ -629,7 +635,6 @@ def _build_resource_prompt(resource_type: str, user_prompt: str, user_id: str) -
         return "请生成代码学习案例（Markdown），包含问题描述、完整代码、讲解与扩展练习。\n\n主题：" + base
     if resource_type == "blog":
         return (
-            "SOURCE_URL: NONE\n\n"
             "你是一位专业的播客主播兼科普作者。请根据以下学习主题，生成一篇适合语音朗读的播客电台脚本。\n\n"
             "要求：\n"
             "1. 用口语化、亲切自然的语气，像在和听众聊天一样讲解知识\n"
@@ -643,6 +648,78 @@ def _build_resource_prompt(resource_type: str, user_prompt: str, user_id: str) -
             "主题：" + base
         )
     return base
+
+
+async def _collect_spark_text(prompt: str, mode: str = "general") -> str:
+    chunks: list[str] = []
+    async for evt_type, payload in spark_lite.stream_chat_events(prompt, mode=mode, history=[]):
+        if evt_type == "text":
+            chunk = str(payload.get("content", ""))
+            if chunk:
+                chunks.append(chunk)
+    return "".join(chunks).strip()
+
+
+async def _generate_podcast_script_brief(user_prompt: str, generation_prompt: str) -> str:
+    planning_prompt = _build_podcast_planning_prompt(user_prompt, generation_prompt)
+    script = await _collect_spark_text(planning_prompt)
+    if script:
+        return script[:5000]
+    return _fallback_podcast_script_brief(user_prompt)
+
+
+def _build_podcast_planning_prompt(user_prompt: str, generation_prompt: str) -> str:
+    return (
+        "你是 SparkLearn 的资源生成编排 Agent。请先根据学习者需求、用户画像上下文和知识库内容，"
+        "分析并生成播客制作脚本，而不是直接输出最终播客正文。\n\n"
+        "必须完成以下结构：\n"
+        "1. 学习者意图：用一句话说明这期播客真正要解决的问题。\n"
+        "2. 画像依据：列出可以用于个性化讲解的专业、目标、薄弱点或偏好；没有依据就写“暂无明确画像依据”。\n"
+        "3. 知识依据：列出来自知识库或题目本身的关键事实，避免无依据扩写。\n"
+        "4. 播客结构：给出开场、3-5 个正文段落、结尾，每段写清楚讲解目标、类比或例子、过渡方式。\n"
+        "5. 语气与约束：说明适合 TTS 朗读的语速、句长、禁用格式。\n\n"
+        "输出要求：只输出脚本策划，不要写最终播客正文，不要使用 Markdown 标题。\n\n"
+        f"用户原始需求：\n{user_prompt.strip()}\n\n"
+        f"资源生成上下文：\n{generation_prompt.strip()}"
+    )
+
+
+def _build_podcast_final_prompt(user_prompt: str, script_brief: str) -> str:
+    return (
+        "你是一位专业的播客主播兼科普作者。请严格根据下方“播客制作脚本”生成最终可朗读的播客电台正文。\n\n"
+        "要求：\n"
+        "1. 必须落实脚本中的学习者意图、画像依据、知识依据和段落结构\n"
+        "2. 用口语化、亲切自然的语气，像在和听众聊天一样讲解知识\n"
+        "3. 开头用一句吸引人的引入语，并自然说明今天要解决的问题\n"
+        "4. 把知识点拆成 3-5 个小段落，每段之间用自然过渡语连接\n"
+        "5. 多用生活化类比和例子解释抽象概念，不编造知识库没有支撑的事实\n"
+        "6. 结尾做简短总结，并给出一个思考问题或动手任务\n"
+        "7. 不要使用 Markdown 格式符号（不要 #、*、`、- 等），纯文本即可\n"
+        "8. 每个段落之间用两个空行分隔，便于拆分为多个音频片段\n"
+        "9. 总长度控制在 800-1500 字，适合 5-8 分钟音频播放\n\n"
+        "输出边界：只输出播客正文，不要输出 SOURCE_URL、提示词、脚本策划、字段名或任何内部说明。\n\n"
+        f"用户原始需求：\n{user_prompt.strip()}\n\n"
+        f"播客制作脚本：\n{script_brief.strip()}"
+    )
+
+
+def _fallback_podcast_script_brief(user_prompt: str) -> str:
+    topic = user_prompt.strip() or "本次学习主题"
+    return (
+        f"学习者意图：围绕“{topic}”生成一段适合听的知识讲解。\n"
+        "画像依据：暂无明确画像依据。\n"
+        "知识依据：以用户原始需求为核心，不补充无依据的细节。\n"
+        "播客结构：开场说明问题；正文分为概念解释、生活类比、常见误区、练习建议；结尾总结并提出思考任务。\n"
+        "语气与约束：口语化、短句、自然过渡、纯文本、适合 TTS 朗读。"
+    )
+
+
+def _sanitize_podcast_content(content: str) -> str:
+    text = _strip_marked_url(content).strip()
+    text = re.sub(r"(?is)<!--\s*PODCAST_SCRIPT_BRIEF.*?-->", "", text).strip()
+    text = re.sub(r"(?im)^\s*(播客制作脚本|脚本策划|系统提示词|提示词|用户原始需求|资源生成上下文)\s*[:：].*$", "", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return text
 
 
 async def _build_resource_prompt_with_rag(user_id: str, resource_type: str, user_prompt: str | list[int], knowledge_file_ids: list[int] | None = None) -> str:

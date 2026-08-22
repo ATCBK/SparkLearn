@@ -40,6 +40,8 @@ async function mockAgentApis(
   options: {
     chatResponse?: { answer: string; created_at: string; action?: AgentAction }
     taskResult?: Record<string, unknown>
+    tasks?: Record<string, unknown>[]
+    taskDetails?: Record<string, Record<string, unknown>>
   } = {},
 ) {
   let pollCount = 0
@@ -86,7 +88,7 @@ async function mockAgentApis(
 
   await page.route('**/api/agent/tasks?**', async route => {
     await route.fulfill({
-      json: { success: true, data: { items: [], total: 0, page: 1, page_size: 10 } },
+      json: { success: true, data: { items: options.tasks || [], total: options.tasks?.length || 0, page: 1, page_size: 10 } },
     })
   })
 
@@ -122,6 +124,26 @@ async function mockAgentApis(
           ],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+        },
+      },
+    })
+  })
+
+  await page.route('**/api/agent/task/task-running-selected', async route => {
+    await route.fulfill({
+      json: {
+        success: true,
+        data: options.taskDetails?.['task-running-selected'] || {
+          task_id: 'task-running-selected',
+          task_type: 'search',
+          input_text: 'Python 闭包学习资料',
+          status: 'running',
+          result: null,
+          error_message: null,
+          feedback: null,
+          steps: [{ step: 1, action: 'search', description: '正在检索和筛选资料。', time: '2026-08-20T10:00:30Z' }],
+          created_at: '2026-08-20T10:00:00Z',
+          updated_at: '2026-08-20T10:00:30Z',
         },
       },
     })
@@ -287,6 +309,89 @@ test.describe('AI 学伴任务流程', () => {
 
     await expect(page.getByText('旧版 Python 教程')).toBeVisible()
     await expect(page.getByRole('region', { name: '搜索意图规划' })).toHaveCount(0)
+  })
+
+  test('重新进入对话页时恢复已完成任务的用户消息和智能体回复', async ({ page }) => {
+    await mockAgentApis(page, {
+      tasks: [{
+        task_id: 'task-restored',
+        task_type: 'search',
+        input_text: 'Python 闭包学习资料',
+        status: 'completed',
+        result: { answer: '闭包资料已整理，建议先看作用域和自由变量。' },
+        error_message: null,
+        feedback: null,
+        created_at: '2026-08-20T10:00:00Z',
+        updated_at: '2026-08-20T10:01:00Z',
+      }],
+    })
+
+    await page.goto('/agent')
+
+    const messageLog = page.getByRole('log', { name: '学习伙伴对话消息' })
+    await expect(messageLog.getByText('Python 闭包学习资料', { exact: true })).toBeVisible()
+    await expect(messageLog.getByText('闭包资料已整理，建议先看作用域和自由变量。', { exact: true })).toBeVisible()
+  })
+
+  test('重新进入对话页时未完成任务恢复加载动画和步骤', async ({ page }) => {
+    await mockAgentApis(page, {
+      tasks: [{
+        task_id: 'task-1',
+        task_type: 'search',
+        input_text: 'Python 闭包学习资料',
+        status: 'running',
+        result: null,
+        error_message: null,
+        feedback: null,
+        steps: [{ step: 1, action: 'search', description: '正在检索和筛选资料。', time: '2026-08-20T10:00:30Z' }],
+        created_at: '2026-08-20T10:00:00Z',
+        updated_at: '2026-08-20T10:00:30Z',
+      }],
+    })
+
+    await page.goto('/agent')
+
+    const messageLog = page.getByRole('log', { name: '学习伙伴对话消息' })
+    await expect(messageLog.getByText('Python 闭包学习资料', { exact: true })).toBeVisible()
+    await expect(messageLog.getByRole('status')).toContainText('正在处理任务')
+    await expect(messageLog.getByText('正在检索和筛选资料。', { exact: true })).toBeVisible()
+  })
+
+  test('点击未完成历史任务时按当前任务状态显示加载动画', async ({ page }) => {
+    await mockAgentApis(page, {
+      tasks: [
+        {
+          task_id: 'task-completed',
+          task_type: 'search',
+          input_text: 'Python 装饰器学习资料',
+          status: 'completed',
+          result: { answer: '装饰器资料已经整理好了。' },
+          error_message: null,
+          feedback: null,
+          created_at: '2026-08-20T10:00:00Z',
+          updated_at: '2026-08-20T10:01:00Z',
+        },
+        {
+          task_id: 'task-running-selected',
+          task_type: 'search',
+          input_text: 'Python 闭包学习资料',
+          status: 'running',
+          result: null,
+          error_message: null,
+          feedback: null,
+          created_at: '2026-08-20T09:00:00Z',
+          updated_at: '2026-08-20T09:00:30Z',
+        },
+      ],
+    })
+
+    await page.goto('/agent')
+    await page.getByRole('button', { name: /Python 闭包学习资料/ }).click()
+
+    const messageLog = page.getByRole('log', { name: '学习伙伴对话消息' })
+    await expect(messageLog.getByText('Python 闭包学习资料', { exact: true })).toBeVisible()
+    await expect(messageLog.getByRole('status')).toContainText('正在处理任务')
+    await expect(messageLog.getByText('正在检索和筛选资料。', { exact: true })).toBeVisible()
   })
 
   test('安全的重新建档导航 action 立即清理完成标记并展示真实链接', async ({ page }) => {

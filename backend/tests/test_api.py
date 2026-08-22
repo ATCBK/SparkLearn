@@ -43,6 +43,10 @@ def _events_file(user_id: str | None = None):
     return settings.data_dir / "users" / (user_id or settings.single_user_id) / "learning_events.jsonl"
 
 
+def _dialog_history_file(user_id: str | None = None):
+    return settings.data_dir / "users" / (user_id or settings.single_user_id) / "profile_dialog_history.json"
+
+
 @pytest.mark.asyncio
 async def test_profile_onboarding_and_get(client):
     payload = {
@@ -118,6 +122,40 @@ async def test_profile_onboarding_自动保存分析且读取保持同一版本(
     assert "来源文本专用昵称" not in _events_file().read_text(encoding="utf-8")
     profile = (await client.get("/api/profile")).json()["data"]
     assert profile["grade"] == "大二"
+
+
+@pytest.mark.asyncio
+async def test_profile_onboarding_留存问卷式建档对话历史(client, monkeypatch):
+    async def fake_stream(prompt: str, mode: str, history: list):
+        yield ("text", {"content": json.dumps(_profile_analysis_payload("问卷留存分析。"), ensure_ascii=False)})
+        yield ("done", {"produced": True, "fallback": False})
+
+    monkeypatch.setattr(profile_route.spark_lite, "stream_chat_events", fake_stream)
+    response = await client.post(
+        "/api/profile/onboarding",
+        json={
+            "name": "问卷留存同学",
+            "grade": "大二",
+            "major": ["人工智能"],
+            "goal": ["完成项目实战"],
+            "level": ["入门阶段"],
+            "weak": ["模型评估"],
+            "preference": ["案例实践"],
+            "time": ["1-2小时"],
+        },
+    )
+    assert response.status_code == 200
+
+    history_response = await client.get("/api/profile/dialog-history")
+    assert history_response.status_code == 200
+    data = history_response.json()["data"]
+    assert data["items"][0]["source_type"] == "onboarding"
+    assert data["items"][0]["profile_version"] == response.json()["data"]["version"]
+    assert data["items"][0]["message_count"] >= 8
+    assert any(message["role"] == "assistant" for message in data["items"][0]["messages"])
+    assert any(message["content"] == "人工智能" for message in data["items"][0]["messages"])
+    saved = json.loads(_dialog_history_file().read_text(encoding="utf-8"))
+    assert saved[0]["title"] == "问卷留存同学的问卷建档"
 
 
 @pytest.mark.asyncio
@@ -505,6 +543,123 @@ async def test_profile_dialog_使用模型提取事实并保存原始对话(clie
     assert analysis["source_type"] == "dialog"
     history = json.loads(_history_file().read_text(encoding="utf-8"))
     assert history[0]["grade"] == "大三"
+    dialog_history_response = await client.get("/api/profile/dialog-history")
+    dialog_history = dialog_history_response.json()["data"]["items"]
+    assert dialog_history[0]["source_type"] == "dialog"
+    assert dialog_history[0]["session_id"] == session_id
+    assert dialog_history[0]["profile_version"] == profile["version"]
+    assert [message["content"] for message in dialog_history[0]["messages"] if message["role"] == "user"] == raw_messages
+    assert any(message["role"] == "assistant" for message in dialog_history[0]["messages"])
+
+
+@pytest.mark.asyncio
+async def test_profile_dialog_history_按当前用户隔离(client):
+    timestamp = now_iso()
+    for user_id, phone in (("dialog_history_user_a", "13800000004"), ("dialog_history_user_b", "13800000005")):
+        execute(
+            "INSERT INTO students(user_id, name, phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, user_id, phone, timestamp, timestamp),
+        )
+    _dialog_history_file("dialog_history_user_a").parent.mkdir(parents=True, exist_ok=True)
+    _dialog_history_file("dialog_history_user_a").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "dialog-a",
+                    "session_id": "sess_a",
+                    "source_type": "dialog",
+                    "title": "A 的建档",
+                    "created_at": timestamp,
+                    "completed_at": timestamp,
+                    "profile_version": 1,
+                    "message_count": 1,
+                    "messages": [{"role": "user", "content": "A 的目标", "ts": timestamp}],
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    _dialog_history_file("dialog_history_user_b").parent.mkdir(parents=True, exist_ok=True)
+    _dialog_history_file("dialog_history_user_b").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "dialog-b",
+                    "session_id": "sess_b",
+                    "source_type": "dialog",
+                    "title": "B 的建档",
+                    "created_at": timestamp,
+                    "completed_at": timestamp,
+                    "profile_version": 1,
+                    "message_count": 1,
+                    "messages": [{"role": "user", "content": "B 的目标", "ts": timestamp}],
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    response = await client.get(
+        "/api/profile/dialog-history",
+        headers={"Authorization": f"Bearer {create_access_token('dialog_history_user_a')}"},
+    )
+
+    assert response.status_code == 200
+    items = response.json()["data"]["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == "dialog-a"
+    assert "B 的目标" not in json.dumps(items, ensure_ascii=False)
+
+
+@pytest.mark.asyncio
+async def test_profile_dialog_history_兼容旧建档事件生成完成态(client):
+    timestamp = now_iso()
+    _events_file().parent.mkdir(parents=True, exist_ok=True)
+    _events_file().write_text(
+        json.dumps(
+            {
+                "ts": timestamp,
+                "type": "profile_onboarding",
+                "profile": {
+                    "major": "Python",
+                    "grade": "大三",
+                    "goal": ["项目实战能力"],
+                    "knowledge_level": "基础较好",
+                    "weak_points": ["综合实践"],
+                    "learning_preference": ["互动交流，共同进步"],
+                    "daily_time": 180,
+                    "version": 5,
+                },
+                "source_text": json.dumps(
+                    {
+                        "major": ["Python"],
+                        "grade": "大三",
+                        "goal": ["项目实战能力"],
+                        "level": ["基础较好"],
+                        "weak": ["综合实践"],
+                        "preference": ["互动交流，共同进步"],
+                        "time": ["20小时以上"],
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    response = await client.get("/api/profile/dialog-history")
+
+    assert response.status_code == 200
+    items = response.json()["data"]["items"]
+    assert len(items) == 1
+    assert items[0]["source_type"] == "onboarding"
+    assert items[0]["profile_version"] == 5
+    assert any(message["content"] == "Python" for message in items[0]["messages"])
+    assert any(message["content"] == "项目实战能力" for message in items[0]["messages"])
 
 
 @pytest.mark.asyncio
@@ -1099,6 +1254,41 @@ async def test_agent_chat_记忆读取失败不会阻断本轮回答(client, mon
 
     assert response.status_code == 200
     assert response.json()["data"]["answer"] == "不依赖旧记忆也能回答"
+
+
+@pytest.mark.asyncio
+async def test_agent_task_完成后写入可恢复的智能体回复(client, monkeypatch):
+    from app.db import fetch_all
+    from app.routes import agent as agent_route
+
+    await _adopt_reset_test_pet(client)
+    pet = fetch_one("SELECT id, personality FROM agent_pets WHERE user_id = ?", (settings.single_user_id,))
+    task_id = "task-history-restore"
+    execute(
+        """INSERT INTO agent_tasks (id, user_id, pet_id, task_type, input_text, status, created_at, updated_at)
+           VALUES (?, ?, ?, 'search', '帮我找 Python 闭包资料', 'pending', ?, ?)""",
+        (task_id, settings.single_user_id, pet["id"], now_iso(), now_iso()),
+    )
+    execute(
+        "INSERT INTO agent_messages (task_id, user_id, sender, content, created_at) VALUES (?, ?, 'user', ?, ?)",
+        (task_id, settings.single_user_id, "帮我找 Python 闭包资料", now_iso()),
+    )
+
+    async def fake_execute_fallback_task(*args, **kwargs):
+        return {"answer": "闭包资料已整理，建议先看作用域和自由变量。", "award_xp": False}
+
+    monkeypatch.setattr(agent_route, "_execute_fallback_task", fake_execute_fallback_task)
+
+    await agent_route._execute_task(task_id, "search", "帮我找 Python 闭包资料", pet["id"], pet["personality"])
+
+    rows = fetch_all(
+        "SELECT sender, content FROM agent_messages WHERE task_id = ? ORDER BY id ASC",
+        (task_id,),
+    )
+    assert [(row["sender"], row["content"]) for row in rows] == [
+        ("user", "帮我找 Python 闭包资料"),
+        ("agent", "闭包资料已整理，建议先看作用域和自由变量。"),
+    ]
 
 
 @pytest.mark.asyncio
@@ -1823,6 +2013,10 @@ async def test_agent_pet_can_be_reset_and_adopted_again(client, monkeypatch):
         (settings.single_user_id,),
     )
     execute(
+        "INSERT INTO agent_messages (task_id, user_id, sender, content, created_at) VALUES (?, ?, 'agent', '我会记住你的节奏', '2026-05-30T00:00:00Z')",
+        (f"pet-chat:{pet_id}", settings.single_user_id),
+    )
+    execute(
         "INSERT INTO agent_task_steps (task_id, step_index, action, description, created_at) VALUES ('task-reset', 0, 'start', '开始处理任务', '2026-05-30T00:00:00Z')"
     )
 
@@ -1835,6 +2029,7 @@ async def test_agent_pet_can_be_reset_and_adopted_again(client, monkeypatch):
     assert current.json()["data"] is None
     assert fetch_one("SELECT id FROM agent_tasks WHERE id = 'task-reset'") is None
     assert fetch_one("SELECT id FROM agent_messages WHERE task_id = 'task-reset'") is None
+    assert fetch_one("SELECT id FROM agent_messages WHERE task_id = ?", (f"pet-chat:{pet_id}",)) is None
     assert fetch_one("SELECT id FROM agent_task_steps WHERE task_id = 'task-reset'") is None
 
     adopted_again = await client.post(

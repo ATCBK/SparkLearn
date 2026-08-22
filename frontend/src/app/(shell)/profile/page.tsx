@@ -4,11 +4,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bar, PageHead, Pill, ProtoButton, ProtoCard, SoftCard } from '@/components/proto'
-import { AlertCircle, ArrowRight, Clock, History, Lightbulb, RefreshCw, Sparkles, Target } from 'lucide-react'
+import { AlertCircle, ArrowRight, Clock, History, Lightbulb, MessageSquare, RefreshCw, Sparkles, Target } from 'lucide-react'
 import { api, MasteryRecord, ProfileAnalysis, ProfileAnalysisResp, ProfileHistoryItem, ProfileHistoryResp, Resource as ResourceType, StudentProfile, Task } from '@/lib/api'
 import { clearDesktopAuthSession, removeToken } from '@/lib/auth'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { PROFILE_DIALOG_HISTORY_HREF } from './dialogHistoryLink'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -297,10 +298,16 @@ function ProfileHistoryPanel({
             系统按 {history?.update_interval_days || 3} 天更新一次画像快照，用于观察学习目标、薄弱点和偏好的变化。
           </p>
         </div>
-        <ProtoButton variant="secondary" onClick={onAnalyze} disabled={analysisLoading}>
-          {analysisLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {analysisLoading ? 'AI 分析中...' : 'AI 分析画像'}
-        </ProtoButton>
+        <div className="flex flex-wrap gap-2">
+          <ProtoButton href={PROFILE_DIALOG_HISTORY_HREF} variant="secondary">
+            <MessageSquare className="h-4 w-4" />
+            建档对话记录
+          </ProtoButton>
+          <ProtoButton variant="secondary" onClick={onAnalyze} disabled={analysisLoading}>
+            {analysisLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {analysisLoading ? 'AI 分析中...' : 'AI 分析画像'}
+          </ProtoButton>
+        </div>
       </div>
 
       <div className="mt-5 grid grid-cols-[1.15fr_.85fr] items-stretch gap-4 max-[960px]:grid-cols-1">

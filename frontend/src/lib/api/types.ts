@@ -381,6 +381,28 @@ export interface ProfileHistoryResp {
   next_update_at: string
 }
 
+export interface ProfileDialogMessage {
+  role: 'assistant' | 'user'
+  content: string
+  ts: string
+}
+
+export interface ProfileDialogHistoryItem {
+  id: string
+  session_id: string
+  source_type: 'onboarding' | 'dialog' | string
+  title: string
+  created_at: string
+  completed_at: string
+  profile_version: number
+  message_count: number
+  messages: ProfileDialogMessage[]
+}
+
+export interface ProfileDialogHistoryResp {
+  items: ProfileDialogHistoryItem[]
+}
+
 export interface ProfileAnalysisEvidence {
   source: string
   label: string

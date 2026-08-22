@@ -18,6 +18,7 @@ export const api = {
   updateProfile: impl.updateProfile,
   resetProfile: impl.resetProfile,
   getProfileHistory: impl.getProfileHistory,
+  getProfileDialogHistory: impl.getProfileDialogHistory,
   getCurrentProfileAnalysis: impl.getCurrentProfileAnalysis,
   analyzeProfileHistory: impl.analyzeProfileHistory,
 
@@ -147,6 +148,7 @@ export const api = {
   getAgentPet: impl.getAgentPet,
   adoptAgentPet: impl.adoptAgentPet,
   updateAgentPet: impl.updateAgentPet,
+  resetAgentPet: impl.resetAgentPet,
   createAgentTask: impl.createAgentTask,
   chatWithAgentPet: impl.chatWithAgentPet,
   getAgentTask: impl.getAgentTask,
@@ -170,7 +172,7 @@ export const api = {
 export type {
   Task, TaskCreatePayload, Resource, StudentProfile, Message, QuizQuestion, DashboardStats, MasteryRecord,
   ReportData, Recommendation, LearningPath, PathNode, VideoInfo, VideoStyle, VideoScriptSegment, VideoPolishResult, ContributionDay,
-  TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileResetResult, ProfileHistoryItem, ProfileHistoryResp, ProfileAnalysis, ProfileAnalysisResp, ProfileAnalysisEvidence, ProfileAnalysisStep, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
+  TutorRole, TutorRoleGenerationPayload, TutorConversation, TutorFile, PathNodeAdvice, PathAdjustResult, KnowledgeGraph, KnowledgeGraphNode, KnowledgeGraphEdge, WorkshopHubEvent, ProfileUpdatePayload, ProfileResetResult, ProfileHistoryItem, ProfileHistoryResp, ProfileDialogHistoryItem, ProfileDialogHistoryResp, ProfileDialogMessage, ProfileAnalysis, ProfileAnalysisResp, ProfileAnalysisEvidence, ProfileAnalysisStep, KnowledgeFile, KnowledgeStats, ConfidenceInfo, CitationItem, SearchResultItem,
   PathPlanningData, PathPlanningSuggestion, PathPlanningResource, PathNodeSuggestionsReq, PathNodeSuggestionsResp,
   ForumPost, ForumComment, ForumAttachment, ForumModerationList, ForumResourceImportResult, TeacherRecipient, TeacherMaterialFile, TeacherBroadcast, TeacherClass, TeacherClassMember, ClassBroadcast,
   McpService, McpServicePayload,

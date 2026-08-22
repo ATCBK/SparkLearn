@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { AgentPet, api } from '@/lib/api'
 import { Bar, Pill, ProtoCard } from '@/components/proto'
-import { Cpu, FileText, GitCompare, Search, Settings, Sparkles, Star, TrendingUp, Zap } from 'lucide-react'
+import { Cpu, FileText, GitCompare, RefreshCw, Search, Settings, Sparkles, Star, TrendingUp, Zap } from 'lucide-react'
 import { PetAvatar, PetState, PetType } from './PetAvatar'
 
 const PERSONALITY_LABEL: Record<string, string> = {
@@ -47,11 +47,13 @@ export function AgentPetCard({
   petState = 'idle',
   statusText,
   onUpdate,
+  onReadopt,
 }: {
   pet: AgentPet
   petState?: PetState
   statusText?: string
   onUpdate: () => void
+  onReadopt?: () => void
 }) {
   const [showSettings, setShowSettings] = useState(false)
   const [personality, setPersonality] = useState(pet.personality)
@@ -93,13 +95,25 @@ export function AgentPetCard({
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setShowSettings(v => !v)}
-          className="grid h-8 w-8 place-items-center rounded-[8px] text-muted transition-colors hover:bg-[#f2f6fb] hover:text-ink"
-          aria-label="调整陪伴风格"
-        >
-          <Settings className="h-4 w-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {onReadopt && (
+            <button
+              onClick={onReadopt}
+              className="grid h-8 w-8 place-items-center rounded-[8px] text-muted transition-colors hover:bg-[#f2f6fb] hover:text-blue"
+              aria-label="重新认养学习伙伴"
+              title="重新认养"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            onClick={() => setShowSettings(v => !v)}
+            className="grid h-8 w-8 place-items-center rounded-[8px] text-muted transition-colors hover:bg-[#f2f6fb] hover:text-ink"
+            aria-label="调整陪伴风格"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="rounded-[10px] border border-line bg-[#f8fbff] p-3">

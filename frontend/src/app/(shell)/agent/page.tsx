@@ -15,13 +15,26 @@ export default function AgentPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [petState, setPetState] = useState<PetState>('idle')
   const [statusText, setStatusText] = useState('')
+  const [readopting, setReadopting] = useState(false)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+
+  const refreshPet = useCallback(() => setRefreshKey(k => k + 1), [])
+
+  const handleAgentStateChange = useCallback((state: PetState, text?: string) => {
+    setPetState(state)
+    setStatusText(text || '')
+  }, [])
 
   const loadPet = useCallback(async () => {
     try {
       const data = await api.getAgentPet()
       setPet(data)
+      if (!data) {
+        setReadopting(false)
+      }
     } catch {
       setPet(null)
+      setReadopting(false)
     }
   }, [])
 
@@ -62,6 +75,32 @@ export default function AgentPage() {
     )
   }
 
+  if (readopting) {
+    return (
+      <div data-guide-target="agent-workspace">
+        <PageHead
+          eyebrow="学习中心 / AI 伙伴"
+          title="重新认养你的 AI 学习伙伴"
+          description="重新选择伙伴形象、陪伴风格和名字，并清空原伙伴的历史对话、经验和任务记录。"
+          chips={[
+            { value: `Lv.${pet.level}`, label: '当前等级', icon: <Star className="h-4 w-4" />, tone: 'orange' },
+            { value: `${pet.xp} XP`, label: '将被清空', icon: <Activity className="h-4 w-4" />, tone: 'blue' },
+            { value: `${pet.unlocked_abilities.length} 项`, label: '重新开始', icon: <Zap className="h-4 w-4" />, tone: 'green' },
+          ]}
+        />
+        <AdoptionFlow
+          mode="readopt"
+          initialPet={pet}
+          onCancel={() => setReadopting(false)}
+          onAdopted={() => {
+            setReadopting(false)
+            setRefreshKey(k => k + 1)
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div data-guide-target="agent-workspace">
       <PageHead
@@ -78,15 +117,19 @@ export default function AgentPage() {
       <div className="grid items-stretch grid-cols-[minmax(0,1fr)_320px] gap-5 max-[980px]:grid-cols-1">
         <AgentChat
           pet={pet}
-          onXpChange={() => setRefreshKey(k => k + 1)}
-          onStateChange={(state, text) => {
-            setPetState(state)
-            setStatusText(text || '')
-          }}
+          selectedTaskId={selectedTaskId}
+          onXpChange={refreshPet}
+          onStateChange={handleAgentStateChange}
         />
 
         <aside className="space-y-4">
-          <AgentPetCard pet={pet} petState={petState} statusText={statusText} onUpdate={() => setRefreshKey(k => k + 1)} />
+          <AgentPetCard
+            pet={pet}
+            petState={petState}
+            statusText={statusText}
+            onUpdate={refreshPet}
+            onReadopt={() => setReadopting(true)}
+          />
           <ProtoCard>
             <div className="flex items-start gap-3">
               <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-blue-light text-blue">
@@ -100,7 +143,7 @@ export default function AgentPage() {
               </div>
             </div>
           </ProtoCard>
-          <AgentHistory />
+          <AgentHistory selectedTaskId={selectedTaskId} onSelectTask={setSelectedTaskId} />
         </aside>
       </div>
     </div>

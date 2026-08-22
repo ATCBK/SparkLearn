@@ -118,7 +118,6 @@ def build_video_artifacts(resource_id: str, job: dict[str, Any]) -> dict[str, An
     segments = _build_timeline_segments(script_outline)
     script = {
         "title": title,
-        "prompt": prompt,
         "provider": str(job.get("video_provider") or settings.video_default_provider),
         "content_source": content_source,
         "ai_provider": str(job.get("ai_provider") or generated_script.get("ai_provider") or settings.video_ai_provider),

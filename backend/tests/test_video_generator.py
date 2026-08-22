@@ -117,4 +117,5 @@ def test_build_video_artifacts_regenerates_prompt_like_outline(monkeypatch, tmp_
     assert manifest["title"] == "函数返回值真实讲解"
     assert "严格输出合法 JSON" not in timeline["segments"][0]["narration"]
     assert timeline["segments"][0]["narration"].startswith("函数返回值不是打印")
+    assert "prompt" not in script
     assert script["script_outline"][0]["title"] == "函数返回值"

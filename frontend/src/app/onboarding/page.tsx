@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  History,
+  MessageSquare,
   BookOpen,
   Lightbulb,
   Code,
@@ -27,8 +29,9 @@ import {
   TerminalSquare,
 } from 'lucide-react'
 import { clearProfileCompletionState, getCurrentUserId, getToken, getUser, setUser, syncStudyBuddyProfile, userScopedStorageKey } from '@/lib/auth'
-import { api, type StudentProfile } from '@/lib/api'
+import { api, type ProfileDialogHistoryItem, type StudentProfile } from '@/lib/api'
 import { getTeacherSubjects } from '@/lib/api/real'
+import { isProfileDialogCompletedMode } from './completedMode'
 
 /* ── 类型 ─────────────────────────────────────────── */
 
@@ -196,6 +199,10 @@ function subjectTone(tag: string, index: number) {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const [completedMode, setCompletedMode] = useState(false)
+  const [completedRecord, setCompletedRecord] = useState<ProfileDialogHistoryItem | null>(null)
+  const [completedRecordLoading, setCompletedRecordLoading] = useState(false)
+  const [completedRecordError, setCompletedRecordError] = useState('')
   const [step, setStep] = useState(0)
   const [selections, setSelections] = useState<Record<number, string[]>>({})
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -277,6 +284,12 @@ export default function OnboardingPage() {
       router.replace('/auth')
       return
     }
+    const nextCompletedMode = typeof window !== 'undefined' && isProfileDialogCompletedMode(window.location.search)
+    setCompletedMode(nextCompletedMode)
+    if (nextCompletedMode) {
+      setProfileChecking(false)
+      return
+    }
 
     let cancelled = false
     ;(async () => {
@@ -315,6 +328,30 @@ export default function OnboardingPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileCheckAttempt, router])
+
+  useEffect(() => {
+    if (!completedMode) return
+    let cancelled = false
+    setCompletedRecordLoading(true)
+    setCompletedRecordError('')
+    api.getProfileDialogHistory()
+      .then(data => {
+        if (!cancelled) setCompletedRecord((data.items || [])[0] || null)
+      })
+      .catch(error => {
+        if (!cancelled) {
+          const detail = error instanceof Error ? error.message : '请检查网络后重试'
+          setCompletedRecordError(`建档完成状态读取失败：${detail}`)
+          setCompletedRecord(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCompletedRecordLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [completedMode])
 
   useEffect(() => {
     let cancelled = false
@@ -527,6 +564,18 @@ export default function OnboardingPage() {
 
   const selected = selections[step] || []
   const current = steps[step]
+
+  if (completedMode) {
+    return (
+      <CompletedOnboardingState
+        record={completedRecord}
+        loading={completedRecordLoading}
+        error={completedRecordError}
+        onBackProfile={() => router.push('/profile')}
+        onStartOnboarding={() => router.push('/onboarding')}
+      />
+    )
+  }
 
   if (profileChecking) {
     return (
@@ -897,4 +946,163 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
     </div>
   )
+}
+
+function CompletedMessageBubble({ message }: { message: { role: 'assistant' | 'user' | string; content: string } }) {
+  if (message.role === 'assistant') {
+    return (
+      <div className="flex items-start gap-3">
+        <SpriteAvatar />
+        <div className="max-w-[520px] rounded-2xl rounded-tl-sm border border-[#eef2f7] bg-[#f8fafc] px-5 py-4 shadow-sm">
+          <p className="whitespace-pre-line text-sm leading-7 text-[#1e293b]">{message.content}</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[360px] rounded-2xl rounded-tr-sm bg-[#2563eb] px-4 py-3 shadow-sm">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-white">{message.content}</p>
+      </div>
+    </div>
+  )
+}
+
+function CompletedOnboardingState({
+  record,
+  loading,
+  error,
+  onBackProfile,
+  onStartOnboarding,
+}: {
+  record: ProfileDialogHistoryItem | null
+  loading: boolean
+  error: string
+  onBackProfile: () => void
+  onStartOnboarding: () => void
+}) {
+  const completedMessages = record?.messages || []
+  return (
+    <div className="flex min-h-screen flex-col items-center px-4 py-8" style={{ backgroundImage: 'url(/ui-images/onboarding-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+      <div className="mb-6 w-full max-w-full overflow-x-auto pb-2" aria-label="建档进度">
+        <div className="mx-auto flex w-max min-w-max items-center gap-0 px-1">
+          {STEPS.map((s, i) => (
+            <div key={s.key} className="flex items-center">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-[#34c759] text-xs font-bold text-white">
+                  <CheckCircle2 size={14} />
+                </div>
+                <span className="whitespace-nowrap text-[11px] font-medium text-[#34c759]">{s.title}</span>
+              </div>
+              {i < STEPS.length - 1 && <div className="mx-3 mb-5 h-[2px] w-12 rounded-full bg-[#34c759]" />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex h-[calc(100vh-160px)] w-full max-w-[680px] flex-col overflow-hidden rounded-2xl border border-[#e8ecf2] bg-white shadow-lg shadow-black/[0.03]">
+        <div className="shrink-0 border-b border-[#eef2f7] px-6 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5 text-[#34c759]" />
+                <span className="rounded-full bg-[#ecfdf5] px-3 py-1 text-xs font-bold text-[#059669]">已采集完成</span>
+              </div>
+              <h1 className="mt-2 text-xl font-black text-[#111827]">{record?.title || '建档已完成'}</h1>
+              <p className="mt-1 text-xs font-medium text-[#64748b]">
+                {record ? `${profileDialogSourceLabel(record.source_type)} · ${formatProfileDialogDateTime(record.completed_at) || '未记录时间'} · v${record.profile_version}` : '最近一次建档完成状态'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onBackProfile}
+              className="flex items-center gap-1.5 rounded-xl border border-[#dbe4ef] bg-white px-3 py-2 text-xs font-bold text-[#475569] hover:border-[#93c5fd] hover:text-[#2563eb]"
+            >
+              <ArrowLeft size={14} />
+              返回
+            </button>
+          </div>
+        </div>
+
+        <div role="log" aria-label="已完成建档消息" className="flex-1 space-y-4 overflow-y-auto p-6">
+          {loading && <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-5 py-8 text-center text-sm font-semibold text-[#64748b]">正在恢复建档完成状态...</div>}
+
+          {!loading && error && (
+            <div role="alert" className="rounded-xl border border-[#fecaca] bg-[#fff1f2] px-5 py-4 text-sm font-semibold text-[#b91c1c]">
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && !record && (
+            <div className="rounded-xl border border-dashed border-[#cbd5e1] bg-[#f8fafc] px-5 py-8 text-center">
+              <MessageSquare className="mx-auto h-8 w-8 text-[#94a3b8]" />
+              <p className="mt-3 text-sm font-bold text-[#475569]">还没有采集完成状态</p>
+              <p className="mt-1 text-xs leading-5 text-[#64748b]">完成一次对话式建档后，这里会恢复最后一次完成时的页面状态。</p>
+            </div>
+          )}
+
+          {!loading && !error && completedMessages.map((message, idx) => (
+            <CompletedMessageBubble key={`${record?.id || 'completed'}-${idx}`} message={message} />
+          ))}
+
+          {!loading && !error && record && (
+            <div className="flex items-start gap-3">
+              <SpriteAvatar />
+              <div className="max-w-[520px] rounded-2xl rounded-tl-sm border border-[#bbf7d0] bg-[#f0fdf4] px-5 py-4 shadow-sm">
+                <p className="whitespace-pre-line text-sm leading-7 text-[#166534]">
+                  建档已完成，你的学习画像已保存。可以返回学习画像查看总结，也可以重新进入建档开始新一轮采集。
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="shrink-0 space-y-3 border-t border-[#eef2f7] px-6 py-4">
+          <div className="relative">
+            <input
+              type="text"
+              disabled
+              value=""
+              placeholder="建档已完成，当前为回看状态"
+              className="h-11 w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] pl-4 pr-12 text-sm text-[#94a3b8] outline-none"
+              readOnly
+            />
+            <button disabled className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-[#cbd5e1] text-white" aria-label="已完成">
+              <CheckCircle2 size={15} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <button type="button" onClick={onBackProfile} className="flex items-center gap-1.5 text-sm font-medium text-[#64748b] transition-colors hover:text-[#2563eb]">
+              <ArrowLeft size={15} />
+              返回学习画像
+            </button>
+
+            <button
+              type="button"
+              onClick={onStartOnboarding}
+              className="flex items-center gap-1.5 rounded-xl border border-[#cbd5e1] bg-white px-5 py-2.5 text-sm font-semibold text-[#475569] transition-all hover:border-[#93c5fd] hover:text-[#2563eb]"
+            >
+              进入建档页
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function formatProfileDialogDateTime(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+function profileDialogSourceLabel(sourceType: string) {
+  if (sourceType === 'onboarding') return '问卷建档'
+  if (sourceType === 'dialog') return '对话建档'
+  return '建档记录'
 }

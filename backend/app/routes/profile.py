@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..auth import get_current_user
+from ..config import settings
 from ..db import execute, fetch_one, now_iso
 from ..llm import spark_lite
 from ..profile_ai import build_rule_fallback_analysis, extract_dialog_profile, generate_profile_analysis
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/api/profile", tags=["profile"])
 _sessions = profile_sessions
 PROFILE_HISTORY_FILE = "profile_history.json"
 PROFILE_ANALYSIS_FILE = "profile_ai_analysis.json"
+PROFILE_DIALOG_HISTORY_FILE = "profile_dialog_history.json"
 PROFILE_HISTORY_INTERVAL_DAYS = 3
 PROFILE_LEARNING_FIELDS = (
     "major",
@@ -104,6 +106,14 @@ async def onboarding(req: ProfileOnboardingReq, current_user: dict = Depends(get
     source_text = json.dumps(_onboarding_source_payload(req), ensure_ascii=False)
     analysis = await _generate_and_store_analysis(user_id, profile, "onboarding", source_text)
     _record_profile_history(user_id, profile, reason="onboarding", analysis=analysis)
+    _record_profile_dialog_history(
+        user_id,
+        session_id=f"onboarding_{uuid.uuid4().hex[:8]}",
+        source_type="onboarding",
+        messages=_build_onboarding_dialog_messages(req),
+        profile_version=int(profile["version"]),
+        title=f"{str(req.name or '').strip() or '同学'}的问卷建档",
+    )
     append_jsonl(
         user_id,
         "learning_events.jsonl",
@@ -175,6 +185,14 @@ async def chat(req: ProfileChatReq, current_user: dict = Depends(get_current_use
             source_text = "\n".join(message["content"] for message in source_messages if message["role"] == "user")
             analysis = await _generate_and_store_analysis(user_id, profile, "dialog", source_text)
             _record_profile_history(user_id, profile, reason="dialog", analysis=analysis)
+            _record_profile_dialog_history(
+                user_id,
+                session_id=req.session_id,
+                source_type="dialog",
+                messages=session["messages"],
+                profile_version=int(profile["version"]),
+                title=_profile_dialog_title(source_messages, "对话建档"),
+            )
             append_jsonl(
                 user_id,
                 "learning_events.jsonl",
@@ -235,6 +253,11 @@ async def get_current_profile_analysis(current_user: dict = Depends(get_current_
         reason="尚无已保存的融合分析",
     )
     return ok(fallback)
+
+
+@router.get("/dialog-history")
+async def get_profile_dialog_history(current_user: dict = Depends(get_current_user)):
+    return ok({"items": _load_profile_dialog_history(current_user["user_id"])})
 
 
 @router.put("")
@@ -603,6 +626,229 @@ def _load_profile_history(user_id: str) -> list[dict[str, Any]]:
         return []
     items = [item for item in raw if isinstance(item, dict)]
     return sorted(items, key=lambda item: str(item.get("captured_at", "")), reverse=True)
+
+
+def _load_profile_dialog_history(user_id: str) -> list[dict[str, Any]]:
+    raw = read_json(user_id, PROFILE_DIALOG_HISTORY_FILE, [])
+    items = [_normalize_profile_dialog_history_item(item) for item in raw if isinstance(item, dict)] if isinstance(raw, list) else []
+    if not items:
+        items = _load_legacy_profile_dialog_history(user_id)
+    return sorted(items, key=lambda item: str(item.get("completed_at") or item.get("created_at") or ""), reverse=True)
+
+
+def _load_legacy_profile_dialog_history(user_id: str) -> list[dict[str, Any]]:
+    path = settings.data_dir / "users" / user_id / "learning_events.jsonl"
+    if not path.exists():
+        return []
+    items: list[dict[str, Any]] = []
+    try:
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+    except (OSError, UnicodeError):
+        return []
+    for idx, line in enumerate(lines):
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        item = _legacy_profile_event_to_dialog_history(event, idx)
+        if item:
+            items.append(item)
+    items.sort(key=lambda item: str(item.get("completed_at") or item.get("created_at") or ""), reverse=True)
+    return items[:12]
+
+
+def _legacy_profile_event_to_dialog_history(event: dict[str, Any], idx: int) -> dict[str, Any] | None:
+    event_type = str(event.get("type") or "")
+    if event_type not in {"profile_onboarding", "profile_dialog_completed"}:
+        return None
+    timestamp = str(event.get("ts") or event.get("created_at") or "")
+    profile = event.get("profile") if isinstance(event.get("profile"), dict) else {}
+    source_type = "dialog" if event_type == "profile_dialog_completed" else "onboarding"
+    messages = _normalize_profile_dialog_messages(event.get("source_messages") if isinstance(event.get("source_messages"), list) else [])
+    if not messages and source_type == "onboarding":
+        source_payload = _parse_legacy_onboarding_source_text(event.get("source_text"))
+        messages = _build_onboarding_messages_from_payload(source_payload or _profile_to_onboarding_source_payload(profile), timestamp)
+    if not messages:
+        messages = _build_profile_summary_messages(profile, timestamp)
+    if not messages:
+        return None
+    return {
+        "id": f"legacy-{source_type}-{timestamp.replace(':', '').replace('-', '').replace('.', '') or idx}",
+        "session_id": str(event.get("session_id") or f"legacy_{idx}"),
+        "source_type": source_type,
+        "title": "历史对话建档" if source_type == "dialog" else "历史问卷建档",
+        "created_at": timestamp,
+        "completed_at": timestamp,
+        "profile_version": int(profile.get("version") or event.get("profile_version") or 1),
+        "message_count": len(messages),
+        "messages": messages,
+    }
+
+
+def _parse_legacy_onboarding_source_text(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _profile_to_onboarding_source_payload(profile: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "major": [str(profile.get("major") or "").strip()] if str(profile.get("major") or "").strip() else [],
+        "grade": str(profile.get("grade") or "").strip(),
+        "goal": profile.get("goal") if isinstance(profile.get("goal"), list) else [],
+        "level": [str(profile.get("knowledge_level") or "").strip()] if str(profile.get("knowledge_level") or "").strip() else [],
+        "weak": profile.get("weak_points") if isinstance(profile.get("weak_points"), list) else [],
+        "preference": profile.get("learning_preference") if isinstance(profile.get("learning_preference"), list) else [],
+        "time": [f"{int(profile.get('daily_time') or 0)} 分钟/天"] if int(profile.get("daily_time") or 0) > 0 else [],
+    }
+
+
+def _build_onboarding_messages_from_payload(payload: dict[str, Any], timestamp: str) -> list[dict[str, str]]:
+    step_values: list[tuple[str, str]] = [
+        ("你现在是大几？", _payload_text(payload.get("grade"))),
+        ("你想学习哪个学科？", _payload_text(payload.get("major"))),
+        ("你希望达成什么样的学习目标？", _payload_text(payload.get("goal"))),
+        ("你目前的基础水平是？", _payload_text(payload.get("level"))),
+        ("哪些方面需要重点加强？", _payload_text(payload.get("weak"))),
+        ("你更喜欢哪种学习方式？", _payload_text(payload.get("preference"))),
+        ("你每天大概能投入多少时间学习？", _payload_text(payload.get("time"))),
+    ]
+    messages: list[dict[str, str]] = []
+    for question, answer in step_values:
+        if not answer:
+            continue
+        messages.append({"role": "assistant", "content": question, "ts": timestamp})
+        messages.append({"role": "user", "content": answer, "ts": timestamp})
+    return messages
+
+
+def _build_profile_summary_messages(profile: dict[str, Any], timestamp: str) -> list[dict[str, str]]:
+    parts = []
+    if profile.get("major"):
+        parts.append(f"学科方向：{profile['major']}")
+    if profile.get("grade"):
+        parts.append(f"当前年级：{profile['grade']}")
+    if isinstance(profile.get("goal"), list) and profile["goal"]:
+        parts.append(f"学习目标：{'、'.join(str(item) for item in profile['goal'])}")
+    if profile.get("knowledge_level"):
+        parts.append(f"学习基础：{profile['knowledge_level']}")
+    if isinstance(profile.get("weak_points"), list) and profile["weak_points"]:
+        parts.append(f"薄弱环节：{'、'.join(str(item) for item in profile['weak_points'])}")
+    if isinstance(profile.get("learning_preference"), list) and profile["learning_preference"]:
+        parts.append(f"学习偏好：{'、'.join(str(item) for item in profile['learning_preference'])}")
+    if not parts:
+        return []
+    return [
+        {"role": "assistant", "content": "已从历史画像记录恢复采集完成状态。", "ts": timestamp},
+        {"role": "user", "content": "；".join(parts), "ts": timestamp},
+    ]
+
+
+def _payload_text(value: Any) -> str:
+    if isinstance(value, list):
+        return "、".join(str(item).strip() for item in value if str(item).strip())
+    return str(value or "").strip()
+
+
+def _record_profile_dialog_history(
+    user_id: str,
+    session_id: str,
+    source_type: str,
+    messages: list[dict[str, Any]],
+    profile_version: int,
+    title: str,
+) -> None:
+    completed_at = now_iso()
+    normalized_messages = _normalize_profile_dialog_messages(messages)
+    if not normalized_messages:
+        return
+    created_at = str(normalized_messages[0].get("ts") or completed_at)
+    item = {
+        "id": f"{source_type}-{completed_at.replace(':', '').replace('-', '').replace('.', '')}",
+        "session_id": session_id,
+        "source_type": source_type,
+        "title": title,
+        "created_at": created_at,
+        "completed_at": completed_at,
+        "profile_version": int(profile_version or 1),
+        "message_count": len(normalized_messages),
+        "messages": normalized_messages,
+    }
+
+    def merge_history(raw: Any) -> list[dict[str, Any]]:
+        history = [_normalize_profile_dialog_history_item(existing) for existing in raw if isinstance(existing, dict)] if isinstance(raw, list) else []
+        history = [existing for existing in history if existing.get("session_id") != session_id]
+        history.insert(0, item)
+        history.sort(key=lambda existing: str(existing.get("completed_at") or existing.get("created_at") or ""), reverse=True)
+        return history[:12]
+
+    update_json(user_id, PROFILE_DIALOG_HISTORY_FILE, [], merge_history)
+
+
+def _normalize_profile_dialog_history_item(item: dict[str, Any]) -> dict[str, Any]:
+    messages = _normalize_profile_dialog_messages(item.get("messages") if isinstance(item.get("messages"), list) else [])
+    completed_at = str(item.get("completed_at") or item.get("created_at") or "")
+    created_at = str(item.get("created_at") or completed_at)
+    source_type = str(item.get("source_type") or "dialog")
+    return {
+        "id": str(item.get("id") or f"{source_type}-{completed_at}"),
+        "session_id": str(item.get("session_id") or ""),
+        "source_type": source_type,
+        "title": str(item.get("title") or ("问卷建档" if source_type == "onboarding" else "对话建档")),
+        "created_at": created_at,
+        "completed_at": completed_at,
+        "profile_version": int(item.get("profile_version") or item.get("version") or 1),
+        "message_count": int(item.get("message_count") or len(messages)),
+        "messages": messages,
+    }
+
+
+def _normalize_profile_dialog_messages(messages: list[dict[str, Any]]) -> list[dict[str, str]]:
+    normalized: list[dict[str, str]] = []
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        role = str(message.get("role") or "user").strip()
+        if role not in {"assistant", "user"}:
+            role = "user"
+        content = str(message.get("content") or "").strip()
+        if not content:
+            continue
+        normalized.append({"role": role, "content": content, "ts": str(message.get("ts") or "")})
+    return normalized
+
+
+def _build_onboarding_dialog_messages(req: ProfileOnboardingReq) -> list[dict[str, str]]:
+    step_values: list[tuple[str, str]] = [
+        ("怎么称呼你？", str(req.name or "").strip()),
+        ("你现在是大几？", str(req.grade or "").strip()),
+        ("你想学习哪个学科？", "、".join(_clean_string_list(req.major))),
+        ("你希望达成什么样的学习目标？", "、".join(_clean_string_list(req.goal))),
+        ("你目前的基础水平是？", "、".join(_clean_string_list(req.level))),
+        ("哪些方面需要重点加强？", "、".join(_clean_string_list(req.weak))),
+        ("你更喜欢哪种学习方式？", "、".join(_clean_string_list(req.preference))),
+        ("你每天大概能投入多少时间学习？", "、".join(_clean_string_list(req.time))),
+    ]
+    timestamp = now_iso()
+    messages: list[dict[str, str]] = []
+    for question, answer in step_values:
+        if not answer:
+            continue
+        messages.append({"role": "assistant", "content": question, "ts": timestamp})
+        messages.append({"role": "user", "content": answer, "ts": timestamp})
+    return messages
+
+
+def _profile_dialog_title(messages: list[dict[str, str]], fallback: str) -> str:
+    first_user_message = next((message["content"] for message in messages if message.get("role") == "user" and message.get("content")), "")
+    if not first_user_message:
+        return fallback
+    suffix = "..." if len(first_user_message) > 18 else ""
+    return f"{first_user_message[:18]}{suffix}"
 
 
 def _profile_has_meaningful_data(profile: dict[str, Any]) -> bool:

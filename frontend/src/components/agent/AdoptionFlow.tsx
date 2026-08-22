@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, type AgentPet } from '@/lib/api'
 import { ProtoButton } from '@/components/proto'
 import {
   BookOpen,
@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { PetAvatar, PetState, PetType } from './PetAvatar'
+import { buildPetAdoptionRequest, type AdoptionMode } from './adoptionRequest'
 
 type CompanionOption = {
   id: PetType
@@ -140,18 +141,28 @@ const STEP_LABELS = ['选择伙伴', '学习目标', '陪伴风格', '起名确�
 
 interface Props {
   onAdopted: () => void
+  mode?: AdoptionMode
+  initialPet?: AgentPet
+  onCancel?: () => void
 }
 
-export function AdoptionFlow({ onAdopted }: Props) {
+function styleIdFromPersonality(personality?: AgentPet['personality']) {
+  if (personality === 'concise') return 'strict'
+  if (personality === 'verbose') return 'partner'
+  return 'friend'
+}
+
+export function AdoptionFlow({ onAdopted, mode = 'adopt', initialPet, onCancel }: Props) {
   const [step, setStep] = useState(0)
-  const [avatar, setAvatar] = useState<PetType>('fox')
-  const [name, setName] = useState('')
-  const [companionStyle, setCompanionStyle] = useState('friend')
+  const [avatar, setAvatar] = useState<PetType>((initialPet?.avatar as PetType | undefined) || 'fox')
+  const [name, setName] = useState(initialPet?.name || '')
+  const [companionStyle, setCompanionStyle] = useState(styleIdFromPersonality(initialPet?.personality))
   const [studyGoal, setStudyGoal] = useState('')
   const [studyTime, setStudyTime] = useState('evening')
   const [weakPoints, setWeakPoints] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const isReadopt = mode === 'readopt'
 
   const selectedAvatar = useMemo(() => AVATARS.find(item => item.id === avatar) || AVATARS[0], [avatar])
   const selectedStyle = useMemo(
@@ -167,15 +178,20 @@ export function AdoptionFlow({ onAdopted }: Props) {
     setError('')
     setLoading(true)
     try {
-      await api.adoptAgentPet({
+      const request = buildPetAdoptionRequest({
+        mode,
         name: name.trim(),
         avatar,
         personality: selectedStyle.personality,
       })
+      if (request.action === 'resetAndCreate') {
+        await api.resetAgentPet()
+      }
+      await api.adoptAgentPet(request.payload)
       onAdopted()
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
-      setError(message || '认养失败，请稍后再试')
+      setError(message || (isReadopt ? '重新认养失败，请稍后再试' : '认养失败，请稍后再试'))
     } finally {
       setLoading(false)
     }
@@ -186,13 +202,28 @@ export function AdoptionFlow({ onAdopted }: Props) {
       <div className="grid min-h-[660px] grid-cols-[minmax(0,1fr)_360px] max-[1080px]:grid-cols-1">
         <div className="p-5 min-[760px]:p-7">
           <StepHeader step={step} />
+          {isReadopt && onCancel && (
+            <div className="mb-5 flex items-center justify-between gap-3 rounded-[14px] border border-[#dbe7f3] bg-[#f8fbff] px-4 py-3">
+              <div>
+                <div className="text-sm font-extrabold text-[#111827]">重新认养流程</div>
+                <p className="mt-1 text-xs leading-5 text-[#64748b]">确认后会清空原伙伴、历史对话和任务记录，再创建新的学习伙伴。</p>
+              </div>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="shrink-0 rounded-[10px] border border-[#dbe7f3] bg-white px-3 py-2 text-xs font-bold text-[#64748b] transition hover:border-[#93c5fd] hover:text-[#2563eb]"
+              >
+                返回工作台
+              </button>
+            </div>
+          )}
 
           {step === 0 && (
             <div>
               <SectionTitle
                 icon={<Sparkles className="h-5 w-5" />}
-                title="选择最适合你的学习伙伴"
-                desc="每个伙伴都有统一的动态展示和不同的学习擅长点。先选一个你想长期一起学习的角色。"
+                title={isReadopt ? '重新选择学习伙伴形象' : '选择最适合你的学习伙伴'}
+                desc={isReadopt ? '重新认养会清空原来的伙伴历史，让新的学习伙伴从干净状态开始陪你学习。' : '每个伙伴都有统一的动态展示和不同的学习擅长点。先选一个你想长期一起学习的角色。'}
               />
 
               <div className="grid grid-cols-2 gap-3 min-[760px]:grid-cols-4">
@@ -240,8 +271,8 @@ export function AdoptionFlow({ onAdopted }: Props) {
             <div>
               <SectionTitle
                 icon={<Target className="h-5 w-5" />}
-                title="告诉伙伴你的学习目标"
-                desc="这些信息只用于初始化伙伴档案，让它后续的建议更贴近你的学习状态。"
+                title={isReadopt ? '重新同步当前学习目标' : '告诉伙伴你的学习目标'}
+                desc={isReadopt ? '这一步用于重新校准伙伴对你当前阶段的理解，旧的学习伙伴历史会在确认时清空。' : '这些信息只用于初始化伙伴档案，让它后续的建议更贴近你的学习状态。'}
               />
 
               <div className="grid gap-4">
@@ -338,8 +369,8 @@ export function AdoptionFlow({ onAdopted }: Props) {
             <div>
               <SectionTitle
                 icon={<Sparkles className="h-5 w-5" />}
-                title="给你的学习伙伴起个名字"
-                desc="名字会出现在后续学习工作台里，建议简短、好记、有一点陪伴感。"
+                title={isReadopt ? '确认新的伙伴档案' : '给你的学习伙伴起个名字'}
+                desc={isReadopt ? '确认后会重置旧伙伴历史，并以这份新档案重新开始。' : '名字会出现在后续学习工作台里，建议简短、好记、有一点陪伴感。'}
               />
 
               <div className="rounded-[18px] border border-[#dbe7f3] bg-[#f8fbff] p-5 text-center">
@@ -386,7 +417,7 @@ export function AdoptionFlow({ onAdopted }: Props) {
               <div className="mt-6 flex justify-between">
                 <ProtoButton variant="secondary" onClick={() => setStep(2)}>上一步</ProtoButton>
                 <ProtoButton onClick={handleAdopt} disabled={loading}>
-                  {loading ? '认养中...' : '确认认养'}
+                  {loading ? (isReadopt ? '保存中...' : '认养中...') : (isReadopt ? '确认重新认养' : '确认认养')}
                 </ProtoButton>
               </div>
             </div>

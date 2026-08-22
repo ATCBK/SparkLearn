@@ -62,23 +62,48 @@ interface ChatMessage {
   timestamp: string
 }
 
+function createWelcomeMessage(pet: AgentPet): ChatMessage {
+  return {
+    id: 'welcome',
+    sender: 'agent',
+    content: `我是 ${pet.name}。你可以直接和我对话，也可以切到任务模式让我检索资料、总结内容或对比概念。`,
+    timestamp: new Date().toISOString(),
+  }
+}
+
+function taskToChatMessages(task: AgentTask): ChatMessage[] {
+  const restored: ChatMessage[] = [{
+    id: `task-${task.task_id}-user`,
+    sender: 'user',
+    content: task.input_text,
+    timestamp: task.created_at,
+  }]
+
+  if (task.status === 'completed' || task.status === 'failed') {
+    restored.push({
+      id: `task-${task.task_id}-agent`,
+      sender: 'agent',
+      content: task.status === 'completed' ? formatResult(task) : task.error_message || '任务执行失败，请稍后重试。',
+      task: task.status === 'completed' ? task : undefined,
+      timestamp: task.updated_at || task.created_at,
+    })
+  }
+
+  return restored
+}
+
 export function AgentChat({
   pet,
+  selectedTaskId,
   onXpChange,
   onStateChange,
 }: {
   pet: AgentPet
+  selectedTaskId?: string | null
   onXpChange: () => void
   onStateChange?: (state: PetState, statusText?: string) => void
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      sender: 'agent',
-      content: `我是 ${pet.name}。你可以直接和我对话，也可以切到任务模式让我检索资料、总结内容或对比概念。`,
-      timestamp: new Date().toISOString(),
-    },
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [createWelcomeMessage(pet)])
   const [input, setInput] = useState('')
   const [mode, setMode] = useState<'chat' | 'task'>('chat')
   const [taskType, setTaskType] = useState('search')
@@ -95,16 +120,127 @@ export function AgentChat({
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const voiceBaseRef = useRef('')
 
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current)
+    pollingRef.current = null
+  }, [])
+
+  const appendTaskReply = useCallback((task: AgentTask) => {
+    const reply = taskToChatMessages(task).find(message => message.sender === 'agent')
+    if (!reply) return
+    setMessages(prev => (
+      prev.some(message => message.id === reply.id) ? prev : [...prev, reply]
+    ))
+  }, [])
+
+  const showTask = useCallback((task: AgentTask) => {
+    setMessages([createWelcomeMessage(pet), ...taskToChatMessages(task)])
+    setSteps(task.steps || [])
+    onStateChange?.(taskStatusToPetState(task.status, task.task_type), latestStepText(task.steps))
+
+    if (task.status === 'pending' || task.status === 'running') {
+      setPolling(true)
+      return
+    }
+
+    setPolling(false)
+  }, [onStateChange, pet])
+
+  const startTaskPolling = useCallback((taskId: string) => {
+    stopPolling()
+    let handled = false
+    pollingRef.current = setInterval(async () => {
+      if (handled) return
+      try {
+        const task = await api.getAgentTask(taskId)
+        setSteps(task.steps || [])
+        onStateChange?.(taskStatusToPetState(task.status, task.task_type), latestStepText(task.steps))
+
+        if (task.status === 'completed' || task.status === 'failed') {
+          handled = true
+          stopPolling()
+          setPolling(false)
+          setSteps([])
+          appendTaskReply(task)
+          onStateChange?.(task.status === 'completed' ? 'success' : 'failed')
+          if (task.status === 'completed') onXpChange()
+        }
+      } catch {
+        // Keep polling; transient backend errors are common during startup.
+      }
+    }, 1600)
+  }, [appendTaskReply, onStateChange, onXpChange, stopPolling])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadHistory() {
+      try {
+        const data = await api.getAgentTasks(1, 10)
+        if (cancelled) return
+        const orderedTasks = [...data.items].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        const restoredMessages = orderedTasks.flatMap(taskToChatMessages)
+        setMessages([createWelcomeMessage(pet), ...restoredMessages])
+
+        const activeTask = [...data.items]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .find(task => task.status === 'pending' || task.status === 'running')
+        if (activeTask) {
+          showTask(activeTask)
+          startTaskPolling(activeTask.task_id)
+        }
+      } catch {
+        // 历史恢复失败不影响新的学习对话。
+      }
+    }
+    void loadHistory()
+    return () => {
+      cancelled = true
+    }
+  }, [pet, showTask, startTaskPolling])
+
+  useEffect(() => {
+    if (!selectedTaskId) return
+    let cancelled = false
+
+    async function loadSelectedTask() {
+      stopPolling()
+      try {
+        const task = await api.getAgentTask(selectedTaskId!)
+        if (cancelled) return
+        showTask(task)
+        if (task.status === 'pending' || task.status === 'running') {
+          startTaskPolling(task.task_id)
+        }
+      } catch {
+        if (cancelled) return
+        setPolling(false)
+        setSteps([])
+        setMessages(prev => [...prev, {
+          id: `err-${++msgCounter.current}`,
+          sender: 'agent',
+          content: '这条任务暂时读取失败，请稍后再试。',
+          timestamp: new Date().toISOString(),
+        }])
+        onStateChange?.('failed', '任务读取失败。')
+      }
+    }
+
+    void loadSelectedTask()
+    return () => {
+      cancelled = true
+    }
+  }, [onStateChange, selectedTaskId, showTask, startTaskPolling, stopPolling])
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, steps])
 
   useEffect(() => () => {
-    if (pollingRef.current) clearInterval(pollingRef.current)
+    stopPolling()
     if (ttsAudioRef.current) ttsAudioRef.current.pause()
     if (ttsBlobUrlRef.current) URL.revokeObjectURL(ttsBlobUrlRef.current)
     recognitionRef.current?.stop()
-  }, [])
+  }, [stopPolling])
 
   const playTts = useCallback(async (msgId: string, text: string) => {
     if (ttsAudioRef.current) {
@@ -238,34 +374,7 @@ export function AgentChat({
 
     try {
       const result = await api.createAgentTask({ task_type: taskType, input_text: text })
-      let handled = false
-      pollingRef.current = setInterval(async () => {
-        if (handled) return
-        try {
-          const task = await api.getAgentTask(result.task_id)
-          setSteps(task.steps || [])
-          onStateChange?.(taskStatusToPetState(task.status, task.task_type), latestStepText(task.steps))
-
-          if (task.status === 'completed' || task.status === 'failed') {
-            handled = true
-            if (pollingRef.current) clearInterval(pollingRef.current)
-            pollingRef.current = null
-            setPolling(false)
-            setSteps([])
-            setMessages(prev => [...prev, {
-              id: `agent-${++msgCounter.current}`,
-              sender: 'agent',
-              content: task.status === 'completed' ? formatResult(task) : task.error_message || '任务执行失败，请稍后重试。',
-              task: task.status === 'completed' ? task : undefined,
-              timestamp: new Date().toISOString(),
-            }])
-            onStateChange?.(task.status === 'completed' ? 'success' : 'failed')
-            if (task.status === 'completed') onXpChange()
-          }
-        } catch {
-          // Keep polling; transient backend errors are common during startup.
-        }
-      }, 1600)
+      startTaskPolling(result.task_id)
     } catch (error: unknown) {
       setPolling(false)
       onStateChange?.('failed', '任务未能创建。')

@@ -269,6 +269,40 @@ def _save_chat_turn(user_id: str, pet_id: str, message: str, answer: str) -> Non
         )
 
 
+def _task_result_to_message(task_type: str, result: dict[str, Any] | None, error_message: str | None = None) -> str:
+    if error_message:
+        return _clean_memory_text(error_message, limit=1200) or "任务执行失败，请稍后重试。"
+    if not result:
+        return "任务完成，但没有返回可展示的结果。"
+
+    answer = result.get("answer")
+    if answer:
+        return _clean_memory_text(answer, limit=1200) or "任务已完成。"
+
+    if task_type == "search":
+        if result.get("tool_status") and result.get("tool_status") != "success" and result.get("message"):
+            return _clean_memory_text(result.get("message"), limit=1200) or "检索工具暂时不可用，请稍后重试。"
+        items = result.get("items")
+        if isinstance(items, list):
+            return f"找到 {len(items)} 条可用学习资料。"
+
+    if task_type == "summarize" and result.get("topic"):
+        return "摘要已生成，请查看要点和建议。"
+    if task_type == "compare" and result.get("items"):
+        return "对比分析已完成，请查看不同视角。"
+    return "任务已完成。"
+
+
+def _save_task_agent_message(task_id: str, user_id: str, content: str) -> None:
+    message = _clean_memory_text(content, limit=1200)
+    if not message:
+        return
+    execute(
+        "INSERT INTO agent_messages (task_id, user_id, sender, content, created_at) VALUES (?, ?, 'agent', ?, ?)",
+        (task_id, user_id, message, now_iso()),
+    )
+
+
 def _remember_chat_turn(user_id: str, pet_id: str, message: str, answer: str) -> None:
     try:
         _save_chat_turn(user_id, pet_id, message, answer)
@@ -542,6 +576,8 @@ URL：{url or "无"}
 
 async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: str, personality: str):
     """Background task execution using browser + Spark Lite API"""
+    row = fetch_one("SELECT user_id FROM agent_tasks WHERE id = ?", (task_id,))
+    user_id = row["user_id"] if row else settings.single_user_id
     try:
         execute(
             "UPDATE agent_tasks SET status = 'running', updated_at = ? WHERE id = ?",
@@ -559,15 +595,18 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
             (json.dumps(result, ensure_ascii=False), now_iso(), task_id),
         )
         _add_step(task_id, 99, "done", "任务完成！")
+        _save_task_agent_message(task_id, user_id, _task_result_to_message(task_type, result))
         if award_xp:
             _award_xp(pet_id, task_type)
 
     except asyncio.TimeoutError:
+        error_msg = "任务超时，请稍后重试"
         execute(
             "UPDATE agent_tasks SET status = 'failed', error_message = ?, updated_at = ? WHERE id = ?",
-            ("任务超时，请稍后重试", now_iso(), task_id),
+            (error_msg, now_iso(), task_id),
         )
         _add_step(task_id, 99, "error", "任务超时")
+        _save_task_agent_message(task_id, user_id, _task_result_to_message(task_type, None, error_msg))
     except Exception as ex:
         error_msg = str(ex)[:500]
         execute(
@@ -575,6 +614,7 @@ async def _execute_task(task_id: str, task_type: str, input_text: str, pet_id: s
             (error_msg, now_iso(), task_id),
         )
         _add_step(task_id, 99, "error", f"任务失败: {error_msg[:100]}")
+        _save_task_agent_message(task_id, user_id, _task_result_to_message(task_type, None, error_msg))
 
 
 async def _execute_fallback_task(task_id: str, task_type: str, input_text: str, persona_prompt: str) -> dict:
@@ -907,6 +947,41 @@ async def get_pet(current_user: dict = Depends(get_current_user)):
     if not row:
         return ok(None)
     return ok(_pet_row_to_dict(row))
+
+
+@router.delete("/pet")
+async def reset_pet(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["user_id"]
+    row = _get_pet(user_id)
+    if not row:
+        return ok({"deleted": False})
+
+    pet_id = row["id"]
+    task_rows = fetch_all("SELECT id FROM agent_tasks WHERE user_id = ? AND pet_id = ?", (user_id, pet_id))
+    task_ids = [task["id"] for task in task_rows]
+
+    with get_conn() as conn:
+        if task_ids:
+            placeholders = ",".join("?" for _ in task_ids)
+            conn.execute(
+                f"DELETE FROM agent_task_steps WHERE task_id IN ({placeholders})",
+                tuple(task_ids),
+            )
+            conn.execute(
+                f"DELETE FROM agent_messages WHERE user_id = ? AND task_id IN ({placeholders})",
+                (user_id, *task_ids),
+            )
+            conn.execute(
+                f"DELETE FROM agent_tasks WHERE user_id = ? AND id IN ({placeholders})",
+                (user_id, *task_ids),
+            )
+        conn.execute(
+            "DELETE FROM agent_messages WHERE user_id = ? AND task_id = ?",
+            (user_id, _chat_memory_key(pet_id)),
+        )
+        conn.execute("DELETE FROM agent_pets WHERE user_id = ? AND id = ?", (user_id, pet_id))
+
+    return ok({"deleted": True})
 
 
 @router.patch("/pet")
