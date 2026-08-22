@@ -90,10 +90,10 @@ const BenefitSection: React.FC<Props> = ({ benefit, imageAtRight }: Props) => {
                     <div className={clsx("w-full flex", { "justify-start": imageAtRight, "justify-end": !imageAtRight })}>
                         <Image
                             src={imageSrc}
-                            alt="title"
+                            alt={title}
                             width={520}
                             height={1030}
-                            quality={100}
+                            quality={75}
                             className="lg:ml-0 w-full max-w-[520px] sm:max-w-[580px] h-auto"
                         />
                     </div>

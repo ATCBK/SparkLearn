@@ -21,9 +21,12 @@ const PricingColumn: React.FC<Props> = ({ tier, highlight }: Props) => {
                     </span>
                     {typeof price === 'number' && <span className="text-lg font-normal text-gray-600">{'/\u6708'}</span>}
                 </p>
-                <button className={clsx("w-full py-3 px-4 rounded-full transition-colors", { "bg-primary hover:bg-primary-accent": highlight, "bg-hero-background hover:bg-gray-200": !highlight })}>
-                    {`\u7ACB\u5373\u4E86\u89E3`}
-                </button>
+                <a
+                    href="#cases"
+                    className={clsx("block w-full rounded-full px-4 py-3 text-center transition-colors", { "bg-primary hover:bg-primary-accent": highlight, "bg-hero-background hover:bg-gray-200": !highlight })}
+                >
+                    查看对应案例
+                </a>
             </div>
             <div className="p-6 mt-1">
                 <p className="font-bold mb-0">{`\u5305\u542B\u5185\u5BB9`}</p>

@@ -17,9 +17,24 @@ const FAQ: React.FC = () => {
                     <p className="lg:mt-10 text-foreground-accent text-center lg:text-left">
                         有什么想了解的，直接问我们。
                     </p>
-                    <a href="mailto:support@sparklearn.cn" className="mt-3 block text-xl lg:text-4xl text-secondary font-semibold hover:underline text-center lg:text-left">
-                        support@sparklearn.cn
+                    <a href="mailto:3211840032@qq.com" className="mt-3 block text-xl lg:text-4xl text-secondary font-semibold hover:underline text-center lg:text-left">
+                        3211840032@qq.com
                     </a>
+                    <div className="mt-8 grid gap-3 text-center lg:text-left">
+                        {[
+                            ['先看产品亮点', '#features'],
+                            ['查看功能方案', '#pricing'],
+                            ['浏览案例展示', '#cases'],
+                        ].map(([label, href]) => (
+                            <a
+                                key={href}
+                                href={href}
+                                className="rounded-full border border-gray-200 bg-white px-5 py-3 text-base font-semibold text-foreground transition-colors hover:border-secondary hover:text-secondary"
+                            >
+                                {label}
+                            </a>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="w-full lg:max-w-2xl mx-auto border-b">
@@ -27,7 +42,7 @@ const FAQ: React.FC = () => {
                         <div key={index} className="mb-7">
                             <Disclosure>
                                 {({ open }) => (
-                                    <>
+                                    <div>
                                         <DisclosureButton className="flex items-center justify-between w-full px-4 pt-7 text-lg text-left border-t">
                                             <span className="text-2xl font-semibold">{faq.question}</span>
                                             {open ? <BiMinus className="w-5 h-5 text-secondary" /> : <BiPlus className="w-5 h-5 text-secondary" />}
@@ -35,7 +50,7 @@ const FAQ: React.FC = () => {
                                         <DisclosurePanel className="px-4 pt-4 pb-2 text-foreground-accent">
                                             {faq.answer}
                                         </DisclosurePanel>
-                                    </>
+                                    </div>
                                 )}
                             </Disclosure>
                         </div>

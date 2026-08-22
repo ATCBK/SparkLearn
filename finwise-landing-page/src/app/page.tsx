@@ -15,6 +15,8 @@ const HomePage: React.FC = () => {
       <Hero />
       <Logos />
       <Container>
+        <CTA />
+
         <Benefits />
 
         <Section
@@ -26,7 +28,7 @@ const HomePage: React.FC = () => {
         </Section>
 
         <Section
-          id="testimonials"
+          id="cases"
           title="用户反馈"
           description="看一眼就知道，为什么他们会选择 SparkLearn。"
         >
@@ -36,8 +38,6 @@ const HomePage: React.FC = () => {
         <FAQ />
 
         <Stats />
-
-        <CTA />
       </Container>
     </>
   );

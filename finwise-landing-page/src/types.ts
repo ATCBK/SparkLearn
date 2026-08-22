@@ -32,6 +32,8 @@ export interface ITestimonial {
     role: string;
     message: string;
     avatar: string;
+    actionText?: string;
+    actionUrl?: string;
 }
 
 export interface IStats {

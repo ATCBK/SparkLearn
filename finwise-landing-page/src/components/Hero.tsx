@@ -5,7 +5,6 @@ import AppStoreButton from './AppStoreButton';
 import PlayStoreButton from './PlayStoreButton';
 
 import { heroDetails } from '@/data/hero';
-import heroMockup from '../../exchange-image/phone_transparent_bg.png';
 
 const Hero: React.FC = () => {
     return (
@@ -28,16 +27,16 @@ const Hero: React.FC = () => {
                     <AppStoreButton dark />
                     <PlayStoreButton dark />
                 </div>
-                <Image
-                    src={heroMockup}
-                    width={808}
-                    height={1004}
-                    quality={100}
-                    priority={true}
-                    unoptimized={true}
-                    alt="app mockup"
-                    className='relative mt-12 md:mt-16 mx-auto z-10 h-auto w-full max-w-[540px]'
-                />
+                <div className="relative z-10 mx-auto mt-10 w-full max-w-[1160px] pb-16 md:mt-14 md:pb-20">
+                    <Image
+                        src="/images/sparklearn-device-composite.png"
+                        alt="SparkLearn 电脑端与手机端产品展示"
+                        width={1410}
+                        height={822}
+                        priority
+                        className="mx-auto h-auto w-full drop-shadow-[0_34px_70px_rgba(15,23,42,0.20)]"
+                    />
+                </div>
             </div>
         </section>
     );

@@ -26,7 +26,7 @@ export function BrandLogo({
       style={{ width: size, height: size }}
     >
       <Image
-        src="/logo-v2.png"
+        src="/sparklearn-logo-official.png"
         alt={alt}
         fill
         sizes={`${size}px`}

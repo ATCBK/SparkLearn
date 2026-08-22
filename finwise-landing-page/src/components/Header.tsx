@@ -10,6 +10,8 @@ import Container from './Container';
 import { siteDetails } from '@/data/siteDetails';
 import { menuItems } from '@/data/menuItems';
 
+const platformEntryUrl = process.env.NEXT_PUBLIC_SPARKLEARN_APP_URL || 'http://platform.sparklearn.cn';
+
 const Header: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -44,9 +46,9 @@ const Header: React.FC = () => {
                             </li>
                         ))}
                         <li>
-                            <Link href="#cta" className="text-black bg-primary hover:bg-primary-accent px-8 py-3 rounded-full transition-colors">
+                            <a href={platformEntryUrl} className="text-black bg-primary hover:bg-primary-accent px-8 py-3 rounded-full transition-colors">
                                 立即体验
-                            </Link>
+                            </a>
                         </li>
                     </ul>
 
@@ -88,9 +90,9 @@ const Header: React.FC = () => {
                             </li>
                         ))}
                         <li>
-                            <Link href="#cta" className="text-black bg-primary hover:bg-primary-accent px-5 py-2 rounded-full block w-fit" onClick={toggleMenu}>
+                            <a href={platformEntryUrl} className="text-black bg-primary hover:bg-primary-accent px-5 py-2 rounded-full block w-fit" onClick={toggleMenu}>
                                 立即体验
-                            </Link>
+                            </a>
                         </li>
                     </ul>
                 </div>

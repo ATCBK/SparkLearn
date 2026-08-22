@@ -327,7 +327,7 @@ export default function AuthPage() {
     <main className="auth-page">
       <div className="brand">
         <Image
-          src="/sparklearn-logo.png"
+          src="/sparklearn-logo-official.png"
           alt="SparkLearn"
           width={68}
           height={56}

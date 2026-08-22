@@ -1,5 +1,5 @@
 export const heroDetails = {
-    heading: '一眼看懂 SparkLearn 的核心能力',
-    subheading: '学习画像、智能路径、AI 内容生成和成果复盘，让用户快速知道这个产品能做什么。',
+    heading: '学而思SparkLearn',
+    subheading: '让教育从千人一面走向一人一世界',
     centerImageSrc: '/images/phone_transparent_bg.png',
 }
