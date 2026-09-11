@@ -5,7 +5,7 @@
 <h1 align="center">SparkLearn · 个性化学习多智能体平台</h1>
 
 <p align="center">
-  <em>让每一位学习者都拥有专属 AI 学习伙伴</em>
+  <em>"中国软件杯"大学生软件程序设计大赛全国一等奖获奖作品</em>
 </p>
 
 <p align="center">
