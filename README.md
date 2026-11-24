@@ -13,36 +13,7 @@
   <strong>联系邮箱：3211840032@qq.com</strong>
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Frontend-Next.js_16-00C2FF?logo=next.js&logoColor=white" />
-  <img src="https://img.shields.io/badge/Backend-FastAPI-2DD4BF?logo=fastapi&logoColor=0f172a" />
-  <img src="https://img.shields.io/badge/AI-讯飞星火-38BDF8" />
-  <img src="https://img.shields.io/badge/Agent-星辰Agent平台-A78BFA" />
-  <img src="https://img.shields.io/badge/Database-SQLite-34D399" />
-  <img src="https://img.shields.io/badge/个性化闭环-画像→路径→评测-22C55E" />
-  <img src="https://img.shields.io/badge/多智能体协同-学习资源生成-F59E0B" />
-  <img src="https://img.shields.io/badge/多模态学习-文档%2F题目%2F视频%2F播客-06B6D4" />
-  <img src="https://img.shields.io/badge/语音交互-输入%2B播报-EC4899" />
-  <img src="https://img.shields.io/badge/教师干预-风险识别与追踪-EF4444" />
-  <img src="https://img.shields.io/badge/学习社区-论坛%2F答疑%2F共学-F97316" />
-  <img src="https://img.shields.io/badge/Tutor工作区-角色%2F文件%2F研讨-F43F5E" />
-  <img src="https://img.shields.io/badge/A2UI-自动个性化界面-2563EB" />
-  <img src="https://img.shields.io/badge/AG--UI-调用过程可视化-0EA5E9" />
-  <img src="https://img.shields.io/badge/MCP-插件商店与接口-EAB308" />
-  <img src="https://img.shields.io/badge/RAG-知识检索增强-14B8A6" />
-  <img src="https://img.shields.io/badge/向量化-Embedding检索-06B6D4" />
-  <img src="https://img.shields.io/badge/记忆系统-多层记忆召回-6366F1" />
-  <img src="https://img.shields.io/badge/防幻觉-可信回答控制器-F97316" />
-  <img src="https://img.shields.io/badge/多模态对话-文本%2B图片生成-EC4899" />
-  <img src="https://img.shields.io/badge/Desktop-Electron桌面端-8B5CF6?logo=electron&logoColor=white" />
-  <img src="https://img.shields.io/badge/Admin-平台管理端-3B82F6" />
-  <img src="https://img.shields.io/badge/产品矩阵-已构建完成-111827" />
-  <img src="https://img.shields.io/badge/学生端-学习闭环-2563EB" />
-  <img src="https://img.shields.io/badge/教师端-教学干预-0EA5E9" />
-  <img src="https://img.shields.io/badge/社区端-共学协作-F97316" />
-  <img src="https://img.shields.io/badge/桌面端-本地能力-8B5CF6" />
-  <img src="https://img.shields.io/badge/小程序-轻量接入-10B981" />
-</p>
+
 
 ---
 
